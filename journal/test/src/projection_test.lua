@@ -49,8 +49,8 @@ local function with_db(fn: (any) -> ())
     handle:release()
 end
 
-local function define_tests()
-    test.describe("Journal Projection Worker", function()
+local function define_history()
+    test.describe("Journal projection history", function()
         test.it("replays skipped history without replacing a later indexed digest", function()
             local journal_id = "history-replay-digest"
             local older = ev(types.EVENT.DIGEST_UPDATED, {
@@ -77,7 +77,11 @@ local function define_tests()
                 test.eq(events[2].id, "digest-later")
             end)
         end)
+    end)
+end
 
+local function define_tests()
+    test.describe("Journal Projection Worker", function()
         test.it("writes search documents in bounded batches for each event fold", function()
             for _, dialect in ipairs({ "sqlite", "postgres" }) do
                 local handle, calls = postgres_spy()
@@ -1024,4 +1028,4 @@ local function run(options)
     return run_cases(options)
 end
 
-return { run = run }
+return { run = run, run_history = test.run_cases(define_history) }
