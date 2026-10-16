@@ -167,6 +167,27 @@ entries:
       projector: chestor.journal.persist:projector
       embedding_scheduler: chestor.journal.embedding:scheduler
 
+  - name: journal_history_replay_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_journal
+      group: Chestor Journal
+      comment: Skipped history replay preserves later materialized state.
+    source: file://projection_test.lua
+    method: run_history
+    modules: [sql]
+    imports:
+      test: wippy.test:test
+      ops: chestor.journal.persist:ops
+      types: chestor.journal:types
+      reader: chestor.journal.persist:reader
+      cursors: chestor.journal.persist:cursors
+      writer: chestor.journal.persist:writer
+      embeddings: chestor.journal.persist:embeddings
+      projector: chestor.journal.persist:projector
+      embedding_scheduler: chestor.journal.embedding:scheduler
+
   - name: journal_packaging_test
     kind: function.lua
     meta:
