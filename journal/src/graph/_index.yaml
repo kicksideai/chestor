@@ -1,0 +1,185 @@
+version: "1.0"
+namespace: chestor.journal.graph
+
+entries:
+  - name: config
+    kind: library.lua
+    source: file://config.lua
+    imports: { db: chestor.journal.persist:ops }
+
+  - name: operations
+    kind: library.lua
+    source: file://operations.lua
+    imports: { db: chestor.journal.persist:ops }
+
+  - name: structural
+    kind: library.lua
+    source: file://structural.lua
+    imports: { db: chestor.journal.persist:ops, types: chestor.journal:types }
+
+  - name: deriver
+    kind: library.lua
+    meta:
+      comment: Deterministic relation rules; turns the relations a fact already carries into marked, idempotent map edges.
+    source: file://deriver.lua
+    imports: { db: chestor.journal.persist:ops }
+
+  - name: scheduler
+    kind: library.lua
+    source: file://scheduler.lua
+    imports:
+      config: chestor.journal.graph:config
+      jobs: kickside.core.jobs:jobs
+      job_intents: chestor.journal.persist:graph_jobs
+      policy: chestor.journal.graph:maintenance_policy
+      db: chestor.journal.persist:ops
+      types: chestor.journal:types
+      reader: chestor.journal.persist:graph_reader
+
+  - name: maintenance_policy
+    kind: library.lua
+    source: file://maintenance_policy.lua
+    imports:
+      db: chestor.journal.persist:ops
+      jobs: chestor.journal.persist:graph_jobs
+
+  - name: hierarchy
+    kind: library.lua
+    source: file://hierarchy.lua
+    imports:
+      db: chestor.journal.persist:ops
+
+  - name: projector
+    kind: library.lua
+    source: file://projector.lua
+    imports:
+      config: chestor.journal.graph:config
+      operations: chestor.journal.graph:operations
+      structural: chestor.journal.graph:structural
+      deriver: chestor.journal.graph:deriver
+      types: chestor.journal:types
+      db: chestor.journal.persist:ops
+      facts: chestor.journal.persist:graph_facts
+      reader: chestor.journal.persist:graph_reader
+      writer: chestor.journal.persist:graph_writer
+      scheduler: chestor.journal.graph:scheduler
+      hierarchy: chestor.journal.graph:hierarchy
+
+  - name: projection
+    kind: process.lua
+    meta:
+      type: projection.worker
+      kind: chestor.journal:graph_state
+      category: journal
+      comment: Ordered deterministic Journal graph state and configuration projection.
+    source: file://projection.lua
+    method: run
+    modules: [logger]
+    imports:
+      component: kickside.component:component
+      projector: chestor.journal.graph:projector
+      job_types: kickside.core.jobs:types
+      embedding_scheduler: chestor.journal.embedding:scheduler
+
+  - name: maintainer
+    kind: function.lua
+    meta:
+      comment: One bounded Journal graph maintenance job, invoked by the shared KickSide leased-job engine.
+    source: file://maintainer.lua
+    method: run
+    imports:
+      agent_context: wippy.agent:context
+      prompt: wippy.llm:prompt
+      tool_caller: wippy.agent.tools:caller
+      db: chestor.journal.persist:ops
+      graph_reader: chestor.journal.persist:graph_reader
+      journal_reader: chestor.journal.persist:reader
+      jobs: chestor.journal.persist:graph_jobs
+
+  - name: default_maintainer
+    kind: registry.entry
+    meta:
+      type: agent.gen1
+      title: Journal Graph Maintainer
+      public: false
+    prompt: |
+      You maintain one bounded, ontology-neutral map inside a durable Journal.
+      Its nodes may represent work, research, documentation, design rules,
+      observations, people, systems, or any other user-declared subject; never
+      infer that an ordinary node is a task. The Journal event ledger is
+      authoritative. Inspect the supplied source events and current graph window.
+      Use JournalQuery
+      only when a smaller connected view or evidence page is necessary. Use
+      JournalGraph with action=apply for one idempotent batch when the evidence supports a
+      useful semantic node or link. Reuse stable semantic keys, cite source event
+      ids, preserve manual/pinned/locked records, and prefer no mutation over an
+      uncertain classification. Never delete an obsolete finding or failed
+      approach to make the current view cleaner: retain it with a retired,
+      rejected, or superseded lifecycle and link the replacement explicitly.
+      Never ask for or load a complete graph. The task
+      For graphs that explicitly contain projected strict-work nodes, never
+      reparent a `task:*` node away from its asserted parent and preserve its
+      dependency edges. When any branch's fact nodes become crowded, introduce
+      stable evidence-backed concept nodes only within that branch and reparent
+      only automatic fact nodes. Nodes carry seq: keep sibling ordering legible
+      as the sequence in which knowledge arrived. Never restructure a subtree
+      rooted at the optional active `task:*` node beyond adding facts. Decisions
+      form traceable chains and observations sit beneath the subject they refine.
+      Reuse existing concepts, keep branches small enough to inspect, never invent
+      facts, and do not perform cosmetic rewrites.
+    model: class:fast
+    tools:
+      - chestor.journal.traits:journal_query
+      - chestor.journal.traits:journal_graph
+
+  - name: refine
+    kind: library.lua
+    meta:
+      comment: Bounded candidate judging for the on-demand refine pass; strict parsing, confidence floor, and a per-node cap.
+    source: file://refine.lua
+    modules: [json]
+    imports:
+      db: chestor.journal.persist:ops
+      deriver: chestor.journal.graph:deriver
+
+  - name: judge
+    kind: library.lua
+    meta:
+      comment: The refine pass's model seam; one text prompt in, one text answer out, on the configured model class.
+    source: file://judge.lua
+    imports:
+      llm: wippy.llm:llm
+      db: chestor.journal.persist:ops
+
+  - name: assembly
+    kind: library.lua
+    meta:
+      comment: On-demand map assembly; deterministic replay and reconciliation of derived relations, then the bounded refine pass.
+    source: file://assembly.lua
+    imports:
+      structural: chestor.journal.graph:structural
+      deriver: chestor.journal.graph:deriver
+      refine: chestor.journal.graph:refine
+      types: chestor.journal:types
+      db: chestor.journal.persist:ops
+      facts: chestor.journal.persist:graph_facts
+      ledger: chestor.journal.persist:graph_assembly
+      reader: chestor.journal.persist:graph_reader
+      writer: chestor.journal.persist:graph_writer
+      thread_log: chestor.journal:thread_log
+
+  - name: service
+    kind: library.lua
+    source: file://service.lua
+    modules: [crypto]
+    imports:
+      config: chestor.journal.graph:config
+      operations: chestor.journal.graph:operations
+      types: chestor.journal:types
+      thread_log: chestor.journal:thread_log
+      db: chestor.journal.persist:ops
+      jobs: kickside.core.jobs:jobs
+      ledger: chestor.journal.persist:graph_assembly
+      reader: chestor.journal.persist:graph_reader
+      execution_identity: kickside.execution:execution_identity
+      recall: chestor.journal.read:recall

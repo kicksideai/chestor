@@ -1,0 +1,345 @@
+version: "1.0"
+namespace: app
+
+# Standalone harness for chestor/db-schema. Provides app:db + a router + process
+# host + bootloader, and pulls the contract/workspace/component deps the schema
+# binding implements, so the module loads and its co-located *_test.lua suites run
+# (projection worker fold + schema trait validation). Harness-only.
+
+entries:
+  - name: db
+    kind: db.sql.sqlite
+    meta:
+      comment: In-memory database for the db-schema suite.
+    file: ":memory:"
+
+  - name: env_storage
+    kind: env.storage.file
+    meta:
+      type: envstorage
+    file_path: ./.wippy/test.env
+    auto_create: true
+
+  - name: processes
+    kind: process.host
+    lifecycle:
+      auto_start: true
+
+  - name: uploads
+    kind: fs.directory
+    directory: ./.wippy/uploads
+    auto_init: true
+
+  - name: gateway
+    kind: http.service
+    meta:
+      comment: Test HTTP server.
+    addr: :19116
+    lifecycle:
+      auto_start: true
+
+  - name: api
+    kind: http.router
+    meta:
+      comment: Test API router.
+      server: gateway
+    prefix: /api
+
+  - name: user
+    kind: security.policy
+    meta:
+      comment: Permissive scope the db-schema backend E2E suite runs its scoped actors under.
+    groups:
+      - db_schema_test
+    policy:
+      resources: '*'
+      actions: '*'
+      effect: allow
+
+  - name: schema_probe
+    kind: function.lua
+    meta:
+      comment: Test-only actor-framed access to the db-schema backend library.
+    source: file://schema_probe.lua
+    modules:
+      - contract
+      - security
+    imports:
+      schema_state: chestor.db_schema:schema_state
+      types: chestor.db_schema:types
+    method: handle
+
+  - name: wait_for_boot
+    kind: function.lua
+    meta:
+      type: test
+      suite: "00_setup"
+      group: Setup
+      comment: Waits for the bootloader's single migration pass to finish on every SQL dialect.
+    source: file://wait_for_boot.lua
+    modules: [sql, time]
+    method: run
+
+  - name: schema_backend_e2e_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_db_schema
+      group: KickSide DB Schema
+      comment: DB-schema backend E2E — command append, projection catch-up, normalized table reads, read binding, and event log.
+    source: file://backend_e2e_test.lua
+    modules:
+      - funcs
+      - security
+      - crypto
+      - contract
+      - sql
+      - json
+    imports:
+      test: wippy.test:test
+    method: run
+
+  - name: schema_projection_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_db_schema
+      group: KickSide DB Schema
+      comment: Schema normalized projection contract.
+    source: file://projection_test.lua
+    method: run
+    modules: [funcs, sql]
+    imports:
+      test: wippy.test:test
+      schema_state: chestor.db_schema:schema_state
+      materializer: chestor.db_schema:materializer
+      types: chestor.db_schema:types
+
+  - name: schema_packaging_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_db_schema
+      group: KickSide DB Schema
+      comment: Database requirement and dependency declarations.
+    source: file://packaging_test.lua
+    method: run
+    modules: [registry, security]
+    imports:
+      test: wippy.test:test
+      types: chestor.db_schema:types
+
+  - name: schema_traits_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_db_schema
+      group: KickSide DB Schema
+      comment: Schema trait tools validate their public input contract.
+    source: file://traits_test.lua
+    method: run
+    modules: [funcs]
+    imports:
+      test: wippy.test:test
+      get_schema: chestor.db_schema.traits:get_schema_tool
+      edit_schema: chestor.db_schema.traits:edit_schema_tool
+
+  - name: dep.chestor.db_schema
+    kind: ns.dependency
+    version: "*"
+    meta:
+      comment: DB-schema package under test, wired only to harness-owned resources.
+    component: "chestor/db-schema"
+    parameters:
+      - {name: 'chestor.db_schema.security:user_security_scope', value: 'app:user'}
+      - name: chestor.db_schema:target_db
+        value: app:db
+      - name: chestor.db_schema:api_router
+        value: app:api
+      - name: chestor.db_schema:ui_server
+        value: app:gateway
+
+  # These deps provide the contracts and runtime services exercised directly by
+  # the backend harness.
+  - name: dep.kickside.contract
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Shared contracts (deletable) the schema binding implements.
+    component: kickside/contract
+    parameters:
+    - name: kickside.contract.http:user_security_scope
+      value: app:user
+
+  - name: dep.kickside.component
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Component service + autoinit that processes the schema kind binding.
+    component: kickside/component
+    parameters:
+    - name: kickside.component:target_db
+      value: app:db
+    - name: kickside.component:api_router
+      value: app:api
+    - name: kickside.component:lifecycle_impl
+      value: kickside.core.lifecycle:component_lifecycle_impl
+
+  - name: dep.kickside.core
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Core thread log and projection engine used by db-schema backend E2E tests.
+    component: kickside/core
+    parameters:
+    - name: kickside.core:target_db
+      value: app:db
+    - name: kickside.core.lifecycle:process_host
+      value: app:processes
+    - name: kickside.core.lifecycle:user_lifecycle_grant
+      value:
+        subject_id: app:user
+        subject_type: group
+        access_mask: 2
+    - name: kickside.core.lifecycle:admin_lifecycle_grant
+      value:
+        subject_id: app:user
+        subject_type: group
+        access_mask: 3
+    - name: kickside.core.retention:process_host
+      value: app:processes
+    - name: kickside.core.threads:process_host
+      value: app:processes
+    - name: kickside.core.projections:process_host
+      value: app:processes
+    - name: kickside.core.retention:api_router
+      value: app:api
+    - name: kickside.core.threads:api_router
+      value: app:api
+    - name: kickside.core.threads.hydration:api_router
+      value: app:api
+    - name: kickside.core.projections:api_router
+      value: app:api
+    - name: kickside.core.retention:env_storage
+      value: app:env_storage
+    - name: kickside.core.projections:env_storage
+      value: app:env_storage
+    - name: kickside.core.retention:user_security_scope
+      value: app:user
+    - name: kickside.core.threads:user_security_scope
+      value: app:user
+    - name: kickside.core.threads.hydration:user_security_scope
+      value: app:user
+
+  - name: dep.kickside.jobs
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Job/effect schema that owns kickside_event_hydration, used by core purge cascades.
+    component: kickside/jobs
+    parameters:
+    - name: kickside.core.jobs:target_db
+      value: app:db
+    - name: kickside.core.jobs:temp_fs
+      value: app:uploads
+    - name: kickside.core.jobs:process_host
+      value: app:processes
+    - name: kickside.core.jobs:api_router
+      value: app:api
+    - name: kickside.core.scheduler:process_host
+      value: app:processes
+    - name: kickside.core.scheduler:env_storage
+      value: app:env_storage
+
+  - name: dep.chestor.workspace
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Defines the workspace:entry contract the schema binding implements.
+    component: "chestor/workspace"
+    parameters:
+      - { name: chestor.workspace:api_router, value: app:api }
+      - { name: chestor.workspace:ui_server, value: app:gateway }
+      - { name: chestor.workspace.security:user_security_scope, value: app:user }
+
+  - name: dep.kickside.renderers
+    kind: ns.dependency
+    version: '*'
+    component: kickside/renderers
+    parameters:
+      - { name: kickside.renderers:api_router, value: app:api }
+      - { name: kickside.renderers:ui_server, value: app:gateway }
+      - { name: kickside.renderers:user_security_scope, value: app:user }
+
+  - name: dep.kickside.widgets
+    kind: ns.dependency
+    version: '*'
+    component: kickside/widgets
+    parameters:
+      - { name: kickside.widgets:api_router, value: app:api }
+      - { name: kickside.widgets:ui_server, value: app:gateway }
+
+  - name: dep.wippy.migration
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Migration framework wired to the harness database.
+    component: "wippy/migration"
+    parameters:
+      - name: app_db
+        value: app:db
+
+  - name: dep.wippy.bootloader
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Bootloader runs migrations + the co-located test suites on boot.
+    component: "wippy/bootloader"
+    parameters:
+      - name: application_host
+        value: app:processes
+      - name: env_storage
+        value: app:env_storage
+
+  - name: worker_admission_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: 01_worker_admission
+    source: file://worker_admission_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      worker: kickside.core.projections.persist:worker
+
+  - name: scope_resolver_contract_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: "00_scope_resolver"
+    source: file://scope_resolver_contract_test.lua
+    method: run
+    modules: [funcs, security]
+    imports:
+      test: wippy.test:test
+      execution_identity: kickside.execution:execution_identity
+
+  - name: dep.chestor.test_support
+    kind: ns.dependency
+    component: chestor/test-support
+    version: '*'
+    parameters:
+      - name: group
+        value: db_schema_test
+  - name: user_endpoint_policy_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: member_endpoint_policy
+    source: file://user_endpoint_policy_test.lua
+    method: run
+    modules:
+    - registry
+    - security
+    imports:
+      test: wippy.test:test

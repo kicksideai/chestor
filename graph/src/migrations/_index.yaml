@@ -1,0 +1,45 @@
+version: "1.0"
+namespace: chestor.graph.migrations
+
+entries:
+  - name: graph_materialized_tables_ops
+    kind: library.lua
+    meta:
+      comment: Migration operation that creates the normalized graph read-model tables.
+    source: file://01_create_graph_materialized_tables_ops.lua
+
+  - name: 01_create_graph_materialized_tables
+    kind: function.lua
+    meta:
+      type: migration
+      tags:
+        - graph
+        - read-model
+      comment: Create normalized graph materialization, material-source indexes, and undo history tables.
+      timestamp: "2026-07-04T00:00:01Z"
+    source: file://01_create_graph_materialized_tables.lua
+    imports:
+      migration: wippy.migration:migration
+      ops: chestor.graph.migrations:graph_materialized_tables_ops
+    method: migrate
+
+  - name: graph_history_stack_order_ops
+    kind: library.lua
+    meta:
+      comment: Adds explicit event-sequence ordering to the portable undo/redo history stacks.
+    source: file://02_add_history_stack_order_ops.lua
+
+  - name: 02_add_history_stack_order
+    kind: function.lua
+    meta:
+      type: migration
+      tags:
+        - graph
+        - history
+      comment: Replace SQLite rowid ordering with canonical thread event sequence ordering.
+      timestamp: "2026-07-17T21:20:00Z"
+    source: file://02_add_history_stack_order.lua
+    imports:
+      migration: wippy.migration:migration
+      ops: chestor.graph.migrations:graph_history_stack_order_ops
+    method: migrate

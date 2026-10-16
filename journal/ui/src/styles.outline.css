@@ -1,0 +1,39 @@
+/* Virtualized reading surfaces.
+
+   The outline lists every record in the focus window, so only the rows the
+   reader can resolve are drawn and two spacers stand in for the rest. Rows are
+   placed by arithmetic rather than measured, so the height comes from the one
+   constant OutlineTree publishes as --jr-row-height and the drawn row and the
+   placed row are always the same size. */
+
+/* The outline owns its scroll, so the window it measures is the pane in front
+   of the reader instead of the whole document. */
+.jr-view:has(> .jr-tree) {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.jr-tree {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+}
+
+.jr-vlist {
+  flex: 1 1 auto;
+  min-height: 0;
+  /* The last record clears the bottom edge instead of sitting on it. */
+  padding-bottom: 28px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.jr-tree-row {
+  height: var(--jr-row-height);
+  min-height: var(--jr-row-height);
+  margin: 0;
+}

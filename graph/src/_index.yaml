@@ -1,0 +1,341 @@
+version: "1.0"
+namespace: chestor.graph
+
+entries:
+  - name: definition
+    kind: ns.definition
+    meta:
+      title: Chestor Graph
+      comment: "Event-sourced graph workspace kind: nested typed nodes, typed edges, attached materials, layout, and view state on one component-owned thread."
+
+  - name: dep.kickside.core
+    kind: ns.dependency
+    version: '*'
+    component: kickside/core
+
+  - name: dep.kickside.contract
+    kind: ns.dependency
+    version: '*'
+    component: kickside/contract
+
+  - name: dep.kickside.widgets
+    kind: ns.dependency
+    version: '*'
+    component: kickside/widgets
+
+  - name: dep.wippy.migration
+    kind: ns.dependency
+    version: '*'
+    component: wippy/migration
+
+  - name: target_db
+    kind: ns.requirement
+    meta:
+      comment: SQL database resource backing the graph read model.
+    targets:
+      - entry: chestor.graph.migrations:01_create_graph_materialized_tables
+        path: .meta.target_db
+      - entry: chestor.graph.migrations:02_add_history_stack_order
+        path: .meta.target_db
+      - entry: chestor.graph:db_config
+        path: .meta.db_id
+
+  - name: db_config
+    kind: registry.entry
+    meta:
+      comment: Holds the requirement-injected graph DB resource id.
+
+  - name: api_router
+    kind: ns.requirement
+    meta:
+      comment: HTTP router the graph endpoints attach to.
+    targets:
+      - entry: chestor.graph.api:get_graph.endpoint
+        path: .meta.router
+      - entry: chestor.graph.api:apply_graph.endpoint
+        path: .meta.router
+      - entry: chestor.graph.api:undo_graph.endpoint
+        path: .meta.router
+      - entry: chestor.graph.api:redo_graph.endpoint
+        path: .meta.router
+      - entry: chestor.graph.api:list_nodes.endpoint
+        path: .meta.router
+      - entry: chestor.graph.api:list_edges.endpoint
+        path: .meta.router
+      - entry: chestor.graph.api:list_materials.endpoint
+        path: .meta.router
+      - entry: chestor.graph.api:get_schema.endpoint
+        path: .meta.router
+
+  - name: ui_server
+    kind: ns.requirement
+    meta:
+      comment: HTTP server the graph renderer static mount attaches to.
+    targets:
+      - entry: chestor.graph:ui_static
+        path: .meta.server
+
+  - name: ui_fs
+    kind: fs.directory
+    meta:
+      comment: Built chestor-graph renderer bundle.
+    directory: ./static
+
+  - name: ui_static
+    kind: http.static
+    meta:
+    fs: chestor.graph:ui_fs
+    path: /chestor-graph
+    prefix: /
+    options:
+      cache: "no-cache"
+
+  - name: renderer_view
+    kind: registry.entry
+    meta:
+      type: view.component
+      name: renderer_view
+      title: Graph
+      description: >-
+        Interactive semantic graph canvas mounted by the Workspace for a graph
+        component. Pass entry-id with the graph component id; mode may be
+        preview for the compact read-focused canvas or full for structure,
+        editing, schema, inspector, history, and layout controls. The component
+        owns its authenticated graph API calls and consumes no slotted content.
+      tag_name: chestor-graph
+      entry_point: index.js
+      base_path: chestor-graph
+      announced: true
+      auto_register: false
+    props:
+      type: object
+      properties:
+        entry-id:
+          type: string
+          default: ""
+          description: Workspace graph component id to load; an empty value renders the required-id error state.
+        read-only:
+          type: boolean
+          default: false
+          description: Disables editing while retaining full reading and inspection controls.
+        mode:
+          type: string
+          default: preview
+          description: "Rendering mode: preview for the compact read-focused canvas, or full for editing and navigation controls."
+
+  - name: types
+    kind: library.lua
+    meta:
+      name: types
+      comment: Graph constants and typed aliases.
+    source: file://types.lua
+    modules: [registry]
+
+  - name: graph
+    kind: library.lua
+    meta:
+      name: graph
+      comment: "Thread-backed graph API: append typed events, validate graph invariants, and read the normalized graph materialization."
+    source: file://graph.lua
+    modules: [contract, crypto, registry, json, security]
+    imports:
+      types: chestor.graph:types
+      materializer: chestor.graph:materializer
+
+  - name: materializer
+    kind: library.lua
+    meta:
+      name: materializer
+      comment: Normalized graph read-model tables and event projection.
+    source: file://materializer.lua
+    modules: [json, sql]
+    imports:
+      types: chestor.graph:types
+
+  - name: projection_worker
+    kind: function.lua
+    meta:
+      type: projection.worker
+      comment: Graph read-model projection worker — projects graph events into normalized tables.
+    source: file://projection.lua
+    method: run
+    imports:
+      materializer: chestor.graph:materializer
+
+  - name: graph_kind
+    kind: contract.binding
+    meta:
+      class: graph
+      title: Graph
+      icon: tabler:network
+      color: "var(--p-primary-color)"
+      component:
+        create: {}
+        manage: { view: chestor.graph:renderer_view, deep_link: true }
+      read: chestor.graph.binding:read
+      thread_class: workspace.graph
+      comment: A nested semantic graph — typed nodes and edges with attached materials; the component thread is its log.
+      events:
+        input: []
+        output:
+          - type: chestor.graph.events:node.added
+            schema: { id: string, type: string, name: string, description: "string?", parent_id: "string?", properties: "object?", tags: "string[]?", sort_order: "number?" }
+          - type: chestor.graph.events:node.updated
+            schema: { id: string, type: "string?", name: "string?", description: "string?", parent_id: "string?", properties: "object?", tags: "string[]?", sort_order: "number?" }
+          - type: chestor.graph.events:node.removed
+            schema: { id: string }
+          - type: chestor.graph.events:edge.added
+            schema: { id: string, type: string, source_id: string, target_id: string, label: "string?", properties: "object?" }
+          - type: chestor.graph.events:edge.updated
+            schema: { id: string, type: "string?", source_id: "string?", target_id: "string?", label: "string?", properties: "object?" }
+          - type: chestor.graph.events:edge.removed
+            schema: { id: string }
+          - type: chestor.graph.events:material.attached
+            schema:
+              id: string
+              target_type: string
+              target_id: "string?"
+              kind: string
+              title: "string?"
+              summary: "string?"
+              source: "object?"
+              meta: "object?"
+              sort_order: "number?"
+          - type: chestor.graph.events:material.updated
+            schema:
+              id: string
+              target_type: "string?"
+              target_id: "string?"
+              kind: "string?"
+              title: "string?"
+              summary: "string?"
+              source: "object?"
+              meta: "object?"
+              sort_order: "number?"
+          - type: chestor.graph.events:material.detached
+            schema: { id: string }
+          - type: chestor.graph.events:node-type.registered
+            schema: { id: string, title: string, icon: "string?", color: "string?", category: "string?", fields: "object?", render: "object?" }
+          - type: chestor.graph.events:node-type.updated
+            schema: { id: string, title: "string?", icon: "string?", color: "string?", category: "string?", fields: "object?", render: "object?" }
+          - type: chestor.graph.events:node-type.removed
+            schema: { id: string }
+          - type: chestor.graph.events:edge-type.registered
+            schema: { id: string, title: string, color: "string?", stroke: "string?", strokeWidth: "number?", animated: "bool?", fields: "object?", render: "object?" }
+          - type: chestor.graph.events:edge-type.updated
+            schema: { id: string, title: "string?", color: "string?", stroke: "string?", strokeWidth: "number?", animated: "bool?", fields: "object?", render: "object?" }
+          - type: chestor.graph.events:edge-type.removed
+            schema: { id: string }
+          - type: chestor.graph.events:material-type.registered
+            schema: { id: string, title: string, icon: "string?", targets: "string[]?", display: "string?", fields: "object?", source_schema: "object?" }
+          - type: chestor.graph.events:material-type.updated
+            schema: { id: string, title: "string?", icon: "string?", targets: "string[]?", display: "string?", fields: "object?", source_schema: "object?" }
+          - type: chestor.graph.events:material-type.removed
+            schema: { id: string }
+          - type: chestor.graph.events:layout.position-set
+            schema: { node_id: string, x: number, y: number, width: "number?", height: "number?", pinned: "bool?", meta: "object?" }
+          - type: chestor.graph.events:layout.position-cleared
+            schema: { node_id: string }
+          - type: chestor.graph.events:layout.viewport-set
+            schema: { root_id: "string?", x: number, y: number, zoom: number }
+          - type: chestor.graph.events:graph.settings-updated
+            schema: { settings: object }
+      ports:
+        - dir: out
+          mode: trigger
+          via: thread
+          class: graph
+          type: chestor.graph.events:node.added
+          title: Graph node added
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: graph
+          type: chestor.graph.events:node.updated
+          title: Graph node updated
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: graph
+          type: chestor.graph.events:node.removed
+          title: Graph node removed
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: graph
+          type: chestor.graph.events:edge.added
+          title: Graph edge added
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: graph
+          type: chestor.graph.events:edge.updated
+          title: Graph edge updated
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: graph
+          type: chestor.graph.events:edge.removed
+          title: Graph edge removed
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: graph
+          type: chestor.graph.events:material.attached
+          title: Graph material attached
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: graph
+          type: chestor.graph.events:material.updated
+          title: Graph material updated
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: graph
+          type: chestor.graph.events:material.detached
+          title: Graph material detached
+          announced: true
+      projections:
+        - kind: chestor.graph:state
+          worker_ref: "func://chestor.graph:projection_worker"
+          input_mode: prefetch_events
+          events:
+            input:
+              - type: chestor.graph.events:node.added
+              - type: chestor.graph.events:node.updated
+              - type: chestor.graph.events:node.removed
+              - type: chestor.graph.events:edge.added
+              - type: chestor.graph.events:edge.updated
+              - type: chestor.graph.events:edge.removed
+              - type: chestor.graph.events:material.attached
+              - type: chestor.graph.events:material.updated
+              - type: chestor.graph.events:material.detached
+              - type: chestor.graph.events:node-type.registered
+              - type: chestor.graph.events:node-type.updated
+              - type: chestor.graph.events:node-type.removed
+              - type: chestor.graph.events:edge-type.registered
+              - type: chestor.graph.events:edge-type.updated
+              - type: chestor.graph.events:edge-type.removed
+              - type: chestor.graph.events:material-type.registered
+              - type: chestor.graph.events:material-type.updated
+              - type: chestor.graph.events:material-type.removed
+              - type: chestor.graph.events:layout.position-set
+              - type: chestor.graph.events:layout.position-cleared
+              - type: chestor.graph.events:layout.viewport-set
+              - type: chestor.graph.events:graph.settings-updated
+    contracts:
+      - contract: kickside.contract:component
+        methods:
+          get_status: chestor.graph.binding:get_status
+      - contract: kickside.contract:deletable
+        methods:
+          delete: chestor.graph.binding:delete

@@ -1,0 +1,83 @@
+version: "1.0"
+namespace: chestor.db_schema.events
+
+entries:
+  - name: table.added
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: table.updated
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: table.removed
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: column.added
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: column.updated
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: column.removed
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: columns.reordered
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: relation.added
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: relation.updated
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: relation.removed
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: index.added
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: index.updated
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: index.removed
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: layout.position-set
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: layout.position-cleared
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: layout.viewport-set
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }

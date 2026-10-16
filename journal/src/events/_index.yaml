@@ -1,0 +1,98 @@
+version: "1.0"
+namespace: chestor.journal.events
+
+entries:
+  - name: entry.appended
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: task.upserted
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: task.closed
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: task.focused
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: task.linked
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: task.unlinked
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: task.transitioned
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: verification.requested
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: verification.receipt
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: cursor.updated
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: audit.coverage.recorded
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: integration.recorded
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: reference.linked
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: reference.unlinked
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: digest.updated
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: checkpoint.created
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: artifact.linked
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: graph.configuration.requested
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: graph.operations.requested
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }

@@ -1,0 +1,23 @@
+version: "1.0"
+namespace: chestor.workspace.binding
+
+entries:
+  - name: handlers
+    kind: library.lua
+    source: file://handlers.lua
+    modules: [contract, funcs, security]
+    imports:
+      component: kickside.component:component
+      entry_types: chestor.workspace:entry_types
+      consts: chestor.workspace:consts
+
+  - name: get_status
+    kind: function.lua
+    source: file://get_status.lua
+    method: handler
+    modules: [ctx, time]
+
+  - name: delete_entry
+    kind: function.lua
+    source: file://delete_entry.lua
+    method: handler

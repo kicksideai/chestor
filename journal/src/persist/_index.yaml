@@ -1,0 +1,177 @@
+version: "1.0"
+namespace: chestor.journal.persist
+
+entries:
+  - name: ops
+    kind: library.lua
+    meta:
+      internal: true
+      comment: Journal-owned SQL connection, dialect, placeholder, and JSON helpers.
+    source: file://ops.lua
+    modules: [json, sql]
+    imports:
+      types: chestor.journal:types
+
+  - name: reader
+    kind: library.lua
+    meta:
+      internal: true
+      reader: true
+      comment: Journal read side for timeline, tasks, artifacts, stats, exact search, time buckets, and pending embeddings.
+    source: file://reader.lua
+    imports:
+      db: chestor.journal.persist:ops
+      types: chestor.journal:types
+      retrieval_state: chestor.journal.persist:retrieval_state
+
+  - name: retrieval_state
+    kind: library.lua
+    meta:
+      internal: true
+      comment: Canonical effective lifecycle for current-truth and historical Journal retrieval.
+    source: file://retrieval_state.lua
+
+  - name: cursors
+    kind: library.lua
+    meta:
+      internal: true
+      reader: true
+      comment: Durable per-agent cursor, bounded episode, audit coverage, and integration receipt read model, plus the monotonic cursor position advance.
+    source: file://cursors.lua
+    imports:
+      db: chestor.journal.persist:ops
+      types: chestor.journal:types
+
+  - name: spans
+    kind: library.lua
+    meta:
+      internal: true
+      reader: true
+      comment: Implicit work-span episodes; keyset-paginated span reads plus the open, extend, and idle-seal write path the position seam drives.
+    source: file://spans.lua
+    imports:
+      db: chestor.journal.persist:ops
+      types: chestor.journal:types
+
+  - name: writer
+    kind: library.lua
+    meta:
+      internal: true
+      writer: true
+      comment: Journal teardown write side; all row deletion remains behind the component deletable binding.
+    source: file://writer.lua
+    imports:
+      db: chestor.journal.persist:ops
+
+  - name: embeddings
+    kind: library.lua
+    meta:
+      internal: true
+      comment: Journal embedding persistence and bounded semantic ranking.
+    source: file://embeddings.lua
+    modules: [hash]
+    imports:
+      db: chestor.journal.persist:ops
+      search_text: chestor.journal.persist:search_text
+      types: chestor.journal:types
+      retrieval_state: chestor.journal.persist:retrieval_state
+
+  - name: search_text
+    kind: library.lua
+    meta:
+      internal: true
+      comment: Canonical text document for Journal projection, exact search, and embeddings.
+    source: file://search_text.lua
+    imports:
+      db: chestor.journal.persist:ops
+      types: chestor.journal:types
+
+  - name: branch_digests
+    kind: library.lua
+    meta:
+      internal: true
+      comment: Per-branch digest state; deterministic det-1 generator plus the guarded monotonic/provenance write path (X7, I7.1/I7.2).
+    source: file://branch_digests.lua
+    imports:
+      db: chestor.journal.persist:ops
+      reader: chestor.journal.persist:reader
+
+  - name: projector
+    kind: library.lua
+    meta:
+      internal: true
+      comment: Idempotent event-to-read-model fold and public component-meta snapshot builder.
+    source: file://projector.lua
+    modules: [time, hash]
+    imports:
+      types: chestor.journal:types
+      db: chestor.journal.persist:ops
+      reader: chestor.journal.persist:reader
+      search_text: chestor.journal.persist:search_text
+      work_classification: chestor.journal.work:classification
+      branch_digests: chestor.journal.persist:branch_digests
+
+  - name: journal_projection
+    kind: process.lua
+    meta:
+      type: projection.worker
+      kind: chestor.journal:state
+      category: journal
+      comment: Materializes Journal events and publishes the component's canonical public summary.
+    source: file://journal_projection.lua
+    method: run
+    modules: [logger]
+    imports:
+      component: kickside.component:component
+      projector: chestor.journal.persist:projector
+      embedding_scheduler: chestor.journal.embedding:scheduler
+      health_scheduler: chestor.journal.health:scheduler
+      job_types: kickside.core.jobs:types
+
+  - name: graph_reader
+    kind: library.lua
+    meta:
+      internal: true
+      reader: true
+      comment: Bounded Journal graph catalog, window, search, evidence, backlink, and delta reads.
+    source: file://graph_reader.lua
+    imports:
+      db: chestor.journal.persist:ops
+      retrieval_state: chestor.journal.persist:retrieval_state
+
+  - name: graph_writer
+    kind: library.lua
+    meta:
+      internal: true
+      writer: true
+      comment: Projector-only Journal graph mutations and revision bookkeeping.
+    source: file://graph_writer.lua
+    imports: { db: chestor.journal.persist:ops, config: chestor.journal.graph:config }
+
+  - name: graph_jobs
+    kind: library.lua
+    meta:
+      internal: true
+      writer: true
+      comment: Durable idempotent Journal graph job intents; kickside/jobs owns leases, retry backoff, and run outcomes.
+    source: file://graph_jobs.lua
+    imports: { db: chestor.journal.persist:ops }
+
+  - name: graph_facts
+    kind: library.lua
+    meta:
+      internal: true
+      writer: true
+      comment: Derivation key index behind correlation chaining and bounded affinity candidate generation.
+    source: file://graph_facts.lua
+    imports: { db: chestor.journal.persist:ops }
+
+  - name: graph_assembly
+    kind: library.lua
+    meta:
+      internal: true
+      writer: true
+      comment: On-demand map assembly run ledger with queued/dispatched/running accounting and the last-run summary read.
+    source: file://graph_assembly.lua
+    modules: [json]
+    imports: { db: chestor.journal.persist:ops }

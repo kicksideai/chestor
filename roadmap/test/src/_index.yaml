@@ -1,0 +1,418 @@
+version: "1.0"
+namespace: app
+
+entries:
+  - name: roadmap_materializer_integrity_test
+    kind: function.lua
+    meta: { type: test, suite: chestor_roadmap }
+    source: file://materializer_integrity_test.lua
+    method: run
+    modules: [json]
+    imports:
+      test: wippy.test:test
+      materializer: chestor.roadmap:materializer
+      types: chestor.roadmap:types
+
+  - name: db
+    kind: db.sql.sqlite
+    meta:
+      comment: In-memory database for the roadmap suite.
+    file: ":memory:"
+
+  - name: env_storage
+    kind: env.storage.file
+    meta:
+      type: envstorage
+    file_path: ./.wippy/test.env
+    auto_create: true
+
+  - name: processes
+    kind: process.host
+    lifecycle:
+      auto_start: true
+
+  - name: uploads
+    kind: fs.directory
+    directory: ./.wippy/uploads
+    auto_init: true
+
+  - name: gateway
+    kind: http.service
+    meta:
+      comment: Test HTTP server.
+    addr: :19118
+    lifecycle:
+      auto_start: true
+
+  - name: api
+    kind: http.router
+    meta:
+      comment: Test API router. token_auth enriches the request with the bearer token's actor and scope, exactly as the application router does.
+      server: gateway
+    middleware:
+      - token_auth
+    options:
+      token_store: app:tokens
+    prefix: /api
+
+  - name: token_storage
+    kind: store.memory
+    meta:
+      comment: Backing storage for the harness session tokens.
+    cleanup_interval: 15m
+    lifecycle:
+      auto_start: true
+    max_size: 1000
+
+  - name: tokens
+    kind: security.token_store
+    meta:
+      comment: Session token store the harness mints HTTP actors from; production wires kickside/users.
+    default_expiration: 1h
+    store: app:token_storage
+    token_key_env: ENCRYPTION_KEY
+    token_key: ""
+    token_length: 32
+
+  - name: mint_token
+    kind: function.lua
+    meta:
+      comment: Test-only session minting — the harness stand-in for the users login endpoint.
+    source: file://mint_token.lua
+    modules: [security]
+    method: mint
+
+  - name: user
+    kind: security.policy
+    meta:
+      comment: Permissive scope the roadmap suites run their scoped actors under.
+    groups:
+      - roadmap_test
+    policy:
+      resources: '*'
+      actions: '*'
+      effect: allow
+
+  - name: roadmap_probe
+    kind: function.lua
+    meta:
+      comment: Test-only actor-framed access to the roadmap backend library.
+    source: file://roadmap_probe.lua
+    modules:
+      - contract
+      - security
+    imports:
+      roadmap: chestor.roadmap:roadmap
+      types: chestor.roadmap:types
+    method: handle
+
+  - name: wait_for_boot
+    kind: function.lua
+    meta:
+      type: test
+      suite: "00_setup"
+      group: Setup
+      comment: Waits for the bootloader's single migration pass to finish on every SQL dialect.
+    source: file://wait_for_boot.lua
+    modules: [sql, time]
+    method: run
+
+  - name: roadmap_periods_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_roadmap
+      group: Chestor Roadmap
+      comment: Period key parsing, index arithmetic, current period, and horizon boundaries.
+    source: file://periods_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      periods: chestor.roadmap:periods
+      types: chestor.roadmap:types
+
+  - name: roadmap_engine_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_roadmap
+      group: Chestor Roadmap
+      comment: Roadmap command validation, fold, build shape, inverse round-trips, and derived queries.
+    source: file://roadmap_test.lua
+    method: run
+    modules: [json]
+    imports:
+      test: wippy.test:test
+      records: chestor.roadmap:records
+      state: chestor.roadmap:state
+      queries: chestor.roadmap:queries
+      history: chestor.roadmap:history
+      types: chestor.roadmap:types
+
+  - name: roadmap_projection_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_roadmap
+      group: Chestor Roadmap
+      comment: Roadmap normalized projection contract from the package source tree.
+    source: file://projection_test.lua
+    method: run
+    modules: [funcs, sql]
+    imports:
+      test: wippy.test:test
+      state: chestor.roadmap:state
+      materializer: chestor.roadmap:materializer
+      types: chestor.roadmap:types
+
+  - name: roadmap_access_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_roadmap
+      group: Chestor Roadmap
+      comment: Roadmap component access gate — an owner reads and writes, an actor without a grant is refused.
+    source: file://access_test.lua
+    method: run
+    modules:
+      - funcs
+      - security
+      - contract
+    imports:
+      test: wippy.test:test
+      types: chestor.roadmap:types
+
+  - name: roadmap_backend_e2e_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_roadmap
+      group: Chestor Roadmap
+      comment: End-to-end roadmap flow over the real thread, the HTTP endpoints, the read binding, the trait tools, and the delete cascade.
+    source: file://backend_e2e_test.lua
+    method: run
+    modules:
+      - funcs
+      - security
+      - contract
+      - crypto
+      - sql
+      - json
+      - http_client
+      - registry
+    imports:
+      test: wippy.test:test
+      types: chestor.roadmap:types
+
+  - name: roadmap_packaging_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_roadmap
+      group: Chestor Roadmap
+      comment: Roadmap declaration contract — dependencies, requirement targets, kind meta, event faces, ports, security slice, and trait scopes.
+    source: file://packaging_test.lua
+    method: run
+    modules: [registry, security]
+    imports:
+      test: wippy.test:test
+      types: chestor.roadmap:types
+
+  - name: dep.chestor.roadmap
+    kind: ns.dependency
+    version: "*"
+    meta:
+      comment: Roadmap package under test, wired only to harness-owned resources.
+    component: "chestor/roadmap"
+    parameters:
+      - name: target_db
+        value: app:db
+      - name: api_router
+        value: app:api
+      - name: ui_server
+        value: app:gateway
+      - name: chestor.roadmap.security:user_security_scope
+        value: app:user
+
+  - name: dep.kickside.contract
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Shared contracts the roadmap binding implements.
+    component: kickside/contract
+    parameters:
+    - name: kickside.contract.http:user_security_scope
+      value: app:user
+
+  - name: dep.kickside.component
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Component service and autoinit for the roadmap kind binding.
+    component: kickside/component
+    parameters:
+    - name: kickside.component:target_db
+      value: app:db
+    - name: kickside.component:api_router
+      value: app:api
+    - name: kickside.component:lifecycle_impl
+      value: kickside.core.lifecycle:component_lifecycle_impl
+
+  - name: dep.kickside.core
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Core thread log and projection engine used by the roadmap suites.
+    component: kickside/core
+    parameters:
+    - name: kickside.core:target_db
+      value: app:db
+    - name: kickside.core.lifecycle:process_host
+      value: app:processes
+    - name: kickside.core.lifecycle:user_lifecycle_grant
+      value:
+        subject_id: app:user
+        subject_type: group
+        access_mask: 2
+    - name: kickside.core.lifecycle:admin_lifecycle_grant
+      value:
+        subject_id: app:user
+        subject_type: group
+        access_mask: 3
+    - name: kickside.core.retention:process_host
+      value: app:processes
+    - name: kickside.core.threads:process_host
+      value: app:processes
+    - name: kickside.core.projections:process_host
+      value: app:processes
+    - name: kickside.core.retention:api_router
+      value: app:api
+    - name: kickside.core.threads:api_router
+      value: app:api
+    - name: kickside.core.threads.hydration:api_router
+      value: app:api
+    - name: kickside.core.projections:api_router
+      value: app:api
+    - name: kickside.core.retention:env_storage
+      value: app:env_storage
+    - name: kickside.core.projections:env_storage
+      value: app:env_storage
+    - name: kickside.core.retention:user_security_scope
+      value: app:user
+    - name: kickside.core.threads:user_security_scope
+      value: app:user
+    - name: kickside.core.threads.hydration:user_security_scope
+      value: app:user
+
+  - name: dep.kickside.jobs
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Job/effect schema that owns kickside_event_hydration, used by core purge cascades.
+    component: kickside/jobs
+    parameters:
+    - name: kickside.core.jobs:target_db
+      value: app:db
+    - name: kickside.core.jobs:temp_fs
+      value: app:uploads
+    - name: kickside.core.jobs:process_host
+      value: app:processes
+    - name: kickside.core.jobs:api_router
+      value: app:api
+    - name: kickside.core.scheduler:process_host
+      value: app:processes
+    - name: kickside.core.scheduler:env_storage
+      value: app:env_storage
+
+  - name: dep.chestor.workspace
+    kind: ns.dependency
+    version: "*"
+    meta:
+      comment: Workspace contract surface for roadmap entries.
+    component: "chestor/workspace"
+    parameters:
+      - { name: chestor.workspace.security:user_security_scope, value: app:user }
+      - { name: chestor.workspace:api_router, value: app:api }
+      - { name: chestor.workspace:ui_server, value: app:gateway }
+
+  - name: dep.kickside.renderers
+    kind: ns.dependency
+    version: '*'
+    component: kickside/renderers
+    parameters:
+      - { name: kickside.renderers:api_router, value: app:api }
+      - { name: kickside.renderers:ui_server, value: app:gateway }
+      - { name: kickside.renderers:user_security_scope, value: app:user }
+
+  - name: dep.kickside.widgets
+    kind: ns.dependency
+    version: '*'
+    component: kickside/widgets
+    parameters:
+      - { name: kickside.widgets:api_router, value: app:api }
+      - { name: kickside.widgets:ui_server, value: app:gateway }
+
+  - name: dep.wippy.migration
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Migration framework wired to the harness database.
+    component: "wippy/migration"
+    parameters:
+      - name: app_db
+        value: app:db
+
+  - name: dep.wippy.bootloader
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Bootloader runs migrations and the co-located roadmap tests.
+    component: "wippy/bootloader"
+    parameters:
+      - name: application_host
+        value: app:processes
+      - name: env_storage
+        value: app:env_storage
+
+  - name: worker_admission_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: 01_worker_admission
+    source: file://worker_admission_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      worker: kickside.core.projections.persist:worker
+
+  - name: scope_resolver_contract_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: "00_scope_resolver"
+    source: file://scope_resolver_contract_test.lua
+    method: run
+    modules: [funcs, security]
+    imports:
+      test: wippy.test:test
+      execution_identity: kickside.execution:execution_identity
+
+  - name: dep.chestor.test_support
+    kind: ns.dependency
+    component: chestor/test-support
+    version: '*'
+    parameters:
+      - name: group
+        value: roadmap_test
+  - name: user_endpoint_policy_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: member_endpoint_policy
+    source: file://user_endpoint_policy_test.lua
+    method: run
+    modules:
+    - registry
+    - security
+    imports:
+      test: wippy.test:test

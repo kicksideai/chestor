@@ -1,0 +1,30 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "simple",
+  "include-component-in-tag": true,
+  "separate-pull-requests": false,
+  "bump-minor-pre-major": true,
+  "last-release-sha": "cc0a8fc6ddbeca6ead321e07d2e257c2f0409794",
+  "packages": {
+    "db-schema": {
+      "component": "db-schema",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "graph": {
+      "component": "graph",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "journal": {
+      "component": "journal",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "roadmap": {
+      "component": "roadmap",
+      "changelog-path": "CHANGELOG.md"
+    },
+    "workspace": {
+      "component": "workspace",
+      "changelog-path": "CHANGELOG.md"
+    }
+  }
+}

@@ -1,0 +1,44 @@
+version: "1.0"
+namespace: chestor.journal.embedding
+
+entries:
+  - name: scheduler
+    kind: library.lua
+    source: file://scheduler.lua
+    imports:
+      jobs: kickside.core.jobs:jobs
+      availability: chestor.journal.embedding:availability
+
+  - name: worker
+    kind: function.lua
+    meta:
+      comment: Bounded background Journal embedding batch run by the shared retrying job engine.
+    source: file://worker.lua
+    method: run
+    security:
+      policies: [chestor.journal:background_deferred_owner]
+    imports:
+      executor: chestor.journal.embedding:executor
+      background_identity: chestor.journal:background_identity
+
+  - name: embed_pending
+    kind: function.lua
+    source: file://worker.lua
+    method: execute
+    imports:
+      executor: chestor.journal.embedding:executor
+      background_identity: chestor.journal:background_identity
+
+  - name: executor
+    kind: library.lua
+    source: file://executor.lua
+    imports:
+      recall: chestor.journal.read:recall
+      scheduler: chestor.journal.embedding:scheduler
+
+  - name: availability
+    kind: library.lua
+    source: file://availability.lua
+    imports:
+      llm: wippy.llm:llm
+      types: chestor.journal:types

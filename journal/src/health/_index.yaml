@@ -1,0 +1,61 @@
+version: "1.0"
+namespace: chestor.journal.health
+
+entries:
+  - name: status
+    kind: library.lua
+    meta:
+      comment: Reader-side health-of-health; heartbeat staleness from age (X6), out-of-band snapshot read, and the ok/degraded/unknown verdict.
+    source: file://status.lua
+    imports:
+      component: kickside.component:component
+      types: chestor.journal:types
+      db: chestor.journal.persist:ops
+
+  - name: scheduler
+    kind: library.lua
+    meta:
+      comment: Enqueues the next health writer beat on the shared retrying job engine, one interval out, deduplicated per interval bucket.
+    source: file://scheduler.lua
+    modules: [time]
+    imports:
+      jobs: kickside.core.jobs:jobs
+      clock: kickside.core.jobs:clock
+      types: chestor.journal:types
+      db: chestor.journal.persist:ops
+
+  - name: writer
+    kind: function.lua
+    meta:
+      comment: One health writer beat; computes per-component states, runs the lease reaper, publishes the snapshot to the workspace component meta, and chains the next beat while the journal is active.
+    source: file://writer.lua
+    method: run
+    security:
+      policies: [chestor.journal:background_deferred_owner]
+    imports:
+      component: kickside.component:component
+      types: chestor.journal:types
+      thread_log: chestor.journal:thread_log
+      db: chestor.journal.persist:ops
+      reader: chestor.journal.persist:reader
+      graph_jobs: chestor.journal.persist:graph_jobs
+      commands: chestor.journal.write:commands
+      status: chestor.journal.health:status
+      scheduler: chestor.journal.health:scheduler
+      background_identity: chestor.journal:background_identity
+
+  - name: writer_tick
+    kind: function.lua
+    source: file://writer.lua
+    method: execute
+    imports:
+      component: kickside.component:component
+      types: chestor.journal:types
+      thread_log: chestor.journal:thread_log
+      db: chestor.journal.persist:ops
+      reader: chestor.journal.persist:reader
+      graph_jobs: chestor.journal.persist:graph_jobs
+      commands: chestor.journal.write:commands
+      status: chestor.journal.health:status
+      scheduler: chestor.journal.health:scheduler
+      background_identity: chestor.journal:background_identity

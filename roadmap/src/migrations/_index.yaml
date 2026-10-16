@@ -1,0 +1,24 @@
+version: "1.0"
+namespace: chestor.roadmap.migrations
+
+entries:
+  - name: roadmap_tables_ops
+    kind: library.lua
+    meta:
+      comment: Migration operation that creates the normalized roadmap read-model tables.
+    source: file://01_create_roadmap_tables_ops.lua
+
+  - name: 01_create_roadmap_tables
+    kind: function.lua
+    meta:
+      type: migration
+      tags:
+        - roadmap
+        - read-model
+      comment: Create the normalized roadmap materialization and undo history tables.
+      timestamp: "2026-08-29T00:00:01Z"
+    source: file://01_create_roadmap_tables.lua
+    imports:
+      migration: wippy.migration:migration
+      ops: chestor.roadmap.migrations:roadmap_tables_ops
+    method: migrate

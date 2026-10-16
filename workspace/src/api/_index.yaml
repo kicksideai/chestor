@@ -1,0 +1,139 @@
+version: "1.0"
+namespace: chestor.workspace.api
+
+entries:
+  - name: support
+    kind: library.lua
+    source: file://support.lua
+    modules: [http, json]
+    imports:
+      http_errors: kickside.contract:http_errors
+
+  - name: list_entries
+    kind: function.lua
+    source: file://list_entries.lua
+    method: handler
+    modules: [http]
+    imports: { http_errors: kickside.contract:http_errors, handlers: chestor.workspace.binding:handlers, support: chestor.workspace.api:support }
+  - name: list_entries.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: list_entries
+    path: /workspace/entries
+
+  - name: list_entry_types
+    kind: function.lua
+    source: file://list_entry_types.lua
+    method: handler
+    modules: [http]
+    imports: { http_errors: kickside.contract:http_errors, entry_types: chestor.workspace:entry_types, support: chestor.workspace.api:support }
+  - name: list_entry_types.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: list_entry_types
+    path: /workspace/entries/types
+
+  - name: get_entry
+    kind: function.lua
+    source: file://get_entry.lua
+    method: handler
+    modules: [http]
+    imports: { http_errors: kickside.contract:http_errors, handlers: chestor.workspace.binding:handlers, support: chestor.workspace.api:support }
+  - name: get_entry.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: get_entry
+    path: /workspace/entries/{id}
+
+  - name: get_breadcrumbs
+    kind: function.lua
+    source: file://get_breadcrumbs.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, handlers: chestor.workspace.binding:handlers, support: chestor.workspace.api:support }
+  - name: get_breadcrumbs.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: get_breadcrumbs
+    path: /workspace/entries/{id}/breadcrumbs
+
+  - name: create_entry
+    kind: function.lua
+    source: file://create_entry.lua
+    method: handler
+    modules: [http]
+    imports: { http_errors: kickside.contract:http_errors, handlers: chestor.workspace.binding:handlers, support: chestor.workspace.api:support }
+  - name: create_entry.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: POST
+    func: create_entry
+    path: /workspace/entries
+
+  - name: update_entry
+    kind: function.lua
+    source: file://update_entry.lua
+    method: handler
+    modules: [http]
+    imports: { http_errors: kickside.contract:http_errors, handlers: chestor.workspace.binding:handlers, support: chestor.workspace.api:support }
+  - name: update_entry.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: PUT
+    func: update_entry
+    path: /workspace/entries/{id}
+
+  - name: move_entry
+    kind: function.lua
+    source: file://move_entry.lua
+    method: handler
+    modules: [http]
+    imports: { http_errors: kickside.contract:http_errors, handlers: chestor.workspace.binding:handlers, support: chestor.workspace.api:support }
+  - name: move_entry.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: POST
+    func: move_entry
+    path: /workspace/entries/{id}/move
+
+  - name: delete_entry
+    kind: function.lua
+    source: file://delete_entry.lua
+    method: handler
+    modules: [http]
+    imports: { http_errors: kickside.contract:http_errors, handlers: chestor.workspace.binding:handlers, support: chestor.workspace.api:support }
+  - name: delete_entry.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: DELETE
+    func: delete_entry
+    path: /workspace/entries/{id}
+
+  - name: grant_entry
+    kind: function.lua
+    source: file://grant_entry.lua
+    method: handler
+    modules: [http]
+    imports: { http_errors: kickside.contract:http_errors, handlers: chestor.workspace.binding:handlers, support: chestor.workspace.api:support }
+  - name: grant_entry.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: POST
+    func: grant_entry
+    path: /workspace/entries/{id}/grant
+
+  - name: revoke_entry
+    kind: function.lua
+    source: file://revoke_entry.lua
+    method: handler
+    modules: [http]
+    imports: { http_errors: kickside.contract:http_errors, handlers: chestor.workspace.binding:handlers, support: chestor.workspace.api:support }
+  - name: revoke_entry.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: POST
+    func: revoke_entry
+    path: /workspace/entries/{id}/revoke

@@ -1,0 +1,497 @@
+version: "1.0"
+namespace: chestor.journal
+
+entries:
+  - name: definition
+    kind: ns.definition
+    meta:
+      title: Chestor Journal
+      comment: Event-sourced long-duration associative journal. One component-owned thread is the durable log; normalized projections provide generic graphs, references, agent cursors, exact and semantic recall, timeline history, and optional work views.
+
+  - name: dep.kickside.core
+    kind: ns.dependency
+    version: '*'
+    component: kickside/core
+
+  - name: dep.kickside.contract
+    kind: ns.dependency
+    version: '*'
+    component: kickside/contract
+
+  - name: dep.kickside.component
+    kind: ns.dependency
+    version: '*'
+    component: kickside/component
+
+  - name: dep.kickside.jobs
+    kind: ns.dependency
+    version: '*'
+    component: kickside/jobs
+
+  - name: dep.chestor.workspace
+    kind: ns.dependency
+    version: '*'
+    component: chestor/workspace
+
+  - name: dep.wippy.migration
+    kind: ns.dependency
+    version: '*'
+    component: wippy/migration
+
+  - name: dep.wippy.llm
+    kind: ns.dependency
+    component: wippy/llm
+    version: '*'
+
+  - name: dep.wippy.agent
+    kind: ns.dependency
+    component: wippy/agent
+    version: '*'
+
+  - name: target_db
+    kind: ns.requirement
+    meta:
+      comment: SQL database resource backing the journal read model.
+    targets:
+      - entry: chestor.journal.migrations:01_create_journal_tables
+        path: .meta.target_db
+      - entry: chestor.journal.migrations:02_scope_fts_keys
+        path: .meta.target_db
+      - entry: chestor.journal.migrations:03_create_journal_graph_tables
+        path: .meta.target_db
+      - entry: chestor.journal.migrations:04_dedupe_fts
+        path: .meta.target_db
+      - entry: chestor.journal.migrations:05_drop_sessions
+        path: .meta.target_db
+      - entry: chestor.journal.migrations:06_task_graph
+        path: .meta.target_db
+      - entry: chestor.journal.migrations:07_enforcement
+        path: .meta.target_db
+      - entry: chestor.journal.migrations:08_replay_integrity
+        path: .meta.target_db
+      - entry: chestor.journal.migrations:09_branch_digests
+        path: .meta.target_db
+      - entry: chestor.journal.migrations:10_agent_cursors
+        path: .meta.target_db
+      - entry: chestor.journal.migrations:11_generic_cursor_position
+        path: .meta.target_db
+      - entry: chestor.journal.migrations:12_cursor_context_refs
+        path: .meta.target_db
+      - entry: chestor.journal.migrations:13_graph_hierarchy
+        path: .meta.target_db
+      - entry: chestor.journal.migrations:14_backfill_graph_hierarchy
+        path: .meta.target_db
+      - entry: chestor.journal.migrations:15_cursor_origin
+        path: .meta.target_db
+      - entry: chestor.journal.migrations:16_graph_assembly
+        path: .meta.target_db
+      - entry: chestor.journal.migrations:17_work_spans
+        path: .meta.target_db
+      - entry: chestor.journal.migrations:18_cursor_revision_claim
+        path: .meta.target_db
+      - entry: chestor.journal.migrations:19_auto_cursor_identity
+        path: .meta.target_db
+      - entry: chestor.journal:db_config
+        path: .meta.db_id
+
+  - name: db_config
+    kind: registry.entry
+    meta:
+      comment: Holds the requirement-injected journal DB resource id.
+
+  - name: api_router
+    kind: ns.requirement
+    meta:
+      comment: HTTP router the journal endpoints attach to.
+    targets:
+      - entry: chestor.journal.api:get_journal.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:get_health.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:apply_events.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:append_entry.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:list_events.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:get_event.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:get_updates.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:get_context_pack.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:get_branch.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:get_frontier.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:get_cursors.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:get_spans.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:get_activity.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:get_changes.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:get_tree.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:upsert_task.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:transition_task.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:link_artifact.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:focus_task.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:search_journal.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:search_journal_text.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:update_digest.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:create_checkpoint.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:list_graphs.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:query_graph.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:apply_graph_ops.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:configure_graph.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:event_graphs.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:assemble_graph.endpoint
+        path: .meta.router
+      - entry: chestor.journal.api:get_assembly.endpoint
+        path: .meta.router
+
+  - name: ui_server
+    kind: ns.requirement
+    meta:
+      comment: HTTP server the clean-sheet Journal renderer static mount attaches to.
+    targets:
+      - entry: chestor.journal:ui_static
+        path: .meta.server
+
+  - name: ui_fs
+    kind: fs.directory
+    meta:
+      comment: Built chestor-journal temporal knowledge workspace bundle.
+    directory: ./static
+
+  - name: ui_static
+    kind: http.static
+    meta: {}
+    fs: chestor.journal:ui_fs
+    path: /chestor-journal
+    prefix: /
+    options:
+      cache: "no-cache"
+
+  - name: renderer_view
+    kind: registry.entry
+    meta:
+      type: view.component
+      name: renderer_view
+      title: Journal
+      description: >-
+        Renders one Chestor Journal component as an interactive, bounded temporal
+        knowledge workspace. Pass the workspace component id through entry-id;
+        mode may be preview for compact recovery or full for the complete
+        organization tree, force graph, exact and semantic recall, timeline,
+        provenance inspector, and multi-agent cursor view. The component reads
+        through the authenticated Journal API, subscribes to projection updates,
+        requests only bounded graph windows, consumes no slotted content, and
+        surfaces missing ids or unavailable projections as explicit states.
+      tag_name: chestor-journal
+      entry_point: index.js
+      base_path: chestor-journal
+      announced: true
+      auto_register: false
+    props:
+      type: object
+      properties:
+        entry-id:
+          type: string
+          default: ""
+          description: Workspace Journal component id to load; an empty value renders the required-id state without issuing API requests.
+        read-only:
+          type: boolean
+          default: false
+          description: Disables editing while retaining full reading and inspection controls.
+        mode:
+          type: string
+          default: preview
+          description: "Rendering context supplied by the workspace host: preview keeps recovery compact, while full exposes every Journal lens and inspector."
+
+  - name: types
+    kind: library.lua
+    source: file://types.lua
+    modules: [registry]
+
+  - name: thread_log
+    kind: library.lua
+    meta:
+      comment: Access-scoped journal thread resolution and append-only event writes.
+    source: file://thread_log.lua
+    modules: [contract, security]
+    imports:
+      types: chestor.journal:types
+
+  - name: journal_kind
+    kind: contract.binding
+    meta:
+      class: journal
+      title: Journal
+      icon: tabler:timeline-event-text
+      color: "var(--p-primary-color)"
+      component:
+        create: {}
+        manage: { view: chestor.journal:renderer_view, deep_link: true }
+      read: chestor.journal.lifecycle:read
+      thread_class: workspace.journal
+      comment: A durable journal for very long-running agent work. Agents report timeline events, tasks, checkpoints, digests, artifacts, and searchable recall into this component.
+      events:
+        input: []
+        output:
+          - type: chestor.journal.events:entry.appended
+            schema: { event_type: string, title: "string?", body: "string?", tags: "string[]?", linked_component_ids: "string[]?", linked_upload_ids: "string[]?", linked_file_paths: "string[]?", linked_task_ids: "string[]?", metadata: "object?" }
+          - type: chestor.journal.events:task.upserted
+            schema: { id: string, title: string, status: "string?", description: "string?", priority: "string?", assignee: "string?" }
+          - type: chestor.journal.events:task.closed
+            schema: { id: string, status: string, body: "string?" }
+          - type: chestor.journal.events:task.focused
+            schema: { task_id: string }
+          - type: chestor.journal.events:task.linked
+            schema: { from_task_id: string, to_task_id: string, kind: "string?" }
+          - type: chestor.journal.events:task.unlinked
+            schema: { from_task_id: string, to_task_id: string, kind: "string?", decision_id: string }
+          - type: chestor.journal.events:task.transitioned
+            schema: { task_id: string, verb: string, from_status: string, to_status: "string?", command_id: string, lease_id: "string?", fencing_token: "integer?", principal: "string?", expected_revision: "integer?", decision_id: "string?", receipt_id: "string?", result: "string?", waiver: "object?", reason: "string?", outcome: "string?", distilled: "string?", guard: "object?" }
+          - type: chestor.journal.events:verification.requested
+            schema: { request_id: string, task_id: string, claim_hash: "string?", policy_hash: "string?", task_revision: "integer?", work_revision: "integer?", environment: "string?" }
+          - type: chestor.journal.events:verification.receipt
+            schema: { receipt_id: string, task_id: string, verdict: string, request_id: "string?", task_revision: "integer?", work_revision: "integer?", claim_hash: "string?", policy_hash: "string?", verifier_type: "string?", verifier_version: "string?", result_hash: "string?", raw_output_hash: "string?", artifact_hash: "string?", environment: "string?", author: string }
+          - type: chestor.journal.events:cursor.updated
+            schema: { cursor_id: string, agent_id: string, op: string, revision: integer, expected_revision: "integer?", task_id: "string?", parent_cursor_id: "string?", episode_id: "string?", episode_deadline: "integer?", last_seen_seq: "integer?", checkpoint: "object?", purpose: "string?", assignment: "string?", why: "string?", close_requirements: "object[]?" }
+          - type: chestor.journal.events:audit.coverage.recorded
+            schema: { audit_task_id: string, unit_key: string, status: string, method: "string?", evidence_event_ids: "string[]?", cursor_id: "string?", episode_id: "string?", source_revision: "string?" }
+          - type: chestor.journal.events:integration.recorded
+            schema: { receipt_id: string, parent_cursor_id: string, child_cursor_id: string, disposition: string, task_id: "string?", source_from_seq: "integer?", source_to_seq: "integer?", evidence_event_ids: "string[]?", coverage: "object?", unresolved: "object[]?", summary: "string?" }
+          - type: chestor.journal.events:reference.linked
+            schema: { ref_id: string, graph_id: string, node_id: string, uri: string, ref_kind: string, relation: string, version: "string?", content_hash: "string?", title: "string?", ref_attrs: "object?", edge_attrs: "object?" }
+          - type: chestor.journal.events:reference.unlinked
+            schema: { ref_id: string, graph_id: string, node_id: string, relation: string, reason: string }
+          - type: chestor.journal.events:digest.updated
+            schema: { body: string }
+          - type: chestor.journal.events:checkpoint.created
+            schema: { title: "string?", body: string }
+          - type: chestor.journal.events:artifact.linked
+            schema: { artifact_id: "string?", title: "string?", summary: "string?", component_id: "string?", upload_id: "string?", file_path: "string?", url: "string?", mime_type: "string?", metadata: "object?" }
+          - type: chestor.journal.events:graph.configuration.requested
+            schema: { request_id: string, graph_id: string, title: string, description: "string?", kind: string, lifecycle: string, sources: "object?", maintainer: "object?", retention: "object?", write_policy: "object?", layout: "object?", expected_config_revision: "integer?" }
+          - type: chestor.journal.events:graph.operations.requested
+            schema: { request_id: string, graph_id: string, expected_revision: "integer?", origin: string, source_event_ids: "string[]?", provenance: "object?", operations: "object[]" }
+      ports:
+        - dir: out
+          mode: trigger
+          via: thread
+          class: journal
+          type: chestor.journal.events:entry.appended
+          title: Journal entry appended
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: journal
+          type: chestor.journal.events:task.upserted
+          title: Journal task upserted
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: journal
+          type: chestor.journal.events:task.closed
+          title: Journal task closed
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: journal
+          type: chestor.journal.events:task.focused
+          title: Journal task focused
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: journal
+          type: chestor.journal.events:task.linked
+          title: Journal tasks linked
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: journal
+          type: chestor.journal.events:task.unlinked
+          title: Journal task dependency removed
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: journal
+          type: chestor.journal.events:task.transitioned
+          title: Journal task transitioned
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: journal
+          type: chestor.journal.events:verification.requested
+          title: Journal verification requested
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: journal
+          type: chestor.journal.events:verification.receipt
+          title: Journal verification receipt recorded
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: journal
+          type: chestor.journal.events:cursor.updated
+          title: Journal agent cursor updated
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: journal
+          type: chestor.journal.events:audit.coverage.recorded
+          title: Journal audit coverage recorded
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: journal
+          type: chestor.journal.events:integration.recorded
+          title: Journal child result integration recorded
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: journal
+          type: chestor.journal.events:reference.linked
+          title: Journal graph node reference linked
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: journal
+          type: chestor.journal.events:reference.unlinked
+          title: Journal graph node reference removed
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: journal
+          type: chestor.journal.events:digest.updated
+          title: Journal digest updated
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: journal
+          type: chestor.journal.events:checkpoint.created
+          title: Journal checkpoint created
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: journal
+          type: chestor.journal.events:artifact.linked
+          title: Journal artifact linked
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: journal
+          type: chestor.journal.events:graph.configuration.requested
+          title: Journal graph configuration requested
+          announced: true
+        - dir: out
+          mode: trigger
+          via: thread
+          class: journal
+          type: chestor.journal.events:graph.operations.requested
+          title: Journal graph operations requested
+          announced: true
+      projections:
+        - kind: "chestor.journal:state"
+          projection_key: state
+          cursor_key: state
+          worker_ref: "proc://chestor.journal.persist:journal_projection"
+          input_mode: prefetch_events
+          batch_size: 100
+          events:
+            input:
+              - type: chestor.journal.events:entry.appended
+              - type: chestor.journal.events:task.upserted
+              - type: chestor.journal.events:task.closed
+              - type: chestor.journal.events:task.focused
+              - type: chestor.journal.events:task.linked
+              - type: chestor.journal.events:task.unlinked
+              - type: chestor.journal.events:task.transitioned
+              - type: chestor.journal.events:verification.requested
+              - type: chestor.journal.events:verification.receipt
+              - type: chestor.journal.events:cursor.updated
+              - type: chestor.journal.events:audit.coverage.recorded
+              - type: chestor.journal.events:integration.recorded
+              - type: chestor.journal.events:reference.linked
+              - type: chestor.journal.events:reference.unlinked
+              - type: chestor.journal.events:digest.updated
+              - type: chestor.journal.events:checkpoint.created
+              - type: chestor.journal.events:artifact.linked
+              - type: chestor.journal.events:graph.configuration.requested
+              - type: chestor.journal.events:graph.operations.requested
+        - kind: "chestor.journal:graph_state"
+          projection_key: graph_state
+          cursor_key: graph_state
+          worker_ref: "proc://chestor.journal.graph:projection"
+          input_mode: prefetch_events
+          batch_size: 100
+          events:
+            input:
+              - type: chestor.journal.events:entry.appended
+              - type: chestor.journal.events:task.upserted
+              - type: chestor.journal.events:task.closed
+              - type: chestor.journal.events:task.linked
+              - type: chestor.journal.events:digest.updated
+              - type: chestor.journal.events:checkpoint.created
+              - type: chestor.journal.events:artifact.linked
+              - type: chestor.journal.events:reference.linked
+              - type: chestor.journal.events:reference.unlinked
+              - type: chestor.journal.events:graph.configuration.requested
+              - type: chestor.journal.events:graph.operations.requested
+    contracts:
+      - contract: kickside.contract:component
+        context_required: [component_id]
+        methods: { get_status: chestor.journal.binding:get_status }
+      - contract: kickside.contract:deletable
+        context_required: [component_id]
+        methods: { delete: chestor.journal.binding:delete_journal }
+
+  - name: background_identity
+    kind: library.lua
+    source: file://background_identity.lua
+    imports:
+      db: chestor.journal.persist:ops
+      types: chestor.journal:types
+      execution_identity: kickside.execution:execution_identity
+
+  - name: background_deferred_owner
+    kind: security.policy
+    policy:
+      resources: [chestor.journal.health:writer, chestor.journal.embedding:worker]
+      actions: [kickside.execution.defer]
+      effect: allow

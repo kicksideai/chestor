@@ -1,0 +1,295 @@
+version: "1.0"
+namespace: chestor.workspace.traits
+
+# Agent trait contributed by the workspace module: lets an agent create and list
+# workspace entries (folders, graphs, journals, and any other declared creatable
+# kind) through the SAME canonical registration path the "+" picker uses
+# (handlers.create -> component service -> typed thread-backed entry). Without it
+# the workspace exposes read/edit tools for existing entries only, and new
+# graphs/journals could be born through the browser UI alone. Discovered by the
+# agents module via meta.type agent.trait.
+
+entries:
+  - name: workspace_model
+    kind: registry.entry
+    meta:
+      type: agent.trait
+      title: Model Workspace
+      public: true
+      icon: tabler:folders
+      comment: Create and list workspace entries (folders, graphs, journals) via the canonical entry registration path.
+      tags: [workspace, entries, create, folder, graph, journal]
+    prompt: |
+      You can create and list workspace entries with these tools:
+      - ListWorkspaceEntryTypes returns the creatable entry kinds; each has a
+        `value` which is the class string to pass as `type` when creating.
+      - CreateWorkspaceEntry { type, name, parent_id?, icon? } creates one entry
+        and returns it, including its `id`. Omit parent_id to create at the
+        workspace root, or pass a folder entry id to nest it. To make a graph or
+        journal, use its class from ListWorkspaceEntryTypes as `type`; the
+        returned `id` is the entry/thread id the graph or journal tools take.
+      - ListWorkspaceEntries { parent_id? } lists entries under a parent (root
+        when omitted). GetWorkspaceEntry { id } returns one entry.
+      Create the entry first, then drive its content with the matching model
+      tool (ApplyGraph for a graph, RecordJournal for a journal).
+    tools:
+      - chestor.workspace.traits:create_entry_tool
+      - chestor.workspace.traits:list_entries_tool
+      - chestor.workspace.traits:get_entry_tool
+      - chestor.workspace.traits:list_entry_types_tool
+      - chestor.workspace.traits:update_entry_tool
+      - chestor.workspace.traits:delete_entry_tool
+
+  - name: create_entry_tool
+    kind: function.lua
+    meta:
+      type: tool
+      title: Create Workspace Entry
+      mcp:
+        required_scopes:
+          - state.read
+          - state.write
+      llm_alias: CreateWorkspaceEntry
+      llm_description: "Create a workspace entry (folder, graph, journal, or any creatable kind). Input { type, name, parent_id?, icon? } where type is a class from ListWorkspaceEntryTypes. Returns the entry including its id."
+      input_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "description": "Entry kind class (the `value` from ListWorkspaceEntryTypes), e.g. folder or chestor.journal" },
+            "name": { "type": "string", "description": "Display name for the new entry" },
+            "parent_id": { "type": "string", "description": "Folder entry id to nest under; omit for the workspace root" },
+            "icon": { "type": "string", "description": "Optional icon override (e.g. tabler:notebook)" }
+          },
+          "required": ["type", "name"]
+        }
+      output_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "entry": { "type": "object" },
+            "error": { "type": "string" }
+          },
+          "required": ["success"]
+        }
+    source: file://create_entry.lua
+    method: handle
+    imports:
+      handlers: chestor.workspace.binding:handlers
+
+  - name: list_entries_tool
+    kind: function.lua
+    meta:
+      type: tool
+      title: List Workspace Entries
+      mcp:
+        required_scopes:
+          - state.read
+      llm_alias: ListWorkspaceEntries
+      llm_description: "List compact workspace entry summaries (id, name, type, status and dates; full metadata from GetWorkspaceEntry) under a parent folder (or the root when parent_id is omitted), one page at a time. Input { parent_id?, limit?, cursor? }; pass the returned next_cursor to continue."
+      input_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "parent_id": { "type": "string", "description": "Folder entry id; omit for the workspace root" },
+            "limit": { "type": "integer", "minimum": 1, "maximum": 100, "description": "Page size; defaults to 25" },
+            "cursor": { "type": "string", "description": "next_cursor from the previous page" }
+          }
+        }
+      output_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "entries": { "type": "array", "items": { "type": "object", "description": "Entry identity, name, type, status, owner, dates and navigation fields; full metadata from GetWorkspaceEntry.", "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "type": { "type": "string" }, "status": { "type": "string" } }, "required": ["id", "name", "type", "status"] } },
+            "next_cursor": { "type": "string", "description": "Present when more entries remain" },
+            "error": { "type": "string" }
+          },
+          "required": ["success"]
+        }
+    source: file://list_entries.lua
+    method: handle
+    imports:
+      handlers: chestor.workspace.binding:handlers
+
+  - name: get_entry_tool
+    kind: function.lua
+    meta:
+      type: tool
+      title: Get Workspace Entry
+      mcp:
+        required_scopes:
+          - state.read
+      llm_alias: GetWorkspaceEntry
+      llm_description: "Read one workspace entry by id. Input { id }."
+      input_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string", "description": "The workspace entry id" }
+          },
+          "required": ["id"]
+        }
+      output_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "entry": { "type": "object" },
+            "error": { "type": "string" }
+          },
+          "required": ["success"]
+        }
+    source: file://get_entry.lua
+    method: handle
+    imports:
+      handlers: chestor.workspace.binding:handlers
+
+  - name: list_entry_types_tool
+    kind: function.lua
+    meta:
+      type: tool
+      title: List Workspace Entry Types
+      mcp:
+        required_scopes:
+          - state.read
+      llm_alias: ListWorkspaceEntryTypes
+      llm_description: "List the entry kinds the workspace can create. Each returned type carries a `value` class string to pass as `type` to CreateWorkspaceEntry. Input { creatable_only?, limit?, cursor? }; defaults to 25 compact kinds, pass next_cursor to continue. Full creation/manage configuration belongs to workspace UI discovery."
+      input_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "creatable_only": {
+              "type": "boolean",
+              "description": "Only kinds offered in the create picker; defaults true"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "cursor": {
+              "type": "string"
+            }
+          }
+        }
+      output_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean"
+            },
+            "types": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "value": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "icon": {
+                    "type": "string"
+                  },
+                  "creatable": {
+                    "type": "boolean"
+                  },
+                  "container": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "value",
+                  "label"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "error": {
+              "type": "string"
+            },
+            "next_cursor": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "success"
+          ]
+        }
+    source: file://list_entry_types.lua
+    method: handle
+    imports:
+      entry_types: chestor.workspace:entry_types
+
+  - name: update_entry_tool
+    kind: function.lua
+    meta:
+      type: tool
+      title: Update Workspace Entry
+      mcp:
+        required_scopes:
+          - state.read
+          - state.write
+      llm_alias: UpdateWorkspaceEntry
+      llm_description: "Update an entry's render fields. Input { id, name?, icon?, status? }. An empty icon clears the override back to the kind default."
+      input_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string", "description": "The workspace entry id" },
+            "name": { "type": "string", "description": "New display name" },
+            "icon": { "type": "string", "description": "New icon; empty string clears the override" },
+            "status": { "type": "string", "description": "New status (e.g. active)" }
+          },
+          "required": ["id"]
+        }
+      output_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "entry": { "type": "object" },
+            "error": { "type": "string" }
+          },
+          "required": ["success"]
+        }
+    source: file://update_entry.lua
+    method: handle
+    imports:
+      handlers: chestor.workspace.binding:handlers
+
+  - name: delete_entry_tool
+    kind: function.lua
+    meta:
+      type: tool
+      title: Delete Workspace Entry
+      mcp:
+        required_scopes:
+          - state.read
+          - state.write
+      llm_alias: DeleteWorkspaceEntry
+      llm_description: "Delete a workspace entry by id (requires delete access). Input { id }. Removes the entry and its component-owned thread; irreversible."
+      input_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string", "description": "The workspace entry id to delete" }
+          },
+          "required": ["id"]
+        }
+      output_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "error": { "type": "string" }
+          },
+          "required": ["success"]
+        }
+    source: file://delete_entry.lua
+    method: handle
+    imports:
+      handlers: chestor.workspace.binding:handlers

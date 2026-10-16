@@ -1,0 +1,36 @@
+version: '1.0'
+namespace: chestor.journal.security
+entries:
+- name: member_access
+  kind: security.policy
+  groups: []
+  policy:
+    resources:
+    - chestor.journal.traits:*
+    - chestor.journal:renderer_view
+    actions: access
+    effect: allow
+- name: member_discovery
+  kind: security.policy
+  groups: []
+  policy:
+    resources:
+    - chestor.journal:*
+    - chestor.journal.*
+    actions:
+    - registry.get
+    - registry.find
+    effect: allow
+- name: user_security_scope
+  kind: ns.requirement
+  default: kickside.security.groups:members
+  meta:
+    value_kind: security.scope
+    comment: Application role with access to the component reading surface and endpoints.
+  targets:
+  - entry: chestor.journal.security:member_access
+    path: .groups +=
+  - entry: chestor.journal.security:member_discovery
+    path: .groups +=
+  - entry: chestor.journal.security:module_access
+    path: .groups +=

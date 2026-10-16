@@ -1,0 +1,29 @@
+version: "1.0"
+namespace: chestor.journal.write
+
+entries:
+  - name: enforcement
+    kind: library.lua
+    meta:
+      comment: Single owner of work-policy enforcement, capability leases, transition guards, verification receipts, dependency mutation, and command idempotency.
+    source: file://enforcement.lua
+    modules: [crypto, hash]
+    imports:
+      types: chestor.journal:types
+      db: chestor.journal.persist:ops
+      reader: chestor.journal.persist:reader
+      work_classification: chestor.journal.work:classification
+
+  - name: commands
+    kind: library.lua
+    meta:
+      comment: Durable Journal command service. It validates writes and appends facts; projections remain asynchronous and independently supervised.
+    source: file://commands.lua
+    modules: [crypto, ctx, security]
+    imports:
+      types: chestor.journal:types
+      thread_log: chestor.journal:thread_log
+      enforcement: chestor.journal.write:enforcement
+      db: chestor.journal.persist:ops
+      cursors: chestor.journal.persist:cursors
+      spans: chestor.journal.persist:spans

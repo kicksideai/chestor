@@ -1,0 +1,156 @@
+version: "1.0"
+namespace: chestor.roadmap.api
+
+# Every endpoint is a pair: the handler function and the http.endpoint that binds
+# it to a path. meta is the placeholder the chestor.roadmap:api_router requirement
+# fills at .meta.router, so the host decides which middleware stack enforces auth.
+
+entries:
+  - name: query_support
+    kind: library.lua
+    meta:
+      comment: Shared HTTP context, query-parameter, and error-status helpers for the roadmap endpoints.
+    source: file://query_support.lua
+    modules: [http]
+    imports:
+      http_errors: kickside.contract:http_errors
+
+  - name: get_roadmap
+    kind: function.lua
+    meta:
+      comment: Full roadmap snapshot for the renderer.
+    source: file://get_roadmap.lua
+    method: handler
+    imports:
+      http_errors: kickside.contract:http_errors
+      roadmap: chestor.roadmap:roadmap
+      support: chestor.roadmap.api:query_support
+  - name: get_roadmap.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: get_roadmap
+    path: /workspace/roadmaps/{id}
+
+  - name: apply_roadmap
+    kind: function.lua
+    meta:
+      comment: Apply a validated batch of typed roadmap commands.
+    source: file://apply_roadmap.lua
+    method: handler
+    modules: [json]
+    imports:
+      http_errors: kickside.contract:http_errors
+      roadmap: chestor.roadmap:roadmap
+      support: chestor.roadmap.api:query_support
+  - name: apply_roadmap.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: POST
+    func: apply_roadmap
+    path: /workspace/roadmaps/{id}/apply
+
+  - name: undo_roadmap
+    kind: function.lua
+    meta:
+      comment: Append the inverse of the newest history entry.
+    source: file://undo_roadmap.lua
+    method: handler
+    imports:
+      http_errors: kickside.contract:http_errors
+      roadmap: chestor.roadmap:roadmap
+      support: chestor.roadmap.api:query_support
+  - name: undo_roadmap.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: POST
+    func: undo_roadmap
+    path: /workspace/roadmaps/{id}/undo
+
+  - name: redo_roadmap
+    kind: function.lua
+    meta:
+      comment: Re-append the newest undone batch.
+    source: file://redo_roadmap.lua
+    method: handler
+    imports:
+      http_errors: kickside.contract:http_errors
+      roadmap: chestor.roadmap:roadmap
+      support: chestor.roadmap.api:query_support
+  - name: redo_roadmap.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: POST
+    func: redo_roadmap
+    path: /workspace/roadmaps/{id}/redo
+
+  - name: list_initiatives
+    kind: function.lua
+    meta:
+      comment: Initiatives filtered by layer, outcome, status, horizon, and period window.
+      query: [layer, outcome, status, horizon, period_from, period_to]
+    source: file://list_initiatives.lua
+    method: handler
+    imports:
+      http_errors: kickside.contract:http_errors
+      roadmap: chestor.roadmap:roadmap
+      support: chestor.roadmap.api:query_support
+  - name: list_initiatives.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: list_initiatives
+    path: /workspace/roadmaps/{id}/initiatives
+
+  - name: get_dependencies
+    kind: function.lua
+    meta:
+      comment: Dependency neighbours and transitive requires chains around one initiative.
+      query: [of, direction, transitive]
+    source: file://get_dependencies.lua
+    method: handler
+    imports:
+      http_errors: kickside.contract:http_errors
+      roadmap: chestor.roadmap:roadmap
+      support: chestor.roadmap.api:query_support
+  - name: get_dependencies.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: get_dependencies
+    path: /workspace/roadmaps/{id}/dependencies
+
+  - name: get_critical
+    kind: function.lua
+    meta:
+      comment: Initiatives ranked by blocking score with their unlocked chains.
+      query: [top]
+    source: file://get_critical.lua
+    method: handler
+    imports:
+      http_errors: kickside.contract:http_errors
+      roadmap: chestor.roadmap:roadmap
+      support: chestor.roadmap.api:query_support
+  - name: get_critical.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: get_critical
+    path: /workspace/roadmaps/{id}/critical
+
+  - name: get_schema
+    kind: function.lua
+    meta:
+      comment: Closed vocabularies, defaults, and period rules for editors and agents.
+    source: file://get_schema.lua
+    method: handler
+    imports:
+      http_errors: kickside.contract:http_errors
+      roadmap: chestor.roadmap:roadmap
+      support: chestor.roadmap.api:query_support
+  - name: get_schema.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: get_schema
+    path: /workspace/roadmaps/{id}/schema

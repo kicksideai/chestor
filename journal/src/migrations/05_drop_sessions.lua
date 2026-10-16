@@ -1,0 +1,13 @@
+return require("migration").define(function()
+    migration("Retain Chestor journal session records", function()
+        -- Retiring the session model does not authorize deleting its stored records.
+        database("postgres", function()
+            up(function(_db) end)
+            down(function(_db) end)
+        end)
+        database("sqlite", function()
+            up(function(_db) end)
+            down(function(_db) end)
+        end)
+    end)
+end)

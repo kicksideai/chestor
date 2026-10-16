@@ -1,0 +1,374 @@
+version: "1.0"
+namespace: app
+
+entries:
+  - name: db
+    kind: db.sql.sqlite
+    meta:
+      comment: In-memory database for the graph suite.
+    file: ":memory:"
+
+  - name: env_storage
+    kind: env.storage.file
+    meta:
+      type: envstorage
+    file_path: ./.wippy/test.env
+    auto_create: true
+
+  - name: processes
+    kind: process.host
+    lifecycle:
+      auto_start: true
+
+  - name: uploads
+    kind: fs.directory
+    directory: ./.wippy/uploads
+    auto_init: true
+
+  - name: gateway
+    kind: http.service
+    meta:
+      comment: Test HTTP server.
+    addr: :19117
+    lifecycle:
+      auto_start: true
+
+  - name: api
+    kind: http.router
+    meta:
+      comment: Test API router.
+      server: gateway
+    prefix: /api
+
+  - name: user
+    kind: security.policy
+    meta:
+      comment: Permissive scope the graph backend E2E suite runs its scoped actors under.
+    groups:
+      - graph_test
+    policy:
+      resources: '*'
+      actions: '*'
+      effect: allow
+
+  - name: graph_probe
+    kind: function.lua
+    meta:
+      comment: Test-only actor-framed access to the graph backend library.
+    source: file://graph_probe.lua
+    modules:
+      - contract
+      - security
+    imports:
+      graph: chestor.graph:graph
+      types: chestor.graph:types
+      workspace: chestor.workspace.binding:handlers
+    method: handle
+
+  - name: wait_for_boot
+    kind: function.lua
+    meta:
+      type: test
+      suite: "00_setup"
+      group: Setup
+      comment: Waits for the bootloader's single migration pass to finish on every SQL dialect.
+    source: file://wait_for_boot.lua
+    modules: [sql, time]
+    method: run
+
+  - name: graph_backend_e2e_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_graph
+      group: Chestor Graph
+      comment: Graph backend E2E — command append, projection catch-up, read binding, invalid batches, and purge.
+    source: file://backend_e2e_test.lua
+    modules:
+      - funcs
+      - security
+      - crypto
+      - contract
+      - sql
+      - json
+      - time
+    imports:
+      test: wippy.test:test
+    method: run
+
+  - name: graph_projection_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_graph
+      group: Chestor Graph
+      comment: Graph normalized projection contract from the package source tree.
+    source: file://projection_test.lua
+    method: run
+    modules: [funcs, sql]
+    imports:
+      test: wippy.test:test
+      graph: chestor.graph:graph
+      materializer: chestor.graph:materializer
+      types: chestor.graph:types
+
+  - name: graph_validation_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_graph
+      group: Chestor Graph
+      comment: Graph command validation contract from the package source tree.
+    source: file://graph_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      graph: chestor.graph:graph
+
+  - name: graph_packaging_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_graph
+      group: Chestor Graph
+      comment: Graph dependency and requirement-boundary declarations.
+    source: file://packaging_test.lua
+    method: run
+    modules: [registry, security]
+    imports:
+      test: wippy.test:test
+      types: chestor.graph:types
+
+  - name: dep.chestor.graph
+    kind: ns.dependency
+    version: "*"
+    meta:
+      comment: Graph package under test, wired only to harness-owned resources.
+    component: "chestor/graph"
+    parameters:
+      - {name: 'chestor.graph.security:user_security_scope', value: 'app:member'}
+      - name: target_db
+        value: app:db
+      - name: api_router
+        value: app:api
+      - name: ui_server
+        value: app:gateway
+
+  - name: dep.kickside.contract
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Shared contracts the graph binding implements.
+    component: kickside/contract
+    parameters:
+    - name: kickside.contract.http:user_security_scope
+      value: app:member
+
+  - name: dep.kickside.component
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Component service and autoinit for the graph kind binding.
+    component: kickside/component
+    parameters:
+    - name: kickside.component:target_db
+      value: app:db
+    - name: kickside.component:api_router
+      value: app:api
+    - name: kickside.component:lifecycle_impl
+      value: kickside.core.lifecycle:component_lifecycle_impl
+
+  - name: dep.kickside.core
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Core thread log and projection engine used by graph backend E2E tests.
+    component: kickside/core
+    parameters:
+    - name: kickside.core:target_db
+      value: app:db
+    - name: kickside.core.lifecycle:process_host
+      value: app:processes
+    - name: kickside.core.lifecycle:user_lifecycle_grant
+      value:
+        subject_id: app:user
+        subject_type: group
+        access_mask: 2
+    - name: kickside.core.lifecycle:admin_lifecycle_grant
+      value:
+        subject_id: app:user
+        subject_type: group
+        access_mask: 3
+    - name: kickside.core.retention:process_host
+      value: app:processes
+    - name: kickside.core.threads:process_host
+      value: app:processes
+    - name: kickside.core.projections:process_host
+      value: app:processes
+    - name: kickside.core.retention:api_router
+      value: app:api
+    - name: kickside.core.threads:api_router
+      value: app:api
+    - name: kickside.core.threads.hydration:api_router
+      value: app:api
+    - name: kickside.core.projections:api_router
+      value: app:api
+    - name: kickside.core.retention:env_storage
+      value: app:env_storage
+    - name: kickside.core.projections:env_storage
+      value: app:env_storage
+    - name: kickside.core.retention:user_security_scope
+      value: app:member
+    - name: kickside.core.threads:user_security_scope
+      value: app:member
+    - name: kickside.core.threads.hydration:user_security_scope
+      value: app:member
+
+  - name: dep.kickside.jobs
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Job/effect schema that owns kickside_event_hydration, used by core purge cascades.
+    component: kickside/jobs
+    parameters:
+    - name: kickside.core.jobs:target_db
+      value: app:db
+    - name: kickside.core.jobs:temp_fs
+      value: app:uploads
+    - name: kickside.core.jobs:process_host
+      value: app:processes
+    - name: kickside.core.jobs:api_router
+      value: app:api
+    - name: kickside.core.scheduler:process_host
+      value: app:processes
+    - name: kickside.core.scheduler:env_storage
+      value: app:env_storage
+
+  - name: dep.chestor.workspace
+    kind: ns.dependency
+    version: "*"
+    meta:
+      comment: Workspace contract surface for graph entries.
+    component: "chestor/workspace"
+    parameters:
+      - { name: chestor.workspace.security:user_security_scope, value: app:member }
+      - { name: chestor.workspace:api_router, value: app:api }
+      - { name: chestor.workspace:ui_server, value: app:gateway }
+
+  - name: dep.kickside.renderers
+    kind: ns.dependency
+    version: '*'
+    component: kickside/renderers
+    parameters:
+      - { name: kickside.renderers:api_router, value: app:api }
+      - { name: kickside.renderers:ui_server, value: app:gateway }
+      - { name: kickside.renderers:user_security_scope, value: app:member }
+
+  - name: dep.kickside.widgets
+    kind: ns.dependency
+    version: '*'
+    component: kickside/widgets
+    parameters:
+      - { name: kickside.widgets:api_router, value: app:api }
+      - { name: kickside.widgets:ui_server, value: app:gateway }
+
+  - name: dep.wippy.migration
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Migration framework wired to the harness database.
+    component: "wippy/migration"
+    parameters:
+      - name: app_db
+        value: app:db
+
+  - name: dep.wippy.bootloader
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Bootloader runs migrations and the co-located graph tests.
+    component: "wippy/bootloader"
+    parameters:
+      - name: application_host
+        value: app:processes
+      - name: env_storage
+        value: app:env_storage
+
+  - name: worker_admission_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: 01_worker_admission
+    source: file://worker_admission_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      worker: kickside.core.projections.persist:worker
+
+  - name: sharing_workspace_probe
+    kind: function.lua
+    source: file://sharing_workspace_probe.lua
+    method: handle
+    imports:
+      handlers: chestor.workspace.binding:handlers
+
+  - name: sharing_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_sharing
+    source: file://sharing_test.lua
+    method: run
+    modules: [security, funcs, contract, crypto, sql]
+    imports:
+      test: wippy.test:test
+      access_ops: kickside.component.persist:access_ops
+      share_subject: kickside.component:share_subject
+
+  - name: sharing_directory_resolve
+    kind: function.lua
+    source: file://directory_stub.lua
+    method: resolve
+
+  - name: sharing_directory_binding
+    kind: contract.binding
+    contracts:
+      - contract: kickside.contract:directory
+        default: true
+        methods:
+          resolve: app:sharing_directory_resolve
+          search: app:sharing_directory_resolve
+          exists: app:sharing_directory_resolve
+          groups: app:sharing_directory_resolve
+
+  - name: scope_resolver_contract_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: "00_scope_resolver"
+    source: file://scope_resolver_contract_test.lua
+    method: run
+    modules: [funcs, security]
+    imports:
+      test: wippy.test:test
+      execution_identity: kickside.execution:execution_identity
+
+  - name: dep.chestor.test_support
+    kind: ns.dependency
+    component: chestor/test-support
+    version: '*'
+    parameters:
+      - name: group
+        value: graph_test
+  - name: user_endpoint_policy_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: member_endpoint_policy
+    source: file://user_endpoint_policy_test.lua
+    method: run
+    modules:
+    - registry
+    - security
+    imports:
+      test: wippy.test:test

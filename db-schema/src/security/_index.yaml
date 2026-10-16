@@ -1,0 +1,36 @@
+version: '1.0'
+namespace: chestor.db_schema.security
+entries:
+- name: member_access
+  kind: security.policy
+  groups: []
+  policy:
+    resources:
+    - chestor.db_schema.traits:*
+    - chestor.db_schema:renderer_view
+    actions: access
+    effect: allow
+- name: member_discovery
+  kind: security.policy
+  groups: []
+  policy:
+    resources:
+    - chestor.db_schema:*
+    - chestor.db_schema.*
+    actions:
+    - registry.get
+    - registry.find
+    effect: allow
+- name: user_security_scope
+  kind: ns.requirement
+  default: kickside.security.groups:members
+  meta:
+    value_kind: security.scope
+    comment: Application role with access to the component reading surface and endpoints.
+  targets:
+  - entry: chestor.db_schema.security:member_access
+    path: .groups +=
+  - entry: chestor.db_schema.security:member_discovery
+    path: .groups +=
+  - entry: chestor.db_schema.security:module_access
+    path: .groups +=

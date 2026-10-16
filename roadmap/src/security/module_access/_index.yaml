@@ -1,0 +1,41 @@
+version: '1.0'
+namespace: chestor.roadmap.security
+entries:
+- name: module_access
+  kind: security.policy
+  meta:
+    title: Roadmap
+    surface: chestor.roadmap
+    intent: module_access
+    includes:
+    - chestor.roadmap.security:member_discovery
+    - chestor.roadmap.security:roadmap_endpoint_access
+  groups: []
+  policy:
+    resources:
+    - chestor.roadmap.api:apply_roadmap.endpoint
+    - chestor.roadmap.api:get_critical.endpoint
+    - chestor.roadmap.api:get_dependencies.endpoint
+    - chestor.roadmap.api:get_roadmap.endpoint
+    - chestor.roadmap.api:get_schema.endpoint
+    - chestor.roadmap.api:list_initiatives.endpoint
+    - chestor.roadmap.api:redo_roadmap.endpoint
+    - chestor.roadmap.api:undo_roadmap.endpoint
+    actions: access
+    effect: allow
+- name: module_tools
+  kind: security.policy
+  meta:
+    title: Roadmap tools
+    surface: chestor.roadmap
+    intent: tool_access
+  groups: []
+  policy:
+    resources:
+    - chestor.roadmap.traits:apply_roadmap_tool
+    - chestor.roadmap.traits:get_roadmap_tool
+    - chestor.roadmap.traits:query_roadmap_tool
+    actions:
+    - funcs.call
+    - funcs.security
+    effect: allow

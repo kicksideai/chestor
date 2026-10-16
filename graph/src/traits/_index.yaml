@@ -1,0 +1,115 @@
+version: "1.0"
+namespace: chestor.graph.traits
+
+# Agent trait contributed by the graph module: lets an agent read and edit a
+# graph workspace entry through the SAME canonical event-sourced flow the
+# renderer uses (typed commands -> thread events -> projection read model). The
+# agents module discovers it via meta.type agent.trait. Mirrors the db-schema
+# module's schema_model trait.
+
+entries:
+  - name: graph_model
+    kind: registry.entry
+    meta:
+      type: agent.trait
+      title: Model Graph
+      public: true
+      icon: tabler:topology-star-3
+      comment: Read and edit a graph workspace entry (nodes, edges, layout) via typed commands.
+      tags: [graph, workspace, nodes, edges, topology, diagram]
+    prompt: |
+      You can inspect and edit a graph with the GetGraph and ApplyGraph tools.
+      Both take the graph workspace entry's `entry_id` (the graph/thread id).
+      - GetGraph returns the current nodes, edges, materials and layout.
+      - ApplyGraph applies a batch of typed commands; each is { type, body }.
+        Command type values must be canonical `chestor.graph.events:*`, e.g.
+        `node.added` { id, type, name, description?, parent_id?, properties?, tags?, sort_order? },
+        `node.updated`, `node.removed` { id },
+        `edge.added` { id, type, source_id, target_id, label?, properties? },
+        `edge.updated`, `edge.removed` { id },
+        `layout.position-set` { node_id, x, y, width?, height?, pinned?, meta? }.
+        Generate a fresh UUID for each new node/edge id. Set positions with
+        layout.position-set so nodes do not overlap. Use node type "note" unless
+        a node-type has been registered.
+    tools:
+      - chestor.graph.traits:get_graph_tool
+      - chestor.graph.traits:apply_graph_tool
+
+  - name: get_graph_tool
+    kind: function.lua
+    meta:
+      type: tool
+      title: Get Graph
+      mcp:
+        required_scopes:
+          - state.read
+      llm_alias: GetGraph
+      llm_description: "Read a graph workspace entry's nodes, edges, materials and layout. Input { entry_id }."
+      input_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "entry_id": { "type": "string", "description": "The graph workspace entry id" }
+          },
+          "required": ["entry_id"]
+        }
+      output_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "graph": { "type": "object" },
+            "error": { "type": "string" }
+          },
+          "required": ["success"]
+        }
+    source: file://get_graph.lua
+    method: handle
+    imports:
+      graph: chestor.graph:graph
+
+  - name: apply_graph_tool
+    kind: function.lua
+    meta:
+      type: tool
+      title: Apply Graph
+      mcp:
+        required_scopes:
+          - state.read
+          - state.write
+      llm_alias: ApplyGraph
+      llm_description: "Apply typed graph commands (add/update/remove nodes, edges; set layout) to a graph workspace entry. Input { entry_id, commands: [{ type, body }] }. Returns the updated graph."
+      input_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "entry_id": { "type": "string", "description": "The graph workspace entry id" },
+            "commands": {
+              "type": "array",
+              "description": "Batch of typed commands, each { type, body }",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string", "description": "Canonical chestor.graph.events:* event type" },
+                  "body": { "type": "object", "description": "Event payload for the command type" }
+                },
+                "required": ["type"]
+              }
+            }
+          },
+          "required": ["entry_id", "commands"]
+        }
+      output_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "graph": { "type": "object" },
+            "error": { "type": "string" }
+          },
+          "required": ["success"]
+        }
+    source: file://apply_graph.lua
+    method: handle
+    imports:
+      graph: chestor.graph:graph

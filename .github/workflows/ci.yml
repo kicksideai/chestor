@@ -1,0 +1,417 @@
+name: CI
+'on':
+  push:
+    branches:
+    - main
+    - ci-bootstrap
+  pull_request:
+    branches:
+    - main
+  workflow_call:
+    secrets:
+      SOURCE_READ_TOKEN:
+        required: false
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  WIPPY_REGISTRY: https://hub.wippy.ai
+  PGHOST: 127.0.0.1
+  PGPORT: '5433'
+  PGUSER: kickside
+  PGPASSWORD: kickside
+  PYTHONDONTWRITEBYTECODE: '1'
+  ENCRYPTION_KEY: '0000000000000000000000000000000000000000000000000000000000000000'
+  RELEASE_PR: ${{ startsWith(github.head_ref, 'release-please--') || startsWith(github.ref_name,
+    'release-please--') }}
+jobs:
+  secret-scan:
+    uses: kicksideai/.github/.github/workflows/secret-scan.yml@5401fa65bed7d8648125957520e94206ed1ffd0b
+  modules:
+    name: ${{ matrix.module }} / ${{ matrix.engine }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - module: db-schema
+          engine: sqlite
+          commands: "set -euo pipefail\nsource_root=\"$PWD\"\nexport TMPDIR=\"$source_root/.scratch\"\
+            \nmkdir -p \"$TMPDIR\"\nnpm --prefix db-schema/ui ci\nnpm --prefix db-schema/ui\
+            \ run typecheck\nnpm --prefix db-schema/ui run build\ncd db-schema/test\n\
+            wippy update\nwippy lint --ns chestor.db_schema --ns 'chestor.db_schema.*'\
+            \ --ns chestor.test_support \nwippy test  2>&1 | tee .wippy-test.log\n\
+            sed -E 's/\\x1B\\[[0-?]*[ -/]*[@-~]//g' .wippy-test.log > .wippy-test.clean.log\n\
+            awk '/No tests found/ { empty=1 } /^[[:space:]]*FAILED([[:space:]]|$)/\
+            \ { failed=1 } /^[[:space:]]*PASSED([[:space:]]|$)/ { passed=1 } END {\
+            \ exit(empty || failed || !passed) }' .wippy-test.clean.log\ncd \"$source_root\"\
+            \nversion=$(jq -er --arg path db-schema '.[$path]' .release-please-manifest.json)\n\
+            wippy publish --config db-schema --version \"$version\" --dry-run --create\
+            \ --module-visibility public --module-type plugin --embed chestor.db_schema:ui_fs\n"
+        - module: db-schema
+          engine: postgres
+          commands: 'set -euo pipefail
+
+            source_root="$PWD"
+
+            export TMPDIR="$source_root/.scratch"
+
+            mkdir -p "$TMPDIR"
+
+            npm --prefix db-schema/ui ci
+
+            npm --prefix db-schema/ui run typecheck
+
+            npm --prefix db-schema/ui run build
+
+            cd db-schema/test
+
+            wippy update
+
+            databases=()
+
+            cleanup_databases() { for database in "${databases[@]}"; do dropdb "$database";
+            done; }
+
+            trap cleanup_databases EXIT
+
+            database="ci_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}_0"
+
+            createdb "$database"
+
+            databases+=("$database")
+
+            wippy lint --ns chestor.db_schema --ns ''chestor.db_schema.*'' --ns chestor.test_support
+            --profile postgres --set "vars.pg_database=${databases[0]}" --set vars.pg_host=127.0.0.1
+            --set vars.pg_port=5433
+
+            wippy test --profile postgres --set "vars.pg_database=${databases[0]}"
+            --set vars.pg_host=127.0.0.1 --set vars.pg_port=5433 2>&1 | tee .wippy-test.log
+
+            sed -E ''s/\x1B\[[0-?]*[ -/]*[@-~]//g'' .wippy-test.log > .wippy-test.clean.log
+
+            awk ''/No tests found/ { empty=1 } /^[[:space:]]*FAILED([[:space:]]|$)/
+            { failed=1 } /^[[:space:]]*PASSED([[:space:]]|$)/ { passed=1 } END { exit(empty
+            || failed || !passed) }'' .wippy-test.clean.log
+
+            cd "$source_root"
+
+            version=$(jq -er --arg path db-schema ''.[$path]'' .release-please-manifest.json)
+
+            wippy publish --config db-schema --version "$version" --dry-run --create
+            --module-visibility public --module-type plugin --embed chestor.db_schema:ui_fs
+
+            '
+        - module: graph
+          engine: sqlite
+          commands: "set -euo pipefail\nsource_root=\"$PWD\"\nexport TMPDIR=\"$source_root/.scratch\"\
+            \nmkdir -p \"$TMPDIR\"\nnpm --prefix graph/ui ci\nnpm --prefix graph/ui\
+            \ run typecheck\nnpm --prefix graph/ui run build\ncd graph/test\nwippy\
+            \ update\nwippy lint --ns chestor.graph --ns 'chestor.graph.*' --ns chestor.test_support\
+            \ \nwippy test  2>&1 | tee .wippy-test.log\nsed -E 's/\\x1B\\[[0-?]*[\
+            \ -/]*[@-~]//g' .wippy-test.log > .wippy-test.clean.log\nawk '/No tests\
+            \ found/ { empty=1 } /^[[:space:]]*FAILED([[:space:]]|$)/ { failed=1 }\
+            \ /^[[:space:]]*PASSED([[:space:]]|$)/ { passed=1 } END { exit(empty ||\
+            \ failed || !passed) }' .wippy-test.clean.log\ncd \"$source_root\"\nversion=$(jq\
+            \ -er --arg path graph '.[$path]' .release-please-manifest.json)\nwippy\
+            \ publish --config graph --version \"$version\" --dry-run --create --module-visibility\
+            \ public --module-type plugin --embed chestor.graph:ui_fs\n"
+        - module: graph
+          engine: postgres
+          commands: 'set -euo pipefail
+
+            source_root="$PWD"
+
+            export TMPDIR="$source_root/.scratch"
+
+            mkdir -p "$TMPDIR"
+
+            npm --prefix graph/ui ci
+
+            npm --prefix graph/ui run typecheck
+
+            npm --prefix graph/ui run build
+
+            cd graph/test
+
+            wippy update
+
+            databases=()
+
+            cleanup_databases() { for database in "${databases[@]}"; do dropdb "$database";
+            done; }
+
+            trap cleanup_databases EXIT
+
+            database="ci_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}_0"
+
+            createdb "$database"
+
+            databases+=("$database")
+
+            wippy lint --ns chestor.graph --ns ''chestor.graph.*'' --ns chestor.test_support
+            --profile postgres --set "vars.pg_database=${databases[0]}" --set vars.pg_host=127.0.0.1
+            --set vars.pg_port=5433
+
+            wippy test --profile postgres --set "vars.pg_database=${databases[0]}"
+            --set vars.pg_host=127.0.0.1 --set vars.pg_port=5433 2>&1 | tee .wippy-test.log
+
+            sed -E ''s/\x1B\[[0-?]*[ -/]*[@-~]//g'' .wippy-test.log > .wippy-test.clean.log
+
+            awk ''/No tests found/ { empty=1 } /^[[:space:]]*FAILED([[:space:]]|$)/
+            { failed=1 } /^[[:space:]]*PASSED([[:space:]]|$)/ { passed=1 } END { exit(empty
+            || failed || !passed) }'' .wippy-test.clean.log
+
+            cd "$source_root"
+
+            version=$(jq -er --arg path graph ''.[$path]'' .release-please-manifest.json)
+
+            wippy publish --config graph --version "$version" --dry-run --create --module-visibility
+            public --module-type plugin --embed chestor.graph:ui_fs
+
+            '
+        - module: journal
+          engine: sqlite
+          commands: "set -euo pipefail\nsource_root=\"$PWD\"\nexport TMPDIR=\"$source_root/.scratch\"\
+            \nmkdir -p \"$TMPDIR\"\nnpm --prefix journal/ui ci\nnpm --prefix journal/ui\
+            \ run typecheck\nnpm --prefix journal/ui run build\ncd journal/test\n\
+            wippy update\nwippy lint --ns chestor.journal --ns 'chestor.journal.*'\
+            \ \nwippy test  2>&1 | tee .wippy-test.log\nsed -E 's/\\x1B\\[[0-?]*[\
+            \ -/]*[@-~]//g' .wippy-test.log > .wippy-test.clean.log\nawk '/No tests\
+            \ found/ { empty=1 } /^[[:space:]]*FAILED([[:space:]]|$)/ { failed=1 }\
+            \ /^[[:space:]]*PASSED([[:space:]]|$)/ { passed=1 } END { exit(empty ||\
+            \ failed || !passed) }' .wippy-test.clean.log\ncd \"$source_root\"\nversion=$(jq\
+            \ -er --arg path journal '.[$path]' .release-please-manifest.json)\nwippy\
+            \ publish --config journal --version \"$version\" --dry-run --create --module-visibility\
+            \ public --module-type plugin --embed chestor.journal:ui_fs\n"
+        - module: journal
+          engine: postgres
+          commands: 'set -euo pipefail
+
+            source_root="$PWD"
+
+            export TMPDIR="$source_root/.scratch"
+
+            mkdir -p "$TMPDIR"
+
+            npm --prefix journal/ui ci
+
+            npm --prefix journal/ui run typecheck
+
+            npm --prefix journal/ui run build
+
+            cd journal/test
+
+            wippy update
+
+            databases=()
+
+            cleanup_databases() { for database in "${databases[@]}"; do dropdb "$database";
+            done; }
+
+            trap cleanup_databases EXIT
+
+            database="ci_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}_0"
+
+            createdb "$database"
+
+            databases+=("$database")
+
+            wippy lint --ns chestor.journal --ns ''chestor.journal.*'' --profile postgres
+            --set "vars.pg_database=${databases[0]}" --set vars.pg_host=127.0.0.1
+            --set vars.pg_port=5433
+
+            wippy test --profile postgres --set "vars.pg_database=${databases[0]}"
+            --set vars.pg_host=127.0.0.1 --set vars.pg_port=5433 2>&1 | tee .wippy-test.log
+
+            sed -E ''s/\x1B\[[0-?]*[ -/]*[@-~]//g'' .wippy-test.log > .wippy-test.clean.log
+
+            awk ''/No tests found/ { empty=1 } /^[[:space:]]*FAILED([[:space:]]|$)/
+            { failed=1 } /^[[:space:]]*PASSED([[:space:]]|$)/ { passed=1 } END { exit(empty
+            || failed || !passed) }'' .wippy-test.clean.log
+
+            cd "$source_root"
+
+            version=$(jq -er --arg path journal ''.[$path]'' .release-please-manifest.json)
+
+            wippy publish --config journal --version "$version" --dry-run --create
+            --module-visibility public --module-type plugin --embed chestor.journal:ui_fs
+
+            '
+        - module: roadmap
+          engine: sqlite
+          commands: "set -euo pipefail\nsource_root=\"$PWD\"\nexport TMPDIR=\"$source_root/.scratch\"\
+            \nmkdir -p \"$TMPDIR\"\nnpm --prefix roadmap/ui ci\nnpm --prefix roadmap/ui\
+            \ run typecheck\nnpm --prefix roadmap/ui run build\ncd roadmap/test\n\
+            wippy update\nwippy lint --ns chestor.roadmap --ns 'chestor.roadmap.*'\
+            \ --ns chestor.test_support \nwippy test  2>&1 | tee .wippy-test.log\n\
+            sed -E 's/\\x1B\\[[0-?]*[ -/]*[@-~]//g' .wippy-test.log > .wippy-test.clean.log\n\
+            awk '/No tests found/ { empty=1 } /^[[:space:]]*FAILED([[:space:]]|$)/\
+            \ { failed=1 } /^[[:space:]]*PASSED([[:space:]]|$)/ { passed=1 } END {\
+            \ exit(empty || failed || !passed) }' .wippy-test.clean.log\ncd \"$source_root\"\
+            \nversion=$(jq -er --arg path roadmap '.[$path]' .release-please-manifest.json)\n\
+            wippy publish --config roadmap --version \"$version\" --dry-run --create\
+            \ --module-visibility public --module-type plugin --embed chestor.roadmap:ui_fs\n"
+        - module: roadmap
+          engine: postgres
+          commands: 'set -euo pipefail
+
+            source_root="$PWD"
+
+            export TMPDIR="$source_root/.scratch"
+
+            mkdir -p "$TMPDIR"
+
+            npm --prefix roadmap/ui ci
+
+            npm --prefix roadmap/ui run typecheck
+
+            npm --prefix roadmap/ui run build
+
+            cd roadmap/test
+
+            wippy update
+
+            databases=()
+
+            cleanup_databases() { for database in "${databases[@]}"; do dropdb "$database";
+            done; }
+
+            trap cleanup_databases EXIT
+
+            database="ci_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}_0"
+
+            createdb "$database"
+
+            databases+=("$database")
+
+            wippy lint --ns chestor.roadmap --ns ''chestor.roadmap.*'' --ns chestor.test_support
+            --profile postgres --set "vars.pg_database=${databases[0]}" --set vars.pg_host=127.0.0.1
+            --set vars.pg_port=5433
+
+            wippy test --profile postgres --set "vars.pg_database=${databases[0]}"
+            --set vars.pg_host=127.0.0.1 --set vars.pg_port=5433 2>&1 | tee .wippy-test.log
+
+            sed -E ''s/\x1B\[[0-?]*[ -/]*[@-~]//g'' .wippy-test.log > .wippy-test.clean.log
+
+            awk ''/No tests found/ { empty=1 } /^[[:space:]]*FAILED([[:space:]]|$)/
+            { failed=1 } /^[[:space:]]*PASSED([[:space:]]|$)/ { passed=1 } END { exit(empty
+            || failed || !passed) }'' .wippy-test.clean.log
+
+            cd "$source_root"
+
+            version=$(jq -er --arg path roadmap ''.[$path]'' .release-please-manifest.json)
+
+            wippy publish --config roadmap --version "$version" --dry-run --create
+            --module-visibility public --module-type plugin --embed chestor.roadmap:ui_fs
+
+            '
+        - module: workspace
+          engine: sqlite
+          commands: "set -euo pipefail\nsource_root=\"$PWD\"\nexport TMPDIR=\"$source_root/.scratch\"\
+            \nmkdir -p \"$TMPDIR\"\nnpm --prefix workspace/ui ci\nnpm --prefix workspace/ui\
+            \ run typecheck\nnpm --prefix workspace/ui run build\ncd workspace/test\n\
+            wippy update\nwippy lint --ns chestor.workspace --ns 'chestor.workspace.*'\
+            \ --ns chestor.test_support \nwippy test  2>&1 | tee .wippy-test.log\n\
+            sed -E 's/\\x1B\\[[0-?]*[ -/]*[@-~]//g' .wippy-test.log > .wippy-test.clean.log\n\
+            awk '/No tests found/ { empty=1 } /^[[:space:]]*FAILED([[:space:]]|$)/\
+            \ { failed=1 } /^[[:space:]]*PASSED([[:space:]]|$)/ { passed=1 } END {\
+            \ exit(empty || failed || !passed) }' .wippy-test.clean.log\ncd \"$source_root\"\
+            \nversion=$(jq -er --arg path workspace '.[$path]' .release-please-manifest.json)\n\
+            wippy publish --config workspace --version \"$version\" --dry-run --create\
+            \ --module-visibility public --module-type plugin --embed chestor.workspace:ui_fs\n"
+        - module: workspace
+          engine: postgres
+          commands: 'set -euo pipefail
+
+            source_root="$PWD"
+
+            export TMPDIR="$source_root/.scratch"
+
+            mkdir -p "$TMPDIR"
+
+            npm --prefix workspace/ui ci
+
+            npm --prefix workspace/ui run typecheck
+
+            npm --prefix workspace/ui run build
+
+            cd workspace/test
+
+            wippy update
+
+            databases=()
+
+            cleanup_databases() { for database in "${databases[@]}"; do dropdb "$database";
+            done; }
+
+            trap cleanup_databases EXIT
+
+            database="ci_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}_0"
+
+            createdb "$database"
+
+            databases+=("$database")
+
+            wippy lint --ns chestor.workspace --ns ''chestor.workspace.*'' --ns chestor.test_support
+            --profile postgres --set "vars.pg_database=${databases[0]}" --set vars.pg_host=127.0.0.1
+            --set vars.pg_port=5433
+
+            wippy test --profile postgres --set "vars.pg_database=${databases[0]}"
+            --set vars.pg_host=127.0.0.1 --set vars.pg_port=5433 2>&1 | tee .wippy-test.log
+
+            sed -E ''s/\x1B\[[0-?]*[ -/]*[@-~]//g'' .wippy-test.log > .wippy-test.clean.log
+
+            awk ''/No tests found/ { empty=1 } /^[[:space:]]*FAILED([[:space:]]|$)/
+            { failed=1 } /^[[:space:]]*PASSED([[:space:]]|$)/ { passed=1 } END { exit(empty
+            || failed || !passed) }'' .wippy-test.clean.log
+
+            cd "$source_root"
+
+            version=$(jq -er --arg path workspace ''.[$path]'' .release-please-manifest.json)
+
+            wippy publish --config workspace --version "$version" --dry-run --create
+            --module-visibility public --module-type plugin --embed chestor.workspace:ui_fs
+
+            '
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_USER: kickside
+          POSTGRES_PASSWORD: kickside
+          POSTGRES_DB: postgres
+        ports:
+        - 5433:5432
+        options: --health-cmd "pg_isready -U kickside -d postgres" --health-interval
+          5s --health-timeout 5s --health-retries 10
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        persist-credentials: false
+        fetch-depth: 0
+        path: source
+    - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      with:
+        node-version: '22'
+    - uses: kicksideai/.github/actions/setup-wippy@5401fa65bed7d8648125957520e94206ed1ffd0b
+      with:
+        version: 0.3.47a
+        hub-url: https://hub.wippy.ai
+    - name: Check out kickside module sources
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        repository: kicksideai/kickside
+        ref: main
+        path: kickside
+        token: ${{ secrets.SOURCE_READ_TOKEN || github.token }}
+        persist-credentials: false
+    - name: Build, lint and Lua module tests
+      run: ${{ matrix.commands }}
+    defaults:
+      run:
+        working-directory: source

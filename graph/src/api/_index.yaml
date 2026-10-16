@@ -1,0 +1,110 @@
+version: "1.0"
+namespace: chestor.graph.api
+
+entries:
+  - name: query_support
+    kind: library.lua
+    source: file://query_support.lua
+    modules: [http]
+    imports:
+      http_errors: kickside.contract:http_errors
+
+  - name: get_graph
+    kind: function.lua
+    source: file://get_graph.lua
+    method: get
+    modules: [http]
+    imports: { http_errors: kickside.contract:http_errors, graph: chestor.graph:graph, materializer: chestor.graph:materializer, thread_access: kickside.core.threads.api:thread_access }
+  - name: get_graph.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: get_graph
+    path: /workspace/graphs/{id}
+
+  - name: apply_graph
+    kind: function.lua
+    source: file://apply_graph.lua
+    method: apply
+    modules: [http, json]
+    imports: { http_errors: kickside.contract:http_errors, graph: chestor.graph:graph, materializer: chestor.graph:materializer, thread_access: kickside.core.threads.api:thread_access }
+  - name: apply_graph.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: POST
+    func: apply_graph
+    path: /workspace/graphs/{id}/apply
+
+  - name: undo_graph
+    kind: function.lua
+    source: file://undo_graph.lua
+    method: undo
+    modules: [http]
+    imports: { http_errors: kickside.contract:http_errors, graph: chestor.graph:graph }
+  - name: undo_graph.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: POST
+    func: undo_graph
+    path: /workspace/graphs/{id}/undo
+
+  - name: redo_graph
+    kind: function.lua
+    source: file://redo_graph.lua
+    method: redo
+    modules: [http]
+    imports: { http_errors: kickside.contract:http_errors, graph: chestor.graph:graph }
+  - name: redo_graph.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: POST
+    func: redo_graph
+    path: /workspace/graphs/{id}/redo
+
+  - name: list_nodes
+    kind: function.lua
+    source: file://list_nodes.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, graph: chestor.graph:graph, support: chestor.graph.api:query_support }
+  - name: list_nodes.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: list_nodes
+    path: /workspace/graphs/{id}/nodes
+
+  - name: list_edges
+    kind: function.lua
+    source: file://list_edges.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, graph: chestor.graph:graph, support: chestor.graph.api:query_support }
+  - name: list_edges.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: list_edges
+    path: /workspace/graphs/{id}/edges
+
+  - name: list_materials
+    kind: function.lua
+    source: file://list_materials.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, graph: chestor.graph:graph, support: chestor.graph.api:query_support }
+  - name: list_materials.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: list_materials
+    path: /workspace/graphs/{id}/materials
+
+  - name: get_schema
+    kind: function.lua
+    source: file://get_schema.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, graph: chestor.graph:graph, support: chestor.graph.api:query_support }
+  - name: get_schema.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: get_schema
+    path: /workspace/graphs/{id}/schema

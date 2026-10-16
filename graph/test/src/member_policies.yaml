@@ -1,0 +1,94 @@
+version: '1.0'
+namespace: app
+entries:
+- name: member.runtime_data_access
+  kind: security.policy
+  groups:
+  - app:member
+  policy:
+    resources:
+    - app:db
+    - app:uploads
+    - kickside.models:cache
+    - app:cache
+    actions:
+    - db.get
+    - fs.get
+    - store.get
+    - store.info
+    - store.key.get
+    - store.key.list
+    - store.key.set
+    - store.key.delete
+    - store.key.has
+    effect: allow
+- name: member.runtime_registry_read
+  kind: security.policy
+  groups:
+  - app:member
+  policy:
+    resources:
+    - kickside.*
+    - userspace.dataflow:*
+    - userspace.dataflow.*
+    - wippy.views:*
+    - wippy.session:*
+    - wippy.session.*
+    - wippy.agent:*
+    - wippy.agent.*
+    - wippy.llm:*
+    - wippy.llm.*
+    - app.api.websocket:*
+    - app.env:*
+    actions:
+    - registry.get
+    - registry.find
+    effect: allow
+- name: member.runtime_contracts
+  kind: security.policy
+  groups:
+  - app:member
+  policy:
+    resources:
+    - kickside.*
+    - userspace.dataflow:*
+    - userspace.dataflow.*
+    - wippy.session:*
+    - wippy.session.*
+    - wippy.agent:*
+    - wippy.agent.*
+    - wippy.llm:*
+    - wippy.llm.*
+    - security
+    actions:
+    - contract.get
+    - contract.open
+    - contract.call
+    - contract.implementations
+    - contract.security
+    - funcs.call
+    - funcs.security
+    effect: allow
+- name: member.runtime_contract_methods
+  kind: security.policy
+  groups:
+  - app:member
+  policy:
+    resources: '*'
+    actions:
+    - contract.call
+    effect: allow
+- name: member_probe_access
+  kind: security.policy
+  groups:
+  - app:member
+  policy:
+    resources:
+    - app:sharing_workspace_probe
+    - app:graph_probe
+    - app:research_probe
+    - security
+    actions:
+    - funcs.call
+    - funcs.security
+    effect: allow

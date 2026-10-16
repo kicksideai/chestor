@@ -1,0 +1,409 @@
+version: "1.0"
+namespace: chestor.journal.api
+
+entries:
+  - name: support
+    kind: library.lua
+    source: file://support.lua
+    modules: [http, json]
+    imports:
+      http_errors: kickside.contract:http_errors
+
+  - name: get_journal
+    kind: function.lua
+    source: file://get_journal.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, queries: chestor.journal.read:queries, support: chestor.journal.api:support }
+  - name: get_journal.endpoint
+    kind: http.endpoint
+    meta:
+      comment: Journal snapshot; every collection it carries is a keyset page continued through these parameters.
+      query:
+        - limit
+        - before_seq
+        - task_limit
+        - task_after_sort_order
+        - task_after_updated_at
+        - task_after_id
+        - artifact_limit
+        - artifact_after_created_at
+        - artifact_after_id
+        - graph_limit
+        - graph_after_rank
+        - graph_after_updated_at
+        - graph_after_id
+        - cursor_limit
+        - cursor_after_updated_at
+        - cursor_after_id
+        - span_limit
+        - span_after_activity_at
+        - span_after_id
+        - work_limit
+    method: GET
+    func: get_journal
+    path: /workspace/journals/{id}
+
+  - name: get_health
+    kind: function.lua
+    source: file://get_health.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, queries: chestor.journal.read:queries, support: chestor.journal.api:support }
+  - name: get_health.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: get_health
+    path: /workspace/journals/{id}/health
+
+  - name: apply_events
+    kind: function.lua
+    source: file://apply_events.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, commands: chestor.journal.write:commands, support: chestor.journal.api:support }
+  - name: apply_events.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: POST
+    func: apply_events
+    path: /workspace/journals/{id}/apply
+
+  - name: append_entry
+    kind: function.lua
+    source: file://append_entry.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, commands: chestor.journal.write:commands, support: chestor.journal.api:support }
+  - name: append_entry.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: POST
+    func: append_entry
+    path: /workspace/journals/{id}/events
+
+  - name: list_events
+    kind: function.lua
+    source: file://list_events.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, queries: chestor.journal.read:queries, support: chestor.journal.api:support }
+  - name: list_events.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: list_events
+    path: /workspace/journals/{id}/events
+
+  - name: get_event
+    kind: function.lua
+    source: file://get_event.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, queries: chestor.journal.read:queries, support: chestor.journal.api:support }
+  - name: get_event.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: get_event
+    path: /workspace/journals/{id}/events/{event_id}
+
+  - name: get_updates
+    kind: function.lua
+    source: file://get_updates.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, queries: chestor.journal.read:queries, support: chestor.journal.api:support }
+  - name: get_updates.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: get_updates
+    path: /workspace/journals/{id}/updates
+
+  - name: get_context_pack
+    kind: function.lua
+    source: file://get_context_pack.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, context: chestor.journal.read:context, support: chestor.journal.api:support }
+  - name: get_context_pack.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: get_context_pack
+    path: /workspace/journals/{id}/context_pack
+
+  - name: get_branch
+    kind: function.lua
+    source: file://get_branch.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, queries: chestor.journal.read:queries, support: chestor.journal.api:support }
+  - name: get_branch.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: get_branch
+    path: /workspace/journals/{id}/branch
+
+  - name: get_frontier
+    kind: function.lua
+    source: file://get_frontier.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, queries: chestor.journal.read:queries, support: chestor.journal.api:support }
+  - name: get_frontier.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: get_frontier
+    path: /workspace/journals/{id}/frontier
+
+  - name: get_cursors
+    kind: function.lua
+    source: file://get_cursors.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, queries: chestor.journal.read:queries, support: chestor.journal.api:support }
+  - name: get_cursors.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: get_cursors
+    path: /workspace/journals/{id}/cursors
+
+  - name: get_spans
+    kind: function.lua
+    source: file://get_spans.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, queries: chestor.journal.read:queries, support: chestor.journal.api:support }
+  - name: get_spans.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: get_spans
+    path: /workspace/journals/{id}/spans
+
+  - name: get_activity
+    kind: function.lua
+    source: file://get_activity.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, queries: chestor.journal.read:queries, support: chestor.journal.api:support }
+  - name: get_activity.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: get_activity
+    path: /workspace/journals/{id}/activity
+
+  - name: get_changes
+    kind: function.lua
+    source: file://get_changes.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, queries: chestor.journal.read:queries, support: chestor.journal.api:support }
+  - name: get_changes.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: get_changes
+    path: /workspace/journals/{id}/changes
+
+  - name: get_tree
+    kind: function.lua
+    source: file://get_tree.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, queries: chestor.journal.read:queries, support: chestor.journal.api:support }
+  - name: get_tree.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: get_tree
+    path: /workspace/journals/{id}/tree
+
+  - name: upsert_task
+    kind: function.lua
+    source: file://upsert_task.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, commands: chestor.journal.write:commands, support: chestor.journal.api:support }
+  - name: upsert_task.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: POST
+    func: upsert_task
+    path: /workspace/journals/{id}/tasks
+
+  - name: transitions
+    kind: library.lua
+    meta:
+      comment: HTTP adapter over the guarded transition commands; addresses one task or a bounded batch and answers per-task results.
+    source: file://transitions.lua
+    imports:
+      http_errors: kickside.contract:http_errors
+      commands: chestor.journal.write:commands
+      thread_log: chestor.journal:thread_log
+
+  - name: transition_task
+    kind: function.lua
+    source: file://transition_task.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, transitions: chestor.journal.api:transitions, support: chestor.journal.api:support }
+  - name: transition_task.endpoint
+    kind: http.endpoint
+    meta:
+      comment: >-
+        Moves task state over HTTP through the same guarded commands the ActOnJournal verbs run.
+        Body carries action plus the verb's payload (reason, result, outcome, distilled, decision_id,
+        receipt_id, waiver, principal, lease_id, fencing_token, expected_revision, command_id), and
+        tasks names a bounded batch that answers one result per task.
+      actions: [block, cancel, close, complete, fold, gate_pass, reopen, start, unblock]
+      max_batch: 50
+    method: POST
+    func: transition_task
+    path: /workspace/journals/{id}/tasks/{task_id}/transition
+
+  - name: link_artifact
+    kind: function.lua
+    source: file://link_artifact.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, commands: chestor.journal.write:commands, support: chestor.journal.api:support }
+  - name: link_artifact.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: POST
+    func: link_artifact
+    path: /workspace/journals/{id}/artifacts
+
+  - name: focus_task
+    kind: function.lua
+    source: file://focus_task.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, commands: chestor.journal.write:commands, support: chestor.journal.api:support }
+  - name: focus_task.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: POST
+    func: focus_task
+    path: /workspace/journals/{id}/focus
+
+  - name: search_journal
+    kind: function.lua
+    source: file://search_journal.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, recall: chestor.journal.read:recall, support: chestor.journal.api:support }
+  - name: search_journal.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: POST
+    func: search_journal
+    path: /workspace/journals/{id}/search
+
+  - name: search_journal_text
+    kind: function.lua
+    source: file://search_journal_text.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, queries: chestor.journal.read:queries, support: chestor.journal.api:support }
+  - name: search_journal_text.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: POST
+    func: search_journal_text
+    path: /workspace/journals/{id}/search_text
+
+  - name: update_digest
+    kind: function.lua
+    source: file://update_digest.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, commands: chestor.journal.write:commands, support: chestor.journal.api:support }
+  - name: update_digest.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: PUT
+    func: update_digest
+    path: /workspace/journals/{id}/digest
+
+  - name: create_checkpoint
+    kind: function.lua
+    source: file://create_checkpoint.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, commands: chestor.journal.write:commands, support: chestor.journal.api:support }
+  - name: create_checkpoint.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: POST
+    func: create_checkpoint
+    path: /workspace/journals/{id}/checkpoints
+
+  - name: list_graphs
+    kind: function.lua
+    source: file://list_graphs.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, graph: chestor.journal.graph:service, support: chestor.journal.api:support }
+  - name: list_graphs.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: list_graphs
+    path: /workspace/journals/{id}/graphs
+
+  - name: query_graph
+    kind: function.lua
+    source: file://query_graph.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, graph: chestor.journal.graph:service, support: chestor.journal.api:support }
+  - name: query_graph.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: query_graph
+    path: /workspace/journals/{id}/graphs/{graph_id}
+
+  - name: apply_graph_ops
+    kind: function.lua
+    source: file://apply_graph_ops.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, graph: chestor.journal.graph:service, support: chestor.journal.api:support }
+  - name: apply_graph_ops.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: POST
+    func: apply_graph_ops
+    path: /workspace/journals/{id}/graphs/{graph_id}/ops
+
+  - name: configure_graph
+    kind: function.lua
+    source: file://configure_graph.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, graph: chestor.journal.graph:service, support: chestor.journal.api:support }
+  - name: configure_graph.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: PUT
+    func: configure_graph
+    path: /workspace/journals/{id}/graphs/{graph_id}/config
+
+  - name: event_graphs
+    kind: function.lua
+    source: file://event_graphs.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, graph: chestor.journal.graph:service, support: chestor.journal.api:support }
+  - name: event_graphs.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: event_graphs
+    path: /workspace/journals/{id}/events/{event_id}/graphs
+
+  - name: assemble_graph
+    kind: function.lua
+    source: file://assemble_graph.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, graph: chestor.journal.graph:service, support: chestor.journal.api:support }
+  - name: assemble_graph.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: POST
+    func: assemble_graph
+    path: /workspace/journals/{id}/graphs/{graph_id}/assemble
+
+  - name: get_assembly
+    kind: function.lua
+    source: file://get_assembly.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, graph: chestor.journal.graph:service, support: chestor.journal.api:support }
+  - name: get_assembly.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: get_assembly
+    path: /workspace/journals/{id}/graphs/{graph_id}/assemble

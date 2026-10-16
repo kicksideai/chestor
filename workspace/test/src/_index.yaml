@@ -1,0 +1,428 @@
+version: "1.0"
+namespace: app
+
+# Standalone harness for chestor/workspace. The module under test is mounted as a
+# dependency so this harness exercises the same requirement-linking boundary as a
+# host application.
+
+entries:
+  - name: workspace_item_changed
+    kind: registry.entry
+    meta:
+      type: kickside.core.threads.event
+    schema:
+      type: object
+
+  - name: db
+    kind: db.sql.sqlite
+    meta:
+      comment: In-memory database for workspace tests.
+    file: ":memory:"
+
+  - name: env_storage
+    kind: env.storage.file
+    meta:
+      type: envstorage
+    file_path: ./.wippy/test.env
+    auto_create: true
+
+  - name: processes
+    kind: process.host
+    lifecycle:
+      auto_start: true
+
+  - name: gateway
+    kind: http.service
+    meta:
+      comment: Test HTTP server.
+    addr: :19133
+    lifecycle:
+      auto_start: true
+
+  - name: api
+    kind: http.router
+    meta:
+      comment: Test API router.
+      server: gateway
+    prefix: /api
+
+  - name: user
+    kind: security.policy
+    meta:
+      comment: Permissive scope the workspace suites run their scoped actors under.
+    groups:
+      - workspace_test
+    policy:
+      resources: '*'
+      actions: '*'
+      effect: allow
+
+  - name: wait_for_boot
+    kind: function.lua
+    meta:
+      type: test
+      suite: "00_setup"
+      comment: Waits for component migrations before workspace suites run.
+    source: file://wait_for_boot.lua
+    modules:
+      - sql
+      - time
+      - registry
+    method: run
+
+  - name: workspace_probe
+    kind: function.lua
+    meta:
+      comment: Test-only actor-framed access to the workspace handler library.
+    source: file://workspace_probe.lua
+    imports:
+      handlers: chestor.workspace.binding:handlers
+    method: handle
+
+  - name: workspace_projection_worker
+    kind: function.lua
+    meta:
+      type: projection.worker
+      comment: Test-only projection worker for thread-backed workspace kinds.
+    source: file://workspace_projection_worker.lua
+    method: run
+
+  - name: workspace_upload_stage_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: workspace_upload_stage
+      comment: File entries remain non-creatable by users but materialize from upload jobs.
+    source: file://workspace_upload_stage_test.lua
+    modules:
+      - funcs
+      - security
+      - crypto
+      - channel
+    imports:
+      test: wippy.test:test
+      failing_list_stage: app:failing_list_stage
+    method: run
+
+  - name: failing_list_handlers
+    kind: library.lua
+    meta:
+      comment: Test fixture that exposes an unavailable folder listing.
+    source: file://failing_list_handlers.lua
+
+  - name: failing_list_stage
+    kind: library.lua
+    meta:
+      comment: Upload file stage linked to its source with a failing handlers dependency.
+    source: file://uploads_file_stage_subject.lua
+    imports:
+      handlers: app:failing_list_handlers
+
+  - name: workspace_trait_bounds_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: workspace_trait_bounds
+      comment: Workspace trait tools preserve fitting entries and page oversized entry fields through their native selectors.
+    source: file://workspace_trait_bounds_test.lua
+    modules: [funcs, security, crypto, json, contract]
+    imports:
+      test: wippy.test:test
+    method: run
+
+  - name: workspace_delete_semantics_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: workspace_delete_semantics
+      comment: Workspace subtree deletes are children-first, pinned descendants refuse atomically, and upload pointers remain asymmetric.
+    source: file://workspace_delete_semantics_test.lua
+    modules:
+      - funcs
+      - security
+      - crypto
+      - contract
+      - sql
+    imports:
+      test: wippy.test:test
+    method: run
+
+  - name: workspace_placement_errors_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: workspace_move
+    source: file://workspace_placement_errors_test.lua
+    imports:
+      test: wippy.test:test
+      handlers: chestor.workspace.binding:handlers
+      component: kickside.component:component
+      support: chestor.workspace.api:support
+    method: run
+
+  - name: workspace_move_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: workspace_move
+      comment: Moves re-parent into folders and back to root; an omitted parent keeps placement.
+    source: file://workspace_move_test.lua
+    modules:
+      - funcs
+      - security
+      - crypto
+    imports:
+      test: wippy.test:test
+    method: run
+
+  - name: entry_types_dynamic_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: workspace_kind_discovery
+      comment: Workspace kind discovery observes contract bindings added in later registry versions without a restart.
+    source: file://entry_types_dynamic_test.lua
+    modules:
+      - registry
+      - funcs
+    imports:
+      test: wippy.test:test
+      entry_types: chestor.workspace:entry_types
+      http_errors: kickside.contract:http_errors
+    method: run
+
+  - name: workspace_packaging_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_workspace
+      group: Workspace
+      comment: Workspace production dependencies and discovery declarations.
+    source: file://packaging_test.lua
+    method: run
+    modules: [registry, security]
+    imports:
+      test: wippy.test:test
+
+  - name: canonical_uploads_container
+    kind: contract.binding
+    meta:
+      class: kickside.uploads
+      title: Uploads
+      icon: tabler:upload
+      container: true
+    contracts:
+      - contract: kickside.contract:component
+        methods: { get_status: chestor.workspace.binding:get_status }
+      - contract: kickside.contract:deletable
+        methods: { delete: chestor.workspace.binding:delete_entry }
+
+  - name: pinned_test_folder
+    kind: contract.binding
+    meta:
+      class: pinned_test_folder
+      title: Pinned Test Folder
+      icon: tabler:lock
+      container: true
+      provision: {}
+    contracts:
+      - contract: kickside.contract:component
+        methods: { get_status: chestor.workspace.binding:get_status }
+      - contract: kickside.contract:deletable
+        methods: { delete: chestor.workspace.binding:delete_entry }
+
+  - name: thread_backed_test
+    kind: contract.binding
+    meta:
+      class: thread_backed_test
+      title: Thread Backed Test
+      icon: tabler:route
+      component:
+        create: {}
+        manage: { view: wc-entry-create }
+      thread_class: workspace.thread_backed_test
+      projections:
+        - kind: workspace.thread_backed_test.state
+          worker_ref: "func://app:workspace_projection_worker"
+      events:
+        output:
+          - type: app:workspace_item_changed
+    contracts:
+      - contract: kickside.contract:component
+        methods: { get_status: chestor.workspace.binding:get_status }
+      - contract: kickside.contract:deletable
+        methods: { delete: chestor.workspace.binding:delete_entry }
+
+  - name: dep.chestor.workspace
+    kind: ns.dependency
+    version: "*"
+    meta:
+      comment: Workspace package under test, wired only to harness-owned resources.
+    component: "chestor/workspace"
+    parameters:
+      - {name: 'chestor.workspace.security:user_security_scope', value: 'app:user'}
+      - name: api_router
+        value: app:api
+      - name: ui_server
+        value: app:gateway
+
+  - name: dep.kickside.contract
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Shared component/deletable contracts used by workspace kinds.
+    component: kickside/contract
+    parameters:
+    - name: kickside.contract.http:user_security_scope
+      value: app:user
+
+  - name: dep.kickside.component
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Component service backing workspace entries.
+    component: kickside/component
+    parameters:
+    - name: kickside.component:target_db
+      value: app:db
+    - name: kickside.component:api_router
+      value: app:api
+    - name: kickside.component:lifecycle_impl
+      value: kickside.core.lifecycle:component_lifecycle_impl
+
+  - name: dep.kickside.core
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Core thread log used by thread-backed workspace kind tests.
+    component: kickside/core
+    parameters:
+    - name: kickside.core:target_db
+      value: app:db
+    - name: kickside.core.lifecycle:process_host
+      value: app:processes
+    - name: kickside.core.lifecycle:user_lifecycle_grant
+      value:
+        access_mask: 2
+        subject_id: app:user
+        subject_type: group
+    - name: kickside.core.lifecycle:admin_lifecycle_grant
+      value:
+        access_mask: 3
+        subject_id: app:user
+        subject_type: group
+    - name: kickside.core.retention:process_host
+      value: app:processes
+    - name: kickside.core.threads:process_host
+      value: app:processes
+    - name: kickside.core.projections:process_host
+      value: app:processes
+    - name: kickside.core.retention:api_router
+      value: app:api
+    - name: kickside.core.threads:api_router
+      value: app:api
+    - name: kickside.core.threads.hydration:api_router
+      value: app:api
+    - name: kickside.core.projections:api_router
+      value: app:api
+    - name: kickside.core.retention:env_storage
+      value: app:env_storage
+    - name: kickside.core.projections:env_storage
+      value: app:env_storage
+    - name: kickside.core.retention:user_security_scope
+      value: app:user
+    - name: kickside.core.threads:user_security_scope
+      value: app:user
+    - name: kickside.core.threads.hydration:user_security_scope
+      value: app:user
+
+  - name: dep.kickside.jobs
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Job/effect schema that owns event hydration tables used by core purge cascades.
+    component: kickside/jobs
+    parameters:
+    - name: kickside.core.jobs:target_db
+      value: app:db
+    - name: kickside.core.jobs:temp_fs
+      value: app:uploads
+    - name: kickside.core.jobs:process_host
+      value: app:processes
+    - name: kickside.core.jobs:api_router
+      value: app:api
+    - name: kickside.core.scheduler:process_host
+      value: app:processes
+    - name: kickside.core.scheduler:env_storage
+      value: app:env_storage
+
+  - name: dep.wippy.migration
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Migration framework wired to the harness database.
+    component: "wippy/migration"
+    parameters:
+      - name: app_db
+        value: app:db
+
+  - name: dep.wippy.bootloader
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Bootloader applies component migrations before tests run.
+    component: "wippy/bootloader"
+    parameters:
+      - name: application_host
+        value: app:processes
+      - name: env_storage
+        value: app:env_storage
+
+  - name: dep.kickside.renderers
+    kind: ns.dependency
+    component: kickside/renderers
+    version: '*'
+    parameters:
+      - { name: kickside.renderers:ui_server, value: app:gateway }
+      - { name: kickside.renderers:api_router, value: app:api }
+      - { name: kickside.renderers:user_security_scope, value: app:user }
+
+  - name: dep.kickside.widgets
+    kind: ns.dependency
+    component: kickside/widgets
+    version: '*'
+    parameters:
+      - { name: kickside.widgets:ui_server, value: app:gateway }
+      - { name: kickside.widgets:api_router, value: app:api }
+
+  - name: scope_resolver_contract_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: "00_scope_resolver"
+    source: file://scope_resolver_contract_test.lua
+    method: run
+    modules: [funcs, security]
+    imports:
+      test: wippy.test:test
+      execution_identity: kickside.execution:execution_identity
+
+  - name: dep.chestor.test_support
+    kind: ns.dependency
+    component: chestor/test-support
+    version: '*'
+    parameters:
+      - name: group
+        value: workspace_test
+  - name: user_endpoint_policy_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: member_endpoint_policy
+    source: file://user_endpoint_policy_test.lua
+    method: run
+    modules:
+    - registry
+    - security
+    imports:
+      test: wippy.test:test

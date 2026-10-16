@@ -1,0 +1,1232 @@
+version: "1.0"
+namespace: chestor.journal.traits
+
+entries:
+  - name: support
+    kind: library.lua
+    meta: { internal: true, comment: Immutable Journal tool input normalization helpers. }
+    source: file://support.lua
+    imports:
+      db: chestor.journal.persist:ops
+      cursors: chestor.journal.persist:cursors
+      commands: chestor.journal.write:commands
+      thread_log: chestor.journal:thread_log
+
+  - name: query_tool
+    kind: library.lua
+    meta: { internal: true, comment: Shared Journal graph-query adapter. }
+    source: file://query_journal_graph.lua
+    imports: { graph: chestor.journal.graph:service, support: chestor.journal.traits:support }
+
+  - name: record_tool
+    kind: library.lua
+    meta: { internal: true, comment: Shared Journal fact recording implementation. }
+    source: file://record_journal.lua
+    imports:
+      commands: chestor.journal.write:commands
+      queries: chestor.journal.read:queries
+      support: chestor.journal.traits:support
+      db: chestor.journal.persist:ops
+      cursors: chestor.journal.persist:cursors
+
+  - name: migrate_legacy_tool
+    kind: function.lua
+    source: file://journal_maintenance.lua
+    method: handle
+    imports:
+      embedding: chestor.journal.embedding:scheduler
+    meta:
+      internal: true
+      deprecated: false
+      comment: Administrative journal maintenance function; intentionally absent from agent MCP discovery.
+      title: Maintain Journal
+      mcp:
+        required_scopes:
+          - state.read
+          - state.write
+      llm_alias: MaintainJournal
+      llm_description: "Administrative journal maintenance. action=reembed schedules a fresh embedding job for each journal id."
+      input_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "action": { "type": "string", "enum": ["reembed"] },
+            "journal_ids": { "type": "array", "items": { "type": "string" }, "description": "Journal ids to operate on" }
+          }
+        }
+      output_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "fired": { "type": "integer" },
+            "report": { "type": "array" },
+            "error": { "type": "string" }
+          },
+          "required": ["success"]
+        }
+
+  - name: journal_trait
+    kind: registry.entry
+    meta:
+      type: agent.trait
+      title: Journal
+      public: true
+      icon: tabler:timeline-event-text
+      comment: "Ontology-neutral durable memory for long projects: one graph-addressed cursor per agent, compact connected reads, semantic and temporal recall, typed facts, and explicit graph mutation."
+      tags: [journal, memory, context, graph, semantic, temporal]
+    prompt: |
+      Treat JournalContext as working-memory position and Journal as durable
+      evidence. Resume substantial work, then keep only its jc_ handle. Retrieve
+      the smallest sufficient context: context for the current chain, hybrid for
+      exact+semantic local recall, memory for cross-graph recall, timeline/events
+      for change, and subtree for multiscale branch understanding. Add time bounds
+      when state may have changed. Start compact and drill to full evidence; never
+      treat a digest as a substitute for its sources.
+
+      Record direct observations/evidence separately from findings or decisions.
+      Mark inference with confidence, attach subjects/refs, preserve failed
+      approaches, and supersede rather than overwrite. If evidence is absent,
+      conflicting, stale, or only inferred, keep it unresolved and abstain from
+      asserting it as fact. Derived summaries and links must remain traceable to
+      their evidence.
+
+      Before compaction or handoff, checkpoint completed work, active claims,
+      blockers, unverified assumptions, and next proof actions. Child cursors
+      inherit position and selected context_refs; attach only what their assignment
+      needs. Activate Journal Work Protocol only for leases, gates, and verifier
+      receipts.
+    tools:
+      - chestor.journal.traits:journal_context
+      - chestor.journal.traits:journal_query
+      - chestor.journal.traits:journal_fact
+      - chestor.journal.traits:journal_graph
+
+  - name: journal_work_trait
+    kind: registry.entry
+    meta:
+      type: agent.trait
+      title: Journal Work Protocol
+      public: true
+      icon: tabler:checklist
+      comment: Optional strict work adapter with task leases, dependencies, gates, experiments, verification receipts, and task-oriented recovery lenses.
+      tags: [journal, work, tasks, leases, verification]
+    prompt: |
+      Use this adapter only for work that benefits from enforced task state.
+      Open a branch to obtain its lease, decompose and link dependencies, then
+      start, record facts through the lease, request verification, and complete
+      against the receipt. Treat refusals as protocol state to resolve. The
+      generic Journal cursor remains the durable agent position.
+    tools:
+      - chestor.journal.traits:read_journal
+      - chestor.journal.traits:act_journal
+      - chestor.journal.traits:journal_fact
+
+  - name: journal_context
+    kind: function.lua
+    source: file://journal_context.lua
+    method: handler
+    imports:
+      commands: chestor.journal.write:commands
+      context: chestor.journal.read:context
+      support: chestor.journal.traits:support
+      query_tool: chestor.journal.traits:query_tool
+    meta:
+      type: tool
+      title: Journal Context
+      mcp: { required_scopes: [state.read, state.write] }
+      llm_alias: JournalContext
+      llm_description: Open, resume, move, checkpoint, close, or integrate an agent cursor. Open once with journal_id + address, then keep only the returned jc_ handle. Resume returns a self-routing checkpoint continuation. Child cursors inherit position and context_refs unless detached.
+      input_schema:
+        type: object
+        properties:
+          journal_id: { type: string }
+          handle: { type: string }
+          op: { type: string, enum: [resume, open, move, checkpoint, close, integrate] }
+          cursor_id: { type: string }
+          agent_id: { type: string }
+          address:
+            type: object
+            properties:
+              graph_id: { type: string }
+              node_id: { type: string }
+            required: [graph_id, node_id]
+            additionalProperties: false
+          graph_id: { type: string }
+          node_id: { type: string }
+          task_id: { type: string }
+          parent_cursor_id: { type: string }
+          parent_handle: { type: string }
+          expected_revision: { type: integer, minimum: 0 }
+          purpose: { type: string }
+          assignment: { type: string }
+          why: { type: string }
+          reason: { type: string, description: "move: why focus changed; why is also accepted" }
+          close_requirements: { type: array, items: { type: string } }
+          inherit_context: { type: boolean, description: "Child open defaults true; false creates a deliberately detached context." }
+          context_refs:
+            type: array
+            maxItems: 32
+            items:
+              type: object
+              properties:
+                graph_id: { type: string }
+                node_id: { type: string }
+                address: { type: object, properties: { graph_id: { type: string }, node_id: { type: string } }, required: [graph_id, node_id] }
+                load: { type: string, enum: [pointer, summary, full] }
+                reason: { type: string }
+                required: { type: boolean }
+              additionalProperties: false
+          checkpoint: { type: object }
+          last_seen_seq: { type: integer, minimum: 0 }
+          episode_ttl_s: { type: integer, minimum: 60, maximum: 28800 }
+          path_limit: { type: integer, minimum: 1, maximum: 64 }
+          neighbor_limit: { type: integer, minimum: 1, maximum: 60 }
+          delta_limit: { type: integer, minimum: 1, maximum: 100 }
+          detail: { type: string, enum: [compact, full], description: "Accepted for existing callers; results always include full records." }
+          receipt_id: { type: string }
+          child_cursor_id: { type: string }
+          child_handle: { type: string, description: "Short alias for child_cursor_id during integration." }
+          continuation: { type: object, description: "A self-routing next.checkpoint/next.rotate object returned by resume; pass it back alone and override only intentional fields." }
+          disposition: { type: string, enum: [pending, accepted, rejected, superseded] }
+          evidence_event_ids: { type: array, items: { type: string } }
+          coverage: { type: object }
+          unresolved: { type: array }
+          source_from_seq: { type: integer, minimum: 0, description: "integrate: optional; omitted bounds are derived from the child episode and checkpoint" }
+          source_to_seq: { type: integer, minimum: 0, description: "integrate: optional; omitted bounds are derived from the child episode and checkpoint" }
+        additionalProperties: false
+      output_schema:
+        type: object
+        properties:
+          success: { type: boolean }
+          accepted: { type: boolean }
+          refused: { type: boolean }
+          code: { type: string }
+          detail: { type: string }
+          error: { type: string }
+          journal_id: { type: string }
+          handle: { type: string }
+          parent_handle: { type: string, description: "Parked parent cursor for a child branch." }
+          op: { type: string }
+          cursor_id: { type: string }
+          revision: { type: integer }
+          address: { type: object }
+          episode: { type: object }
+          event_id: { type: string }
+          max_seq: { type: [integer, "null"] }
+          disposition: { type: string }
+          receipt_id: { type: string }
+          return_to:
+            type: object
+            description: "On child close, the exact one-call continuation back to the parked parent cursor."
+            properties:
+              op: { type: string, enum: [resume] }
+              handle: { type: string }
+            required: [op, handle]
+            additionalProperties: false
+          position: { type: object }
+          parent_context: { type: object }
+          attached_context: { type: array }
+          assignment: { type: object }
+          local_context: { type: object }
+          coordination: { type: object }
+          delta: { type: object }
+          omissions: { type: object }
+        required: [success]
+
+  - name: journal_query
+    kind: function.lua
+    source: file://journal_query.lua
+    method: handler
+    imports:
+      query_tool: chestor.journal.traits:query_tool
+      support: chestor.journal.traits:support
+      queries: chestor.journal.read:queries
+      recall: chestor.journal.read:recall
+    meta:
+      type: tool
+      title: Journal Query
+      mcp: { required_scopes: [state.read] }
+      llm_alias: JournalQuery
+      llm_description: >-
+        Query from a jc_ handle. Lists and searches return compact summaries; fields selects additional content. Node and workspace detail reads return whole objects. Defaults to its neighborhood. Use
+        context for an ordered packet, hybrid for exact+semantic graph recall,
+        memory for journal-wide exact+semantic recall, subtree for a whole
+        multiscale branch, timeline/events for history, and request to verify a
+        mutation. mode=node + event_id resolves only the projected node
+        address(es), never the graph catalog. Apply from_time/to_time when
+        recency matters. validity defaults current, which suppresses retracted
+        and superseded facts; use all only for history/audit. Pass returned
+        continuations back unchanged; explicit fields override them. Missing
+        evidence is a reason to abstain, not infer.
+      input_schema:
+        type: object
+        properties:
+          fields: { type: array, items: { type: string }, description: "Fields in collection rows; defaults summaries. IDs remain." }
+          journal_id: { type: string }
+          handle: { type: string }
+          after_rank: { type: integer, minimum: 0 }
+          after_updated_at: { type: integer, minimum: 0 }
+          after_graph_id: { type: string }
+          lifecycle: { type: string }
+          graph_id: { type: string }
+          mode: { type: string, enum: [catalog, node, graph_path, path, neighbors, context, window, subtree, bundle, search, semantic, hybrid, memory, timeline, events, evidence, changes, request] }
+          node_id: { type: string }
+          root_id: { type: string }
+          query: { type: string }
+          detail: { type: string, enum: [compact, full], description: "Accepted for existing callers; collections are summaries, detail reads are complete." }
+          direction: { type: string, enum: [both, in, out] }
+          edge_kind: { type: string }
+          node_kind: { type: string }
+          status: { type: string }
+          validity: { type: string, enum: [current, active, resolved, superseded, retracted, all], description: "Recall validity: current = active/resolved; all = immutable history." }
+          entity_type: { type: string, enum: [node, edge] }
+          from_time: { type: integer, minimum: 0 }
+          to_time: { type: integer, minimum: 0 }
+          event_id: { type: string }
+          request_id: { type: string }
+          target_type: { type: string }
+          target_id: { type: string }
+          depth: { type: integer, minimum: 1, maximum: 64 }
+          levels: { type: integer, minimum: 1, maximum: 4 }
+          limit: { type: integer, minimum: 1, maximum: 160 }
+          offset: { type: integer, minimum: 0 }
+          node_offset: { type: integer, minimum: 0 }
+          edge_offset: { type: integer, minimum: 0 }
+          node_limit: { type: integer, minimum: 1, maximum: 500 }
+          edge_limit: { type: integer, minimum: 1, maximum: 1000 }
+          member_limit: { type: integer, minimum: 1, maximum: 100 }
+          path_limit: { type: integer, minimum: 1, maximum: 64 }
+          since_revision: { type: integer, minimum: 0 }
+          since_seq: { type: integer, minimum: 0 }
+          scope: { type: string, enum: [journal, subtree] }
+          continuation: { type: object }
+        additionalProperties: false
+      output_schema:
+        type: object
+        properties:
+          success: { type: boolean }
+          result: { type: object, description: "Paged summary items for catalog/search/semantic/hybrid/timeline/evidence/changes. Node, context, window, subtree and bundle are full detail reads. Explicit fields selects collection content." }
+          error: { type: string }
+          handle: { type: string }
+        required: [success]
+
+  - name: journal_fact
+    kind: function.lua
+    source: file://journal_fact.lua
+    method: handler
+    imports: {record_tool: chestor.journal.traits:record_tool, support: chestor.journal.traits:support }
+    meta:
+      type: tool
+      title: Journal Fact
+      mcp: { required_scopes: [state.read, state.write] }
+      llm_alias: JournalFact
+      llm_description: >-
+        Record one durable fact or checkpoint. Normally pass handle + kind +
+        title/body; use scope/lifecycle/confidence when needed. A lease_id binds
+        strict-work evidence and renews that authority. Separate observations
+        and evidence from findings/decisions; attach subject or refs when known.
+        data is the advanced escape hatch. Preserve failed approaches and
+        supersede rather than erase.
+      input_schema:
+        type: object
+        properties:
+          journal_id: { type: string }
+          handle: { type: string, description: "Resolves journal and supplies data.cursor_id." }
+          kind: { type: string, enum: [entry, observation, decision, assumption, constraint, finding, risk, question, blocker, evidence, handoff, reflection, milestone, checkpoint, digest, artifact, integration, ref.link, ref.unlink] }
+          detail: { type: string, enum: [compact, full], description: "Accepted for existing callers; results always include full records." }
+          event_id: { type: string, description: "Optional immutable/idempotent fact identity." }
+          title: { type: string }
+          body: { type: string }
+          summary: { type: string }
+          scope: { type: string, enum: [local, subtree, project] }
+          lifecycle: { type: string, enum: [active, resolved, superseded, retracted] }
+          confidence: { type: number, minimum: 0, maximum: 1 }
+          subject: { type: string }
+          tags: { type: array, items: { type: string } }
+          metadata: { type: object }
+          supersedes_event_id: { type: string }
+          selection: { type: object, description: "Decision convergence: graph/candidates/selected/rejected/criteria/rationale." }
+          checkpoint: { type: object }
+          receipt_id: { type: string }
+          parent_cursor_id: { type: string }
+          child_cursor_id: { type: string }
+          disposition: { type: string, enum: [pending, accepted, rejected, superseded] }
+          evidence_event_ids: { type: array, items: { type: string } }
+          coverage: { type: object }
+          unresolved: { type: array }
+          graph_id: { type: string }
+          node_id: { type: string }
+          ref_id: { type: string }
+          uri: { type: string }
+          ref_kind: { type: string }
+          relation: { type: string }
+          reason: { type: string }
+          lease_id: { type: string, description: "Strict work: attach through and renew this task lease." }
+          data:
+            type: object
+            description: "Advanced payload; nested values override matching flat fields. Usually omit this object."
+            additionalProperties: true
+        required: [kind]
+        additionalProperties: false
+      output_schema:
+        type: object
+        properties:
+          success: { type: boolean }
+          accepted: { type: boolean }
+          refused: { type: boolean }
+          code: { type: string }
+          detail: { type: string }
+          error: { type: string }
+          journal_id: { type: string }
+          handle: { type: string }
+          event_id: { type: string }
+          max_seq: { type: [integer, "null"] }
+          receipt_id: { type: string }
+          ref_id: { type: string }
+          kind: { type: string }
+          address: { type: object }
+          cursor_id: { type: string, description: "The durable cursor whose position this record maintained; created on your first write here." }
+          cursor_seq: { type: integer, description: "That cursor's last_seen_seq after the record; it only moves forward." }
+          cursor_error: { type: string, description: "Present when the position could not be maintained; the recorded fact still stands." }
+        required: [success]
+
+  - name: journal_graph
+    kind: function.lua
+    source: file://journal_graph.lua
+    method: handler
+    imports: {graph: chestor.journal.graph:service, support: chestor.journal.traits:support }
+    meta:
+      type: tool
+      title: Journal Graph
+      mcp: { required_scopes: [state.read, state.write] }
+      llm_alias: JournalGraph
+      llm_description: Create/configure a graph, apply idempotent changes, or assemble/status its derived map. A jc_ handle supplies journal and graph. Prefer one operation; use operations for a batch. Verify returned requests before depending on them. Keep summaries linked to evidence and preserve superseded records.
+      input_schema:
+        type: object
+        properties:
+          journal_id: { type: string }
+          handle: { type: string, description: "Resolves journal and defaults graph_id to the cursor's current graph." }
+          action: { type: string, enum: [create, configure, apply, assemble, status] }
+          graph_id: { type: string }
+          request_id: { type: string, description: "Optional idempotency identity; generated and returned when omitted. Reuse the returned value only to retry the exact same batch." }
+          expected_revision: { type: integer, minimum: 0, description: "Optional optimistic graph revision; defaults to the current projected revision." }
+          expected_config_revision: { type: integer, minimum: 0, description: "Optional optimistic config revision; create defaults to 0 and configure to the current projected revision." }
+          title: { type: string }
+          description: { type: string }
+          kind: { type: string, description: "Free-form graph kind; ontology is declared in attrs/config, never in the cold schema." }
+          lifecycle: { type: string, enum: [active, learning, frozen, archived] }
+          workspace: { type: object }
+          sources: { type: object }
+          shape: { type: object }
+          maintainer: { type: object }
+          schedule: { type: object }
+          retention: { type: object }
+          write_policy: { type: object }
+          layout: { type: object }
+          origin: { type: string, enum: [human, external_agent, internal_agent] }
+          source_event_ids: { type: array, items: { type: string } }
+          provenance: { type: object }
+          operation:
+            type: object
+            description: "One atomic graph change. Prefer this for a single node, edge, or layout mutation."
+            properties:
+              op: { type: string, enum: [node.add, node.update, node.remove, edge.add, edge.update, edge.remove, layout.position-set, layout.position-cleared] }
+              id: { type: string }
+              label: { type: string }
+              kind: { type: string }
+              summary: { type: string }
+              status: { type: string }
+              semantic_key: { type: string }
+              parent_id: { type: string }
+              pinned: { type: boolean }
+              locked: { type: boolean }
+              attrs: { type: object, description: "node.add arbitrary attributes" }
+              attrs_patch: { type: object, description: "node.update merge patch; null removes a key" }
+              content:
+                description: "Text or {body,format,title,role}."
+                oneOf:
+                  - { type: string }
+                  - { type: object, additionalProperties: true }
+              documents: { type: array, items: { type: object, additionalProperties: true } }
+              presentation: { type: object, description: "Declarative renderer hints, never ontology." }
+              from: { type: string, description: "edge.add source node id" }
+              to: { type: string, description: "edge.add target node id" }
+              metadata: { type: object }
+              x: { type: number }
+              y: { type: number }
+            required: [op, id]
+            additionalProperties: true
+          operations:
+            type: array
+            minItems: 1
+            maxItems: 200
+            description: "Advanced atomic batch; each item has the same shape as operation."
+            items:
+              type: object
+              additionalProperties: true
+          detail: { type: string, enum: [compact, full] }
+        additionalProperties: false
+      output_schema:
+        type: object
+        properties:
+          success: { type: boolean }
+          accepted: { type: boolean }
+          action: { type: string }
+          journal_id: { type: string }
+          handle: { type: string }
+          graph_id: { type: string }
+          request_id: { type: string }
+          status: { type: string, enum: [queued, pending, applied, rejected] }
+          expected_revision: { type: [integer, "null"] }
+          expected_config_revision: { type: [integer, "null"] }
+          touched: { type: array }
+          verify: { type: object }
+          max_seq: { type: [integer, "null"] }
+          error: { type: string }
+        required: [success]
+
+  - name: act_journal
+    kind: function.lua
+    source: file://act_journal.lua
+    method: handler
+    imports:
+      commands: chestor.journal.write:commands
+      queries: chestor.journal.read:queries
+      support: chestor.journal.traits:support
+      db: chestor.journal.persist:ops
+      cursors: chestor.journal.persist:cursors
+    meta:
+      type: tool
+      title: Act On Journal
+      mcp: { required_scopes: [state.read, state.write] }
+      llm_alias: ActOnJournal
+      llm_description: >-
+        Execute one strict-work transition. open_branch returns the branch lens,
+        lease_id, fencing_token, capability, and exact next action. WRITE is
+        issued for open or in_progress work; PLANNING is for blocked, gated, or
+        terminal work. Use the lease for transitions and JournalFact evidence;
+        successful writes renew it. Expiry only releases authority: reopen the
+        same branch and continue—never clone the task. Checkpoints are recovery
+        records, not heartbeats, and parents need no heartbeat while a child
+        runs. Complete only with a verifier receipt or decision-backed waiver.
+        Experiments end with fold. Follow refusal.next exactly.
+      input_schema:
+        type: object
+        properties:
+          journal_id: { type: string }
+          agent_id: { type: string, description: "Who you are; pass it when several agents share one user account so your durable position and work span stay yours." }
+          verb:
+            type: string
+            enum: [open_branch, decompose, link, unlink, start, block, unblock, request_verify, complete, cancel, reopen, fold, close, gate_pass, focus, cursor_open, cursor_move, cursor_checkpoint, cursor_close]
+          data:
+            type: object
+            description: >-
+              Verb payload. open_branch requires task_id (agent_id defaults to
+              the caller identity). decompose requires parent_task_id and
+              subtasks. link/unlink require from and to (kind defaults to
+              blocks; unlink also requires decision_id). start/block/unblock/
+              cancel/reopen/fold/close/complete/request_verify/focus target
+              task_id and require lease_id + fencing_token from open_branch.
+              complete requires result and receipt_id (or waiver with
+              decision_id). reopen requires decision_id. fold requires outcome
+              and distilled. gate_pass requires receipt_id and the runner
+              principal. block requires reason.
+            properties:
+              task_id: { type: string }
+              graph_id: { type: string, description: "cursor verbs: generic graph address; pair with node_id" }
+              node_id: { type: string, description: "cursor verbs: generic node address; pair with graph_id" }
+              agent_id: { type: string, description: "open_branch: lease owner; defaults to the calling actor" }
+              cursor_id: { type: string, description: "cursor verbs: durable cursor identity; generated by cursor_open when omitted" }
+              working_on: { type: string, description: "What this stretch of work is about; opens your span with that purpose. Free text, or a task id or graph_id/node_id address, which is resolved and kept alongside your words." }
+              parent_cursor_id: { type: string, description: "cursor_open: delegating parent cursor, if this is child-agent work" }
+              purpose: { type: string, description: "cursor_open: durable purpose of this work position" }
+              assignment: { type: string, description: "cursor_open: exact delegated output requested" }
+              why: { type: string, description: "cursor_open/cursor_move: why this agent is at the target task" }
+              close_requirements: { type: array, items: { type: string }, description: "cursor_open: proof and integration obligations before this cursor is done" }
+              checkpoint: { type: object, description: "cursor_checkpoint: completed work, active reasoning, blockers, unverified claims, next safe actions, and proof state" }
+              last_seen_seq: { type: integer, minimum: 0, description: "cursor checkpoint consumption watermark; cannot exceed the folded journal head" }
+              episode_ttl_s: { type: integer, minimum: 60, maximum: 28800, description: "cursor_open episode duration; server-capped at eight hours" }
+              episode_goal: { type: string }
+              lease_id: { type: string }
+              fencing_token: { type: integer }
+              command_id: { type: string, description: Idempotency key; generated and returned when absent. Retries of the same attempt reuse it; a new attempt needs a new one. }
+              expected_revision: { type: integer, description: Optimistic concurrency; refused with revision_stale on mismatch. }
+              result: { type: string, description: "complete: the declared output; validated against the task contract when one is attached" }
+              receipt_id: { type: string, description: "complete/gate_pass: runner receipt evidencing the claim" }
+              waiver:
+                type: object
+                description: "complete: authorized evidence waiver instead of a receipt"
+                properties:
+                  kind: { type: string, enum: [waived, accepted_risk] }
+                  decision_id: { type: string }
+                required: [decision_id]
+              decision_id: { type: string, description: Required by reopen, unlink, cancel over children, and unblock with an uncleared condition (F6). }
+              reason: { type: string, description: "block: the recorded blocking reason" }
+              outcome: { type: string, enum: [adopted, abandoned], description: "fold: how the experiment ended" }
+              distilled: { type: string, description: "fold: the distilled learning that outlives the branch" }
+              parent_task_id: { type: string, description: "decompose: task being opened into subtasks" }
+              subtasks:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string }
+                    title: { type: string }
+                    description: { type: string }
+                    priority: { type: string }
+                    assignee: { type: string }
+                    agent_id: { type: string }
+                    sort_order: { type: integer }
+                    work_kind: { type: string, enum: [project, goal, workstream, task, gate, experiment, audit] }
+                    gate: { type: boolean, description: Gate task; blocks dependents until gate_pass. }
+                    claim: { type: string, description: The claim a receipt must prove. }
+                    verifier_policy_hash: { type: string, description: Pinned verifier policy; changes later require a decision. }
+                    contract: { type: object, description: "F3 agent contract ({input_schema, output_schema, semver}); complete validates the declared result against output_schema" }
+                    experiment: { type: boolean, description: Experiment branch; ends via fold, never complete. }
+                    metadata: { type: object }
+                  required: [title]
+              from: { type: string, description: "link/unlink: blocking task id" }
+              to: { type: string, description: "link/unlink: blocked task id" }
+              kind: { type: string, enum: [blocks, relates] }
+              principal: { type: string, description: Registered system principal; gate_pass and receipts are runner-authored. }
+              environment: { type: string, description: "request_verify: environment tag pinned into the verification request" }
+            additionalProperties: true
+        required: [journal_id, verb, data]
+        additionalProperties: false
+      output_schema:
+        type: object
+        properties:
+          success: { type: boolean }
+          refused: { type: boolean, description: True when the server refused the transition; code carries the exact enforcement code. }
+          code: { type: string, description: "Refusal code (for example lease_required, behind_gate, blocked_by, capability, receipt_missing, receipt_stale, decide_required, revision_stale, fencing_stale, leased, descendants, author_not_runner, cycle)" }
+          detail: { type: string }
+          error: { type: string }
+          verb: { type: string }
+          journal_id: { type: string }
+          command_id: { type: string, description: The command identity used; keep it to replay this exact attempt idempotently. }
+          duplicate: { type: boolean, description: True when this command_id already ran; the stored result is returned unchanged. }
+          task_id: { type: string }
+          graph_id: { type: string }
+          node_id: { type: string }
+          address: { type: object }
+          task_ids: { type: array, items: { type: string }, description: "decompose: created subtask ids in order" }
+          parent_task_id: { type: string }
+          lease:
+            type: object
+            description: "open_branch: the issued capability lease"
+            properties:
+              lease_id: { type: string }
+              capability: { type: string, enum: [WRITE, PLANNING] }
+              fencing_token: { type: integer }
+              agent_id: { type: string }
+              task_id: { type: string }
+              ttl_s: { type: integer }
+              expires_at: { type: integer }
+              state: { type: string, enum: [start, resume, planning], description: "Whether this lease starts open work, resumes in-progress work, or only permits planning/recovery verbs." }
+              reason: { type: string, description: "Machine-readable reason the capability was granted." }
+              next: { type: object, description: "The authoritative next protocol action for this task state." }
+          lens: { type: object, description: "open_branch: the D1 branch lens (ancestors, children, facts, deps, receipt_status, cross_exceptions, changed_since_checkpoint, next); also returned read-only on a leased refusal" }
+          holder: { type: string, description: "leased refusal: agent holding the lease" }
+          expires_at: { type: integer, description: "leased refusal: when the holding lease expires" }
+          recoverable: { type: boolean, description: "True when retrying through the returned next action is safe." }
+          next: { type: object, description: "Machine-actionable recovery continuation returned by lease refusals." }
+          from_status: { type: string }
+          to_status: { type: string }
+          guard: { type: object, description: Commit-time guard evaluations recorded on the transition event. }
+          request_id: { type: string, description: "request_verify: id the runner binds its receipt to" }
+          warning: { type: string, description: "request_verify: set when no verifier runner has ever recorded a receipt in this deployment" }
+          event_id: { type: string }
+          cursor_id: { type: string, description: "cursor_* verbs, the cursor acted on; every other verb, the durable cursor whose position this verb maintained." }
+          cursor_seq: { type: integer, description: "That cursor's last_seen_seq after the verb; it only moves forward." }
+          cursor_error: { type: string, description: "Present when the position could not be maintained; the verb's result still stands." }
+          span_id: { type: string, description: "The work span this verb belongs to; opened on your first write and sealed for you once you go quiet." }
+          span_error: { type: string, description: "Present when the span could not be opened or extended; the verb's result still stands." }
+          episode_id: { type: string }
+          episode_deadline: { type: integer }
+          revision: { type: integer }
+          receipt: { type: object, description: Append receipt (max_seq advances the journal cursor). }
+        required: [success]
+
+  - name: read_journal
+    kind: function.lua
+    source: file://read_journal.lua
+    method: handler
+    imports:
+      context: chestor.journal.read:context
+      queries: chestor.journal.read:queries
+      recall: chestor.journal.read:recall
+      graph: chestor.journal.graph:service
+      support: chestor.journal.traits:support
+    meta:
+      type: tool
+      title: Read Journal
+      mcp: { required_scopes: [state.read] }
+      llm_alias: ReadJournal
+      llm_description: Read strict-work state. Collections return compact summary rows; pass fields for selected content. Use event + event_id for the whole stored event. Tasks continue with next_cursor keys; search/authority continue with next_cursor.offset; frontier continues with cursor=next_cursor. Tail accepts the page continuation keys. Use branch for one task's ancestor spine, children, facts (full records), dependencies, receipt freshness, delta, and next action. Use frontier for actionable work; authority to separate live WRITE/PLANNING leases from resumable in_progress tasks without a lease; changes for a bounded event delta; spans/activity for history, never authority. Prefer brief over context. Resume an unleased task by opening the same branch, not cloning it.
+      input_schema:
+        type: object
+        properties:
+          fields: { type: array, items: { type: string }, description: "Fields in collection rows; defaults summaries. IDs remain." }
+          journal_id: { type: string }
+          view: { type: string, enum: [event, brief, context, cursor, tail, authority, search, references, graphs, tasks, branch, frontier, changes, tree, health, spans, activity] }
+          event_id: { type: string, description: "event: return the whole stored event." }
+          before_seq: { type: integer, minimum: 0, description: "tail: event page continuation." }
+          after_sort_order: { type: integer }
+          after_id: { type: string }
+          query: { type: string }
+          search_mode: { type: string, enum: [text, semantic] }
+          validity: { type: string, enum: [current, active, resolved, superseded, retracted, all], description: "search only; defaults current. Use all for historical audit." }
+          task_status: { type: string, enum: [active, all, open, in_progress, blocked, done, closed, canceled, cancelled] }
+          task_id: { type: string, description: "branch/tree: task to open; frontier/changes: subtree scope. Omitted, branch opens the active task when one is focused, otherwise the tree roots" }
+          graph_id: { type: string, description: "Graph identity for graph and generic node-reference reads." }
+          node_id: { type: string, description: "Generic graph node identity for node-reference reads." }
+          ref_id: { type: string, description: "references: exact stable reference identity" }
+          include_removed: { type: boolean, description: "references: include historically removed node-reference edges" }
+          offset: { type: integer, minimum: 0, description: "references and searchable read pagination" }
+          roots: { type: boolean, description: "branch: force the journal-level roots lens even while a task is focused" }
+          lease_id: { type: string, description: "branch: attach the caller's lease block; a revoked, expired, or superseded lease resolves as stale_pointer" }
+          category: { type: string, enum: [behind_gate, blocked_by, leased, folded], description: "frontier: exclusion category to drill into" }
+          since_seq: { type: integer, minimum: 0, description: "changes: return events after this journal seq" }
+          agent: { type: string, description: "changes: return events since this agent's last checkpoint" }
+          agent_id: { type: string, description: "Who you are; pass it when several agents share one user account so your position stays yours. cursor view: resumes this identity's most recently updated active cursor." }
+          cursor: { type: object, description: "frontier: next_cursor from the previous page.", properties: { sort_order: { type: integer }, created_at: { type: integer }, id: { type: string } }, required: [created_at, id], additionalProperties: false }
+          cursor_id: { type: string, description: "cursor: durable cursor to resume" }
+          span_state: { type: string, enum: [open, sealed], description: "spans: narrow to open work or sealed episodes" }
+          span_agent_id: { type: string, description: "spans/activity: narrow to one agent's work rather than identifying yourself" }
+          since: { type: integer, minimum: 0, description: "spans: only spans active at or after this time; activity: window floor" }
+          until_ts: { type: integer, minimum: 0, description: "activity: window ceiling" }
+          bucket: { type: string, enum: [minute, hour, day], description: "activity: interval width (default hour)" }
+          after_activity_at: { type: integer, minimum: 0, description: "spans: keyset continuation from next_cursor" }
+          after_span_id: { type: string, description: "spans: keyset continuation from next_cursor" }
+          after_bucket_at: { type: integer, minimum: 0, description: "activity: keyset continuation from next_cursor" }
+          after_agent_id: { type: string, description: "activity: keyset continuation from next_cursor" }
+          after_rank: { type: integer, minimum: 0, description: "graphs: keyset continuation from next_cursor" }
+          after_updated_at: { type: integer, minimum: 0, description: "graphs: keyset continuation from next_cursor" }
+          after_graph_id: { type: string, description: "graphs: keyset continuation from next_cursor" }
+          inherited_limit: { type: integer, minimum: 1, maximum: 60, description: "cursor: inherited governing-fact bound" }
+          delta_limit: { type: integer, minimum: 1, maximum: 100, description: "cursor: unseen event-index bound" }
+          scope: { type: string, enum: [journal, subtree], description: "changes: feed scope; subtree requires task_id" }
+          depth: { type: integer, minimum: 1, maximum: 4, description: "tree: nesting depth (default 2)" }
+          task_limit: { type: integer, minimum: 0 }
+          task_after_sort_order: { type: integer, minimum: 0 }
+          task_after_updated_at: { type: integer, minimum: 0 }
+          artifact_limit: { type: integer, minimum: 0 }
+          artifact_after_created_at: { type: integer, minimum: 0 }
+          graph_limit: { type: integer, minimum: 0 }
+          graph_after_rank: { type: integer, minimum: 0 }
+          graph_after_updated_at: { type: integer, minimum: 0 }
+          cursor_limit: { type: integer, minimum: 0 }
+          cursor_after_updated_at: { type: integer, minimum: 0 }
+          span_limit: { type: integer, minimum: 0 }
+          span_after_activity_at: { type: integer, minimum: 0 }
+          work_limit: { type: integer, minimum: 0 }
+          task_after_id: { type: string }
+          artifact_after_id: { type: string }
+          graph_after_id: { type: string }
+          cursor_after_id: { type: string }
+          span_after_id: { type: string }
+          limit: { type: integer, minimum: 1, maximum: 100 }
+        required: [journal_id]
+        additionalProperties: false
+      output_schema:
+        type: object
+        properties:
+          success: { type: boolean }
+          error: { type: string }
+          view: { type: string }
+          journal_id: { type: string }
+          brief:
+            type: object
+            properties:
+              current_digest: { type: [object, "null"] }
+              latest_checkpoint: { type: [object, "null"] }
+              recent_events: { type: array, description: "Compact summary rows; fields selects additional content." }
+              active_tasks: { type: array, description: "Compact summary rows; fields selects additional content." }
+              graphs: { type: array, description: "Compact summary rows; fields selects additional content." }
+              graphs_truncated: { type: boolean }
+              graphs_next_cursor: { type: [object, "null"], description: "Use with ReadJournal view=graphs after_rank, after_updated_at, and after_graph_id." }
+              stats: { type: object }
+              cursor:
+                type: object
+                properties:
+                  last_seq: { type: integer }
+                required: [last_seq]
+              projection: { type: object }
+              health:
+                type: object
+                properties:
+                  status: { type: string, enum: [ok, degraded, unknown] }
+                  summary: { type: string }
+              resume_prompt: { type: string }
+            required: [recent_events, active_tasks, graphs, graphs_truncated, stats, cursor, projection, health, resume_prompt]
+          context: { type: object }
+          event: { type: object, description: "The whole stored event." }
+          events: { type: array, description: "Compact summary rows; fields selects additional content." }
+          tasks: { type: array, description: "Compact summary rows; fields selects additional content." }
+          graphs: { type: array, description: "Compact summary rows; fields selects additional content." }
+          next_cursor: { type: [object, "null"], description: "Next-page inputs for graphs, tasks or search." }
+          has_more: { type: boolean, description: "More collection rows remain past this page." }
+          references: { type: object, description: "Bounded generic graph-node-to-resource reference page with total and continuation offset." }
+          branch:
+            type: object
+            properties:
+              resolved: { type: string, enum: [task, roots, active, stale_pointer] }
+              lease: { type: [object, "null"] }
+              task: { type: [object, "null"] }
+              ancestors: { type: array, description: "Spine root-first; each entry carries digest and digest_age_seq when a branch digest exists." }
+              children: { type: array, description: "Rollups with open_count, digest, digest_age_seq, and folded outcome tombstones." }
+              facts: { type: array, description: "Recent facts as stored, with complete bodies and every field." }
+              deps: { type: [object, "null"], description: "Live dependency edges only; tombstones stay in the event log." }
+              counts: { type: object }
+              receipt_status: { type: [string, "null"], enum: [valid, stale, missing, waived, accepted_risk, null] }
+              receipt_stale_seq: { type: [integer, "null"], description: "When receipt_status is stale by D2 freshness, the seq of the superseding work fact." }
+              latest_checkpoint: { type: [object, "null"], description: "Newest checkpoint in the focused task's subtree (journal-wide on the roots lens): {event_id, title, ts, seq}." }
+              cross_exceptions: { type: array, description: "Bounded cross-subtree blockers touching this task or its ancestors." }
+              changed_since_checkpoint: { type: object }
+              next: { type: [object, "null"], description: "First frontier-actionable task in this subtree with its rationale." }
+          frontier:
+            type: object
+            properties:
+              actionable: { type: array }
+              actionable_truncated: { type: boolean }
+              scanned: { type: integer, description: "Open tasks the scan evaluated." }
+              scan_complete: { type: boolean, description: "False when the scan budget stopped the walk; the counts then cover only the tasks reached." }
+              excluded:
+                type: object
+                properties:
+                  behind_gate: { type: integer }
+                  blocked_by: { type: integer }
+                  leased: { type: integer }
+                  folded: { type: integer }
+              drill: { type: array }
+              drill_category: { type: string }
+          changes:
+            type: object
+            properties:
+              scope: { type: string }
+              since_seq: { type: integer }
+              events: { type: array, description: "Index fields and titles only, newest last; rows with a task_id carry its spine path." }
+              next_cursor: { type: integer }
+              has_more: { type: boolean }
+          tree: { type: object }
+          spans:
+            type: object
+            description: "Keyset page of work spans, newest activity first."
+            properties:
+              items:
+                type: array
+                description: "Each span: agent_id, cursor_id, state, working_on, fact_count, started_at, last_activity_at, ended_at, and its newest work fact."
+              counts: { type: object, description: "open, sealed, and total spans in this journal." }
+              idle_s: { type: integer, description: "Inactivity after which a span seals itself." }
+              next_cursor: { type: [object, "null"], description: "{after_activity_at, after_span_id} for the next page." }
+              has_more: { type: boolean }
+          activity:
+            type: object
+            description: "Server-side time buckets, one row per interval per agent."
+            properties:
+              bucket: { type: string }
+              width_s: { type: integer }
+              buckets: { type: array, description: "{bucket_at, agent_id, events, first_seq, last_seq, last_ts}; agent_id is absent for facts written outside any span." }
+              next_cursor: { type: [object, "null"], description: "{after_bucket_at, after_agent_id} for the next page." }
+              has_more: { type: boolean }
+          authority:
+            type: object
+            description: "Bounded control roll: live leases are current mutation authority; resumable rows are in-progress tasks with no live lease."
+            properties:
+              now: { type: integer }
+              leases: { type: array, description: "Valid unrevoked leases with agent, task, capability, expiry, and remaining seconds." }
+              resumable: { type: array, description: "In-progress tasks with no live lease; each carries its open_branch continuation." }
+              counts: { type: object, description: "active, write, planning, and resumable counts within the bounded roll." }
+              limit: { type: integer }
+              has_more: { type: boolean }
+          health:
+            type: object
+            properties:
+              status: { type: string, enum: [ok, degraded, unknown] }
+              heartbeat_at: { type: [integer, "null"] }
+              age_s: { type: [integer, "null"] }
+              interval_s: { type: integer }
+              reasons: { type: array, description: "Present only when degraded; one line per degraded component." }
+              components: { type: [object, "null"], description: "Writer-measured states: projections, embeddings, maintainer, digest_sla, leases." }
+          resume_prompt: { type: string }
+          cursor_id: { type: string, description: "The durable cursor whose position this read maintained." }
+          cursor_seq: { type: integer, description: "That cursor's last_seen_seq after the read; it only moves forward." }
+          cursor_error: { type: string, description: "Present when the position could not be maintained; the read result still stands." }
+        required: [success]
+
+  - name: record_journal
+    kind: function.lua
+    source: file://record_journal.lua
+    method: handler
+    imports:
+      commands: chestor.journal.write:commands
+      queries: chestor.journal.read:queries
+      support: chestor.journal.traits:support
+      db: chestor.journal.persist:ops
+      cursors: chestor.journal.persist:cursors
+    meta:
+      internal: true
+      deprecated: true
+      comment: Compatibility adapter retained for existing callers; JournalFact is the public tool.
+      title: Record Journal
+      mcp: { required_scopes: [state.read, state.write] }
+      llm_alias: RecordJournal
+      llm_description: >-
+        Record one typed durable Journal fact, including observations,
+        decisions, assumptions, constraints, findings, risks, questions,
+        blockers, evidence, handoffs, checkpoints, audit coverage, and child
+        integration receipts. Use checkpoints for compaction
+        and handoff rather than a separate preflight protocol. For task
+        management, reuse the task id and send title plus the new status;
+        parent_task_id, priority, assignee, agent_id, sort_order, description,
+        result, and metadata are optional. Attach entries, checkpoints, and
+        artifacts to a task branch with task_id, or pass the lease_id from
+        ActOnJournal open_branch so the fact attaches through the lease and
+        renews it; without either they land on the journal's active task. Task
+        state transitions belong to ActOnJournal, not here. Use focus with
+        data.task_id to move the active task, including back to an ancestor.
+        Use decompose to open a parent_task_id into a batch of subtasks, and
+        task.link to record a from_task_id -> to_task_id dependency.
+        Your durable position is maintained automatically on every record and
+        returned as cursor_id plus cursor_seq, so pass cursor_id only for
+        episode- or task-pinned work. If you share a user account with other
+        agents, pass agent_id to identify yourself so your position and work
+        span stay yours; data.working_on names what this stretch of work is
+        about and opens your span with that purpose.
+        Pass cursor_id while working through a durable cursor; the server pins
+        the fact to that cursor's current task and episode and refuses writes
+        after the eight-hour episode deadline until checkpoint/rotation.
+        audit.coverage preserves finding, checked_clean, gap, and
+        not_applicable units; a gap requires a decision_id. integration is a
+        two-step child-to-parent receipt: child records pending, parent updates
+        the same receipt_id to accepted/rejected/superseded.
+      input_schema:
+        type: object
+        properties:
+          journal_id: { type: string }
+          agent_id: { type: string, description: "Who you are; pass it when several agents share one user account so your durable position and work span stay yours." }
+          kind: { type: string, enum: [entry, observation, decision, assumption, constraint, finding, risk, question, blocker, evidence, handoff, reflection, milestone, task, checkpoint, digest, artifact, audit.coverage, integration, ref.link, ref.unlink, decompose, task.link, focus] }
+          data:
+            type: object
+            description: Typed fact fields. Task updates require title and reuse id or task_id; status defaults to open. decompose requires parent_task_id and subtasks; task.link requires from_task_id and to_task_id; focus requires task_id. entry/checkpoint/artifact without task_id attach to the active task.
+            properties:
+              id: { type: string }
+              event_id: { type: string }
+              task_id: { type: string }
+              work_kind: { type: string, enum: [project, goal, workstream, task, gate, experiment, audit] }
+              cursor_id: { type: string, description: "Durable agent cursor; supplies task_id and episode_id when omitted." }
+              working_on: { type: string, description: "What this stretch of work is about; opens your span with that purpose. Free text, or a task id or graph_id/node_id address, which is resolved and kept alongside your words." }
+              correlation_id: { type: string }
+              causation_id: { type: string }
+              scope: { type: string, enum: [local, subtree, project], description: "Typed fact inheritance scope; decisions, constraints, and assumptions default to subtree, other facts to local." }
+              lifecycle: { type: string, enum: [active, resolved, superseded, retracted], description: "Typed fact lifecycle; defaults to active." }
+              confidence: { type: number, minimum: 0, maximum: 1, description: "Optional confidence for an observation, assumption, finding, or inferred claim." }
+              subject: { type: string, description: "Stable subject/entity the fact describes." }
+              supersedes_event_id: { type: string, description: "Prior fact replaced by this immutable fact; the old event remains in history." }
+              selection:
+                type: object
+                description: "Decision-only convergence over arbitrary graph nodes: declares every candidate, disposition, comparison criterion, and rationale."
+                properties:
+                  graph_id: { type: string, description: "Graph containing all candidates; defaults to map." }
+                  candidate_node_ids: { type: array, minItems: 2, maxItems: 32, items: { type: string } }
+                  selected_node_ids: { type: array, minItems: 1, items: { type: string } }
+                  rejected_node_ids: { type: array, items: { type: string } }
+                  criteria: { type: array, minItems: 1, maxItems: 32, items: { type: string } }
+                  rationale: { type: string }
+                required: [candidate_node_ids, selected_node_ids, rejected_node_ids, criteria, rationale]
+              linked_task_ids: { type: array, items: { type: string } }
+              ref_id: { type: string, description: "ref.link/ref.unlink: stable reference identity; generated on first link when omitted." }
+              graph_id: { type: string, description: "ref.link/ref.unlink: graph containing the referenced node; defaults to map." }
+              node_id: { type: string, description: "ref.link/ref.unlink: stable generic graph node identity." }
+              uri: { type: string, description: "ref.link: canonical locator such as git://..., file://..., event://..., artifact://..., mcp://..., or https://...." }
+              ref_kind: { type: string, description: "ref.link: resource kind such as source.symbol, commit, issue, artifact, dataset, event, or mcp.resource." }
+              relation: { type: string, description: "ref.link/ref.unlink typed edge, e.g. about, input, output, evidence, implements, tests, touches, or generated_from." }
+              version: { type: string, description: "ref.link: commit, revision, release, or other locator version." }
+              content_hash: { type: string, description: "ref.link: immutable content digest when available." }
+              ref_attrs: { type: object, description: "Extensible attributes of the referenced resource." }
+              edge_attrs: { type: object, description: "Extensible attributes and provenance of this node-to-reference edge." }
+              reason: { type: string, description: "ref.unlink and state-changing operations: why the edge is removed." }
+              audit_task_id: { type: string }
+              unit_key: { type: string }
+              method: { type: string }
+              source_revision: { type: string }
+              decision_id: { type: string, description: "audit gap authorization or other explicit decision reference" }
+              evidence_event_ids: { type: array, items: { type: string } }
+              receipt_id: { type: string, description: "integration aggregate identity; reuse it for parent disposition" }
+              parent_cursor_id: { type: string }
+              child_cursor_id: { type: string }
+              disposition: { type: string, enum: [pending, accepted, rejected, superseded] }
+              source_from_seq: { type: integer, minimum: 0 }
+              source_to_seq: { type: integer, minimum: 0 }
+              coverage: { type: object }
+              unresolved: { type: array }
+              lease_id: { type: string, description: "entry/checkpoint/artifact: attach the fact through this lease (from ActOnJournal open_branch) and renew it; overrides the active-task default" }
+              artifact_id: { type: string }
+              parent_task_id: { type: string }
+              from_task_id: { type: string }
+              to_task_id: { type: string }
+              event_type: { type: string }
+              title: { type: string }
+              body: { type: string }
+              description: { type: string }
+              status: { type: string, enum: [open, in_progress, blocked, done, closed, canceled, cancelled] }
+              result: { type: string }
+              priority: { type: string }
+              assignee: { type: string }
+              agent_id: { type: string }
+              sort_order: { type: integer }
+              subtasks:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string }
+                    title: { type: string }
+                    description: { type: string }
+                    priority: { type: string }
+                    assignee: { type: string }
+                    agent_id: { type: string }
+                    sort_order: { type: integer }
+                    work_kind: { type: string, enum: [project, goal, workstream, task, gate, experiment, audit] }
+                    metadata: { type: object }
+                  required: [title]
+              tags:
+                type: array
+                items: { type: string }
+              metadata: { type: object }
+              summary: { type: string }
+              component_id: { type: string }
+              upload_id: { type: string }
+              file_path: { type: string }
+              url: { type: string }
+              mime_type: { type: string }
+            additionalProperties: true
+        required: [journal_id, kind, data]
+        additionalProperties: false
+      output_schema:
+        type: object
+        properties:
+          success: { type: boolean }
+          accepted: { type: boolean }
+          refused: { type: boolean, description: True when a lease-carried fact was refused; code names the enforcement code. }
+          code: { type: string }
+          detail: { type: string }
+          journal_id: { type: string }
+          max_seq: { type: [integer, "null"] }
+          event_id: { type: string }
+          task_id: { type: string, description: The task the fact attached to (explicit, lease-resolved, or the active default). }
+          context_pack: { type: object }
+          receipt: { type: object }
+          cursor_id: { type: string, description: "The durable cursor whose position this record maintained; created on your first write here." }
+          cursor_seq: { type: integer, description: "That cursor's last_seen_seq after the record; it only moves forward." }
+          cursor_error: { type: string, description: "Present when the position could not be maintained; the recorded fact still stands." }
+          span_id: { type: string, description: "The work span this fact belongs to; opened on your first write and sealed for you once you go quiet." }
+          span_error: { type: string, description: "Present when the span could not be opened or extended; the recorded fact still stands." }
+          task_ids:
+            type: array
+            items: { type: string }
+        required: [success]
+
+  - name: query_journal_graph
+    kind: function.lua
+    source: file://query_journal_graph.lua
+    method: handler
+    imports: { graph: chestor.journal.graph:service, support: chestor.journal.traits:support }
+    meta:
+      internal: true
+      deprecated: true
+      comment: Compatibility adapter retained for existing callers; JournalQuery is the public tool.
+      title: Query Journal Graph
+      mcp: { required_scopes: [state.read] }
+      llm_alias: QueryJournalGraph
+      llm_description: List Journal graphs or read a bounded graph window, a complete selected subtree, reusable context packet, complete-if-small workspace bundle with truthful continuations, immutable action timeline, search, evidence page, or revision delta. Lists and searches return compact summary rows with paging. Pass fields for selected content. Node, context, window, subtree and bundle return full detail including bodies, documents, renderer hints, relations and provenance. Follow node/edge continuations for a branch larger than the envelope. Use context with one node_id to resolve its chain, ordered member edges, descendant policy, and refs. Use bundle only for a detached specification/research workspace; when it exceeds the envelope, follow continuations.
+      input_schema:
+        type: object
+        properties:
+          fields: { type: array, items: { type: string }, description: "Fields in collection rows; defaults summaries. IDs remain." }
+          journal_id: { type: string }
+          after_rank: { type: integer, minimum: 0 }
+          after_updated_at: { type: integer, minimum: 0 }
+          after_graph_id: { type: string }
+          lifecycle: { type: string }
+          graph_id: { type: string }
+          mode: { type: string, enum: [catalog, node, graph_path, path, neighbors, context, window, subtree, bundle, search, semantic, hybrid, timeline, evidence, changes] }
+          root_id: { type: string }
+          node_id: { type: string }
+          detail: { type: string, enum: [compact, full], description: "Accepted for existing callers; collections are summaries, detail reads are complete." }
+          direction: { type: string, enum: [both, in, out] }
+          edge_kind: { type: string }
+          query: { type: string }
+          node_kind: { type: string, description: "search: exact generic node kind filter" }
+          status: { type: string, description: "search: exact generic node status filter" }
+          entity_type: { type: string, enum: [node, edge], description: "timeline: optionally restrict temporal results" }
+          from_time: { type: integer, minimum: 0, description: "search/timeline: inclusive updated-at epoch-second lower bound" }
+          to_time: { type: integer, minimum: 0, description: "search/timeline: inclusive updated-at epoch-second upper bound" }
+          event_id: { type: string }
+          target_type: { type: string }
+          target_id: { type: string }
+          levels: { type: integer, minimum: 1, maximum: 4 }
+          depth: { type: integer, minimum: 1, maximum: 64 }
+          limit: { type: integer, minimum: 1, maximum: 160 }
+          offset: { type: integer, minimum: 0 }
+          node_offset: { type: integer, minimum: 0, description: "bundle/subtree node continuation offset" }
+          edge_offset: { type: integer, minimum: 0, description: "bundle/subtree edge continuation offset" }
+          node_limit: { type: integer, minimum: 1, maximum: 500, description: "bundle/subtree node envelope" }
+          edge_limit: { type: integer, minimum: 1, maximum: 1000, description: "bundle/window edge envelope" }
+          member_limit: { type: integer, minimum: 1, maximum: 100, description: "context: direct packet-member envelope" }
+          path_limit: { type: integer, minimum: 1, maximum: 64, description: "context: root-first chain envelope" }
+          since_revision: { type: integer, minimum: 0 }
+        required: [journal_id]
+        additionalProperties: false
+      output_schema:
+        type: object
+        properties:
+          success: { type: boolean }
+          result: { type: object, description: "Paged summary items for catalog/search/semantic/hybrid/timeline/evidence/changes. Node, context, window, subtree and bundle are full detail reads. Explicit fields selects collection content." }
+        required: [success]
+
+  - name: apply_journal_graph_ops
+    kind: function.lua
+    source: file://apply_journal_graph_ops.lua
+    method: handler
+    imports: { graph: chestor.journal.graph:service, support: chestor.journal.traits:support }
+    meta:
+      internal: true
+      deprecated: true
+      comment: Compatibility adapter retained for existing callers; JournalGraph(action=apply) is the public tool.
+      title: Apply Journal Graph Operations
+      mcp: { required_scopes: [state.read, state.write] }
+      llm_alias: ApplyJournalGraphOps
+      llm_description: Append one attributed and idempotent generic graph node, edge, or layout batch with optimistic revision protection. Node add/update accepts arbitrary attrs plus declarative content, documents, and presentation; these affect rendering and chunked retrieval without creating schema-level document/task node types.
+      input_schema:
+        type: object
+        properties:
+          journal_id: { type: string }
+          graph_id: { type: string }
+          request_id: { type: string }
+          expected_revision: { type: integer, minimum: 0 }
+          origin: { type: string, enum: [human, external_agent, internal_agent] }
+          source_event_ids:
+            type: array
+            items: { type: string }
+          provenance: { type: object }
+          operations:
+            type: array
+            minItems: 1
+            maxItems: 200
+            description: >-
+              node.add/node.update may carry attrs or attrs_patch, content text/object,
+              documents array, and presentation renderer hints. Completion/reopening is
+              a status update; immutable graph changes retain both actions.
+            items: { type: object }
+        required: [journal_id, graph_id, request_id, operations]
+        additionalProperties: false
+      output_schema:
+        type: object
+        properties:
+          success: { type: boolean }
+          accepted: { type: boolean }
+          journal_id: { type: string }
+          max_seq: { type: [integer, "null"] }
+        required: [success]
+
+  - name: configure_journal_graph
+    kind: function.lua
+    source: file://configure_journal_graph.lua
+    method: handler
+    imports: { graph: chestor.journal.graph:service, support: chestor.journal.traits:support }
+    meta:
+      internal: true
+      deprecated: true
+      comment: Compatibility adapter retained for existing callers; JournalGraph(action=create/configure) is the public tool.
+      title: Configure Journal Graph
+      mcp: { required_scopes: [state.read, state.write] }
+      llm_alias: ConfigureJournalGraph
+      llm_description: >-
+        Create or revise one declarative Journal graph or detached workspace.
+        Use kind=automatic for append-first operation: deterministic projection
+        records each source immediately, then an optional bounded maintainer
+        classifies and organizes semantic structure in batches. The maintainer
+        model defaults through KickSide's class:fast selector and remains
+        replaceable per graph. A workspace/specification/research/alternatives/
+        audit graph may isolate questions, sources, papers, claims, requirements,
+        and competing designs; workspace.integration_policy=explicit keeps it
+        non-governing until an evidence-backed Journal decision integrates it.
+        Includes typed source filters, lifecycle, maintenance thresholds,
+        retention, maintainer model/prompt, and optional Wippy traits for that
+        internal maintainer.
+      input_schema:
+        type: object
+        properties:
+          journal_id: { type: string, minLength: 1 }
+          graph_id: { type: string, minLength: 1 }
+          request_id: { type: string }
+          expected_config_revision: { type: integer, minimum: 0 }
+          title: { type: string, minLength: 1 }
+          description: { type: string }
+          kind:
+            type: string
+            maxLength: 96
+            description: Free-form graph presentation/organization hint; it does not impose a base-domain ontology.
+          lifecycle: { type: string, enum: [active, learning, frozen, archived] }
+          sources:
+            type: object
+            properties:
+              event_types:
+                type: array
+                items: { type: string }
+              tags:
+                type: array
+                items: { type: string }
+            additionalProperties: false
+          shape: { type: object }
+          maintainer:
+            type: object
+            properties:
+              mode: { type: string, enum: [deterministic, agent, deterministic+agent] }
+              model:
+                type: string
+                description: KickSide model id or class alias; defaults to class:fast and can be replaced per graph without changing stored history.
+              agent_id: { type: string }
+              prompt: { type: string }
+              trait_ids:
+                type: array
+                items: { type: string }
+                description: Optional Wippy traits activated only for the internal graph maintainer.
+              maximum_iterations: { type: integer, minimum: 1, maximum: 20 }
+              fallback: { type: boolean }
+            additionalProperties: false
+          schedule:
+            type: object
+            properties:
+              min_nodes: { type: integer, minimum: 4, maximum: 10000 }
+              growth_nodes: { type: integer, minimum: 1, maximum: 10000 }
+              max_roots: { type: integer, minimum: 2, maximum: 1000 }
+              max_siblings: { type: integer, minimum: 2, maximum: 1000 }
+            additionalProperties: false
+          retention: { type: object }
+          write_policy: { type: object }
+          layout: { type: object }
+          workspace:
+            type: object
+            properties:
+              detached: { type: boolean, description: "Isolate this workspace from automatic governing/project semantics until explicit integration." }
+              parent_graph_id: { type: string, description: "Optional parent graph; ancestry is indexed, cycle-checked, and returned root-first." }
+              anchor_graph_id: { type: string, description: "Optional graph containing the node that commissioned this workspace." }
+              anchor_node_id: { type: string, description: "Optional generic node that commissioned this workspace, without making workspace claims governing." }
+              research_question: { type: string }
+              expected_outputs: { type: array, items: { type: string } }
+              closure_criteria: { type: array, items: { type: string } }
+              integration_policy: { type: string, enum: [explicit], description: "Detached workspaces only integrate through an explicit decision." }
+            additionalProperties: false
+        required: [journal_id, graph_id, title]
+        additionalProperties: false
+      output_schema:
+        type: object
+        properties:
+          success: { type: boolean }
+          accepted: { type: boolean }
+          journal_id: { type: string }
+          max_seq: { type: [integer, "null"] }
+        required: [success]

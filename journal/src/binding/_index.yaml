@@ -1,0 +1,16 @@
+version: "1.0"
+namespace: chestor.journal.binding
+
+entries:
+  - name: get_status
+    kind: function.lua
+    source: file://get_status_func.lua
+    method: handler
+    modules: [ctx]
+
+  - name: delete_journal
+    kind: function.lua
+    source: file://delete_journal_func.lua
+    method: handler
+    modules: [ctx]
+    imports: { writer: chestor.journal.persist:writer }

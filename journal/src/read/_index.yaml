@@ -1,0 +1,48 @@
+version: "1.0"
+namespace: chestor.journal.read
+
+entries:
+  - name: queries
+    kind: library.lua
+    meta:
+      comment: Access-scoped Journal projections for state, frontier, change feeds, branches, health, and timeline reads; request reads never advance projection cursors.
+    source: file://queries.lua
+    imports:
+      types: chestor.journal:types
+      thread_log: chestor.journal:thread_log
+      db: chestor.journal.persist:ops
+      reader: chestor.journal.persist:reader
+      cursors: chestor.journal.persist:cursors
+      spans: chestor.journal.persist:spans
+      graph_reader: chestor.journal.persist:graph_reader
+      enforcement: chestor.journal.write:enforcement
+      branch_digests: chestor.journal.persist:branch_digests
+      health_status: chestor.journal.health:status
+
+  - name: context
+    kind: library.lua
+    meta:
+      comment: Bounded recovery packs and cursor continuity derived from committed Journal projections.
+    source: file://context.lua
+    imports:
+      types: chestor.journal:types
+      queries: chestor.journal.read:queries
+      health_status: chestor.journal.health:status
+      db: chestor.journal.persist:ops
+      reader: chestor.journal.persist:reader
+      cursors: chestor.journal.persist:cursors
+      graph_reader: chestor.journal.persist:graph_reader
+
+  - name: recall
+    kind: library.lua
+    meta:
+      comment: Semantic embedding and recall orchestration, isolated from command, projection, and HTTP paths.
+    source: file://recall.lua
+    imports:
+      llm: wippy.llm:llm
+      availability: chestor.journal.embedding:availability
+      types: chestor.journal:types
+      thread_log: chestor.journal:thread_log
+      db: chestor.journal.persist:ops
+      reader: chestor.journal.persist:reader
+      embeddings: chestor.journal.persist:embeddings

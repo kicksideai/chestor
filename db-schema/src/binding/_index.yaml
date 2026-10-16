@@ -1,0 +1,16 @@
+version: "1.0"
+namespace: chestor.db_schema.binding
+
+entries:
+  - name: get_status
+    kind: function.lua
+    source: file://get_status.lua
+    method: handler
+    modules: [ctx, time]
+
+  - name: delete_schema
+    kind: function.lua
+    source: file://delete_schema.lua
+    method: handler
+    modules: [ctx]
+    imports: { schema_state: chestor.db_schema:schema_state }

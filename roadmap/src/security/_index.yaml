@@ -1,0 +1,38 @@
+version: '1.0'
+namespace: chestor.roadmap.security
+entries:
+- name: roadmap_endpoint_access
+  kind: security.policy
+  meta:
+    comment: Authenticated users may reach the roadmap product endpoints and trait
+      tools.
+  groups: []
+  policy:
+    resources:
+    - chestor.roadmap.traits:*
+    actions: access
+    effect: allow
+- name: member_discovery
+  kind: security.policy
+  groups: []
+  policy:
+    resources:
+    - chestor.roadmap:*
+    - chestor.roadmap.*
+    actions:
+    - registry.get
+    - registry.find
+    effect: allow
+- name: user_security_scope
+  kind: ns.requirement
+  default: kickside.security.groups:members
+  meta:
+    value_kind: security.scope
+    comment: Application security group that may reach the roadmap endpoints.
+  targets:
+  - entry: chestor.roadmap.security:roadmap_endpoint_access
+    path: .groups +=
+  - entry: chestor.roadmap.security:member_discovery
+    path: .groups +=
+  - entry: chestor.roadmap.security:module_access
+    path: .groups +=

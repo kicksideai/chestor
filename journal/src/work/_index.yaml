@@ -1,0 +1,36 @@
+version: "1.0"
+namespace: chestor.journal.work
+
+entries:
+  - name: classification
+    kind: library.lua
+    meta:
+      internal: true
+      comment: Optional work-ontology classification used by legacy work projections and enforcement, separate from the generic graph model.
+    source: file://classification.lua
+    imports:
+      db: chestor.journal.persist:ops
+
+  - name: assembler
+    kind: function.lua
+    meta:
+      comment: One on-demand map assembly run, invoked by the shared KickSide leased-job engine.
+    source: file://assembler.lua
+    method: run
+    imports:
+      assembly: chestor.journal.graph:assembly
+      judge: chestor.journal.graph:judge
+      db: chestor.journal.persist:ops
+      ledger: chestor.journal.persist:graph_assembly
+      execution_identity: kickside.execution:execution_identity
+
+  - name: assembly_run
+    kind: function.lua
+    source: file://assembler.lua
+    method: execute
+    imports:
+      assembly: chestor.journal.graph:assembly
+      judge: chestor.journal.graph:judge
+      db: chestor.journal.persist:ops
+      ledger: chestor.journal.persist:graph_assembly
+      execution_identity: kickside.execution:execution_identity

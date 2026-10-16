@@ -1,0 +1,24 @@
+version: "1.0"
+namespace: chestor.db_schema.migrations
+
+entries:
+  - name: schema_materialized_tables_ops
+    kind: library.lua
+    meta:
+      comment: Migration operation that creates normalized database-schema read-model tables.
+    source: file://01_create_schema_materialized_tables_ops.lua
+
+  - name: 01_create_schema_materialized_tables
+    kind: function.lua
+    meta:
+      type: migration
+      tags:
+        - db-schema
+        - read-model
+      comment: Create normalized database-schema materialization tables.
+      timestamp: "2026-07-04T00:00:01Z"
+    source: file://01_create_schema_materialized_tables.lua
+    imports:
+      migration: wippy.migration:migration
+      ops: chestor.db_schema.migrations:schema_materialized_tables_ops
+    method: migrate

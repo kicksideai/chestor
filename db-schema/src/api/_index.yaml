@@ -1,0 +1,72 @@
+version: "1.0"
+namespace: chestor.db_schema.api
+
+entries:
+  - name: support
+    kind: library.lua
+    source: file://support.lua
+    modules: [http]
+    imports:
+      http_errors: kickside.contract:http_errors
+
+  - name: get_schema
+    kind: function.lua
+    source: file://get_schema.lua
+    method: handler
+    modules: [http]
+    imports: { http_errors: kickside.contract:http_errors, schema_state: chestor.db_schema:schema_state, support: chestor.db_schema.api:support, materializer: chestor.db_schema:materializer, thread_access: kickside.core.threads.api:thread_access }
+  - name: get_schema.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: get_schema
+    path: /workspace/db-schema/{id}
+
+  - name: apply_schema
+    kind: function.lua
+    source: file://apply_schema.lua
+    method: handler
+    modules: [http, json]
+    imports: { http_errors: kickside.contract:http_errors, schema_state: chestor.db_schema:schema_state, support: chestor.db_schema.api:support, materializer: chestor.db_schema:materializer, thread_access: kickside.core.threads.api:thread_access }
+  - name: apply_schema.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: POST
+    func: apply_schema
+    path: /workspace/db-schema/{id}/apply
+
+  - name: list_tables
+    kind: function.lua
+    source: file://list_tables.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, schema_state: chestor.db_schema:schema_state, support: chestor.db_schema.api:support }
+  - name: list_tables.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: list_tables
+    path: /workspace/db-schema/{id}/tables
+
+  - name: list_relations
+    kind: function.lua
+    source: file://list_relations.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, schema_state: chestor.db_schema:schema_state, support: chestor.db_schema.api:support }
+  - name: list_relations.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: list_relations
+    path: /workspace/db-schema/{id}/relations
+
+  - name: list_indexes
+    kind: function.lua
+    source: file://list_indexes.lua
+    method: handler
+    imports: { http_errors: kickside.contract:http_errors, schema_state: chestor.db_schema:schema_state, support: chestor.db_schema.api:support }
+  - name: list_indexes.endpoint
+    kind: http.endpoint
+    meta: {}
+    method: GET
+    func: list_indexes
+    path: /workspace/db-schema/{id}/indexes

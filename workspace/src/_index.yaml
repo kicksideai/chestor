@@ -1,0 +1,254 @@
+version: "1.0"
+namespace: chestor.workspace
+
+entries:
+  - name: definition
+    kind: ns.definition
+    meta:
+      title: Workspace
+      comment: A workspace is one tree of typed entries. Entries are components (the tree is component parent_id/position, sharing is the access cascade); entry types are declared, each owning its renderer and lifecycle. The shell owns navigation and mounts the type's renderer.
+
+  # ─── Host wiring ─────────────────────────────────────────────────────
+  - name: dep.kickside.component
+    kind: ns.dependency
+    version: '*'
+    component: kickside/component
+
+  - name: dep.kickside.core
+    kind: ns.dependency
+    version: '*'
+    component: kickside/core
+
+  - name: dep.kickside.contract
+    kind: ns.dependency
+    version: '*'
+    component: kickside/contract
+
+  - name: dep.kickside.renderers
+    kind: ns.dependency
+    version: '*'
+    component: kickside/renderers
+
+  - name: api_router
+    kind: ns.requirement
+    meta:
+      comment: HTTP router the workspace endpoints attach to. Must enforce auth + endpoint_firewall.
+    targets:
+      - entry: chestor.workspace.api:list_entries.endpoint
+        path: .meta.router
+      - entry: chestor.workspace.api:list_entry_types.endpoint
+        path: .meta.router
+      - entry: chestor.workspace.api:get_entry.endpoint
+        path: .meta.router
+      - entry: chestor.workspace.api:get_breadcrumbs.endpoint
+        path: .meta.router
+      - entry: chestor.workspace.api:create_entry.endpoint
+        path: .meta.router
+      - entry: chestor.workspace.api:update_entry.endpoint
+        path: .meta.router
+      - entry: chestor.workspace.api:move_entry.endpoint
+        path: .meta.router
+      - entry: chestor.workspace.api:delete_entry.endpoint
+        path: .meta.router
+      - entry: chestor.workspace.api:grant_entry.endpoint
+        path: .meta.router
+      - entry: chestor.workspace.api:revoke_entry.endpoint
+        path: .meta.router
+
+  - name: ui_server
+    kind: ns.requirement
+    meta:
+      comment: HTTP server the workspace UI static mount attaches to.
+    targets:
+      - entry: chestor.workspace:ui_static
+        path: .meta.server
+
+  - name: ui_fs
+    kind: fs.directory
+    meta:
+      comment: Built chestor-workspace web component bundle.
+    directory: ./static
+
+  - name: ui_static
+    kind: http.static
+    meta:
+    fs: chestor.workspace:ui_fs
+    path: /chestor-workspace
+    prefix: /
+    options:
+      cache: "no-cache"
+
+  # ─── Libraries ───────────────────────────────────────────────────────
+  - name: consts
+    kind: library.lua
+    meta: { name: consts, comment: "Entry impl id, entry class, lifecycle meta-type, access masks." }
+    source: file://consts.lua
+
+  - name: entry_types
+    kind: library.lua
+    meta: { name: entry_types, comment: Component-kind discovery (scan contract.binding entries with a workspace-nestable class) + pinned-kind resolution. }
+    source: file://entry_types.lua
+    modules: [registry]
+    imports:
+      consts: chestor.workspace:consts
+
+  # ─── Upload bridge. A single declared stage dropped into the kickside.uploads
+  # pipeline (upload.stage / scope: universal). When an upload was directed at the
+  # workspace (metadata.target_parent_id), the pipeline runs this as the uploader and
+  # it registers a `file` component under that parent. Uploads never learns the
+  # workspace exists; discovery is the registry's. ──────────────────────────────────
+  - name: file_stage
+    kind: function.lua
+    meta: { comment: "Upload-pipeline stage: file an upload targeted at a workspace folder as a chestor.workspace:file component." }
+    source: file://uploads_file_stage.lua
+    method: process
+    imports:
+      handlers: chestor.workspace.binding:handlers
+
+  - name: file_stage.universal
+    kind: registry.entry
+    meta:
+      type: upload.stage
+      comment: Drops file_stage into every upload pipeline, after any type-specific stages.
+    scope: universal
+    priority: 10
+    title: Workspace file
+    func: chestor.workspace:file_stage
+    prepare_archive: chestor.workspace:file_stage
+
+  # The reverse of file_stage: when an upload is deleted, reap the file component that
+  # pointed at it so no dangling entry survives the blob.
+  - name: file_reap_stage
+    kind: function.lua
+    meta: { comment: "Upload on-delete stage: reap the chestor.workspace:file component that pointed at a deleted upload." }
+    source: file://uploads_reap.lua
+    method: process
+    imports:
+      handlers: chestor.workspace.binding:handlers
+
+  - name: file_reap_stage.universal
+    kind: registry.entry
+    meta:
+      type: upload.delete_stage
+      comment: Drops file_reap_stage into every upload delete.
+    scope: universal
+    priority: 10
+    title: Workspace file reap
+    func: chestor.workspace:file_reap_stage
+
+  # ── Built-in component KINDS. There is no "workspace.entry" class: folder/
+  # file/link are ordinary components whose contract.binding meta self-describes
+  # how the tree renders them (icon/renderer/container). A component is a component:
+  # anything with a renderer is editable in the tree, and creatable: true is the only
+  # gate for what the "+" picker offers -- there is no nesting allow-list. The
+  # workspace view stays generic.
+  - name: folder
+    kind: contract.binding
+    meta:
+      class: folder
+      icon: tabler:folder-filled
+      color: "var(--p-primary-color)"
+      container: true
+      component:
+        create: {}
+      comment: Organize components into groups — a container node in the workspace tree;
+        component.create is viewless so the "+" opens the generic wc-entry-create popup (name + icon).
+      events:
+        input:
+          - type: kickside.component.events:created
+          - type: kickside.component.events:updated
+          - type: kickside.component.events:deleted
+        output: []
+      projections:
+        - kind: kickside.component:child.lifecycle
+          on: child.lifecycle
+          worker_ref: "func://kickside.core.lifecycle:child_lifecycle_projection"
+          input_mode: prefetch_events
+          events:
+            input:
+              - type: kickside.component.events:created
+              - type: kickside.component.events:updated
+              - type: kickside.component.events:deleted
+    contracts:
+      - contract: kickside.contract:component
+        methods: { get_status: chestor.workspace.binding:get_status }
+      - contract: kickside.contract:deletable
+        methods: { delete: chestor.workspace.binding:delete_entry }
+
+  - name: file
+    kind: contract.binding
+    meta:
+      class: file
+      icon: tabler:file
+      color: "var(--p-primary-color)"
+      component:
+        manage: { view: kickside.renderers:resource_view }
+      comment: An uploaded file — points at an uploaded blob, previewed by wc-resource-view;
+        no component.create (created by the upload pipeline, not the "+" dialog).
+    contracts:
+      - contract: kickside.contract:component
+        methods: { get_status: chestor.workspace.binding:get_status }
+      - contract: kickside.contract:deletable
+        methods: { delete: chestor.workspace.binding:delete_entry }
+
+  - name: link
+    kind: contract.binding
+    meta:
+      class: link
+      icon: tabler:link
+      color: "var(--p-primary-color)"
+      comment: A reference to another component — a reference node with no component.create
+        (created by reference, not the "+" dialog); renders via the generic view.
+    contracts:
+      - contract: kickside.contract:component
+        methods: { get_status: chestor.workspace.binding:get_status }
+      - contract: kickside.contract:deletable
+        methods: { delete: chestor.workspace.binding:delete_entry }
+
+  # ─── UI surface ──────────────────────────────────────────────────────
+  - name: workspace_view
+    kind: registry.entry
+    meta:
+      type: view.component
+      name: workspace_view
+      title: Workspace
+      announced: true
+      tag_name: chestor-workspace
+      base_path: chestor-workspace
+      entry_point: index.js
+
+  - name: entry_create_view
+    kind: registry.entry
+    meta:
+      type: view.component
+      name: entry_create_view
+      title: New Entry
+      tag_name: wc-entry-create
+      base_path: chestor-workspace
+      entry_point: entry_create.js
+      announced: true
+      auto_register: true
+
+  - name: dep.kickside.widgets
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Public wc-icon-picker web component used by the workspace icon field.
+    component: kickside/widgets
+
+  - name: nav_item
+    kind: registry.entry
+    meta:
+      type: ui.nav_item
+      section: ""
+      path: /workspace
+      route_name: workspace
+      title: Workspace
+      comment: Your workspace tree of typed entries.
+      icon: tabler:layout-sidebar
+      order: 1
+      render: component
+      component_tag: chestor-workspace
+  # Built-in kinds (folder/file/link) are the contract.bindings declared above;
+  # there is no separate entry_type registry. New kinds (database, agent, kb, …)
+  # are just more contract.bindings with a class + (optionally) creatable: true.

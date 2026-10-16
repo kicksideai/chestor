@@ -1,0 +1,351 @@
+version: "1.0"
+namespace: chestor.journal.migrations
+
+entries:
+  - name: journal_tables_ops
+    kind: library.lua
+    meta:
+      comment: Migration operations for Chestor journal read-model/search tables.
+    source: file://01_create_journal_tables_ops.lua
+
+  - name: 01_create_journal_tables
+    kind: function.lua
+    meta:
+      type: migration
+      tags:
+        - journal
+        - read-model
+      comment: Create journal projection, FTS, embedding, session, task, and artifact tables.
+      timestamp: "2026-07-08T00:00:01Z"
+    source: file://01_create_journal_tables.lua
+    imports:
+      migration: wippy.migration:migration
+      ops: chestor.journal.migrations:journal_tables_ops
+    method: migrate
+
+  - name: 02_scope_fts_keys
+    kind: function.lua
+    meta:
+      type: migration
+      tags: [journal, read-model, postgres]
+      comment: Scope PostgreSQL FTS event identities by journal; SQLite FTS5 needs no relational key change.
+      timestamp: "2026-07-31T00:00:02Z"
+    source: file://02_scope_fts_keys.lua
+    imports:
+      migration: wippy.migration:migration
+    method: migrate
+
+  - name: journal_graph_tables_ops
+    kind: library.lua
+    meta:
+      comment: Migration operations for Journal-owned graph catalog, projection, evidence, changes, and jobs.
+    source: file://03_create_journal_graph_tables_ops.lua
+
+  - name: 03_create_journal_graph_tables
+    kind: function.lua
+    meta:
+      type: migration
+      tags: [journal, graph, read-model]
+      comment: Create the bounded multi-graph Journal projection tables.
+      timestamp: "2026-07-31T00:00:03Z"
+    source: file://03_create_journal_graph_tables.lua
+    imports:
+      migration: wippy.migration:migration
+      ops: chestor.journal.migrations:journal_graph_tables_ops
+    method: migrate
+
+  - name: 04_dedupe_fts
+    kind: function.lua
+    meta:
+      type: migration
+      tags: [journal, read-model, sqlite]
+      comment: Remove legacy duplicate SQLite FTS rows created by projection replay.
+      timestamp: "2026-07-31T00:00:04Z"
+    source: file://04_dedupe_fts.lua
+    imports:
+      migration: wippy.migration:migration
+    method: migrate
+
+  - name: journal_drop_sessions_ops
+    kind: library.lua
+    meta:
+      comment: Migration operations dropping the Chestor journal session table, columns, and indexes.
+    source: file://05_drop_sessions_ops.lua
+
+  - name: 05_drop_sessions
+    kind: function.lua
+    meta:
+      type: migration
+      tags: [journal, read-model]
+      comment: Retain retired session records and references for pending updates.
+      timestamp: "2026-08-12T00:00:05Z"
+    source: file://05_drop_sessions.lua
+    imports:
+      migration: wippy.migration:migration
+    method: migrate
+
+  - name: journal_task_graph_ops
+    kind: library.lua
+    meta:
+      comment: Migration operations for the task-graph model (events.task_id, tasks.result, task dependency edges, journal state row).
+    source: file://06_task_graph_ops.lua
+
+  - name: 06_task_graph
+    kind: function.lua
+    meta:
+      type: migration
+      tags: [journal, read-model, task-graph]
+      comment: Add events.task_id, tasks.result, the chestor_journal_task_deps edge table, and the chestor_journal_state pointer row.
+      timestamp: "2026-08-13T00:00:06Z"
+    source: file://06_task_graph.lua
+    imports:
+      migration: wippy.migration:migration
+      ops: chestor.journal.migrations:journal_task_graph_ops
+    method: migrate
+
+  - name: journal_enforcement_ops
+    kind: library.lua
+    meta:
+      comment: Migration operations for the enforcement core (leases, per-task fencing grants, receipts, command ledger, task revision/gate columns, dependency tombstones).
+    source: file://07_enforcement_ops.lua
+
+  - name: 07_enforcement
+    kind: function.lua
+    meta:
+      type: migration
+      tags: [journal, read-model, enforcement]
+      comment: Add capability leases, per-task fencing grants, append-only receipts, the command idempotency ledger, task enforcement columns, and dependency tombstones.
+      timestamp: "2026-08-13T00:00:07Z"
+    source: file://07_enforcement.lua
+    imports:
+      migration: wippy.migration:migration
+      ops: chestor.journal.migrations:journal_enforcement_ops
+    method: migrate
+
+  - name: journal_replay_integrity_ops
+    kind: library.lua
+    meta:
+      comment: Migration operations for canonical replay columns (event payload hash, fold outcome, digest provenance, projection input hash).
+    source: file://08_replay_integrity_ops.lua
+
+  - name: 08_replay_integrity
+    kind: function.lua
+    meta:
+      type: migration
+      tags: [journal, read-model, enforcement]
+      comment: Add events.payload_sha256, tasks.folded_outcome, and journal state digest provenance plus projection input hash columns.
+      timestamp: "2026-08-13T00:00:08Z"
+    source: file://08_replay_integrity.lua
+    imports:
+      migration: wippy.migration:migration
+      ops: chestor.journal.migrations:journal_replay_integrity_ops
+    method: migrate
+
+  - name: journal_branch_digests_ops
+    kind: library.lua
+    meta:
+      comment: Migration operations for per-branch digest state and the task waiver annotation column.
+    source: file://09_branch_digests_ops.lua
+
+  - name: 09_branch_digests
+    kind: function.lua
+    meta:
+      type: migration
+      tags: [journal, read-model, digest]
+      comment: Create the chestor_journal_branch_digests table and add tasks.waiver_kind.
+      timestamp: "2026-08-13T00:00:09Z"
+    source: file://09_branch_digests.lua
+    imports:
+      migration: wippy.migration:migration
+      ops: chestor.journal.migrations:journal_branch_digests_ops
+    method: migrate
+
+  - name: journal_agent_cursors_ops
+    kind: library.lua
+    meta:
+      comment: Migration operations for durable per-agent cursors, bounded episodes, audit coverage, integration receipts, provenance columns, and native vector storage.
+    source: file://10_agent_cursors_ops.lua
+
+  - name: 10_agent_cursors
+    kind: function.lua
+    meta:
+      type: migration
+      tags: [journal, cursor, episode, audit, vector]
+      comment: Add the durable agent-cursor model and native pgvector/sqlite-vec storage used by long projects.
+      timestamp: "2026-08-13T00:00:10Z"
+    source: file://10_agent_cursors.lua
+    imports:
+      migration: wippy.migration:migration
+      ops: chestor.journal.migrations:journal_agent_cursors_ops
+    method: migrate
+
+  - name: journal_generic_cursor_position_ops
+    kind: library.lua
+    meta:
+      comment: Migration operations adding ontology-neutral graph/node addresses to durable cursors.
+    source: file://11_generic_cursor_position_ops.lua
+
+  - name: 11_generic_cursor_position
+    kind: function.lua
+    meta:
+      type: migration
+      tags: [journal, cursor, graph]
+      comment: Add generic graph/node cursor position columns; current_task_id remains an optional work-ontology projection.
+      timestamp: "2026-08-13T00:00:11Z"
+    source: file://11_generic_cursor_position.lua
+    imports:
+      migration: wippy.migration:migration
+      ops: chestor.journal.migrations:journal_generic_cursor_position_ops
+    method: migrate
+
+  - name: journal_cursor_context_refs_ops
+    kind: library.lua
+    meta:
+      comment: Migration operations adding explicit bounded context attachments to durable cursors.
+    source: file://12_cursor_context_refs_ops.lua
+
+  - name: 12_cursor_context_refs
+    kind: function.lua
+    meta:
+      type: migration
+      tags: [journal, cursor, context, handoff]
+      comment: Persist explicit pointer/summary/full graph-node references inherited by child-agent cursors.
+      timestamp: "2026-08-13T00:00:12Z"
+    source: file://12_cursor_context_refs.lua
+    imports:
+      migration: wippy.migration:migration
+      ops: chestor.journal.migrations:journal_cursor_context_refs_ops
+    method: migrate
+
+  - name: journal_graph_hierarchy_ops
+    kind: library.lua
+    meta:
+      comment: Migration operations adding indexed parent and commissioning-anchor addresses to generic graphs.
+    source: file://13_graph_hierarchy_ops.lua
+
+  - name: 13_graph_hierarchy
+    kind: function.lua
+    meta:
+      type: migration
+      tags: [journal, graph, hierarchy, context]
+      comment: Add first-class bounded graph ancestry and optional graph-node commissioning anchors.
+      timestamp: "2026-08-13T00:00:13Z"
+    source: file://13_graph_hierarchy.lua
+    imports:
+      migration: wippy.migration:migration
+      ops: chestor.journal.migrations:journal_graph_hierarchy_ops
+    method: migrate
+
+  - name: journal_graph_hierarchy_backfill_ops
+    kind: library.lua
+    meta:
+      comment: Migration operation recovering indexed graph ancestry from legacy config JSON.
+    source: file://14_backfill_graph_hierarchy_ops.lua
+
+  - name: 14_backfill_graph_hierarchy
+    kind: function.lua
+    meta:
+      type: migration
+      tags: [journal, graph, hierarchy, backfill]
+      comment: Backfill first-class graph parent and commissioning-anchor columns for existing journals.
+      timestamp: "2026-08-13T00:00:14Z"
+    source: file://14_backfill_graph_hierarchy.lua
+    imports:
+      migration: wippy.migration:migration
+      ops: chestor.journal.migrations:journal_graph_hierarchy_backfill_ops
+    method: migrate
+
+  - name: journal_cursor_origin_ops
+    kind: library.lua
+    meta:
+      comment: Migration operations distinguishing agent-opened cursors from automatically maintained ones.
+    source: file://15_cursor_origin_ops.lua
+
+  - name: 15_cursor_origin
+    kind: function.lua
+    meta:
+      type: migration
+      tags: [journal, cursor, position]
+      comment: Mark cursor provenance so automatically maintained agent positions stay distinguishable from opened ones.
+      timestamp: "2026-08-13T00:00:15Z"
+    source: file://15_cursor_origin.lua
+    imports:
+      migration: wippy.migration:migration
+      ops: chestor.journal.migrations:journal_cursor_origin_ops
+    method: migrate
+
+  - name: journal_graph_assembly_ops
+    kind: library.lua
+    meta:
+      comment: Migration operations for the deterministic derivation index and the on-demand map assembly ledger.
+    source: file://16_graph_assembly_ops.lua
+
+  - name: 16_graph_assembly
+    kind: function.lua
+    meta:
+      type: migration
+      tags: [journal, graph, assembly, derivation]
+      comment: Add the graph derivation key index and the assembly run ledger that back automatic map relations.
+      timestamp: "2026-08-13T00:00:16Z"
+    source: file://16_graph_assembly.lua
+    imports:
+      migration: wippy.migration:migration
+      ops: chestor.journal.migrations:journal_graph_assembly_ops
+    method: migrate
+
+  - name: journal_work_spans_ops
+    kind: library.lua
+    meta:
+      comment: Migration operations for implicit work spans and the span stamp every fact carries.
+    source: file://17_work_spans_ops.lua
+
+  - name: 17_work_spans
+    kind: function.lua
+    meta:
+      type: migration
+      tags: [journal, cursor, span, presence]
+      comment: Add the implicit work-span episodes an identity's writes open, extend, and seal, plus the events span stamp and time index.
+      timestamp: "2026-08-20T00:00:17Z"
+    source: file://17_work_spans.lua
+    imports:
+      migration: wippy.migration:migration
+      ops: chestor.journal.migrations:journal_work_spans_ops
+    method: migrate
+
+  - name: journal_cursor_revision_claim_ops
+    kind: library.lua
+    meta:
+      comment: Migration operations for the cursor revision claim the optimistic-concurrency guard writes.
+    source: file://18_cursor_revision_claim_ops.lua
+
+  - name: 18_cursor_revision_claim
+    kind: function.lua
+    meta:
+      type: migration
+      tags: [journal, cursor, concurrency]
+      comment: Add the claimed revision a cursor command reserves before it appends, so two writers holding one expected_revision cannot both succeed.
+      timestamp: "2026-08-20T00:00:18Z"
+    source: file://18_cursor_revision_claim.lua
+    imports:
+      migration: wippy.migration:migration
+      ops: chestor.journal.migrations:journal_cursor_revision_claim_ops
+    method: migrate
+
+  - name: journal_auto_cursor_identity_ops
+    kind: library.lua
+    meta:
+      comment: Migration operations folding duplicate automatic cursors and enforcing one automatic position per identity.
+    source: file://19_auto_cursor_identity_ops.lua
+
+  - name: 19_auto_cursor_identity
+    kind: function.lua
+    meta:
+      type: migration
+      tags: [journal, cursor, concurrency]
+      comment: Fold duplicate automatic cursors per identity and add the partial unique index that keeps one automatic active position per agent.
+      timestamp: "2026-08-20T00:00:19Z"
+    source: file://19_auto_cursor_identity.lua
+    imports:
+      migration: wippy.migration:migration
+      ops: chestor.journal.migrations:journal_auto_cursor_identity_ops
+    method: migrate

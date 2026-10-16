@@ -1,0 +1,308 @@
+version: "1.0"
+namespace: chestor.roadmap.traits
+
+# Agent traits contributed by the roadmap module: an agent reads and edits a
+# roadmap workspace entry through the SAME canonical event-sourced flow the
+# renderer uses (typed commands -> thread events -> projection read model). The
+# agents module discovers a trait via meta.type agent.trait; MCP surfaces the
+# tools named under tools:. roadmap_planning carries the protocol alone so an
+# agent that only reasons about plans can take it without the write surface.
+
+entries:
+  - name: roadmap_model
+    kind: registry.entry
+    meta:
+      type: agent.trait
+      title: Model Roadmap
+      public: true
+      icon: tabler:map-2
+      comment: Read, query, and edit a roadmap workspace entry (layers, outcomes, initiatives, dependencies, milestones) via typed commands.
+      tags: [roadmap, workspace, planning, state, editor]
+    prompt: |
+      You can inspect, question, and edit a roadmap with the GetRoadmap,
+      QueryRoadmap and ApplyRoadmap tools. All three take the roadmap workspace
+      entry's `entry_id` (the roadmap id, which is also its thread id).
+
+      - GetRoadmap returns settings, layers, outcomes, initiatives, dependencies,
+        milestones, counts, `current_period` and the undo/redo flags. Pass
+        `lens` (timeline | horizons | strata | outcomes) to also get a `view`
+        shaped for that lens, and `filter` to narrow it
+        ({ layer, outcome, status, horizon, period_from, period_to }).
+      - QueryRoadmap answers one derived question: `needs` and `unlocks` (pass
+        `id`), `critical` (pass `top`), `horizon` (pass `horizon`), `overloaded`
+        (pass `top`).
+      - ApplyRoadmap applies a batch of typed commands; each is { type, body }.
+        The batch is validated as a whole and nothing is appended if any command
+        is refused.
+
+      Command types are canonical `chestor.roadmap.events:*` values:
+        `layer.added` { id, title, description?, color?, icon?, sort_order? }
+        `layer.updated` { id, title?, description?, color?, icon?, sort_order? }
+        `layer.removed` { id }
+        `outcome.added` { id, title, description?, sort_order? }
+        `outcome.updated` { id, title?, description?, sort_order? }
+        `outcome.removed` { id }
+        `initiative.added` { id, title, layer_id, description?, outcome_id?,
+          status?, confidence?, size?, start_period?, span?, progress?, owner?,
+          tags?, properties?, sort_order? }
+        `initiative.updated` { id, ...any subset of the above except id }
+        `initiative.removed` { id }
+        `dependency.added` { id, from_id, to_id, kind?, note? }
+        `dependency.updated` { id, kind?, note? }
+        `dependency.removed` { id }
+        `milestone.added` { id, title, period, description?, layer_id?, initiative_ids? }
+        `milestone.updated` { id, title?, period?, description?, layer_id?, initiative_ids? }
+        `milestone.removed` { id }
+        `roadmap.settings-updated` { settings: { period_kind?, origin?, columns?, default_lens? } }
+        `roadmap.lens-state-set` { lens, state }
+
+      Vocabularies: status idea | planned | active | done | dropped; confidence
+      low | med | high; size S | M | L | XL; dependency kind requires | informs;
+      period_kind quarter | month; lens timeline | horizons | strata | outcomes.
+
+      Planning protocol:
+      - Create layers first. An initiative cannot exist without a layer, so add
+        every lane before the bets that sit on it, in the same batch if needed.
+      - File a bet under an outcome when you know why it exists; the outcome must
+        already exist.
+      - `requires` is the only hard edge. Use `informs` when one bet merely gives
+        another context: informs edges never carry schedule pressure and never
+        appear on the critical path.
+      - An edge reads `from_id` unlocks `to_id`, and `to_id` needs `from_id`.
+        Requires edges must stay acyclic; a cycle is refused with the path named.
+      - Ideas stay unscheduled. Leave `start_period` off until the bet is real;
+        an unscheduled bet sits in the `later` horizon by definition.
+      - Remove edges before removing an initiative, and remove the initiatives and
+        milestones on a layer before removing the layer. Removal is never
+        cascading, so every removal you intend is a command you send.
+      - Period keys are canonical strings and must match the roadmap's
+        `period_kind`: `YYYY-Qn` for quarters (2026-Q3), `YYYY-MM` for months
+        (2026-09). `span` counts periods and is at least 1.
+      - Generate a fresh UUID for each new layer, outcome, initiative, dependency
+        and milestone id.
+      - Setting status to `done` forces progress to 1.
+    tools:
+      - chestor.roadmap.traits:get_roadmap_tool
+      - chestor.roadmap.traits:query_roadmap_tool
+      - chestor.roadmap.traits:apply_roadmap_tool
+
+  - name: roadmap_planning
+    kind: registry.entry
+    meta:
+      type: agent.trait
+      title: Roadmap Planning
+      public: true
+      icon: tabler:route
+      comment: The planning protocol a layered roadmap is built under, without the editing tools.
+      tags: [roadmap, planning, workspace, strategy]
+    prompt: |
+      A roadmap is one model read through several lenses. Hold the plan this way:
+
+      - Layers are strata, ordered bottom to top: what everything else stands on
+        comes first (platform below product below the surface a customer sees).
+        A bet belongs to exactly one layer.
+      - Outcomes are why a bet exists. Progress on an outcome is the mean over the
+        bets filed under it; an abandoned bet leaves the average rather than
+        dragging it down.
+      - `requires` is the only hard edge and the only one that carries schedule
+        pressure. `informs` says one bet gives another context and nothing more.
+        The bet that unlocks the most work downstream is the one to start.
+      - Ideas stay unscheduled. Scheduling is a commitment, so a bet gets a
+        `start_period` only when someone intends to do it; everything unscheduled
+        sits beyond the planning window.
+      - Horizon is derived, never stored: finished and abandoned work is behind
+        us, a bet starting now or already started is `now`, the next two periods
+        are `next`, and anything further out or unscheduled is `later`. Moving a
+        bet between horizons means changing its schedule, not its label.
+      - Confidence and size are estimates, not promises. A large, low-confidence
+        bet early in a chain is the biggest risk on the plan.
+      - A period carrying more weight than the ones around it is where the plan
+        will slip first; check the load before adding to it.
+
+  - name: get_roadmap_tool
+    kind: function.lua
+    meta:
+      type: tool
+      title: Get Roadmap
+      mcp:
+        required_scopes:
+          - state.read
+      llm_alias: GetRoadmap
+      llm_description: "Read a roadmap workspace entry: settings, layers, outcomes, initiatives, dependencies, milestones and history flags. Input { entry_id, lens?, filter? }; with a lens the response adds a view shaped for it."
+      input_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "entry_id": { "type": "string", "description": "The roadmap workspace entry id" },
+            "lens": {
+              "type": "string",
+              "enum": ["timeline", "horizons", "strata", "outcomes"],
+              "description": "Shape the response for one lens; omit for the plain snapshot"
+            },
+            "filter": {
+              "type": "object",
+              "description": "Narrow the initiatives the snapshot and lens view carry",
+              "properties": {
+                "layer": { "type": "string" },
+                "outcome": { "type": "string" },
+                "status": { "type": "string", "enum": ["idea", "planned", "active", "done", "dropped"] },
+                "horizon": { "type": "string", "enum": ["past", "now", "next", "later"] },
+                "period_from": { "type": "string" },
+                "period_to": { "type": "string" }
+              }
+            }
+          },
+          "required": ["entry_id"]
+        }
+      output_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "roadmap": { "type": "object" },
+            "error": { "type": "string" }
+          },
+          "required": ["success"]
+        }
+    source: file://get_roadmap.lua
+    method: handle
+    imports:
+      roadmap: chestor.roadmap:roadmap
+
+  - name: query_roadmap_tool
+    kind: function.lua
+    meta:
+      type: tool
+      title: Query Roadmap
+      mcp:
+        required_scopes:
+          - state.read
+      llm_alias: QueryRoadmap
+      llm_description: "Answer one derived question about a roadmap: needs or unlocks for an initiative, critical (ranked by blocking score), horizon, or overloaded periods. Input { entry_id, question, id?, horizon?, top?, limit?, cursor? }. Returns compact summaries; pass next_cursor to continue. GetRoadmap returns full descriptions and properties."
+      input_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "entry_id": {
+              "type": "string",
+              "description": "The roadmap workspace entry id"
+            },
+            "question": {
+              "type": "string",
+              "enum": [
+                "needs",
+                "unlocks",
+                "critical",
+                "horizon",
+                "overloaded"
+              ],
+              "description": "The derived question to answer"
+            },
+            "id": {
+              "type": "string",
+              "description": "Initiative id, required for needs and unlocks"
+            },
+            "horizon": {
+              "type": "string",
+              "enum": [
+                "past",
+                "now",
+                "next",
+                "later"
+              ],
+              "description": "Horizon to list for the horizon question"
+            },
+            "top": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Limit for critical and overloaded"
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            },
+            "cursor": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "entry_id",
+            "question"
+          ]
+        }
+      output_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "success": {
+              "type": "boolean"
+            },
+            "question": {
+              "type": "string"
+            },
+            "answer": {
+              "type": "object",
+              "description": "Paged summary arrays for the question. GetRoadmap returns complete initiative and dependency objects."
+            },
+            "error": {
+              "type": "string"
+            },
+            "next_cursor": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "success"
+          ]
+        }
+    source: file://query_roadmap.lua
+    method: handle
+    imports:
+      roadmap: chestor.roadmap:roadmap
+
+  - name: apply_roadmap_tool
+    kind: function.lua
+    meta:
+      type: tool
+      title: Apply Roadmap
+      mcp:
+        required_scopes:
+          - state.read
+          - state.write
+      llm_alias: ApplyRoadmap
+      llm_description: "Apply typed roadmap commands (layers, outcomes, initiatives, dependencies, milestones, settings) to a roadmap workspace entry. Input { entry_id, commands: [{ type, body }] }. The batch is validated whole; nothing is appended if any command is refused. Returns the updated roadmap."
+      input_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "entry_id": { "type": "string", "description": "The roadmap workspace entry id" },
+            "commands": {
+              "type": "array",
+              "description": "Batch of typed commands, each { type, body }",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": { "type": "string", "description": "Canonical chestor.roadmap.events:* event type" },
+                  "body": { "type": "object", "description": "Event payload for the command type" }
+                },
+                "required": ["type"]
+              }
+            }
+          },
+          "required": ["entry_id", "commands"]
+        }
+      output_schema: |
+        {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean" },
+            "roadmap": { "type": "object" },
+            "error": { "type": "string" }
+          },
+          "required": ["success"]
+        }
+    source: file://apply_roadmap.lua
+    method: handle
+    imports:
+      roadmap: chestor.roadmap:roadmap

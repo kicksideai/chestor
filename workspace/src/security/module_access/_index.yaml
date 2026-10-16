@@ -1,0 +1,46 @@
+version: '1.0'
+namespace: chestor.workspace.security
+entries:
+- name: module_access
+  kind: security.policy
+  meta:
+    title: Workspace
+    surface: chestor.workspace
+    intent: module_access
+    includes:
+    - chestor.workspace.security:member_access
+    - chestor.workspace.security:member_discovery
+  groups: []
+  policy:
+    resources:
+    - chestor.workspace.api:create_entry.endpoint
+    - chestor.workspace.api:delete_entry.endpoint
+    - chestor.workspace.api:get_breadcrumbs.endpoint
+    - chestor.workspace.api:get_entry.endpoint
+    - chestor.workspace.api:grant_entry.endpoint
+    - chestor.workspace.api:list_entries.endpoint
+    - chestor.workspace.api:list_entry_types.endpoint
+    - chestor.workspace.api:move_entry.endpoint
+    - chestor.workspace.api:revoke_entry.endpoint
+    - chestor.workspace.api:update_entry.endpoint
+    actions: access
+    effect: allow
+- name: module_tools
+  kind: security.policy
+  meta:
+    title: Workspace tools
+    surface: chestor.workspace
+    intent: tool_access
+  groups: []
+  policy:
+    resources:
+    - chestor.workspace.traits:create_entry_tool
+    - chestor.workspace.traits:delete_entry_tool
+    - chestor.workspace.traits:get_entry_tool
+    - chestor.workspace.traits:list_entries_tool
+    - chestor.workspace.traits:list_entry_types_tool
+    - chestor.workspace.traits:update_entry_tool
+    actions:
+    - funcs.call
+    - funcs.security
+    effect: allow

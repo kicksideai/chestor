@@ -1,0 +1,5 @@
+/.gitlab-ci.yml export-ignore
+/docs/ export-ignore
+journal/docs/ export-ignore
+journal/docs/** export-ignore
+*.js.map export-ignore

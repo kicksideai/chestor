@@ -1,0 +1,354 @@
+version: "1.0"
+namespace: chestor.roadmap
+
+entries:
+  - name: definition
+    kind: ns.definition
+    meta:
+      title: Chestor Roadmap
+      comment: "Event-sourced roadmap workspace kind: layered initiatives filed under outcomes, directed dependencies, milestones, and per-lens view state on one component-owned thread."
+
+  - name: dep.kickside.core
+    kind: ns.dependency
+    version: '*'
+    component: kickside/core
+
+  - name: dep.kickside.contract
+    kind: ns.dependency
+    version: '*'
+    component: kickside/contract
+
+  - name: dep.kickside.component
+    kind: ns.dependency
+    version: '*'
+    component: kickside/component
+
+  - name: dep.wippy.migration
+    kind: ns.dependency
+    version: '*'
+    component: wippy/migration
+
+  - name: target_db
+    kind: ns.requirement
+    meta:
+      comment: SQL database resource backing the roadmap read model.
+    targets:
+      - entry: chestor.roadmap.migrations:01_create_roadmap_tables
+        path: .meta.target_db
+      - entry: chestor.roadmap:db_config
+        path: .meta.db_id
+
+  - name: db_config
+    kind: registry.entry
+    meta:
+      comment: Holds the requirement-injected roadmap DB resource id.
+
+  - name: api_router
+    kind: ns.requirement
+    meta:
+      value_kind: http.router
+      comment: HTTP router the roadmap endpoints attach to. Must enforce auth and the endpoint firewall.
+      description: HTTP router the roadmap endpoints attach to.
+    targets:
+      - entry: chestor.roadmap.api:get_roadmap.endpoint
+        path: .meta.router
+      - entry: chestor.roadmap.api:apply_roadmap.endpoint
+        path: .meta.router
+      - entry: chestor.roadmap.api:undo_roadmap.endpoint
+        path: .meta.router
+      - entry: chestor.roadmap.api:redo_roadmap.endpoint
+        path: .meta.router
+      - entry: chestor.roadmap.api:list_initiatives.endpoint
+        path: .meta.router
+      - entry: chestor.roadmap.api:get_dependencies.endpoint
+        path: .meta.router
+      - entry: chestor.roadmap.api:get_critical.endpoint
+        path: .meta.router
+      - entry: chestor.roadmap.api:get_schema.endpoint
+        path: .meta.router
+
+  - name: ui_server
+    kind: ns.requirement
+    meta:
+      value_kind: http.service
+      comment: HTTP server the roadmap renderer static mount attaches to.
+      description: HTTP server the roadmap renderer static mount attaches to.
+    targets:
+      - entry: chestor.roadmap:ui_static
+        path: .meta.server
+
+  - name: ui_fs
+    kind: fs.directory
+    meta:
+      comment: Built chestor-roadmap renderer bundle.
+    directory: ./static
+
+  - name: ui_static
+    kind: http.static
+    meta:
+    fs: chestor.roadmap:ui_fs
+    path: /chestor-roadmap
+    prefix: /
+    options:
+      cache: "no-cache"
+
+  - name: renderer_view
+    kind: registry.entry
+    meta:
+      type: view.component
+      name: renderer_view
+      title: Roadmap
+      description: >-
+        Layered roadmap planner mounted by the Workspace for a roadmap component.
+        Pass entry-id with the roadmap component id; mode may be preview for the
+        compact read-focused timeline or full for the timeline, horizons, strata
+        and outcomes lenses with editing, inspector, and history controls. The
+        component owns its authenticated roadmap API calls and consumes no
+        slotted content.
+      tag_name: chestor-roadmap
+      entry_point: index.js
+      base_path: chestor-roadmap
+      announced: true
+      auto_register: false
+    props:
+      type: object
+      properties:
+        entry-id:
+          type: string
+          default: ""
+          description: Workspace roadmap component id to load; an empty value renders the required-id error state.
+        read-only:
+          type: boolean
+          default: false
+          description: Disables editing while retaining full reading and inspection controls.
+        mode:
+          type: string
+          default: preview
+          description: "Rendering mode: preview for the compact read-focused timeline, or full for editing and lens controls."
+
+  - name: types
+    kind: library.lua
+    meta:
+      name: types
+      comment: Roadmap constants, closed vocabularies, and typed aliases.
+    source: file://types.lua
+    modules: [registry]
+
+  - name: util
+    kind: library.lua
+    meta:
+      name: util
+      comment: Value helpers shared by the roadmap engine files.
+    source: file://util.lua
+    modules: [json]
+
+  - name: periods
+    kind: library.lua
+    meta:
+      name: periods
+      comment: "Pure period arithmetic: canonical quarter and month keys, index math, current period, and horizon."
+    source: file://periods.lua
+    imports:
+      types: chestor.roadmap:types
+      util: chestor.roadmap:util
+
+  - name: records
+    kind: library.lua
+    meta:
+      name: records
+      comment: Canonical roadmap record shapes — one normalizer per entity, shared by the fold and the read model.
+    source: file://records.lua
+    imports:
+      types: chestor.roadmap:types
+      util: chestor.roadmap:util
+
+  - name: state
+    kind: library.lua
+    meta:
+      name: state
+      comment: "Pure roadmap core: record normalization, the event fold, command validation, and the public read shape."
+    source: file://state.lua
+    modules: [json]
+    imports:
+      types: chestor.roadmap:types
+      periods: chestor.roadmap:periods
+      records: chestor.roadmap:records
+      util: chestor.roadmap:util
+
+  - name: queries
+    kind: library.lua
+    meta:
+      name: queries
+      comment: Derived roadmap queries over a built state — needs, unlocks, chains, blocking score, outcome progress, and filters.
+    source: file://queries.lua
+    imports:
+      types: chestor.roadmap:types
+      periods: chestor.roadmap:periods
+      util: chestor.roadmap:util
+
+  - name: history
+    kind: library.lua
+    meta:
+      name: history
+      comment: Inverse event construction for the durable undo and redo stacks.
+    source: file://history.lua
+    imports:
+      types: chestor.roadmap:types
+      records: chestor.roadmap:records
+      state: chestor.roadmap:state
+      util: chestor.roadmap:util
+
+  - name: materializer
+    kind: library.lua
+    meta:
+      name: materializer
+      comment: Normalized roadmap read-model tables and event projection.
+    source: file://materializer.lua
+    modules: [json, sql]
+    imports:
+      types: chestor.roadmap:types
+      records: chestor.roadmap:records
+      util: chestor.roadmap:util
+
+  - name: roadmap
+    kind: library.lua
+    meta:
+      name: roadmap
+      comment: "Thread-backed roadmap API: append typed events, validate invariants, and read the normalized materialization."
+    source: file://roadmap.lua
+    modules: [contract, crypto, registry, security]
+    imports:
+      component: kickside.component:component
+      types: chestor.roadmap:types
+      records: chestor.roadmap:records
+      state: chestor.roadmap:state
+      queries: chestor.roadmap:queries
+      history: chestor.roadmap:history
+      periods: chestor.roadmap:periods
+      materializer: chestor.roadmap:materializer
+      util: chestor.roadmap:util
+
+  - name: projection_worker
+    kind: function.lua
+    meta:
+      type: projection.worker
+      comment: Roadmap read-model projection worker — projects roadmap events into normalized tables.
+    source: file://projection.lua
+    method: run
+    imports:
+      materializer: chestor.roadmap:materializer
+
+  - name: roadmap_kind
+    kind: contract.binding
+    meta:
+      class: roadmap
+      title: Roadmap
+      icon: tabler:map-2
+      color: "var(--p-primary-color)"
+      component:
+        create: {}
+        manage: { view: chestor.roadmap:renderer_view, deep_link: true }
+      read: chestor.roadmap.binding:read
+      thread_class: workspace.roadmap
+      thread:
+        class: workspace.roadmap
+      comment: A layered plan — initiatives on ordered layers, filed under outcomes, wired by dependencies; the component thread is its log.
+      events:
+        input: []
+        output:
+          - type: chestor.roadmap.events:layer.added
+            schema: { id: string, title: string, description: "string?", color: "string?", icon: "string?", sort_order: "number?" }
+          - type: chestor.roadmap.events:layer.updated
+            schema: { id: string, title: "string?", description: "string?", color: "string?", icon: "string?", sort_order: "number?" }
+          - type: chestor.roadmap.events:layer.removed
+            schema: { id: string }
+          - type: chestor.roadmap.events:outcome.added
+            schema: { id: string, title: string, description: "string?", sort_order: "number?" }
+          - type: chestor.roadmap.events:outcome.updated
+            schema: { id: string, title: "string?", description: "string?", sort_order: "number?" }
+          - type: chestor.roadmap.events:outcome.removed
+            schema: { id: string }
+          - type: chestor.roadmap.events:initiative.added
+            schema:
+              id: string
+              title: string
+              layer_id: string
+              description: "string?"
+              outcome_id: "string?"
+              status: "string?"
+              confidence: "string?"
+              size: "string?"
+              start_period: "string?"
+              span: "integer?"
+              progress: "number?"
+              owner: "string?"
+              tags: "string[]?"
+              properties: "object?"
+              sort_order: "number?"
+          - type: chestor.roadmap.events:initiative.updated
+            schema:
+              id: string
+              title: "string?"
+              layer_id: "string?"
+              description: "string?"
+              outcome_id: "string?"
+              status: "string?"
+              confidence: "string?"
+              size: "string?"
+              start_period: "string?"
+              span: "integer?"
+              progress: "number?"
+              owner: "string?"
+              tags: "string[]?"
+              properties: "object?"
+              sort_order: "number?"
+          - type: chestor.roadmap.events:initiative.removed
+            schema: { id: string }
+          - type: chestor.roadmap.events:dependency.added
+            schema: { id: string, from_id: string, to_id: string, kind: "string?", note: "string?" }
+          - type: chestor.roadmap.events:dependency.updated
+            schema: { id: string, kind: "string?", note: "string?" }
+          - type: chestor.roadmap.events:dependency.removed
+            schema: { id: string }
+          - type: chestor.roadmap.events:milestone.added
+            schema: { id: string, title: string, period: string, description: "string?", layer_id: "string?", initiative_ids: "string[]?" }
+          - type: chestor.roadmap.events:milestone.updated
+            schema: { id: string, title: "string?", period: "string?", description: "string?", layer_id: "string?", initiative_ids: "string[]?" }
+          - type: chestor.roadmap.events:milestone.removed
+            schema: { id: string }
+          - type: chestor.roadmap.events:roadmap.settings-updated
+            schema: { settings: object }
+          - type: chestor.roadmap.events:roadmap.lens-state-set
+            schema: { lens: string, state: object }
+      projections:
+        - kind: chestor.roadmap:state
+          worker_ref: "func://chestor.roadmap:projection_worker"
+          input_mode: prefetch_events
+          events:
+            input:
+              - type: chestor.roadmap.events:layer.added
+              - type: chestor.roadmap.events:layer.updated
+              - type: chestor.roadmap.events:layer.removed
+              - type: chestor.roadmap.events:outcome.added
+              - type: chestor.roadmap.events:outcome.updated
+              - type: chestor.roadmap.events:outcome.removed
+              - type: chestor.roadmap.events:initiative.added
+              - type: chestor.roadmap.events:initiative.updated
+              - type: chestor.roadmap.events:initiative.removed
+              - type: chestor.roadmap.events:dependency.added
+              - type: chestor.roadmap.events:dependency.updated
+              - type: chestor.roadmap.events:dependency.removed
+              - type: chestor.roadmap.events:milestone.added
+              - type: chestor.roadmap.events:milestone.updated
+              - type: chestor.roadmap.events:milestone.removed
+              - type: chestor.roadmap.events:roadmap.settings-updated
+              - type: chestor.roadmap.events:roadmap.lens-state-set
+    contracts:
+      - contract: kickside.contract:component
+        context_required: [component_id]
+        methods:
+          get_status: chestor.roadmap.binding:get_status
+      - contract: kickside.contract:deletable
+        context_required: [component_id]
+        methods:
+          delete: chestor.roadmap.binding:delete

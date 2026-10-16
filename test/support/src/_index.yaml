@@ -1,0 +1,59 @@
+version: "1.0"
+namespace: chestor.test_support
+entries:
+  - name: definition
+    kind: ns.definition
+
+  - name: dep.kickside.contract
+    kind: ns.dependency
+    component: kickside/contract
+    version: '*'
+
+  - name: dep.kickside.execution
+    kind: ns.dependency
+    component: kickside/execution
+    version: '*'
+
+  - name: dep.wippy.test
+    kind: ns.dependency
+    component: wippy/test
+    version: '*'
+
+  - name: config
+    kind: registry.entry
+    meta: {}
+
+  - name: group
+    kind: ns.requirement
+    targets:
+      - entry: chestor.test_support:config
+        path: .meta.group
+
+  - name: scope_resolver
+    kind: function.lua
+    source: file://scope_resolver.lua
+    method: resolve
+    modules: [security, registry]
+    imports:
+      execution_identity: kickside.execution:execution_identity
+
+  - name: scope_resolver_binding
+    kind: contract.binding
+    contracts:
+      - contract: kickside.contract:scope_resolver
+        default: true
+        methods:
+          resolve: chestor.test_support:scope_resolver
+
+  - name: scope_resolver_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: "00_scope_resolver_shared"
+    source: file://scope_resolver_test.lua
+    method: run
+    modules: [funcs, security, registry]
+    imports:
+      test: wippy.test:test
+      execution_identity: kickside.execution:execution_identity
+      resolver: chestor.test_support:scope_resolver

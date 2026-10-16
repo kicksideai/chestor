@@ -1,0 +1,113 @@
+version: "1.0"
+namespace: chestor.graph.events
+
+entries:
+  - name: node.added
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: node.updated
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: node.removed
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: edge.added
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: edge.updated
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: edge.removed
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: material.attached
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: material.updated
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: material.detached
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: node-type.registered
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: node-type.updated
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: node-type.removed
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: edge-type.registered
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: edge-type.updated
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: edge-type.removed
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: material-type.registered
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: material-type.updated
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: material-type.removed
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: layout.position-set
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: layout.position-cleared
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: layout.viewport-set
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }
+
+  - name: graph.settings-updated
+    kind: registry.entry
+    meta: { type: kickside.core.threads.event }
+    schema: { type: object }

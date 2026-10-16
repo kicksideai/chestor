@@ -1,0 +1,11 @@
+version: "1.0"
+namespace: chestor.journal.lifecycle
+
+entries:
+  - name: read
+    kind: function.lua
+    source: file://read.lua
+    method: handler
+    imports:
+      queries: chestor.journal.read:queries
+      context: chestor.journal.read:context

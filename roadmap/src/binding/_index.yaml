@@ -1,0 +1,34 @@
+version: "1.0"
+namespace: chestor.roadmap.binding
+
+# The lifecycle seams the roadmap kind declares: a status line for the workspace
+# tree, the teardown a deletable performs, and the markdown an agent reads.
+
+entries:
+  - name: get_status
+    kind: function.lua
+    meta:
+      comment: Component status line for the workspace tree.
+    source: file://get_status_func.lua
+    method: get_status
+    modules: [ctx, time]
+
+  - name: delete
+    kind: function.lua
+    meta:
+      comment: Deletable teardown — purges the roadmap thread and its read-model rows.
+    source: file://delete_func.lua
+    method: delete
+    modules: [ctx]
+    imports:
+      roadmap: chestor.roadmap:roadmap
+
+  - name: read
+    kind: function.lua
+    meta:
+      comment: Agent-facing markdown rendering of a roadmap.
+    source: file://read_func.lua
+    method: handler
+    imports:
+      roadmap: chestor.roadmap:roadmap
+      queries: chestor.roadmap:queries

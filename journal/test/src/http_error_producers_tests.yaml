@@ -1,0 +1,14 @@
+version: '1.0'
+namespace: app.http_error_producers
+entries:
+- name: producer_test
+  kind: function.lua
+  source: file://http_error_producers_test.lua
+  method: run
+  meta:
+    type: test
+    suite: http_error_producers
+  imports:
+    test: wippy.test:test
+    thread_log: chestor.journal:thread_log
+    support: chestor.journal.api:support

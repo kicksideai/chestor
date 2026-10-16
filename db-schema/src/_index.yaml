@@ -1,0 +1,326 @@
+version: "1.0"
+namespace: chestor.db_schema
+
+entries:
+  - name: definition
+    kind: ns.definition
+    meta:
+      title: Database Schema
+      comment: "Event-sourced database-schema workspace kind: typed command-events on its thread, a declared projection materializing the read model, and a live graph renderer. Plugs into the workspace by declaration."
+
+  - name: dep.kickside.core
+    kind: ns.dependency
+    version: '*'
+    component: kickside/core
+
+  - name: dep.kickside.contract
+    kind: ns.dependency
+    version: '*'
+    component: kickside/contract
+
+  - name: dep.wippy.migration
+    kind: ns.dependency
+    version: '*'
+    component: wippy/migration
+
+  - name: target_db
+    kind: ns.requirement
+    meta:
+      comment: SQL database resource backing the database-schema read model.
+    targets:
+      - entry: chestor.db_schema.migrations:01_create_schema_materialized_tables
+        path: .meta.target_db
+      - entry: chestor.db_schema:db_config
+        path: .meta.db_id
+
+  - name: db_config
+    kind: registry.entry
+    meta:
+      comment: Holds the requirement-injected database-schema DB resource id.
+
+  - name: api_router
+    kind: ns.requirement
+    meta:
+      comment: HTTP router the db-schema endpoints attach to.
+    targets:
+      - entry: chestor.db_schema.api:get_schema.endpoint
+        path: .meta.router
+      - entry: chestor.db_schema.api:apply_schema.endpoint
+        path: .meta.router
+      - entry: chestor.db_schema.api:list_tables.endpoint
+        path: .meta.router
+      - entry: chestor.db_schema.api:list_relations.endpoint
+        path: .meta.router
+      - entry: chestor.db_schema.api:list_indexes.endpoint
+        path: .meta.router
+
+  - name: ui_server
+    kind: ns.requirement
+    meta:
+      comment: HTTP server the db-schema renderer static mount attaches to.
+    targets:
+      - entry: chestor.db_schema:ui_static
+        path: .meta.server
+
+  - name: ui_fs
+    kind: fs.directory
+    meta:
+      comment: Built chestor-db-schema renderer bundle.
+    directory: ./static
+
+  - name: ui_static
+    kind: http.static
+    meta:
+    fs: chestor.db_schema:ui_fs
+    path: /chestor-db-schema
+    prefix: /
+    options:
+      cache: "no-cache"
+
+  - name: types
+    kind: library.lua
+    meta:
+      name: types
+      comment: Database-schema constants and event names.
+    source: file://types.lua
+    modules: [registry]
+
+  - name: materializer
+    kind: library.lua
+    meta:
+      name: materializer
+      comment: Normalized database-schema read-model tables and event projection.
+    source: file://materializer.lua
+    modules: [json, sql]
+    imports:
+      types: chestor.db_schema:types
+
+  # ─── Schema state: thread log + normalized materialization ───────────
+  - name: schema_state
+    kind: library.lua
+    meta: { name: schema_state, comment: "Thread-backed schema API: append typed events and read normalized schema materialization tables." }
+    source: file://schema_state.lua
+    modules: [contract, registry, json, security]
+    imports:
+      types: chestor.db_schema:types
+      materializer: chestor.db_schema:materializer
+
+  # The read-model projection worker: the runner invokes it with each new event
+  # batch; it projects schema events into normalized tables. Auto-applied on the
+  # schema thread via the database binding's declaration.
+  - name: projection_worker
+    kind: function.lua
+    meta: { type: projection.worker, comment: "Schema read-model projection worker — projects schema events into normalized tables." }
+    source: file://projection.lua
+    method: run
+    imports:
+      materializer: chestor.db_schema:materializer
+
+  # ─── The database KIND: a component impl that self-describes its tree
+  # presentation (icon/renderer/creatable), where it nests, AND its event
+  # vocabulary. The events declaration IS the published durable-event vocabulary --
+  # one binding, no separate registry entry, no duplicate event list, no indirection:
+  # schema_state reads meta.events off this binding to validate commands. ──────
+  - name: database
+    kind: contract.binding
+    meta:
+      class: database
+      title: Database Schema
+      icon: tabler:database
+      color: "var(--p-primary-color)"
+      component:
+        create: {}
+        manage: { view: chestor.db_schema:renderer_view, deep_link: true }
+      read: chestor.db_schema.lifecycle:read
+      thread_class: workspace.schema
+      comment: A database schema with tables and columns — its thread is the durable log and normalized tables are the read model.
+      events:
+        input: []
+        output:
+          - type: chestor.db_schema.events:table.added
+            schema: { id: string, name: string, description: "string?" }
+          - type: chestor.db_schema.events:table.updated
+            schema: { id: string, name: "string?", description: "string?" }
+          - type: chestor.db_schema.events:table.removed
+            schema: { id: string }
+          - type: chestor.db_schema.events:column.added
+            schema: { id: string, table_id: string, name: string, col_type: string, nullable: "bool?", primary_key: "bool?", unique_col: "bool?", default_value: "string?" }
+          - type: chestor.db_schema.events:column.updated
+            schema: { id: string, name: "string?", col_type: "string?", nullable: "bool?", primary_key: "bool?", unique_col: "bool?", default_value: "string?" }
+          - type: chestor.db_schema.events:column.removed
+            schema: { id: string }
+          - type: chestor.db_schema.events:columns.reordered
+            schema: { table_id: string, order: "string[]" }
+          - type: chestor.db_schema.events:relation.added
+            schema: { id: string, name: "string?", from_table_id: string, from_column_id: "string?", to_table_id: string, to_column_id: "string?", relation_type: string }
+          - type: chestor.db_schema.events:relation.updated
+            schema: { id: string, name: "string?", relation_type: "string?" }
+          - type: chestor.db_schema.events:relation.removed
+            schema: { id: string }
+          - type: chestor.db_schema.events:index.added
+            schema: { id: string, table_id: string, name: string, columns: "string[]", unique_idx: "bool?" }
+          - type: chestor.db_schema.events:index.updated
+            schema: { id: string, name: "string?", columns: "string[]?", unique_idx: "bool?" }
+          - type: chestor.db_schema.events:index.removed
+            schema: { id: string }
+          - type: chestor.db_schema.events:layout.position-set
+            schema: { table_id: string, x: number, y: number }
+          - type: chestor.db_schema.events:layout.position-cleared
+            schema: { table_id: string }
+          - type: chestor.db_schema.events:layout.viewport-set
+            schema: { x: number, y: number, zoom: number }
+      ports:
+        - dir: out
+          mode: trigger
+          via: thread
+          class: database
+          type: chestor.db_schema.events:table.added
+          title: Schema table added
+        - dir: out
+          mode: trigger
+          via: thread
+          class: database
+          type: chestor.db_schema.events:table.updated
+          title: Schema table updated
+        - dir: out
+          mode: trigger
+          via: thread
+          class: database
+          type: chestor.db_schema.events:table.removed
+          title: Schema table removed
+        - dir: out
+          mode: trigger
+          via: thread
+          class: database
+          type: chestor.db_schema.events:column.added
+          title: Schema column added
+        - dir: out
+          mode: trigger
+          via: thread
+          class: database
+          type: chestor.db_schema.events:column.updated
+          title: Schema column updated
+        - dir: out
+          mode: trigger
+          via: thread
+          class: database
+          type: chestor.db_schema.events:column.removed
+          title: Schema column removed
+        - dir: out
+          mode: trigger
+          via: thread
+          class: database
+          type: chestor.db_schema.events:columns.reordered
+          title: Schema columns reordered
+        - dir: out
+          mode: trigger
+          via: thread
+          class: database
+          type: chestor.db_schema.events:relation.added
+          title: Schema relation added
+        - dir: out
+          mode: trigger
+          via: thread
+          class: database
+          type: chestor.db_schema.events:relation.updated
+          title: Schema relation updated
+        - dir: out
+          mode: trigger
+          via: thread
+          class: database
+          type: chestor.db_schema.events:relation.removed
+          title: Schema relation removed
+        - dir: out
+          mode: trigger
+          via: thread
+          class: database
+          type: chestor.db_schema.events:index.added
+          title: Schema index added
+        - dir: out
+          mode: trigger
+          via: thread
+          class: database
+          type: chestor.db_schema.events:index.updated
+          title: Schema index updated
+        - dir: out
+          mode: trigger
+          via: thread
+          class: database
+          type: chestor.db_schema.events:index.removed
+          title: Schema index removed
+        - dir: out
+          mode: trigger
+          via: thread
+          class: database
+          type: chestor.db_schema.events:layout.position-set
+          title: Schema layout position set
+        - dir: out
+          mode: trigger
+          via: thread
+          class: database
+          type: chestor.db_schema.events:layout.position-cleared
+          title: Schema layout position cleared
+        - dir: out
+          mode: trigger
+          via: thread
+          class: database
+          type: chestor.db_schema.events:layout.viewport-set
+          title: Schema layout viewport set
+      # The read-model projection: auto-applied on a schema instance's thread. Its
+      # worker projects the events above into normalized tables and keeps only cursor
+      # metadata in kickside_projection.body.
+      projections:
+        - kind: "chestor.db_schema:state"
+          worker_ref: "func://chestor.db_schema:projection_worker"
+          input_mode: prefetch_events
+          events:
+            input:
+              - type: chestor.db_schema.events:table.added
+              - type: chestor.db_schema.events:table.updated
+              - type: chestor.db_schema.events:table.removed
+              - type: chestor.db_schema.events:column.added
+              - type: chestor.db_schema.events:column.updated
+              - type: chestor.db_schema.events:column.removed
+              - type: chestor.db_schema.events:columns.reordered
+              - type: chestor.db_schema.events:relation.added
+              - type: chestor.db_schema.events:relation.updated
+              - type: chestor.db_schema.events:relation.removed
+              - type: chestor.db_schema.events:index.added
+              - type: chestor.db_schema.events:index.updated
+              - type: chestor.db_schema.events:index.removed
+              - type: chestor.db_schema.events:layout.position-set
+              - type: chestor.db_schema.events:layout.position-cleared
+              - type: chestor.db_schema.events:layout.viewport-set
+    contracts:
+      - contract: kickside.contract:component
+        methods: { get_status: chestor.db_schema.binding:get_status }
+      - contract: kickside.contract:deletable
+        methods: { delete: chestor.db_schema.binding:delete_schema }
+
+  - name: renderer_view
+    kind: registry.entry
+    meta:
+      type: view.component
+      name: renderer_view
+      title: Database Schema
+      description: Renders and edits a database-schema workspace component. The workspace passes the component id through entry-id; the component loads the normalized schema through the host API and keeps the graph synchronized with component events.
+      announced: true
+      auto_register: false
+      tag_name: chestor-db-schema
+      base_path: chestor-db-schema
+      entry_point: index.js
+    props:
+      type: object
+      properties:
+        entry-id:
+          type: string
+          default: ""
+          description: Database-schema workspace component id to load. An empty value renders the no-schema state.
+        read-only:
+          type: boolean
+          default: false
+          description: Disables editing while retaining full reading and inspection controls.
+        mode:
+          type: string
+          default: preview
+          description: Rendering context supplied by the workspace host; preview is read-only and full enables the complete editor.

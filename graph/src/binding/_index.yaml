@@ -1,0 +1,22 @@
+version: "1.0"
+namespace: chestor.graph.binding
+
+entries:
+  - name: get_status
+    kind: function.lua
+    source: file://get_status_func.lua
+    method: get_status
+    modules: [ctx, time]
+
+  - name: delete
+    kind: function.lua
+    source: file://delete_func.lua
+    method: delete
+    modules: [ctx]
+    imports: { graph: chestor.graph:graph }
+
+  - name: read
+    kind: function.lua
+    source: file://read_func.lua
+    method: handler
+    imports: { graph: chestor.graph:graph }

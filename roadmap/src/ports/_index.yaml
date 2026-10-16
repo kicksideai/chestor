@@ -1,0 +1,58 @@
+version: "1.0"
+namespace: chestor.roadmap.ports
+
+# Automation trigger ports. Each is its own registry entry naming the binding it
+# watches and the event face it starts on; the port catalog classifies an entry
+# carrying `event` as a source. Only the facts a plan owner reacts to are exposed —
+# view state and settings stay out of the catalog.
+
+entries:
+  - name: initiative_added
+    kind: registry.entry
+    meta:
+      type: kickside.automation.port
+      title: Roadmap Initiative Added
+      comment: Start when a new initiative is placed on a roadmap lane.
+      icon: tabler:map-pin-plus
+    binding: chestor.roadmap:roadmap_kind
+    event: chestor.roadmap.events:initiative.added
+
+  - name: initiative_updated
+    kind: registry.entry
+    meta:
+      type: kickside.automation.port
+      title: Roadmap Initiative Updated
+      comment: Start when an initiative is rescheduled, resized, or changes status.
+      icon: tabler:map-pin-cog
+    binding: chestor.roadmap:roadmap_kind
+    event: chestor.roadmap.events:initiative.updated
+
+  - name: initiative_removed
+    kind: registry.entry
+    meta:
+      type: kickside.automation.port
+      title: Roadmap Initiative Removed
+      comment: Start when an initiative is dropped from the plan.
+      icon: tabler:map-pin-minus
+    binding: chestor.roadmap:roadmap_kind
+    event: chestor.roadmap.events:initiative.removed
+
+  - name: milestone_added
+    kind: registry.entry
+    meta:
+      type: kickside.automation.port
+      title: Roadmap Milestone Added
+      comment: Start when a milestone is placed on the period axis.
+      icon: tabler:flag
+    binding: chestor.roadmap:roadmap_kind
+    event: chestor.roadmap.events:milestone.added
+
+  - name: dependency_added
+    kind: registry.entry
+    meta:
+      type: kickside.automation.port
+      title: Roadmap Dependency Added
+      comment: Start when one initiative is made to depend on another.
+      icon: tabler:arrow-narrow-right
+    binding: chestor.roadmap:roadmap_kind
+    event: chestor.roadmap.events:dependency.added

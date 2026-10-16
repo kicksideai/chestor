@@ -1,0 +1,3 @@
+organization: chestor
+module: journal-harness
+description: Standalone runnable harness that boots chestor/journal and runs its co-located projection and packaging suites.

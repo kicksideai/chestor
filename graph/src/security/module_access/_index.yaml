@@ -1,0 +1,40 @@
+version: '1.0'
+namespace: chestor.graph.security
+entries:
+- name: module_access
+  kind: security.policy
+  meta:
+    title: Graph
+    surface: chestor.graph
+    intent: module_access
+    includes:
+    - chestor.graph.security:member_access
+    - chestor.graph.security:member_discovery
+  groups: []
+  policy:
+    resources:
+    - chestor.graph.api:apply_graph.endpoint
+    - chestor.graph.api:get_graph.endpoint
+    - chestor.graph.api:get_schema.endpoint
+    - chestor.graph.api:list_edges.endpoint
+    - chestor.graph.api:list_materials.endpoint
+    - chestor.graph.api:list_nodes.endpoint
+    - chestor.graph.api:redo_graph.endpoint
+    - chestor.graph.api:undo_graph.endpoint
+    actions: access
+    effect: allow
+- name: module_tools
+  kind: security.policy
+  meta:
+    title: Graph tools
+    surface: chestor.graph
+    intent: tool_access
+  groups: []
+  policy:
+    resources:
+    - chestor.graph.traits:apply_graph_tool
+    - chestor.graph.traits:get_graph_tool
+    actions:
+    - funcs.call
+    - funcs.security
+    effect: allow

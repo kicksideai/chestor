@@ -1,0 +1,709 @@
+version: "1.0"
+namespace: app
+
+entries:
+  - name: journal_design_integrity_test
+    kind: function.lua
+    meta: { type: test, suite: chestor_journal }
+    source: file://design_integrity_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      embeddings: chestor.journal.persist:embeddings
+      reader: chestor.journal.persist:graph_reader
+      judge: chestor.journal.graph:judge
+      support: chestor.journal.traits:support
+      cursors: chestor.journal.persist:cursors
+      thread_log: chestor.journal:thread_log
+      maintainer: chestor.journal.graph:maintainer
+      dependencies: app:maintainer_dependencies
+      agent_context: wippy.agent:context
+      db: chestor.journal.persist:ops
+      journal_reader: chestor.journal.persist:reader
+      jobs: chestor.journal.persist:graph_jobs
+      prompt: wippy.llm:prompt
+      tool_caller: wippy.agent.tools:caller
+
+  - name: maintainer_dependencies
+    kind: library.lua
+    source: file://maintainer_dependencies.lua
+
+  - name: migration_clock
+    kind: library.lua
+    source: file://migration_clock.lua
+
+  - name: migration_registry_stub
+    kind: library.lua
+    source: file://migration_registry_stub.lua
+    imports:
+      clock: app:migration_clock
+
+  - name: migration_sql_stub
+    kind: library.lua
+    source: file://migration_sql_stub.lua
+    imports:
+      clock: app:migration_clock
+
+  - name: waiter_for_test
+    kind: library.lua
+    source: file://wait_for_boot.lua
+    imports:
+      sql: app:migration_sql_stub
+      time: app:migration_clock
+      registry: app:migration_registry_stub
+
+  - name: schema_ready_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: "01_setup"
+    source: file://schema_ready_test.lua
+    method: run
+    modules: [registry, sql, funcs]
+    imports:
+      test: wippy.test:test
+      waiter: app:waiter_for_test
+      clock: app:migration_clock
+
+  - name: db
+    kind: db.sql.sqlite
+    foreign_keys: true
+    meta:
+      comment: In-memory database for the journal suite.
+    file: ":memory:"
+
+  - name: env_storage
+    kind: env.storage.file
+    meta:
+      type: envstorage
+    file_path: ./.wippy/test.env
+    auto_create: true
+
+  - name: processes
+    kind: process.host
+    lifecycle:
+      auto_start: true
+
+  - name: uploads
+    kind: fs.directory
+    directory: ./.wippy/uploads
+    auto_init: true
+
+  - name: gateway
+    kind: http.service
+    meta:
+      comment: Test HTTP server.
+    addr: :19119
+    lifecycle:
+      auto_start: true
+
+  - name: api
+    kind: http.router
+    meta:
+      comment: Test API router.
+      server: gateway
+    prefix: /api
+
+  - name: user
+    kind: security.policy
+    meta:
+      comment: Permissive scope used only by actor-framed Journal integration tests.
+    groups:
+      - journal_test
+    policy:
+      resources: '*'
+      actions: '*'
+      effect: allow
+
+  - name: scope_resolver_stub
+    kind: function.lua
+    meta:
+      comment: Test-only kickside.contract:scope_resolver implementation for Journal actors.
+    source: file://scope_resolver_stub.lua
+    modules: [security]
+    method: resolve
+    imports:
+      execution_identity: kickside.execution:execution_identity
+
+  - name: scope_resolver_binding
+    kind: contract.binding
+    meta:
+      comment: Journal harness resolver; production binds this in kickside/users.
+    contracts:
+      - contract: kickside.contract:scope_resolver
+        default: true
+        methods:
+          resolve: app:scope_resolver_stub
+
+  - name: wait_for_boot
+    kind: function.lua
+    meta:
+      type: test
+      suite: "00_setup"
+      group: Setup
+      comment: Waits for the bootloader's single migration pass to finish on every SQL dialect.
+    source: file://wait_for_boot.lua
+    modules: [sql, time, registry]
+    method: run
+
+  - name: journal_projection_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_journal
+      group: Chestor Journal
+      comment: Journal normalized projection and search contract.
+    source: file://projection_test.lua
+    method: run
+    modules: [sql]
+    imports:
+      test: wippy.test:test
+      ops: chestor.journal.persist:ops
+      types: chestor.journal:types
+      reader: chestor.journal.persist:reader
+      cursors: chestor.journal.persist:cursors
+      writer: chestor.journal.persist:writer
+      embeddings: chestor.journal.persist:embeddings
+      projector: chestor.journal.persist:projector
+      embedding_scheduler: chestor.journal.embedding:scheduler
+
+  - name: journal_packaging_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_journal
+      group: Chestor Journal
+      comment: Journal binding, dependency, and requirement declarations.
+    source: file://packaging_test.lua
+    method: run
+    modules: [registry, json, security]
+    imports:
+      test: wippy.test:test
+      types: chestor.journal:types
+
+  - name: journal_maintenance_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_journal
+      group: Chestor Journal
+      comment: Journal maintenance actions preserve their established empty-input contracts.
+    source: file://journal_maintenance_test.lua
+    method: run
+    modules: [funcs, security]
+    imports:
+      test: wippy.test:test
+
+  - name: journal_graph_projection_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_journal
+      group: Chestor Journal
+      comment: Journal graph projection, idempotency, revision, evidence, and bounded-window contract.
+    source: file://graph_projection_test.lua
+    method: run
+    modules: [sql]
+    imports:
+      test: wippy.test:test
+      ops: chestor.journal.persist:ops
+      types: chestor.journal:types
+      projector: chestor.journal.graph:projector
+      reader: chestor.journal.persist:graph_reader
+      writer: chestor.journal.persist:graph_writer
+      jobs: chestor.journal.persist:graph_jobs
+      scheduler: chestor.journal.graph:scheduler
+      embeddings: chestor.journal.persist:embeddings
+      hierarchy_backfill: chestor.journal.migrations:journal_graph_hierarchy_backfill_ops
+
+  - name: journal_cmd
+    kind: function.lua
+    meta:
+      comment: Actor-framed journal command bridge for the adversarial suite; imports the command and enforcement libraries directly.
+    source: file://journal_cmd_driver.lua
+    method: handle
+    imports:
+      commands: chestor.journal.write:commands
+      enforcement: chestor.journal.write:enforcement
+
+  - name: journal_adversarial_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_journal
+      group: Chestor Journal
+      comment: B2 adversarial suite; one test per B0 invariant catalog entry (D6 1-28, C9 29-34) plus the catalog count assertion.
+    source: file://adversarial_test.lua
+    method: run
+    modules: [sql, json, funcs, security, contract, crypto, time]
+    imports:
+      test: wippy.test:test
+      types: chestor.journal:types
+      enforcement: chestor.journal.write:enforcement
+      queries: chestor.journal.read:queries
+      context: chestor.journal.read:context
+      projector: chestor.journal.persist:projector
+      reader: chestor.journal.persist:reader
+      ops: chestor.journal.persist:ops
+
+  - name: journal_read_models_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_journal
+      group: Chestor Journal
+      comment: B3 read models; D1 lens field completeness, categorized Frontier with drill, scoped change feed with cursor, and branch digest triggers under the I7 guards.
+    source: file://read_models_test.lua
+    method: run
+    modules: [sql, json, funcs, security, contract, crypto, time]
+    imports:
+      test: wippy.test:test
+      types: chestor.journal:types
+      branch_digests: chestor.journal.persist:branch_digests
+      ops: chestor.journal.persist:ops
+
+  - name: journal_read
+    kind: function.lua
+    meta:
+      comment: Actor-framed read bridge for the read suites; dispatches one queries view with its options, including the injected reader clock.
+    source: file://journal_read_driver.lua
+    method: handle
+    imports:
+      queries: chestor.journal.read:queries
+
+  - name: journal_api
+    kind: function.lua
+    meta:
+      comment: Actor-framed bridge over the HTTP api adapters; drives one task transition or bounded batch at the seam the endpoint handler calls.
+    source: file://journal_api_driver.lua
+    method: handle
+    imports:
+      transitions: chestor.journal.api:transitions
+
+  - name: journal_api_surface_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_journal
+      group: Chestor Journal
+      comment: HTTP surface contract; the guarded task transition endpoint with its batch results and the journal snapshot's forwarded continuations.
+    source: file://api_surface_test.lua
+    method: run
+    modules: [sql, json, funcs, security, contract, crypto, time, registry]
+    imports:
+      test: wippy.test:test
+      types: chestor.journal:types
+      ops: chestor.journal.persist:ops
+      commands: chestor.journal.write:commands
+      queries: chestor.journal.read:queries
+
+  - name: journal_assembly
+    kind: function.lua
+    meta:
+      comment: Actor-framed assembly bridge for the backend suite; triggers one on-demand map assembly and reads its run state.
+    source: file://journal_assembly_driver.lua
+    method: handle
+    imports:
+      graph: chestor.journal.graph:service
+
+  - name: journal_rebuild
+    kind: function.lua
+    meta:
+      comment: Actor-framed Core reset and frontier bridge for Journal tests.
+    source: file://journal_rebuild_driver.lua
+    method: handle
+    modules: [sql, json]
+    imports:
+      queries: chestor.journal.read:queries
+      thread_log: chestor.journal:thread_log
+      types: chestor.journal:types
+      ops: chestor.journal.persist:ops
+
+  - name: journal_health_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_journal
+      group: Chestor Journal
+      comment: B4 health surface; out-of-band writer snapshot, reader staleness with injected clock, degraded cursor/digest-SLA states, and the operational lease reaper wiring.
+    source: file://health_test.lua
+    method: run
+    modules: [sql, json, funcs, security, contract, crypto, time]
+    imports:
+      test: wippy.test:test
+      types: chestor.journal:types
+      ops: chestor.journal.persist:ops
+
+  - name: journal_protocol_walk_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_journal
+      group: Chestor Journal
+      comment: B4.5 protocol usability walk; the honest agent loop through the trait surface with lease-carried facts, gate flow, experiment fold, and refusal ergonomics.
+    source: file://protocol_walk_test.lua
+    method: run
+    modules: [sql, json, funcs, security, contract, crypto, time]
+    imports:
+      test: wippy.test:test
+      types: chestor.journal:types
+      ops: chestor.journal.persist:ops
+
+  - name: journal_cursor_position_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_journal
+      group: Chestor Journal
+      comment: Automatic agent-cursor position maintenance on the record and read tool surfaces, and the bounded cursor roll the journal publishes.
+    source: file://cursor_position_test.lua
+    method: run
+    modules: [sql, json, funcs, security, contract, crypto, time, registry]
+    imports:
+      test: wippy.test:test
+      types: chestor.journal:types
+      ops: chestor.journal.persist:ops
+
+  - name: journal_span_identity_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_journal
+      group: Chestor Journal
+      comment: Implicit work spans, the writer identity priority order, keyset span/presence/activity paging, and the protocol-noise filter.
+    source: file://span_identity_test.lua
+    method: run
+    modules: [sql, json, funcs, security, contract, crypto, time, registry]
+    imports:
+      test: wippy.test:test
+      types: chestor.journal:types
+      ops: chestor.journal.persist:ops
+
+  - name: journal_backend_e2e_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_journal
+      group: Chestor Journal
+      comment: Real component thread, projection, access, and five-tool integration contract.
+    source: file://backend_e2e_test.lua
+    method: run
+    modules: [contract, crypto, funcs, security, time, sql, json]
+    imports:
+      test: wippy.test:test
+      ledger: chestor.journal.persist:graph_assembly
+
+  - name: dep.chestor.journal
+    kind: ns.dependency
+    version: "*"
+    meta:
+      comment: Journal package under test, wired only to harness-owned resources.
+    component: "chestor/journal"
+    parameters:
+      - {name: 'chestor.journal.security:user_security_scope', value: 'app:user'}
+      - name: target_db
+        value: app:db
+      - name: api_router
+        value: app:api
+      - name: ui_server
+        value: app:gateway
+
+  - name: dep.kickside.contract
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Shared contracts the journal binding implements.
+    component: kickside/contract
+    parameters:
+    - name: kickside.contract.http:user_security_scope
+      value: app:user
+
+  - name: dep.kickside.component
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Component service declarations used by the journal kind binding.
+    component: kickside/component
+    parameters:
+    - name: kickside.component:target_db
+      value: app:db
+    - name: kickside.component:api_router
+      value: app:api
+    - name: kickside.component:lifecycle_impl
+      value: kickside.core.lifecycle:component_lifecycle_impl
+
+  - name: dep.kickside.core
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Core thread log and projection engine used by journal.
+    component: kickside/core
+    parameters:
+    - name: kickside.core:target_db
+      value: app:db
+    - name: kickside.core.lifecycle:process_host
+      value: app:processes
+    - name: kickside.core.lifecycle:user_lifecycle_grant
+      value:
+        subject_id: app:user
+        subject_type: group
+        access_mask: 2
+    - name: kickside.core.lifecycle:admin_lifecycle_grant
+      value:
+        subject_id: app:user
+        subject_type: group
+        access_mask: 3
+    - name: kickside.core.retention:process_host
+      value: app:processes
+    - name: kickside.core.threads:process_host
+      value: app:processes
+    - name: kickside.core.projections:process_host
+      value: app:processes
+    - name: kickside.core.retention:api_router
+      value: app:api
+    - name: kickside.core.threads:api_router
+      value: app:api
+    - name: kickside.core.threads.hydration:api_router
+      value: app:api
+    - name: kickside.core.projections:api_router
+      value: app:api
+    - name: kickside.core.retention:env_storage
+      value: app:env_storage
+    - name: kickside.core.projections:env_storage
+      value: app:env_storage
+    - name: kickside.core.retention:user_security_scope
+      value: app:user
+    - name: kickside.core.threads:user_security_scope
+      value: app:user
+    - name: kickside.core.threads.hydration:user_security_scope
+      value: app:user
+
+  - name: dep.kickside.jobs
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Job/effect schema used by core purge cascades.
+    component: kickside/jobs
+    parameters:
+    - name: kickside.core.jobs:target_db
+      value: app:db
+    - name: kickside.core.jobs:temp_fs
+      value: app:uploads
+    - name: kickside.core.jobs:process_host
+      value: app:processes
+    - name: kickside.core.jobs:api_router
+      value: app:api
+    - name: kickside.core.scheduler:process_host
+      value: app:processes
+    - name: kickside.core.scheduler:env_storage
+      value: app:env_storage
+
+  - name: dep.chestor.workspace
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Workspace contract surface for journal entries.
+    component: "chestor/workspace"
+    parameters:
+      - { name: chestor.workspace.security:user_security_scope, value: app:user }
+      - { name: chestor.workspace:api_router, value: app:api }
+      - { name: chestor.workspace:ui_server, value: app:gateway }
+
+  - name: dep.kickside.renderers
+    kind: ns.dependency
+    version: '*'
+    component: kickside/renderers
+    parameters:
+      - { name: kickside.renderers:api_router, value: app:api }
+      - { name: kickside.renderers:ui_server, value: app:gateway }
+      - { name: kickside.renderers:user_security_scope, value: app:user }
+
+  - name: dep.kickside.widgets
+    kind: ns.dependency
+    version: '*'
+    component: kickside/widgets
+    parameters:
+      - { name: kickside.widgets:api_router, value: app:api }
+      - { name: kickside.widgets:ui_server, value: app:gateway }
+
+  - name: dep.wippy.test
+    kind: ns.dependency
+    version: '*'
+    component: wippy/test
+
+  - name: dep.wippy.llm
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: LLM embedding contract imported by journal semantic recall.
+    component: "wippy/llm"
+
+  - name: dep.wippy.agent
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Agent runtime used by the optional Journal graph maintainer.
+    component: "wippy/agent"
+
+  - name: dep.wippy.migration
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Migration framework wired to the harness database.
+    component: "wippy/migration"
+    parameters:
+      - name: app_db
+        value: app:db
+
+  - name: dep.wippy.bootloader
+    kind: ns.dependency
+    version: '*'
+    meta:
+      comment: Bootloader runs migrations and the co-located journal tests.
+    component: "wippy/bootloader"
+    parameters:
+      - name: application_host
+        value: app:processes
+      - name: env_storage
+        value: app:env_storage
+
+  - name: journal_derivation_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_journal
+      group: Chestor Journal
+      comment: Automatic map assembly; per-rule relation derivation, replay idempotency, reconciliation, and the bounded refine pass.
+    source: file://derivation_test.lua
+    method: run
+    modules: [sql]
+    imports:
+      test: wippy.test:test
+      types: chestor.journal:types
+      projector: chestor.journal.graph:projector
+      assembly: chestor.journal.graph:assembly
+      deriver: chestor.journal.graph:deriver
+      refine: chestor.journal.graph:refine
+      facts: chestor.journal.persist:graph_facts
+      reader: chestor.journal.persist:graph_reader
+      writer: chestor.journal.persist:graph_writer
+      ops: chestor.journal.persist:ops
+
+  - name: journal_tool_failure_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_journal
+      group: Chestor Journal
+      comment: Journal persistence fails with typed errors and Journal tools return them unchanged.
+    source: file://tool_failure_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      ops: chestor.journal.persist:ops
+      support: chestor.journal.traits:support
+      query_tool: chestor.journal.traits:query_tool
+      journal_query: chestor.journal.traits:journal_query
+      journal_context: chestor.journal.traits:journal_context
+      journal_fact: chestor.journal.traits:journal_fact
+      journal_graph: chestor.journal.traits:journal_graph
+
+  - name: journal_guards_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: chestor_journal
+      group: Chestor Journal
+      comment: Race guards for cursor revisions, automatic positions, and the idle span sweep, plus the bounded frontier scan, projection catch-up, and read continuations.
+    source: file://guards_test.lua
+    method: run
+    modules: [sql, json, funcs, security, contract, crypto, time, registry]
+    imports:
+      test: wippy.test:test
+      types: chestor.journal:types
+      ops: chestor.journal.persist:ops
+      cursors: chestor.journal.persist:cursors
+      spans: chestor.journal.persist:spans
+      projector: chestor.journal.persist:projector
+
+  - name: user_endpoint_policy_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: member_endpoint_policy
+    source: file://user_endpoint_policy_test.lua
+    method: run
+    modules:
+    - registry
+    - security
+    imports:
+      test: wippy.test:test
+
+  - name: embedding_fixture_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: "01_setup"
+    source: file://embedding_fixture_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      llm: wippy.llm:llm
+      types: chestor.journal:types
+
+  - name: embedding_fixture
+    kind: function.lua
+    source: file://embedding_fixture.lua
+    method: embed
+
+  - name: embedding_fixture_driver
+    kind: contract.binding
+    contracts:
+      - contract: wippy.llm:embedder
+        methods:
+          embed: app:embedding_fixture
+      - contract: wippy.llm:provider
+        methods:
+          status: app:embedding_fixture_status
+
+  - name: embedding_fixture_provider
+    kind: registry.entry
+    meta:
+      type: llm.provider
+    driver:
+      id: app:embedding_fixture_driver
+
+  - name: embedding_fixture_model
+    kind: registry.entry
+    meta:
+      type: llm.model
+      capabilities: [embed]
+      class: [embed]
+      priority: 1
+    dimensions: 512
+    providers:
+      - id: app:embedding_fixture_provider
+        provider_model: journal-fixture
+
+  - name: embedding_fixture_status
+    kind: function.lua
+    source: file://embedding_fixture.lua
+    method: status
+
+  - name: embedding_availability_test
+    kind: function.lua
+    meta: { type: test, suite: chestor_journal }
+    source: file://embedding_availability_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      llm: wippy.llm:llm
+      scheduler: chestor.journal.embedding:scheduler
+      worker: chestor.journal.embedding:executor
+      recall: app:embedding_recall_fixture
+      real_recall: chestor.journal.read:recall
+      thread_log: chestor.journal:thread_log
+
+  - name: embedding_recall_fixture
+    kind: library.lua
+    source: file://embedding_recall_fixture.lua

@@ -1,0 +1,5 @@
+organization: chestor
+module: test-support
+type: library
+description: Local scope resolver fixtures for Chestor repository harnesses.
+license: LicenseRef-KickSide-Community-1.0
