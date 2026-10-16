@@ -51,6 +51,33 @@ end
 
 local function define_tests()
     test.describe("Journal Projection Worker", function()
+        test.it("replays skipped history without replacing a later indexed digest", function()
+            local journal_id = "history-replay-digest"
+            local older = ev(types.EVENT.DIGEST_UPDATED, {
+                event_id = "digest-earlier", seq = 1, ts = 1, digest = "Earlier digest", source_seq = 1,
+            })
+            local newer = ev(types.EVENT.DIGEST_UPDATED, {
+                event_id = "digest-later", seq = 2, ts = 2, digest = "Later digest", source_seq = 2,
+            })
+            local _, seed_err = fold(journal_id, { newer }, 2)
+            test.is_nil(seed_err)
+            local _, replay_err = fold(journal_id, { older, newer }, 2)
+            test.is_nil(replay_err)
+            with_db(function(handle)
+                local rows, read_err = ops.query(handle,
+                    "SELECT digest, digest_source_seq FROM chestor_journal_state WHERE journal_id = ?", { journal_id })
+                test.is_nil(read_err)
+                test.eq(rows[1].digest, "Later digest")
+                test.eq(tonumber(rows[1].digest_source_seq), 2)
+                local events, event_err = ops.query(handle,
+                    "SELECT id FROM chestor_journal_events WHERE journal_id = ? ORDER BY seq", { journal_id })
+                test.is_nil(event_err)
+                test.eq(#events, 2)
+                test.eq(events[1].id, "digest-earlier")
+                test.eq(events[2].id, "digest-later")
+            end)
+        end)
+
         test.it("writes search documents in bounded batches for each event fold", function()
             for _, dialect in ipairs({ "sqlite", "postgres" }) do
                 local handle, calls = postgres_spy()
