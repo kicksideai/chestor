@@ -17,7 +17,7 @@ Five workspace modules for KickSide. Each module owns its data, contracts, web c
 
 Install `chestor/workspace` and the entry kinds you need through **System → Modules**. The [Chestor guide](https://github.com/kicksideai/docs/blob/main/using/chestor.md) explains entry creation and access.
 
-![Chestor Graph shows a fictional application architecture](https://raw.githubusercontent.com/kicksideai/docs/main/using/assets/chestor/graph.png)
+![Chestor with fictional demonstration data: an architecture graph, a database schema diagram, and a roadmap timeline](https://raw.githubusercontent.com/kicksideai/docs/main/assets/readme/chestor-overview.webp)
 
 License: [KickSide Community License 1.0](LICENSE.md) · [Third-party notices](THIRD_PARTY_NOTICES.md).
 
