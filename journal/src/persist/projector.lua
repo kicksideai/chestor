@@ -66,18 +66,22 @@ end
 -- Derived rows carry the event's own timestamp, never projection wall time:
 -- I10.7 requires replaying the log at any later moment to reproduce the read
 -- model byte-equal.
-local function upsert_task(db: any, journal_id: string, event_id: string, body: any, timestamp: number): error?
+local function upsert_task(db: any, journal_id: string, event_id: string, body: any, timestamp: number, seq: number): error?
     local task_id = db_ops.trim(body.task_id or body.id)
     if task_id == "" then return nil end
     local status = db_ops.trim(body.status)
     if status == "" then status = "open" end
     local terminal = types.TERMINAL_TASK_STATUS[string.lower(status)] == true
     local existing_rows, existing_err = db_ops.query(db,
-        "SELECT title, claim, verifier_policy_hash, revision, gate, work_kind FROM chestor_journal_tasks WHERE journal_id = ? AND id = ? LIMIT 1",
+        [[SELECT t.title, t.claim, t.verifier_policy_hash, t.revision, t.gate, t.work_kind, e.seq
+            FROM chestor_journal_tasks t
+            LEFT JOIN chestor_journal_events e ON e.journal_id = t.journal_id AND e.id = t.updated_event_id
+           WHERE t.journal_id = ? AND t.id = ? LIMIT 1]],
         { journal_id, task_id }
     )
     if existing_err then return existing_err end
     local existing = existing_rows and existing_rows[1] or nil
+    if existing and (tonumber((existing :: any).seq) or 0) >= seq then return nil end
     -- X8 trigger (b): title/contract/policy change bumps the task revision
     -- and marks existing receipts stale.
     local revision = 1
@@ -114,7 +118,8 @@ local function upsert_task(db: any, journal_id: string, event_id: string, body: 
     params[#params + 1] = timestamp
     params[#params + 1] = timestamp
     if terminal then params[#params + 1] = timestamp end
-    local upsert_err = db_ops.exec(db, [[
+    params[#params + 1] = seq
+    local applied, upsert_err = db_ops.query(db, [[
         INSERT INTO chestor_journal_tasks
             (journal_id, id, parent_task_id, work_kind, title, description, status, priority, assignee, agent_id, sort_order, metadata, result, revision, gate, claim, verifier_policy_hash, created_event_id, updated_event_id, closed_event_id, created_at, updated_at, closed_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ]] .. values_tail .. [[)
@@ -138,8 +143,13 @@ local function upsert_task(db: any, journal_id: string, event_id: string, body: 
             closed_event_id = COALESCE(excluded.closed_event_id, chestor_journal_tasks.closed_event_id),
             updated_at = excluded.updated_at,
             closed_at = COALESCE(excluded.closed_at, chestor_journal_tasks.closed_at)
+        WHERE ? > COALESCE((SELECT seq FROM chestor_journal_events
+                            WHERE journal_id = chestor_journal_tasks.journal_id
+                              AND id = chestor_journal_tasks.updated_event_id), 0)
+        RETURNING updated_event_id
     ]], params)
     if upsert_err then return upsert_err end
+    if not applied or not applied[1] then return nil end
     if revision_bumped then
         return stale_receipts(db, journal_id, task_id, "task revision " .. tostring(revision))
     end
@@ -151,50 +161,74 @@ end
 -- receipts stale in the same transaction (I10.4). A ledger backstop row keeps
 -- command identity reconstructible from replay; result payloads live only in
 -- the synchronous command ledger.
-local function apply_transition(db: any, journal_id: string, event_id: string, body: any, timestamp: number): error?
+local function apply_transition(db: any, journal_id: string, event_id: string, body: any, timestamp: number, seq: number): error?
     local task_id = db_ops.trim(body.task_id)
     if task_id == "" then return nil end
     local verb = db_ops.trim(body.verb)
+    local command_id = db_ops.trim(body.command_id)
+    if command_id ~= "" then
+        local command_err = db_ops.exec(db, [[
+            INSERT INTO chestor_journal_commands (journal_id, command_id, event_id, result_json, created_at)
+            VALUES (?, ?, ?, NULL, ?)
+            ON CONFLICT(journal_id, command_id) DO NOTHING
+        ]], { journal_id, command_id, event_id, timestamp })
+        if command_err then return command_err end
+    end
+    local current, current_err = db_ops.query(db, [[
+        SELECT e.seq FROM chestor_journal_tasks t
+        JOIN chestor_journal_events e ON e.journal_id = t.journal_id AND e.id = t.updated_event_id
+        WHERE t.journal_id = ? AND t.id = ?
+    ]], { journal_id, task_id })
+    if current_err then return current_err end
+    if current and current[1] and (tonumber((current[1] :: any).seq) or 0) >= seq then return nil end
     local result_text: string? = nil
     if body.result ~= nil then
         result_text = type(body.result) == "table" and db_ops.canonical(body.result) or tostring(body.result)
     end
     local update_err: error? = nil
+    local applied: any = nil
+    local sequence_guard = [[
+        AND ? > COALESCE((SELECT seq FROM chestor_journal_events
+                          WHERE journal_id = chestor_journal_tasks.journal_id
+                            AND id = chestor_journal_tasks.updated_event_id), 0)
+        RETURNING updated_event_id
+    ]]
     if verb == "gate_pass" then
-        update_err = db_ops.exec(db, [[
+        applied, update_err = db_ops.query(db, [[
             UPDATE chestor_journal_tasks SET passed = 1, updated_event_id = ?, updated_at = ?
              WHERE journal_id = ? AND id = ?
-        ]], { event_id, timestamp, journal_id, task_id })
+        ]] .. sequence_guard, { event_id, timestamp, journal_id, task_id, seq })
     elseif verb == "fold" then
         -- F4: the fold event is the tombstone; the distilled result and the
         -- outcome badge land on the collapsed spine entry in the same fold.
-        update_err = db_ops.exec(db, [[
+        applied, update_err = db_ops.query(db, [[
             UPDATE chestor_journal_tasks
                SET status = 'folded', result = COALESCE(?, result), folded_outcome = ?,
                    updated_event_id = ?, updated_at = ?, closed_event_id = ?, closed_at = ?
              WHERE journal_id = ? AND id = ?
-        ]], { result_text or db_ops.trim(body.distilled), db_ops.trim(body.outcome),
-            event_id, timestamp, event_id, timestamp, journal_id, task_id })
+        ]] .. sequence_guard, { result_text or db_ops.trim(body.distilled), db_ops.trim(body.outcome),
+            event_id, timestamp, event_id, timestamp, journal_id, task_id, seq })
     else
         local to_status = db_ops.trim(body.to_status)
         if to_status == "" then return nil end
         if types.TERMINAL_TASK_STATUS[string.lower(to_status)] then
-            update_err = db_ops.exec(db, [[
+            applied, update_err = db_ops.query(db, [[
                 UPDATE chestor_journal_tasks
                    SET status = ?, result = COALESCE(?, result), updated_event_id = ?, updated_at = ?,
                        closed_event_id = ?, closed_at = ?
                  WHERE journal_id = ? AND id = ?
-            ]], { to_status, result_text, event_id, timestamp, event_id, timestamp, journal_id, task_id })
+            ]] .. sequence_guard, { to_status, result_text, event_id, timestamp, event_id, timestamp, journal_id, task_id, seq })
         else
-            update_err = db_ops.exec(db, [[
+            applied, update_err = db_ops.query(db, [[
                 UPDATE chestor_journal_tasks
                    SET status = ?, result = COALESCE(?, result), updated_event_id = ?, updated_at = ?,
                        closed_event_id = NULL, closed_at = NULL
                  WHERE journal_id = ? AND id = ?
-            ]], { to_status, result_text, event_id, timestamp, journal_id, task_id })
+            ]] .. sequence_guard, { to_status, result_text, event_id, timestamp, journal_id, task_id, seq })
         end
     end
     if update_err then return update_err end
+    if not applied or not applied[1] then return nil end
     -- T12 annotation: complete consumed a waiver/accepted-risk instead of a
     -- receipt; the lens reports it as receipt_status waived/accepted_risk.
     if verb == "complete" then
@@ -218,14 +252,6 @@ local function apply_transition(db: any, journal_id: string, event_id: string, b
             { journal_id, task_id }
         )
         if waiver_err then return waiver_err end
-    end
-    local command_id = db_ops.trim(body.command_id)
-    if command_id ~= "" then
-        return db_ops.exec(db, [[
-            INSERT INTO chestor_journal_commands (journal_id, command_id, event_id, result_json, created_at)
-            VALUES (?, ?, ?, NULL, ?)
-            ON CONFLICT(journal_id, command_id) DO NOTHING
-        ]], { journal_id, command_id, event_id, timestamp })
     end
     return nil
 end
@@ -298,6 +324,9 @@ local function project_cursor(db: any, journal_id: string, event_id: string, bod
             updated_event_id = excluded.updated_event_id,
             updated_at = excluded.updated_at
         WHERE excluded.revision > chestor_journal_cursors.revision
+          AND ? > COALESCE((SELECT seq FROM chestor_journal_events
+                             WHERE journal_id = chestor_journal_cursors.journal_id
+                               AND id = chestor_journal_cursors.updated_event_id), 0)
     ]], {
         journal_id, cursor_id, agent_id, body.parent_cursor_id, body.task_id,
         body.graph_id, body.node_id,
@@ -306,7 +335,7 @@ local function project_cursor(db: any, journal_id: string, event_id: string, bod
         db_ops.canonical(type(body.close_requirements) == "table" and body.close_requirements or {}),
         db_ops.canonical(checkpoint),
         db_ops.canonical(type(body.context_refs) == "table" and body.context_refs or {}),
-        event_id, event_id, timestamp, timestamp,
+        event_id, event_id, timestamp, timestamp, seq,
     })
     if upsert_err then return upsert_err end
     local applied_rows, applied_err = db_ops.query(db, [[
@@ -380,6 +409,7 @@ local function project_audit_coverage(db: any, journal_id: string, event_id: str
             recorded_event_id = excluded.recorded_event_id,
             recorded_seq = excluded.recorded_seq,
             recorded_at = excluded.recorded_at
+        WHERE excluded.recorded_seq > chestor_journal_audit_coverage.recorded_seq
     ]], { journal_id, task_id, unit_key, status, body.method,
         db_ops.canonical(type(body.evidence_event_ids) == "table" and body.evidence_event_ids or {}),
         body.cursor_id, body.episode_id, body.source_revision, body.decision_id, event_id, seq, timestamp })
@@ -509,7 +539,7 @@ local function project_reference_unlink(db: any, journal_id: string, event_id: s
     ]], { event_id, event_id, seq, timestamp, journal_id, graph_id, node_id, ref_id, relation, seq })
 end
 
-local function tombstone_task_dep(db: any, journal_id: string, event_id: string, body: any, timestamp: number): error?
+local function tombstone_task_dep(db: any, journal_id: string, event_id: string, body: any, timestamp: number, seq: number): error?
     local from_task_id = db_ops.trim(body.from_task_id)
     local to_task_id = db_ops.trim(body.to_task_id)
     if from_task_id == "" or to_task_id == "" then return nil end
@@ -519,10 +549,13 @@ local function tombstone_task_dep(db: any, journal_id: string, event_id: string,
         UPDATE chestor_journal_task_deps
            SET tombstoned = 1, tombstone_decision_id = ?, tombstoned_at = ?
          WHERE journal_id = ? AND from_task_id = ? AND to_task_id = ? AND kind = ? AND tombstoned = 0
-    ]], { db_ops.trim(body.decision_id), timestamp, journal_id, from_task_id, to_task_id, kind })
+           AND ? > COALESCE((SELECT seq FROM chestor_journal_events
+                              WHERE journal_id = chestor_journal_task_deps.journal_id
+                                AND id = chestor_journal_task_deps.evidence_event_id), 0)
+    ]], { db_ops.trim(body.decision_id), timestamp, journal_id, from_task_id, to_task_id, kind, seq })
 end
 
-local function upsert_artifact(db: any, journal_id: string, event_id: string, body: any): error?
+local function upsert_artifact(db: any, journal_id: string, event_id: string, body: any, seq: number): error?
     local artifact_id = db_ops.trim(body.artifact_id or body.id)
     if artifact_id == "" then artifact_id = event_id end
     return db_ops.exec(db, [[
@@ -540,38 +573,46 @@ local function upsert_artifact(db: any, journal_id: string, event_id: string, bo
             url = excluded.url,
             mime_type = excluded.mime_type,
             metadata = excluded.metadata
+        WHERE ? > COALESCE((SELECT seq FROM chestor_journal_events
+                             WHERE journal_id = chestor_journal_artifacts.journal_id
+                               AND id = chestor_journal_artifacts.event_id), 0)
     ]], {
         journal_id, artifact_id, event_id, tostring(body.kind or "artifact"),
         body.title, body.summary or body.body, body.component_id, body.upload_id, body.file_path,
-        body.url, body.mime_type, db_ops.encode(body.metadata, {}), db_ops.now(),
+        body.url, body.mime_type, db_ops.encode(body.metadata, {}), db_ops.now(), seq,
     })
 end
 
-local function upsert_active_task(db: any, journal_id: string, body: any): error?
+local function upsert_active_task(db: any, journal_id: string, body: any, timestamp: number, seq: number): error?
     local task_id = db_ops.trim(body.task_id)
     if task_id == "" then return nil end
-    local timestamp = db_ops.now()
     return db_ops.exec(db, [[
-        INSERT INTO chestor_journal_state (journal_id, active_task_id, updated_at)
-        VALUES (?, ?, ?)
+        INSERT INTO chestor_journal_state (journal_id, active_task_id, active_task_seq, updated_at)
+        VALUES (?, ?, ?, ?)
         ON CONFLICT(journal_id) DO UPDATE SET
             active_task_id = excluded.active_task_id,
-            updated_at = excluded.updated_at
-    ]], { journal_id, task_id, timestamp })
+            active_task_seq = excluded.active_task_seq,
+            updated_at = CASE WHEN excluded.active_task_seq > COALESCE(chestor_journal_state.digest_event_seq, 0)
+                              THEN excluded.updated_at ELSE chestor_journal_state.updated_at END
+        WHERE excluded.active_task_seq > COALESCE(chestor_journal_state.active_task_seq, 0)
+    ]], { journal_id, task_id, seq, timestamp })
 end
 
-local function upsert_digest(db: any, journal_id: string, body: any, timestamp: number): error?
+local function upsert_digest(db: any, journal_id: string, body: any, timestamp: number, seq: number): error?
     local digest = db_ops.trim(body.digest or body.body)
     if digest == "" then return nil end
     return db_ops.exec(db, [[
-        INSERT INTO chestor_journal_state (journal_id, digest, digest_updated_at, digest_source_seq, updated_at)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO chestor_journal_state (journal_id, digest, digest_updated_at, digest_source_seq, digest_event_seq, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(journal_id) DO UPDATE SET
             digest = excluded.digest,
             digest_updated_at = excluded.digest_updated_at,
             digest_source_seq = COALESCE(excluded.digest_source_seq, chestor_journal_state.digest_source_seq),
-            updated_at = excluded.updated_at
-    ]], { journal_id, digest, timestamp, tonumber(body.source_seq), timestamp })
+            digest_event_seq = excluded.digest_event_seq,
+            updated_at = CASE WHEN excluded.digest_event_seq > COALESCE(chestor_journal_state.active_task_seq, 0)
+                              THEN excluded.updated_at ELSE chestor_journal_state.updated_at END
+        WHERE excluded.digest_event_seq > COALESCE(chestor_journal_state.digest_event_seq, 0)
+    ]], { journal_id, digest, timestamp, tonumber(body.source_seq), seq, timestamp })
 end
 
 local function upsert_task_dep(db: any, journal_id: string, event_id: string, body: any, timestamp: number): error?
@@ -689,19 +730,19 @@ function M.project_events(db: any, journal_id: string, events: any): error?
 
             local derived_err = nil
             if kind == types.EVENT.TASK_UPSERTED or kind == types.EVENT.TASK_CLOSED then
-                derived_err = upsert_task(db, journal_id, event_id, body, timestamp)
+                derived_err = upsert_task(db, journal_id, event_id, body, timestamp, seq)
             elseif kind == types.EVENT.TASK_FOCUSED then
-                derived_err = upsert_active_task(db, journal_id, body)
+                derived_err = upsert_active_task(db, journal_id, body, timestamp, seq)
             elseif kind == types.EVENT.DIGEST_UPDATED then
-                derived_err = upsert_digest(db, journal_id, body, timestamp)
+                derived_err = upsert_digest(db, journal_id, body, timestamp, seq)
             elseif kind == types.EVENT.ARTIFACT_LINKED or event_type == "artifact" then
-                derived_err = upsert_artifact(db, journal_id, event_id, body)
+                derived_err = upsert_artifact(db, journal_id, event_id, body, seq)
             elseif kind == types.EVENT.TASK_LINKED then
                 derived_err = upsert_task_dep(db, journal_id, event_id, body, timestamp)
             elseif kind == types.EVENT.TASK_UNLINKED then
-                derived_err = tombstone_task_dep(db, journal_id, event_id, body, timestamp)
+                derived_err = tombstone_task_dep(db, journal_id, event_id, body, timestamp, seq)
             elseif kind == types.EVENT.TASK_TRANSITIONED then
-                derived_err = apply_transition(db, journal_id, event_id, body, timestamp)
+                derived_err = apply_transition(db, journal_id, event_id, body, timestamp, seq)
             elseif kind == types.EVENT.VERIFICATION_RECEIPT then
                 derived_err = insert_receipt(db, journal_id, event_id, body, timestamp)
             elseif kind == types.EVENT.CURSOR_UPDATED then

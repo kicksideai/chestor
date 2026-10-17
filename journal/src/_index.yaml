@@ -91,6 +91,8 @@ entries:
         path: .meta.target_db
       - entry: chestor.journal.migrations:19_auto_cursor_identity
         path: .meta.target_db
+      - entry: chestor.journal.migrations:20_state_event_sequence
+        path: .meta.target_db
       - entry: chestor.journal:db_config
         path: .meta.db_id
 
