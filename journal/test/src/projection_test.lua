@@ -8,6 +8,7 @@ local writer = require("writer")
 local embeddings = require("embeddings")
 local projector = require("projector")
 local embedding_scheduler = require("embedding_scheduler")
+local state_sequence_migration = require("state_sequence_migration")
 
 local function vector(x: number, y: number): { number }
     local out: { number } = {}
@@ -51,6 +52,166 @@ end
 
 local function define_history()
     test.describe("Journal projection history", function()
+        test.it("migrates existing state provenance without rewriting data and resumes partial changes", function()
+            with_db(function(handle)
+                local dialect, dialect_err = handle:type()
+                test.is_nil(dialect_err)
+                local tx, begin_err = handle:begin()
+                test.is_nil(begin_err)
+                local ok, failure = pcall(function()
+                    test.is_nil(ops.exec(tx, [[CREATE TEMP TABLE chestor_journal_state (
+                        journal_id TEXT PRIMARY KEY, active_task_id TEXT, digest TEXT,
+                        digest_updated_at INTEGER, updated_at INTEGER NOT NULL,
+                        digest_source_seq INTEGER, projection_input_hash TEXT)]]))
+                    test.is_nil(ops.exec(tx, [[CREATE TEMP TABLE chestor_journal_events (
+                        journal_id TEXT, id TEXT, seq INTEGER, ts INTEGER,
+                        event_type TEXT, task_id TEXT, body TEXT)]]))
+                    test.is_nil(ops.exec(tx, [[INSERT INTO chestor_journal_state
+                        VALUES ('existing', 'task', 'Stored digest', 100, 110, 2, 'unchanged'),
+                               ('independent', NULL, 'Independent digest', 5, 5, NULL, NULL)]]))
+                    test.is_nil(ops.exec(tx, [[INSERT INTO chestor_journal_events VALUES
+                        ('existing', 'digest', 10, 100, 'digest.updated', NULL, 'Stored digest'),
+                        ('existing', 'focus', 11, 110, 'task.focused', 'task', ''),
+                        ('existing', 'other', 12, 120, 'digest.updated', NULL, 'A labeled note')]]))
+                    test.is_nil(ops.exec(tx, "ALTER TABLE chestor_journal_state ADD COLUMN active_task_seq INTEGER"))
+                    for _ = 1, 2 do
+                        test.is_nil(state_sequence_migration.up(tx, dialect))
+                        local rows, err = ops.query(tx, "SELECT * FROM chestor_journal_state WHERE journal_id = 'existing'")
+                        test.is_nil(err)
+                        test.eq(rows[1].active_task_id, "task")
+                        test.eq(rows[1].digest, "Stored digest")
+                        test.eq(tonumber(rows[1].digest_source_seq), 2)
+                        test.eq(tonumber(rows[1].digest_event_seq), 10)
+                        test.eq(tonumber(rows[1].active_task_seq), 11)
+                        test.eq(tonumber(rows[1].digest_updated_at), 100)
+                        test.eq(tonumber(rows[1].updated_at), 110)
+                        test.eq(rows[1].projection_input_hash, "unchanged")
+                    end
+                    test.is_nil(ops.exec(tx, "UPDATE chestor_journal_state SET digest_event_seq = 20 WHERE journal_id = 'existing'"))
+                    test.is_nil(state_sequence_migration.up(tx, dialect))
+                    local rows, err = ops.query(tx, "SELECT digest_event_seq FROM chestor_journal_state WHERE journal_id = 'existing'")
+                    test.is_nil(err)
+                    test.eq(tonumber(rows[1].digest_event_seq), 20)
+                    local other, other_err = ops.query(tx, "SELECT digest FROM chestor_journal_state WHERE journal_id = 'independent'")
+                    test.is_nil(other_err)
+                    test.eq(other[1].digest, "Independent digest")
+                    local events, event_err = ops.query(tx, "SELECT COUNT(*) AS n FROM chestor_journal_events")
+                    test.is_nil(event_err)
+                    test.eq(tonumber(events[1].n), 3)
+                end)
+                local _, rollback_err = tx:rollback()
+                test.is_nil(rollback_err)
+                if not ok then error(failure) end
+            end)
+        end)
+
+        test.it("preserves newer task transitions, receipts and dependency links while indexing old commands", function()
+            local journal_id = "ordered-task-evidence"
+            local _, seed_err = fold(journal_id, {
+                ev(types.EVENT.TASK_UPSERTED, { event_id = "task", seq = 10, task_id = "task", title = "Current title", status = "done" }),
+                ev(types.EVENT.VERIFICATION_RECEIPT, { event_id = "receipt", seq = 11, task_id = "task", receipt_id = "receipt", task_revision = 1, work_revision = 11, verdict = "pass" }),
+                ev(types.EVENT.TASK_LINKED, { event_id = "link", seq = 12, from_task_id = "task", to_task_id = "other" }),
+            }, 12)
+            test.is_nil(seed_err)
+            local _, older_err = fold(journal_id, {
+                ev(types.EVENT.TASK_TRANSITIONED, { event_id = "reopen", seq = 2, task_id = "task", verb = "reopen", to_status = "open", command_id = "old-command" }),
+                ev(types.EVENT.TASK_UPSERTED, { event_id = "upsert", seq = 3, task_id = "task", title = "Old title" }),
+                ev(types.EVENT.TASK_UNLINKED, { event_id = "unlink", seq = 4, from_task_id = "task", to_task_id = "other", decision_id = "old-decision" }),
+            }, 12)
+            test.is_nil(older_err)
+            with_db(function(handle)
+                local tasks, task_err = ops.query(handle, "SELECT status, revision, title FROM chestor_journal_tasks WHERE journal_id = ?", { journal_id })
+                test.is_nil(task_err)
+                test.eq(tasks[1].status, "done")
+                test.eq(tasks[1].title, "Current title")
+                test.eq(tonumber(tasks[1].revision), 1)
+                local receipts, receipt_err = ops.query(handle, "SELECT stale FROM chestor_journal_receipts WHERE journal_id = ?", { journal_id })
+                test.is_nil(receipt_err)
+                test.eq(tonumber(receipts[1].stale), 0)
+                local deps, dep_err = ops.query(handle, "SELECT tombstoned FROM chestor_journal_task_deps WHERE journal_id = ?", { journal_id })
+                test.is_nil(dep_err)
+                test.eq(tonumber(deps[1].tombstoned), 0)
+                local commands, command_err = ops.query(handle, "SELECT event_id FROM chestor_journal_commands WHERE journal_id = ? AND command_id = 'old-command'", { journal_id })
+                test.is_nil(command_err)
+                test.eq(commands[1].event_id, "reopen")
+            end)
+        end)
+
+        test.it("orders live and replayed materializations by event sequence", function()
+            for _, mode in ipairs({ "live", "replay", "batch" }) do
+                local journal_id = "ordered-" .. mode
+                local older = {
+                    ev(types.EVENT.TASK_UPSERTED, { event_id = "task-old", seq = 1, ts = 900, task_id = "task", title = "Old task" }),
+                    ev(types.EVENT.ARTIFACT_LINKED, { event_id = "artifact-old", seq = 2, ts = 900, artifact_id = "artifact", title = "Old artifact" }),
+                    ev(types.EVENT.DIGEST_UPDATED, { event_id = "digest-old", seq = 3, ts = 900, digest = "Old digest", source_seq = 3 }),
+                    ev(types.EVENT.TASK_FOCUSED, { event_id = "focus-old", seq = 4, ts = 900, task_id = "old-focus" }),
+                    ev(types.EVENT.AUDIT_COVERAGE_RECORDED, { event_id = "coverage-old", seq = 5, ts = 900, audit_task_id = "task", unit_key = "unit", status = "gap" }),
+                    ev(types.EVENT.CURSOR_UPDATED, { event_id = "cursor-old", seq = 6, ts = 900, cursor_id = "cursor", agent_id = "agent", revision = 3, op = "move", task_id = "old-focus" }),
+                }
+                local newer = {
+                    ev(types.EVENT.TASK_UPSERTED, { event_id = "task-new", seq = 11, ts = 100, task_id = "task", title = "New task" }),
+                    ev(types.EVENT.ARTIFACT_LINKED, { event_id = "artifact-new", seq = 12, ts = 100, artifact_id = "artifact", title = "New artifact" }),
+                    ev(types.EVENT.DIGEST_UPDATED, { event_id = "digest-new", seq = 13, ts = 100, digest = "New digest", source_seq = 1 }),
+                    ev(types.EVENT.TASK_FOCUSED, { event_id = "focus-new", seq = 14, ts = 100, task_id = "new-focus" }),
+                    ev(types.EVENT.AUDIT_COVERAGE_RECORDED, { event_id = "coverage-new", seq = 15, ts = 100, audit_task_id = "task", unit_key = "unit", status = "checked_clean" }),
+                    ev(types.EVENT.CURSOR_UPDATED, { event_id = "cursor-new", seq = 16, ts = 100, cursor_id = "cursor", agent_id = "agent", revision = 2, op = "move", task_id = "new-focus" }),
+                }
+                if mode ~= "batch" then
+                    local _, seed_err = fold(journal_id, newer, 16)
+                    test.is_nil(seed_err)
+                end
+                local events = {}
+                if mode == "batch" then
+                    for _, event in ipairs(newer) do events[#events + 1] = event end
+                end
+                for _, event in ipairs(older) do events[#events + 1] = event end
+                if mode == "replay" then
+                    for _, event in ipairs(newer) do events[#events + 1] = event end
+                end
+                local _, replay_err = fold(journal_id, events, 16)
+                test.is_nil(replay_err)
+                local _, retry_err = fold(journal_id, events, 16)
+                test.is_nil(retry_err)
+                with_db(function(handle)
+                    for _, check in ipairs({
+                        { table = "tasks", field = "title", expected = "New task" },
+                        { table = "artifacts", field = "title", expected = "New artifact" },
+                        { table = "state", field = "digest", expected = "New digest" },
+                        { table = "state", field = "active_task_id", expected = "new-focus" },
+                        { table = "audit_coverage", field = "status", expected = "checked_clean" },
+                        { table = "cursors", field = "current_task_id", expected = "new-focus" },
+                    }) do
+                        local rows, err = ops.query(handle, "SELECT " .. check.field .. " AS value FROM chestor_journal_" .. check.table .. " WHERE journal_id = ?", { journal_id })
+                        test.is_nil(err)
+                        test.eq(rows[1].value, check.expected, check.table .. "." .. check.field)
+                    end
+                    local rows, err = ops.query(handle, "SELECT COUNT(*) AS n FROM chestor_journal_events WHERE journal_id = ?", { journal_id })
+                    test.is_nil(err)
+                    test.eq(tonumber(rows[1].n), 12)
+                end)
+                local _, advance_err = fold(journal_id, {
+                    ev(types.EVENT.TASK_UPSERTED, { event_id = "independent", seq = 7, task_id = "other", title = "Independent task" }),
+                    ev(types.EVENT.ENTRY_APPENDED, { event_id = "digest-note", seq = 30, event_type = "digest.updated", body = "A note with a protocol label" }),
+                    ev(types.EVENT.ENTRY_APPENDED, { event_id = "focus-note", seq = 31, event_type = "task.focused", body = "Another labeled note" }),
+                    ev(types.EVENT.DIGEST_UPDATED, { event_id = "digest-next", seq = 17, ts = 50, digest = "Next digest" }),
+                    ev(types.EVENT.TASK_FOCUSED, { event_id = "focus-next", seq = 18, ts = 50, task_id = "next-focus" }),
+                }, 17)
+                test.is_nil(advance_err)
+                with_db(function(handle)
+                    local tasks, err = reader.list_tasks(handle, journal_id, { limit = 10 })
+                    test.is_nil(err)
+                    test.eq(#tasks, 2)
+                    local rows, state_err = ops.query(handle, "SELECT digest, active_task_id, digest_event_seq, active_task_seq, updated_at FROM chestor_journal_state WHERE journal_id = ?", { journal_id })
+                    test.is_nil(state_err)
+                    test.eq(rows[1].digest, "Next digest")
+                    test.eq(rows[1].active_task_id, "next-focus")
+                    test.eq(tonumber(rows[1].digest_event_seq), 17)
+                    test.eq(tonumber(rows[1].active_task_seq), 18)
+                    test.eq(tonumber(rows[1].updated_at), 50)
+                end)
+            end
+        end)
+
         test.it("replays skipped history without replacing a later indexed digest", function()
             local journal_id = "history-replay-digest"
             local older = ev(types.EVENT.DIGEST_UPDATED, {

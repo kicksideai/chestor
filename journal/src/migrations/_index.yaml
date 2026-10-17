@@ -331,6 +331,21 @@ entries:
       ops: chestor.journal.migrations:journal_cursor_revision_claim_ops
     method: migrate
 
+  - name: journal_state_event_sequence_ops
+    kind: library.lua
+    source: file://20_state_event_sequence_ops.lua
+
+  - name: 20_state_event_sequence
+    kind: function.lua
+    meta:
+      type: migration
+      timestamp: "2026-10-17T00:00:20Z"
+    source: file://20_state_event_sequence.lua
+    imports:
+      migration: wippy.migration:migration
+      ops: chestor.journal.migrations:journal_state_event_sequence_ops
+    method: migrate
+
   - name: journal_auto_cursor_identity_ops
     kind: library.lua
     meta:

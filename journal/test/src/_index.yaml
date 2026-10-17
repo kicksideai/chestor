@@ -166,6 +166,7 @@ entries:
       embeddings: chestor.journal.persist:embeddings
       projector: chestor.journal.persist:projector
       embedding_scheduler: chestor.journal.embedding:scheduler
+      state_sequence_migration: chestor.journal.migrations:journal_state_event_sequence_ops
 
   - name: journal_history_replay_test
     kind: function.lua
@@ -187,6 +188,7 @@ entries:
       embeddings: chestor.journal.persist:embeddings
       projector: chestor.journal.persist:projector
       embedding_scheduler: chestor.journal.embedding:scheduler
+      state_sequence_migration: chestor.journal.migrations:journal_state_event_sequence_ops
 
   - name: journal_packaging_test
     kind: function.lua

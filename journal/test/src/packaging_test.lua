@@ -243,7 +243,7 @@ local function define_tests()
 
         test.it("routes migrations and runtime SQL through the same target_db requirement", function()
             local targets, count = requirement_targets("chestor.journal:target_db")
-            test.eq(count, 20)
+            test.eq(count, 21)
             test.eq(targets["chestor.journal.migrations:01_create_journal_tables"], ".meta.target_db")
             test.eq(targets["chestor.journal.migrations:02_scope_fts_keys"], ".meta.target_db")
             test.eq(targets["chestor.journal.migrations:03_create_journal_graph_tables"], ".meta.target_db")
@@ -263,6 +263,7 @@ local function define_tests()
             test.eq(targets["chestor.journal.migrations:17_work_spans"], ".meta.target_db")
             test.eq(targets["chestor.journal.migrations:18_cursor_revision_claim"], ".meta.target_db")
             test.eq(targets["chestor.journal.migrations:19_auto_cursor_identity"], ".meta.target_db")
+            test.eq(targets["chestor.journal.migrations:20_state_event_sequence"], ".meta.target_db")
             test.eq(targets[types.DB_CONFIG], ".meta.db_id")
 
             local previous = types._registry
