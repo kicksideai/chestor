@@ -6,7 +6,7 @@ entries:
     kind: ns.definition
     meta:
       title: Workspace
-      comment: A workspace is one tree of typed entries. Entries are components (the tree is component parent_id/position, sharing is the access cascade); entry types are declared, each owning its renderer and lifecycle. The shell owns navigation and mounts the type's renderer.
+      comment: One tree of typed entries modelled as components with an access cascade, declarative entry types that each own a renderer and lifecycle, and the workspace shell web component.
 
   # ─── Host wiring ─────────────────────────────────────────────────────
   - name: dep.kickside.component
@@ -32,6 +32,7 @@ entries:
   - name: api_router
     kind: ns.requirement
     meta:
+      value_kind: http.router
       comment: HTTP router the workspace endpoints attach to. Must enforce auth + endpoint_firewall.
     targets:
       - entry: chestor.workspace.api:list_entries.endpoint
@@ -58,6 +59,7 @@ entries:
   - name: ui_server
     kind: ns.requirement
     meta:
+      value_kind: http.service
       comment: HTTP server the workspace UI static mount attaches to.
     targets:
       - entry: chestor.workspace:ui_static
