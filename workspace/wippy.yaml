@@ -1,7 +1,7 @@
 organization: chestor
 module: workspace
 type: plugin
-description: Workspace — one tree of typed entries modelled as components (tree + access cascade), declarative entry types each owning a renderer and lifecycle, and the canonical workspace shell web component.
+description: One tree of typed entries modelled as components with an access cascade, declarative entry types that each own a renderer and lifecycle, and the workspace shell web component.
 license: LicenseRef-KickSide-Community-1.0
 repository: https://github.com/kicksideai/chestor
 homepage: https://wippy.ai

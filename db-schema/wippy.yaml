@@ -1,7 +1,7 @@
 organization: chestor
 module: db-schema
 type: plugin
-description: Database-schema workspace kind — an event-sourced schema component (tables/columns/relations/indexes/layout) that plugs into chestor/workspace by declaration. Its thread is its log; a declared projection materializes the read model; a renderer web component draws the live graph.
+description: Event-sourced database-schema component (tables, columns, relations, indexes, and layout) that plugs into chestor/workspace by declaration.
 license: LicenseRef-KickSide-Community-1.0
 repository: https://github.com/kicksideai/chestor
 homepage: https://wippy.ai

@@ -31,6 +31,7 @@ entries:
   - name: target_db
     kind: ns.requirement
     meta:
+      value_kind: db.sql
       comment: SQL database resource backing the graph read model.
     targets:
       - entry: chestor.graph.migrations:01_create_graph_materialized_tables
@@ -48,6 +49,7 @@ entries:
   - name: api_router
     kind: ns.requirement
     meta:
+      value_kind: http.router
       comment: HTTP router the graph endpoints attach to.
     targets:
       - entry: chestor.graph.api:get_graph.endpoint
@@ -70,6 +72,7 @@ entries:
   - name: ui_server
     kind: ns.requirement
     meta:
+      value_kind: http.service
       comment: HTTP server the graph renderer static mount attaches to.
     targets:
       - entry: chestor.graph:ui_static

@@ -26,6 +26,7 @@ workspace:
     chestor/db-schema: ..
     chestor/workspace: ../../workspace
     kickside/component: ../../../kickside/core/component
+    kickside/realtime-dispatch: ../../../kickside/core/realtime-dispatch
     kickside/contract: ../../../kickside/core/contract
     kickside/core: ../../../kickside/core/core
     kickside/execution: ../../../kickside/core/execution

@@ -6,7 +6,7 @@ entries:
     kind: ns.definition
     meta:
       title: Database Schema
-      comment: "Event-sourced database-schema workspace kind: typed command-events on its thread, a declared projection materializing the read model, and a live graph renderer. Plugs into the workspace by declaration."
+      comment: "Event-sourced database-schema component (tables, columns, relations, indexes, and layout) that plugs into chestor/workspace by declaration."
 
   - name: dep.kickside.core
     kind: ns.dependency
@@ -26,6 +26,7 @@ entries:
   - name: target_db
     kind: ns.requirement
     meta:
+      value_kind: db.sql
       comment: SQL database resource backing the database-schema read model.
     targets:
       - entry: chestor.db_schema.migrations:01_create_schema_materialized_tables
@@ -41,6 +42,7 @@ entries:
   - name: api_router
     kind: ns.requirement
     meta:
+      value_kind: http.router
       comment: HTTP router the db-schema endpoints attach to.
     targets:
       - entry: chestor.db_schema.api:get_schema.endpoint
@@ -57,6 +59,7 @@ entries:
   - name: ui_server
     kind: ns.requirement
     meta:
+      value_kind: http.service
       comment: HTTP server the db-schema renderer static mount attaches to.
     targets:
       - entry: chestor.db_schema:ui_static

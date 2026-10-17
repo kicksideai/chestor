@@ -1,7 +1,7 @@
 organization: chestor
 module: journal
 type: plugin
-description: Chestor Journal - event-sourced long-duration agent memory with durable per-agent cursors, bounded episodes, work hierarchy, audit coverage, proof, and semantic recall.
+description: Event-sourced long-duration agent memory with durable per-agent cursors, bounded episodes, work hierarchy, audit coverage, proof, and semantic recall.
 license: LicenseRef-KickSide-Community-1.0
 repository: https://github.com/kicksideai/chestor
 homepage: https://wippy.ai
