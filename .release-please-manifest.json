@@ -1,7 +1,7 @@
 {
-  "db-schema": "0.2.0",
-  "graph": "0.2.0",
-  "journal": "0.3.0",
-  "roadmap": "0.2.0",
-  "workspace": "0.2.0"
+  "db-schema": "0.2.1",
+  "graph": "0.2.1",
+  "journal": "0.3.1",
+  "roadmap": "0.2.1",
+  "workspace": "0.2.1"
 }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1 (2026-10-17)
+
+- Track state event sequences and preserve existing journal records during upgrades.
+
 ## 0.2.47 (2026-10-08)
 
 - fix: preserve native result bounds and refresh selected model limits (d3a736b)

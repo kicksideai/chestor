@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1 (2026-10-17)
+
+- Align module requirements with registry entry bindings and refresh packaged documentation.
+
 ## 0.1.16 (2026-10-08)
 
 - fix: bound agent tool results and derive model checkpoint budgets (3ec1158)
