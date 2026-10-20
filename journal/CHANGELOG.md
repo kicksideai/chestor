@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/kicksideai/chestor/compare/journal-v0.3.1...journal-v0.3.2) (2026-10-20)
+
+
+### Bug Fixes
+
+* **journal:** preserve event sequence during projection and replay ([#2](https://github.com/kicksideai/chestor/issues/2)) ([c8969f9](https://github.com/kicksideai/chestor/commit/c8969f98191c89e1d6234d8c93fe054e4a8c28c9))
+
 ## 0.3.1 (2026-10-17)
 
 - Track state event sequences and preserve existing journal records during upgrades.
