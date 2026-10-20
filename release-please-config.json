@@ -4,7 +4,7 @@
   "include-component-in-tag": true,
   "separate-pull-requests": false,
   "bump-minor-pre-major": true,
-  "bootstrap-sha": "06b8a30a257e9692785a257291a63f40ef805df4",
+  "bootstrap-sha": "16ef2845971626cc6c3b0c92fb95f3ba267d9b7f",
   "packages": {
     "db-schema": {
       "component": "db-schema",

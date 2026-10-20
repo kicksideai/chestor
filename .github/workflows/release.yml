@@ -2,7 +2,7 @@ name: Release
 'on':
   push:
     branches:
-    - main
+    - tmp/rp-e2e
   workflow_dispatch: {}
 permissions: {}
 concurrency:
@@ -24,6 +24,7 @@ jobs:
         token: ${{ github.token }}
         config-file: release-please-config.json
         manifest-file: .release-please-manifest.json
+        target-branch: tmp/rp-e2e
     # Events from GITHUB_TOKEN do not start workflows, so start CI on the release PR branch.
     - name: Run CI on the release PR
       if: ${{ steps.release.outputs.prs_created == 'true' }}
