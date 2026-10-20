@@ -4,6 +4,7 @@
   "include-component-in-tag": true,
   "separate-pull-requests": false,
   "bump-minor-pre-major": true,
+  "bump-patch-for-minor-pre-major": true,
   "bootstrap-sha": "06b8a30a257e9692785a257291a63f40ef805df4",
   "packages": {
     "db-schema": {
