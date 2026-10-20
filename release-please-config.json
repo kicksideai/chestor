@@ -4,7 +4,8 @@
   "include-component-in-tag": true,
   "separate-pull-requests": false,
   "bump-minor-pre-major": true,
-  "last-release-sha": "cc0a8fc6ddbeca6ead321e07d2e257c2f0409794",
+  "bump-patch-for-minor-pre-major": true,
+  "bootstrap-sha": "06b8a30a257e9692785a257291a63f40ef805df4",
   "packages": {
     "db-schema": {
       "component": "db-schema",
