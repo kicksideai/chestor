@@ -1,0 +1,245 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: chestor.autocode.runner
+
+entries:
+  # chestor.autocode.runner:quote
+  - name: quote
+    kind: library.lua
+    meta:
+      comment: POSIX quoting for argv rendered as one command line.
+    source: file://quote.lua
+
+  # chestor.autocode.runner:live
+  - name: live
+    kind: library.lua
+    meta:
+      comment: Live run updates for the run owner's open autocode views over kickside.contract:realtime.
+    source: file://live.lua
+    modules:
+      - contract
+
+  # chestor.autocode.runner:settings
+  - name: settings
+    kind: library.lua
+    meta:
+      comment: Reads the autocode duration settings through kickside.settings:settings.
+    source: file://settings.lua
+    modules:
+      - contract
+
+  # chestor.autocode.runner:credentials
+  - name: credentials
+    kind: library.lua
+    meta:
+      comment: The credential choices a driver offers an account - its login files and key variables.
+    source: file://credentials.lua
+    modules:
+      - json
+    imports:
+      drivers: bee.drivers:drivers
+
+  # chestor.autocode.runner:container
+  - name: container
+    kind: library.lua
+    meta:
+      comment: The script a run's container executes around a bee/drivers launch.
+    source: file://container.lua
+    imports:
+      drivers: bee.drivers:drivers
+      credentials: chestor.autocode.runner:credentials
+      quote: chestor.autocode.runner:quote
+
+  # chestor.autocode.runner:redact
+  - name: redact
+    kind: library.lua
+    meta:
+      comment: Removes credentials from run text before it is stored.
+    source: file://redact.lua
+    modules:
+      - json
+
+  # chestor.autocode.runner:records
+  - name: records
+    kind: library.lua
+    meta:
+      comment: Folds bee/drivers reader steps into run events.
+    source: file://records.lua
+    imports:
+      drivers: bee.drivers:drivers
+
+  # chestor.autocode.runner:docker
+  - name: docker
+    kind: library.lua
+    meta:
+      comment: Runs the docker CLI on the host executor with merged, line-streamed output, and copies files out of containers.
+    source: file://docker.lua
+    modules:
+      - exec
+    imports:
+      quote: chestor.autocode.runner:quote
+
+  # chestor.autocode.runner:workspaces
+  - name: workspaces
+    kind: library.lua
+    meta:
+      comment: Admits workspace host paths that lie inside the operator's workspace roots.
+    source: file://workspaces.lua
+    modules:
+      - registry
+
+  # chestor.autocode.runner:deferred
+  - name: deferred
+    kind: library.lua
+    meta:
+      comment: Enqueues autocode jobs in the transaction that writes their rows, and wakes the jobs pool after commit.
+    source: file://deferred.lua
+    imports:
+      repo: chestor.autocode.persist:repo
+      jobs: kickside.core.jobs:jobs
+      jobs_config: kickside.core.jobs:config
+      jobs_wake: kickside.core.jobs.persist:wake
+      execution_identity: kickside.execution:execution_identity
+
+  # chestor.autocode.runner:runs
+  - name: runs
+    kind: library.lua
+    meta:
+      comment: The run lifecycle - admission under the caller's grants, shared by preview, submission and the runner; submission with its job; cancellation.
+    source: file://runs.lua
+    modules:
+      - security
+      - time
+    imports:
+      repo: chestor.autocode.persist:repo
+      resources: chestor.autocode.components:resources
+      drivers: bee.drivers:drivers
+      credentials: chestor.autocode.runner:credentials
+      workspaces: chestor.autocode.runner:workspaces
+      docker: chestor.autocode.runner:docker
+      settings: chestor.autocode.runner:settings
+      deferred: chestor.autocode.runner:deferred
+
+  # chestor.autocode.runner:prepare
+  - name: prepare
+    kind: function.lua
+    meta:
+      comment: Runs under the run owner - admits the recorded run again with the owner's current grants and reads the account credential.
+    source: file://owner.lua
+    method: prepare
+    modules:
+      - security
+    imports:
+      repo: chestor.autocode.persist:repo
+      runs: chestor.autocode.runner:runs
+      resources: chestor.autocode.components:resources
+
+  # chestor.autocode.runner:keep_credential
+  - name: keep_credential
+    kind: function.lua
+    meta:
+      comment: Runs under the run owner - stores a login file the CLI refreshed while the account still holds the revision the run read.
+    source: file://owner.lua
+    method: keep_credential
+    modules:
+      - security
+    imports:
+      repo: chestor.autocode.persist:repo
+      runs: chestor.autocode.runner:runs
+      resources: chestor.autocode.components:resources
+
+  # chestor.autocode.runner:image_recipe
+  - name: image_recipe
+    kind: function.lua
+    meta:
+      comment: Runs under the build requester - reads the reference and Dockerfile of an image the requester may change.
+    source: file://owner.lua
+    method: image_recipe
+    modules:
+      - security
+    imports:
+      repo: chestor.autocode.persist:repo
+      runs: chestor.autocode.runner:runs
+      resources: chestor.autocode.components:resources
+
+  # chestor.autocode.runner:run
+  - name: run
+    kind: process.lua
+    meta:
+      comment: Job of one run - streams the agent CLI in its container, records events and settles the run.
+    source: file://run.lua
+    method: main
+    modules:
+      - logger
+      - time
+    imports:
+      repo: chestor.autocode.persist:repo
+      runs: chestor.autocode.runner:runs
+      container: chestor.autocode.runner:container
+      drivers: bee.drivers:drivers
+      records: chestor.autocode.runner:records
+      redact: chestor.autocode.runner:redact
+      docker: chestor.autocode.runner:docker
+      live: chestor.autocode.runner:live
+      settings: chestor.autocode.runner:settings
+      execution_identity: kickside.execution:execution_identity
+      deferred: chestor.autocode.runner:deferred
+      job_types: kickside.core.jobs:types
+    security:
+      actor:
+        id: system:chestor.autocode.runner
+      policies:
+        - chestor.autocode.security:worker_runtime
+        - chestor.autocode.security:service_calls
+        - chestor.autocode.security:store
+        - chestor.autocode.security:deferred_runs
+        - chestor.autocode.security:deferred_actor
+        - chestor.autocode.security:docker_commands
+        - chestor.autocode.security:run_notify
+
+  # chestor.autocode.runner:image
+  - name: image
+    kind: process.lua
+    meta:
+      comment: Job of one image build - builds or pulls the image, probes the agent CLIs it contains and settles its status.
+    source: file://image.lua
+    method: main
+    imports:
+      repo: chestor.autocode.persist:repo
+      drivers: bee.drivers:drivers
+      docker: chestor.autocode.runner:docker
+      execution_identity: kickside.execution:execution_identity
+      job_types: kickside.core.jobs:types
+      component: kickside.component:component
+    security:
+      actor:
+        id: system:chestor.autocode.images
+      policies:
+        - chestor.autocode.security:worker_runtime
+        - chestor.autocode.security:service_calls
+        - chestor.autocode.security:store
+        - chestor.autocode.security:deferred_images
+        - chestor.autocode.security:deferred_actor
+        - chestor.autocode.security:docker_commands
+        - chestor.autocode.security:image_status
+
+  # chestor.autocode.runner:retention
+  - name: retention
+    kind: function.lua
+    meta:
+      type: kickside.retention.owner
+      comment: Deletes runs that settled longer ago than the run_retention setting, with their event logs, on the Core retention tick.
+    source: file://retention.lua
+    method: run
+    modules:
+      - time
+    imports:
+      repo: chestor.autocode.persist:repo
+      settings: chestor.autocode.runner:settings
+    security:
+      actor:
+        id: system:chestor.autocode.retention
+      policies:
+        - chestor.autocode.security:worker_runtime
+        - chestor.autocode.security:service_calls
+        - chestor.autocode.security:store

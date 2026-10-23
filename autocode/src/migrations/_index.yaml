@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: chestor.autocode.migrations
+
+entries:
+  # chestor.autocode.migrations:01_create_tables
+  - name: 01_create_tables
+    kind: function.lua
+    meta:
+      type: migration
+      comment: Create the account state, image build, run, and run event tables.
+      timestamp: "2026-10-22T20:00:00Z"
+    source: file://01_create_tables.lua
+    imports:
+      migration: wippy.migration:migration
+    method: migrate

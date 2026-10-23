@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+organization: chestor
+module: autocode
+type: plugin
+description: Run coding agent CLIs in Docker across component accounts, images and workspaces, with durable jobs, workflow Blocks and streamed output.
+license: LicenseRef-KickSide-Community-1.0
+repository: https://github.com/kicksideai/chestor
+homepage: https://wippy.ai
+keywords:
+  - kickside
+  - chestor
+  - docker
+  - autocode
+  - agents
+exclude_meta:
+  type:
+    - test
+    - test_helper
+    - test_support
+embed:
+  - chestor.autocode:ui_fs
+exclude:
+  - "wippy.lock"
+  - ".wippy/**"
+  - "local/**"
+  - "app:**"
+  - "app.env:**"
+  - "ui/node_modules/**"
+  - "ui/node_modules:**"
+  - "test/**"
+  - "tests/**"
+  - "test-support/**"
+  - "app.**:**"
+  - "ui/.wippy/**"
+  - "build-inputs/**"
+  - "Makefile"
+  - "static/*.map"
+  - "static/**/*.map"

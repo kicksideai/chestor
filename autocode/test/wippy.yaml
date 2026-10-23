@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+organization: chestor
+module: autocode-harness
+type: application
+description: Standalone runnable harness that boots chestor/autocode on the Kickside platform modules and runs its suites.
+version: "1.0"
