@@ -2,6 +2,30 @@
   "repository": "chestor",
   "checks": [],
   "modules": {
+    "autocode": {
+      "path": "autocode",
+      "organization": "chestor",
+      "module": "autocode",
+      "type": "plugin",
+      "visibility": "public",
+      "embed": [
+        "chestor.autocode:ui_fs"
+      ],
+      "targets": [
+        "build",
+        "dev",
+        "lint",
+        "test",
+        "test-pg",
+        "publish"
+      ],
+      "harness": "test",
+      "profiles": [
+        "postgres"
+      ],
+      "pg_database": "chestor_autocode_test",
+      "extra_tests": []
+    },
     "db-schema": {
       "path": "db-schema",
       "organization": "chestor",

@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: chestor.autocode.drivers
+
+entries:
+  # chestor.autocode.drivers:activation
+  - name: activation
+    kind: registry.entry
+    meta:
+      type: bee.harness_activation
+      comment: The driver bindings autocode activates
+    data:
+      schema_revision: bee.harness-activation@1
+      bindings:
+        - bee.drivers.agy.binding:binding
+        - bee.drivers.claude.binding:binding
+        - bee.drivers.codex.binding:binding
+        - bee.drivers.grok.binding:binding
+        - bee.drivers.muse.binding:binding
+        - bee.drivers.opencode.binding:binding

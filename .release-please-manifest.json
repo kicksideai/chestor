@@ -1,4 +1,5 @@
 {
+  "autocode": "0.1.0",
   "db-schema": "0.2.1",
   "graph": "0.2.1",
   "journal": "0.3.1",

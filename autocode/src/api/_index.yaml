@@ -1,0 +1,504 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: chestor.autocode.api
+
+# Member endpoints end in .user.endpoint; the others are management endpoints.
+# Each function carries only the capabilities its own work needs.
+
+entries:
+  # chestor.autocode.api:web
+  - name: web
+    kind: library.lua
+    meta:
+      comment: Endpoint plumbing - authenticated caller, typed request fields, JSON replies and error statuses.
+    source: file://web.lua
+    modules:
+      - http
+      - security
+
+  # chestor.autocode.api:images
+  - name: images
+    kind: library.lua
+    meta:
+      comment: Default agent image recipe, the image settings decoder and image build requests.
+    source: file://images.lua
+    modules:
+      - security
+      - uuid
+    imports:
+      web: chestor.autocode.api:web
+      repo: chestor.autocode.persist:repo
+      resources: chestor.autocode.components:resources
+      drivers: bee.drivers:drivers
+      deferred: chestor.autocode.runner:deferred
+
+  # chestor.autocode.api:catalog
+  - name: catalog
+    kind: function.lua
+    meta:
+      comment: "GET /autocode/catalog - Activated agent drivers with their credentials, the default image recipe, and whether the caller manages images and workspaces."
+    source: file://catalog.lua
+    method: handler
+    modules:
+      - security
+    imports:
+      web: chestor.autocode.api:web
+      drivers: bee.drivers:drivers
+      credentials: chestor.autocode.runner:credentials
+      images: chestor.autocode.api:images
+
+  # chestor.autocode.api:catalog.user.endpoint
+  - name: catalog.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "GET /autocode/catalog"
+    method: GET
+    func: catalog
+    path: /autocode/catalog
+
+  # chestor.autocode.api:drivers_list
+  - name: drivers_list
+    kind: function.lua
+    meta:
+      comment: "GET /autocode/drivers - The activated bee/drivers with their options, capabilities and credentials."
+    source: file://drivers.lua
+    method: list
+    imports:
+      web: chestor.autocode.api:web
+      drivers: bee.drivers:drivers
+
+  # chestor.autocode.api:drivers_list.user.endpoint
+  - name: drivers_list.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "GET /autocode/drivers"
+    method: GET
+    func: drivers_list
+    path: /autocode/drivers
+
+  # chestor.autocode.api:accounts_list
+  - name: accounts_list
+    kind: function.lua
+    meta:
+      comment: "GET /autocode/accounts - Agent accounts the caller can see, with their balancing state and without credentials."
+    source: file://accounts.lua
+    method: list
+    imports:
+      web: chestor.autocode.api:web
+      repo: chestor.autocode.persist:repo
+      resources: chestor.autocode.components:resources
+      drivers: bee.drivers:drivers
+      credentials: chestor.autocode.runner:credentials
+
+  # chestor.autocode.api:accounts_list.user.endpoint
+  - name: accounts_list.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "GET /autocode/accounts"
+    method: GET
+    func: accounts_list
+    path: /autocode/accounts
+
+  # chestor.autocode.api:accounts_create
+  - name: accounts_create
+    kind: function.lua
+    meta:
+      comment: "POST /autocode/accounts - Add an agent account the caller owns; the credential goes to its private context."
+    source: file://accounts.lua
+    method: create
+    imports:
+      web: chestor.autocode.api:web
+      repo: chestor.autocode.persist:repo
+      resources: chestor.autocode.components:resources
+      drivers: bee.drivers:drivers
+      credentials: chestor.autocode.runner:credentials
+
+  # chestor.autocode.api:accounts_create.user.endpoint
+  - name: accounts_create.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "POST /autocode/accounts"
+    method: POST
+    func: accounts_create
+    path: /autocode/accounts
+
+  # chestor.autocode.api:accounts_update
+  - name: accounts_update
+    kind: function.lua
+    meta:
+      comment: "PUT /autocode/accounts/{id} - Rename an account or take it in or out of balancing."
+    source: file://accounts.lua
+    method: update
+    imports:
+      web: chestor.autocode.api:web
+      repo: chestor.autocode.persist:repo
+      resources: chestor.autocode.components:resources
+      drivers: bee.drivers:drivers
+      credentials: chestor.autocode.runner:credentials
+
+  # chestor.autocode.api:accounts_update.user.endpoint
+  - name: accounts_update.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "PUT /autocode/accounts/{id}"
+    method: PUT
+    func: accounts_update
+    path: /autocode/accounts/{id}
+
+  # chestor.autocode.api:accounts_delete
+  - name: accounts_delete
+    kind: function.lua
+    meta:
+      comment: "DELETE /autocode/accounts/{id} - Delete an account through component teardown."
+    source: file://accounts.lua
+    method: delete
+    imports:
+      web: chestor.autocode.api:web
+      repo: chestor.autocode.persist:repo
+      resources: chestor.autocode.components:resources
+      drivers: bee.drivers:drivers
+      credentials: chestor.autocode.runner:credentials
+
+  # chestor.autocode.api:accounts_delete.user.endpoint
+  - name: accounts_delete.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "DELETE /autocode/accounts/{id}"
+    method: DELETE
+    func: accounts_delete
+    path: /autocode/accounts/{id}
+
+  # chestor.autocode.api:images_list
+  - name: images_list
+    kind: function.lua
+    meta:
+      comment: "GET /autocode/images - Agent images the caller can see."
+    source: file://image_routes.lua
+    method: list
+    imports:
+      web: chestor.autocode.api:web
+      repo: chestor.autocode.persist:repo
+      resources: chestor.autocode.components:resources
+      images: chestor.autocode.api:images
+      docker: chestor.autocode.runner:docker
+
+  # chestor.autocode.api:images_list.user.endpoint
+  - name: images_list.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "GET /autocode/images"
+    method: GET
+    func: images_list
+    path: /autocode/images
+
+  # chestor.autocode.api:images_get
+  - name: images_get
+    kind: function.lua
+    meta:
+      comment: "GET /autocode/images/{id} - An image with its last build log; its recipe for callers who may change it."
+    source: file://image_routes.lua
+    method: get
+    imports:
+      web: chestor.autocode.api:web
+      repo: chestor.autocode.persist:repo
+      resources: chestor.autocode.components:resources
+      images: chestor.autocode.api:images
+      docker: chestor.autocode.runner:docker
+
+  # chestor.autocode.api:images_get.user.endpoint
+  - name: images_get.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "GET /autocode/images/{id}"
+    method: GET
+    func: images_get
+    path: /autocode/images/{id}
+
+  # chestor.autocode.api:images_create
+  - name: images_create
+    kind: function.lua
+    meta:
+      comment: "POST /autocode/images - Register an image and request its first build."
+    source: file://image_routes.lua
+    method: create
+    imports:
+      web: chestor.autocode.api:web
+      repo: chestor.autocode.persist:repo
+      resources: chestor.autocode.components:resources
+      images: chestor.autocode.api:images
+      docker: chestor.autocode.runner:docker
+
+  # chestor.autocode.api:images_create.endpoint
+  - name: images_create.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "POST /autocode/images"
+    method: POST
+    func: images_create
+    path: /autocode/images
+
+  # chestor.autocode.api:images_update
+  - name: images_update
+    kind: function.lua
+    meta:
+      comment: "PUT /autocode/images/{id} - Change an image's label, home and container run settings."
+    source: file://image_routes.lua
+    method: update
+    imports:
+      web: chestor.autocode.api:web
+      repo: chestor.autocode.persist:repo
+      resources: chestor.autocode.components:resources
+      images: chestor.autocode.api:images
+      docker: chestor.autocode.runner:docker
+
+  # chestor.autocode.api:images_update.endpoint
+  - name: images_update.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "PUT /autocode/images/{id}"
+    method: PUT
+    func: images_update
+    path: /autocode/images/{id}
+
+  # chestor.autocode.api:images_delete
+  - name: images_delete
+    kind: function.lua
+    meta:
+      comment: "DELETE /autocode/images/{id} - Delete an image, optionally removing the Docker image from the host first."
+    source: file://image_routes.lua
+    method: delete
+    imports:
+      web: chestor.autocode.api:web
+      repo: chestor.autocode.persist:repo
+      resources: chestor.autocode.components:resources
+      images: chestor.autocode.api:images
+      docker: chestor.autocode.runner:docker
+    security:
+      policies:
+        - chestor.autocode.security:docker_commands
+
+  # chestor.autocode.api:images_delete.endpoint
+  - name: images_delete.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "DELETE /autocode/images/{id}"
+    method: DELETE
+    func: images_delete
+    path: /autocode/images/{id}
+
+  # chestor.autocode.api:images_prepare
+  - name: images_prepare
+    kind: function.lua
+    meta:
+      comment: "POST /autocode/images/{id}/prepare - Rebuild an image or pull its reference again."
+    source: file://image_routes.lua
+    method: prepare
+    imports:
+      web: chestor.autocode.api:web
+      repo: chestor.autocode.persist:repo
+      resources: chestor.autocode.components:resources
+      images: chestor.autocode.api:images
+      docker: chestor.autocode.runner:docker
+
+  # chestor.autocode.api:images_prepare.endpoint
+  - name: images_prepare.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "POST /autocode/images/{id}/prepare"
+    method: POST
+    func: images_prepare
+    path: /autocode/images/{id}/prepare
+
+  # chestor.autocode.api:workspaces_list
+  - name: workspaces_list
+    kind: function.lua
+    meta:
+      comment: "GET /autocode/workspaces - Workspaces the caller can see, with the mount mode its grant gives."
+    source: file://workspace_routes.lua
+    method: list
+    imports:
+      web: chestor.autocode.api:web
+      resources: chestor.autocode.components:resources
+      workspaces: chestor.autocode.runner:workspaces
+
+  # chestor.autocode.api:workspaces_list.user.endpoint
+  - name: workspaces_list.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "GET /autocode/workspaces"
+    method: GET
+    func: workspaces_list
+    path: /autocode/workspaces
+
+  # chestor.autocode.api:workspaces_create
+  - name: workspaces_create
+    kind: function.lua
+    meta:
+      comment: "POST /autocode/workspaces - Register a host directory under the workspace roots as a workspace."
+    source: file://workspace_routes.lua
+    method: create
+    imports:
+      web: chestor.autocode.api:web
+      resources: chestor.autocode.components:resources
+      workspaces: chestor.autocode.runner:workspaces
+
+  # chestor.autocode.api:workspaces_create.endpoint
+  - name: workspaces_create.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "POST /autocode/workspaces"
+    method: POST
+    func: workspaces_create
+    path: /autocode/workspaces
+
+  # chestor.autocode.api:workspaces_delete
+  - name: workspaces_delete
+    kind: function.lua
+    meta:
+      comment: "DELETE /autocode/workspaces/{id} - Delete a workspace; its host directory stays."
+    source: file://workspace_routes.lua
+    method: delete
+    imports:
+      web: chestor.autocode.api:web
+      resources: chestor.autocode.components:resources
+      workspaces: chestor.autocode.runner:workspaces
+
+  # chestor.autocode.api:workspaces_delete.endpoint
+  - name: workspaces_delete.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "DELETE /autocode/workspaces/{id}"
+    method: DELETE
+    func: workspaces_delete
+    path: /autocode/workspaces/{id}
+
+  # chestor.autocode.api:runs_list
+  - name: runs_list
+    kind: function.lua
+    meta:
+      comment: "GET /autocode/runs - The caller's runs, newest first."
+    source: file://runs.lua
+    method: list
+    imports:
+      web: chestor.autocode.api:web
+      repo: chestor.autocode.persist:repo
+      runs: chestor.autocode.runner:runs
+
+  # chestor.autocode.api:runs_list.user.endpoint
+  - name: runs_list.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "GET /autocode/runs"
+    method: GET
+    func: runs_list
+    path: /autocode/runs
+
+  # chestor.autocode.api:runs_create
+  - name: runs_create
+    kind: function.lua
+    meta:
+      comment: "POST /autocode/runs - Admit a task under the caller's grants and submit its run."
+    source: file://runs.lua
+    method: create
+    imports:
+      web: chestor.autocode.api:web
+      repo: chestor.autocode.persist:repo
+      runs: chestor.autocode.runner:runs
+
+  # chestor.autocode.api:runs_create.user.endpoint
+  - name: runs_create.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "POST /autocode/runs"
+    method: POST
+    func: runs_create
+    path: /autocode/runs
+
+  # chestor.autocode.api:runs_preview
+  - name: runs_preview
+    kind: function.lua
+    meta:
+      comment: "POST /autocode/runs/preview - The launch a run with this body would get."
+    source: file://runs.lua
+    method: preview
+    imports:
+      web: chestor.autocode.api:web
+      repo: chestor.autocode.persist:repo
+      runs: chestor.autocode.runner:runs
+
+  # chestor.autocode.api:runs_preview.user.endpoint
+  - name: runs_preview.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "POST /autocode/runs/preview"
+    method: POST
+    func: runs_preview
+    path: /autocode/runs/preview
+
+  # chestor.autocode.api:runs_get
+  - name: runs_get
+    kind: function.lua
+    meta:
+      comment: "GET /autocode/runs/{id} - One of the caller's runs with a page of its event log."
+    source: file://runs.lua
+    method: get
+    imports:
+      web: chestor.autocode.api:web
+      repo: chestor.autocode.persist:repo
+      runs: chestor.autocode.runner:runs
+
+  # chestor.autocode.api:runs_get.user.endpoint
+  - name: runs_get.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "GET /autocode/runs/{id}"
+    method: GET
+    func: runs_get
+    path: /autocode/runs/{id}
+
+  # chestor.autocode.api:runs_cancel
+  - name: runs_cancel
+    kind: function.lua
+    meta:
+      comment: "POST /autocode/runs/{id}/cancel - Cancel one of the caller's runs and stop its container."
+    source: file://runs.lua
+    method: cancel
+    imports:
+      web: chestor.autocode.api:web
+      repo: chestor.autocode.persist:repo
+      runs: chestor.autocode.runner:runs
+    security:
+      policies:
+        - chestor.autocode.security:docker_commands
+
+  # chestor.autocode.api:runs_cancel.user.endpoint
+  - name: runs_cancel.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "POST /autocode/runs/{id}/cancel"
+    method: POST
+    func: runs_cancel
+    path: /autocode/runs/{id}/cancel
+
+  # chestor.autocode.api:maintenance_prune
+  - name: maintenance_prune
+    kind: function.lua
+    meta:
+      comment: "POST /autocode/maintenance/prune - Reclaim Docker space: stopped autocode containers, dangling layers, old build cache."
+    source: file://maintenance.lua
+    method: prune
+    imports:
+      web: chestor.autocode.api:web
+      docker: chestor.autocode.runner:docker
+    security:
+      policies:
+        - chestor.autocode.security:docker_commands
+
+  # chestor.autocode.api:maintenance_prune.endpoint
+  - name: maintenance_prune.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "POST /autocode/maintenance/prune"
+    method: POST
+    func: maintenance_prune
+    path: /autocode/maintenance/prune

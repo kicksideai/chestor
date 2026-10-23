@@ -1,0 +1,327 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: chestor.autocode.security
+
+# Module access for members, a separate management capability administrators
+# assign, and the policies of the trusted workers. Members hold no Docker,
+# process or identity capability: the entries that need one declare it.
+# Account, image and workspace grants are component access, checked per
+# resource by the component service.
+
+entries:
+  # chestor.autocode.security:module_access
+  - name: module_access
+    kind: security.policy
+    meta:
+      title: Autocode
+      surface: chestor.autocode
+      intent: module_access
+      includes:
+        - chestor.autocode.security:module_runtime
+        - chestor.autocode.security:member_endpoints
+        - chestor.autocode.security:ui_access
+        - chestor.autocode.security:driver_activation
+        - chestor.autocode.security:service_calls
+    groups: []
+    policy:
+      resources:
+        - chestor.autocode:*
+        - chestor.autocode.api:*
+        - chestor.autocode.blocks:*
+        - chestor.autocode.components:*
+        - chestor.autocode.drivers:*
+        - chestor.autocode.migrations:*
+        - chestor.autocode.persist:*
+        - chestor.autocode.runner:*
+        - chestor.autocode.security:*
+      actions: [registry.get, registry.find]
+      effect: allow
+
+  # chestor.autocode.security:module_runtime
+  - name: module_runtime
+    kind: security.policy
+    meta:
+      private: true
+      comment: Runtime calls members make - the API handlers, the component kinds' contracts, the agent task Block's arm, and the run steps the runner takes under the run owner.
+    groups: []
+    policy:
+      resources:
+        - chestor.autocode.api:*
+        - chestor.autocode.components:*
+        - chestor.autocode.blocks:arm_task
+        - chestor.autocode.runner:prepare
+        - chestor.autocode.runner:keep_credential
+      actions:
+        - contract.get
+        - contract.open
+        - contract.call
+        - contract.implementations
+        - contract.security
+        - funcs.call
+        - funcs.security
+      effect: allow
+
+  # chestor.autocode.security:service_calls
+  - name: service_calls
+    kind: security.policy
+    meta:
+      private: true
+      comment: The component service and settings methods autocode calls under the caller - each one checks the caller's grants itself.
+    groups: []
+    policy:
+      resources:
+        - register
+        - query
+        - get_access_context
+        - set_meta
+        - update
+        - delete
+        - get
+      actions: contract.call
+      effect: allow
+
+  # chestor.autocode.security:member_endpoints
+  - name: member_endpoints
+    kind: security.policy
+    meta:
+      private: true
+    groups: []
+    policy:
+      resources:
+        - chestor.autocode.api:catalog.user.endpoint
+        - chestor.autocode.api:drivers_list.user.endpoint
+        - chestor.autocode.api:accounts_list.user.endpoint
+        - chestor.autocode.api:accounts_create.user.endpoint
+        - chestor.autocode.api:accounts_update.user.endpoint
+        - chestor.autocode.api:accounts_delete.user.endpoint
+        - chestor.autocode.api:images_list.user.endpoint
+        - chestor.autocode.api:images_get.user.endpoint
+        - chestor.autocode.api:workspaces_list.user.endpoint
+        - chestor.autocode.api:runs_list.user.endpoint
+        - chestor.autocode.api:runs_create.user.endpoint
+        - chestor.autocode.api:runs_preview.user.endpoint
+        - chestor.autocode.api:runs_get.user.endpoint
+        - chestor.autocode.api:runs_cancel.user.endpoint
+      actions: access
+      effect: allow
+
+  # chestor.autocode.security:ui_access
+  - name: ui_access
+    kind: security.policy
+    meta:
+      private: true
+      comment: Members load the autocode page, the driver account card, the task config editor and their static bundle.
+    groups: []
+    policy:
+      resources:
+        - chestor.autocode:autocode_view
+        - chestor.autocode:driver_account_view
+        - chestor.autocode:task_config_view
+        - chestor.autocode:ui_static
+      actions: access
+      effect: allow
+
+  # chestor.autocode.security:driver_activation
+  - name: driver_activation
+    kind: security.policy
+    meta:
+      private: true
+      comment: Reads the driver activation autocode declares; bee/drivers grants the rest through its access_scope requirement.
+    groups: []
+    policy:
+      resources:
+        - chestor.autocode.drivers:activation
+      actions:
+        - registry.get
+      effect: allow
+
+  # chestor.autocode.security:user_security_scope
+  - name: user_security_scope
+    kind: ns.requirement
+    default: kickside.security.groups:members
+    meta:
+      value_kind: security.scope
+      comment: Application security group that receives the autocode member policies.
+      description: Application security group that receives the autocode member policies.
+    targets:
+      - entry: chestor.autocode.security:module_access
+        path: ".groups +="
+      - entry: chestor.autocode.security:module_runtime
+        path: ".groups +="
+      - entry: chestor.autocode.security:member_endpoints
+        path: ".groups +="
+      - entry: chestor.autocode.security:ui_access
+        path: ".groups +="
+      - entry: chestor.autocode.security:driver_activation
+        path: ".groups +="
+      - entry: chestor.autocode.security:service_calls
+        path: ".groups +="
+
+  # chestor.autocode.security:module_management
+  - name: module_management
+    kind: security.policy
+    meta:
+      title: Autocode management
+      surface: chestor.autocode
+      intent: module_management
+      comment: Images, workspaces and Docker maintenance. Administrators assign it to the groups that manage them; members keep module_access.
+      includes:
+        - chestor.autocode.security:management_runtime
+    groups: []
+    policy:
+      resources:
+        - chestor.autocode.api:images_create.endpoint
+        - chestor.autocode.api:images_update.endpoint
+        - chestor.autocode.api:images_delete.endpoint
+        - chestor.autocode.api:images_prepare.endpoint
+        - chestor.autocode.api:workspaces_create.endpoint
+        - chestor.autocode.api:workspaces_delete.endpoint
+        - chestor.autocode.api:maintenance_prune.endpoint
+        - chestor.autocode:settings_tab_view
+      actions: access
+      effect: allow
+
+  # chestor.autocode.security:management_runtime
+  - name: management_runtime
+    kind: security.policy
+    meta:
+      private: true
+      comment: The build step the image builder takes under the administrator who requested the build.
+    groups: []
+    policy:
+      resources:
+        - chestor.autocode.runner:image_recipe
+      actions: [funcs.call, funcs.security]
+      effect: allow
+
+  # chestor.autocode.security:store
+  - name: store
+    kind: security.policy
+    meta:
+      comment: Trusted workers open the autocode database and read the module's host bindings.
+    policy:
+      resources: "*"
+      actions: [db.get]
+      effect: allow
+
+  # chestor.autocode.security:worker_runtime
+  - name: worker_runtime
+    kind: security.policy
+    meta:
+      comment: Trusted workers read the registry and call the contracts and functions of autocode and of the modules it runs on.
+    policy:
+      resources:
+        - chestor.autocode:*
+        - chestor.autocode.api:*
+        - chestor.autocode.blocks:*
+        - chestor.autocode.components:*
+        - chestor.autocode.drivers:*
+        - chestor.autocode.migrations:*
+        - chestor.autocode.persist:*
+        - chestor.autocode.runner:*
+        - chestor.autocode.security:*
+        - bee.drivers:*
+        - bee.drivers.*
+        - kickside.settings:*
+        - kickside.core.jobs:*
+        - kickside.core.jobs.*
+        - kickside.execution:*
+        - kickside.component:*
+        - kickside.component.*
+      actions:
+        - registry.get
+        - registry.find
+        - contract.get
+        - contract.open
+        - contract.call
+        - contract.implementations
+        - contract.security
+        - funcs.call
+        - funcs.security
+      effect: allow
+
+  # chestor.autocode.security:deferred_runs
+  - name: deferred_runs
+    kind: security.policy
+    meta:
+      comment: The runner resolves a run owner's stored execution identity.
+    policy:
+      resources: chestor.autocode:runs
+      actions: kickside.execution.defer
+      effect: allow
+
+  # chestor.autocode.security:deferred_images
+  - name: deferred_images
+    kind: security.policy
+    meta:
+      comment: The image builder resolves the stored execution identity of the administrator who requested a build.
+    policy:
+      resources: chestor.autocode:images
+      actions: kickside.execution.defer
+      effect: allow
+
+  # chestor.autocode.security:deferred_actor
+  - name: deferred_actor
+    kind: security.policy
+    meta:
+      comment: Workers construct the live principal actor after Users resolution.
+    policy:
+      resources: "*"
+      actions: security.actor.create
+      effect: allow
+
+  # chestor.autocode.security:docker_commands
+  - name: docker_commands
+    kind: security.policy
+    meta:
+      comment: The only command line the module runs - the docker CLI behind its stderr-merging shell wrapper on the module's executor.
+    policy:
+      resources:
+        - chestor.autocode:docker
+        - "/bin/sh -c 'exec docker \"$@\" 2>&1' sh *"
+      actions: [exec.get, exec.run]
+      effect: allow
+
+  # chestor.autocode.security:run_notify
+  - name: run_notify
+    kind: security.policy
+    meta:
+      comment: The runner tells a run owner's open views that the run changed.
+    policy:
+      resources: [kickside.contract:realtime, kickside.realtime:realtime_binding, kickside.realtime:notify, notify]
+      actions: [contract.get, contract.open, contract.call, realtime.notify]
+      effect: allow
+
+  # chestor.autocode.security:image_status
+  - name: image_status
+    kind: security.policy
+    meta:
+      comment: The image builder settles the public status of image components through the trusted runtime meta write.
+    policy:
+      resources: "*"
+      actions: component.runtime_meta.write
+      effect: allow
+      conditions:
+        - field: meta.impl_id
+          operator: eq
+          value: chestor.autocode.components:image
+
+  # chestor.autocode.security:flow_resume
+  - name: flow_resume
+    kind: security.policy
+    meta:
+      comment: The resume job continues the workflow node a run started - the Blocks resume call and a Workflow run's resume handler.
+    policy:
+      actions: [funcs.call, kickside.execution.defer]
+      resources: [kickside.blocks:resume, kickside.blocks:resume_under_identity, kickside.workflows.runs:resume]
+      effect: allow
+
+  # chestor.autocode.security:flow_identity
+  - name: flow_identity
+    kind: security.policy
+    meta:
+      comment: Blocks resume rebuilds the Flow's stored identity, as the Inbox review resume does.
+    policy:
+      actions: [security.actor.create, security.policy_group.get]
+      resources: "*"
+      effect: allow
