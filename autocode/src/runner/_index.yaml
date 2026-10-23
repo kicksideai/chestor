@@ -63,7 +63,7 @@ entries:
   - name: records
     kind: library.lua
     meta:
-      comment: Folds bee/drivers reader steps into run events.
+      comment: Folds bee/drivers reader steps into clipped run events and a bounded final answer.
     source: file://records.lua
     imports:
       drivers: bee.drivers:drivers

@@ -48,6 +48,29 @@ entries:
     meta: { server: gateway }
     prefix: /api/public
 
+  - name: mock
+    kind: http.router
+    meta: { server: gateway }
+    prefix: /mock
+
+  - name: anthropic
+    kind: library.lua
+    source: file://anthropic.lua
+    modules: [http, json]
+
+  - name: anthropic_messages
+    kind: http.endpoint
+    meta: { router: mock }
+    method: POST
+    path: /v1/messages
+    func: anthropic_messages_handler
+
+  - name: anthropic_messages_handler
+    kind: function.lua
+    source: file://anthropic.lua
+    method: messages
+    modules: [http, json]
+
   - name: dep.wippy.test
     kind: ns.dependency
     component: wippy/test
@@ -362,13 +385,15 @@ entries:
       type: test
       suite: autocode_runs
       group: Autocode
-      comment: Submitted runs settle through their job under the owner, stay the owner's, and retention prunes them.
+      comment: Submitted runs keep complete streamed answers, settle under the owner, stay the owner's, and retention prunes them.
     source: file://suites/runs_test.lua
     method: run
     modules: [time, funcs]
     imports:
       test: wippy.test:test
       identity: app:identity
+      anthropic: app:anthropic
+      docker: chestor.autocode.runner:docker
     security:
       actor: { id: app:test_runner }
       policies: [app:test_runtime]
@@ -379,7 +404,7 @@ entries:
       type: test
       suite: autocode_records
       group: Autocode
-      comment: Run records end a log with the run's outcome, never a copy of its stored answer.
+      comment: Run records retain the final streamed answer separately from clipped log events.
     source: file://suites/records_test.lua
     method: run
     imports:

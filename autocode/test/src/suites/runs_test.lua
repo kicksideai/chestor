@@ -1,13 +1,15 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 -- The durable run path: a member's submission records the run with its job,
 -- the runner resolves the member's identity, admits the run again under it
--- and settles it. The image reference does not exist, so Docker refuses the
--- container and the run settles as failed through the real worker. Runs stay
--- their owner's, and retention removes settled runs with their events.
+-- and settles it. A local Messages stream supplies a complete result; a
+-- missing image settles as failed through the real worker. Runs stay their
+-- owner's, and retention removes settled runs with their events.
 local test = require("test")
 local identity = require("identity")
 local time = require("time")
 local funcs = require("funcs")
+local anthropic = require("anthropic")
+local docker = require("docker")
 
 local READ = 1
 local SECRET = "sk-ant-harness-" .. string.rep("r", 32)
@@ -31,7 +33,7 @@ local function cases()
             test.eq(response.status, 200, response.body)
         end
 
-        local function setup()
+        local function setup(image_ref, endpoint)
             local admin = track(identity.admin())
             local member = track(identity.member())
             local listed = identity.request(admin, "GET", "/autocode/drivers")
@@ -40,14 +42,14 @@ local function cases()
                 if driver.id == "claude" then allows = driver.capabilities end
             end
             local image_id, err = identity.call(admin, "app:fixture_register", "image", {title = "Missing image",
-                ref = "chestor-autocode-harness:missing", home = "/opt/agent", status = "ready", agents = {"claude"}, last_error = ""},
-                {dockerfile = "", settings = {network = "none", allows = allows}})
+                ref = image_ref or "chestor-autocode-harness:missing", home = "/opt/agent", status = "ready", agents = {"claude"}, last_error = ""},
+                {dockerfile = "", settings = {network = endpoint and "bridge" or "none", allows = allows}})
             test.is_nil(err)
             share(admin, image_id, READ)
             local created = identity.request(member, "POST", "/autocode/accounts",
-                {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "Key", secret = SECRET})
+                {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "Key", secret = SECRET, endpoint = endpoint})
             test.eq(created.status, 201, created.body)
-            return member, image_id
+            return member, image_id, created.json.id
         end
 
         -- settled waits for the runner to settle the run.
@@ -62,6 +64,27 @@ local function cases()
                 time.sleep("250ms")
             end
         end
+
+        test.it("stores the complete final answer from a local Messages stream", function()
+            local image_ref = "chestor-autocode-harness:claude"
+            local output = {}
+            local code, err = docker.run({"build", "-t", image_ref, "-"}, {stdin = [[
+FROM node:22-bookworm-slim
+RUN npm install -g @anthropic-ai/claude-code@2.1.307
+RUN mkdir -p /opt/agent && chown node:node /opt/agent
+USER node
+]], on_line = function(line) output[#output + 1] = line end})
+            test.is_nil(err)
+            test.eq(code, 0, table.concat(output, "\n"))
+            local member, image_id, account_id = setup(image_ref, {protocol = "anthropic-messages",
+                base_url = "http://host.docker.internal:19347/mock", model = "claude-sonnet-4-6"})
+            local submitted = identity.request(member, "POST", "/autocode/runs",
+                {agent = "claude", image_id = image_id, account_id = account_id, prompt = "Return the fixture answer."})
+            test.eq(submitted.status, 201, submitted.body)
+            local done = settled(member, submitted.json.id)
+            test.eq(done.json.run.status, "succeeded", done.body)
+            test.eq(done.json.run.result, anthropic.answer())
+        end)
 
         test.it("settles a submitted run through its job under the owner", function()
             local member, image_id = setup()

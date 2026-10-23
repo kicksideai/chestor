@@ -7,11 +7,15 @@ local drivers = require("drivers")
 
 type Kind = "assistant" | "reasoning" | "tool" | "tool_result" | "tool_error" | "system" | "error"
 type Event = {kind: Kind, text: string}
-type Segment = {channel: string, text: string, dropped: integer}
-type Folder = {segments: {[string]: Segment}, order: {string}, filter: (string) -> string}
+type Text = {text: string, dropped: integer}
+type Segment = {channel: string, text: string, dropped: integer, answer: Text?}
+type Folder = {segments: {[string]: Segment}, order: {string}, filter: (string) -> string, answer: Text?}
 
 local M = {}
 
+-- Results retain up to 1 MiB independently of the log to bound run memory
+-- and storage while keeping long final answers.
+M.MAX_RESULT_BYTES = 1024 * 1024
 local MAX_TEXT = 8000
 -- A held segment keeps a margin past MAX_TEXT so the filter sees whole
 -- credentials before the text is clipped.
@@ -38,14 +42,18 @@ local function content_text(content: {text: string?, artifact_ref: string?}): st
     return ""
 end
 
-local function grow(segment: Segment, text: string)
-    local room = HELD_TEXT - #segment.text
+local function grow(segment: Text, text: string, limit: integer)
+    local room = limit - #segment.text
     if room >= #text then
         segment.text = segment.text .. text
         return
     end
     if room > 0 then segment.text = segment.text .. text:sub(1, room) end
     segment.dropped = segment.dropped + #text - math.max(room, 0)
+end
+
+local function completed(folder: Folder, segment: Segment)
+    if segment.answer and segment.answer.text ~= "" then folder.answer = segment.answer end
 end
 
 local function event_of(folder: Folder, segment: Segment): Event
@@ -67,39 +75,71 @@ end
 local function flush(folder: Folder, out: {Event})
     for _, id in ipairs(folder.order) do
         local segment = folder.segments[id]
-        if segment and segment.text ~= "" then out[#out + 1] = event_of(folder, segment) end
+        if segment then
+            completed(folder, segment)
+            if segment.text ~= "" then out[#out + 1] = event_of(folder, segment) end
+        end
     end
     folder.segments = {}
     folder.order = {}
 end
 
-local function text_observation(folder: Folder, data: {segment_id: string, operation: string, text: string, channel: string}, out: {Event})
+local function text_observation(folder: Folder, data: {segment_id: string, operation: string, text: string, channel: string}, out: {Event}, continues: boolean)
     local id = data.segment_id
     local segment = folder.segments[id]
     if not segment then
         if #folder.order >= MAX_OPEN_SEGMENTS then
             local oldest = folder.order[1]
             local held = folder.segments[oldest]
-            if held and held.text ~= "" then out[#out + 1] = event_of(folder, held) end
+            if held then
+                completed(folder, held)
+                if held.text ~= "" then out[#out + 1] = event_of(folder, held) end
+            end
             forget(folder, oldest)
         end
         segment = {channel = data.channel, text = "", dropped = 0}
+        if data.channel == "answer" then segment.answer = {text = "", dropped = 0} end
         folder.segments[id] = segment
         folder.order[#folder.order + 1] = id
     end
-    if data.operation == "replace" then segment.text, segment.dropped = "", 0 end
-    grow(segment, data.text)
+    if data.operation == "replace" then
+        segment.text, segment.dropped = "", 0
+        if segment.answer then segment.answer = {text = "", dropped = 0} end
+    end
+    grow(segment, data.text, HELD_TEXT)
+    if segment.answer then grow(segment.answer, data.text, M.MAX_RESULT_BYTES) end
     if data.operation == "complete" then
+        out[#out + 1] = event_of(folder, segment)
+        if continues then
+            segment.text, segment.dropped = "", 0
+            return
+        end
         -- A completed message supersedes the streamed deltas of the same
         -- text held under another segment.
         local superseded: {string} = {}
         for other_id, other in pairs(folder.segments) do
-            if other_id ~= id and other.channel == segment.channel and other.text == segment.text then superseded[#superseded + 1] = other_id end
+            local same = other.text == segment.text
+            if segment.answer and other.answer then
+                same = other.answer.text == segment.answer.text and other.answer.dropped == segment.answer.dropped
+            end
+            if other_id ~= id and other.channel == segment.channel and same then superseded[#superseded + 1] = other_id end
         end
         for _, other_id in ipairs(superseded) do forget(folder, other_id) end
-        out[#out + 1] = event_of(folder, segment)
+        completed(folder, segment)
         forget(folder, id)
     end
+end
+
+-- The folder owns streamed answer selection; the runner redacts the result
+-- before storing it. A terminal answer supplies text only without a stream.
+function M.result(folder: Folder, terminal: drivers.Terminal?): string
+    local answer = folder.answer
+    if not answer then
+        answer = {text = "", dropped = 0}
+        grow(answer, terminal and terminal.answer or "", M.MAX_RESULT_BYTES)
+    end
+    if answer.dropped > 0 then return answer.text .. " [truncated " .. tostring(answer.dropped) .. " bytes]" end
+    return answer.text
 end
 
 -- step folds one reader step: frames the reader could not decode, then its
@@ -109,10 +149,15 @@ function M.step(folder: Folder, step: drivers.Step): {Event}
     for _, problem in ipairs(step.problems) do
         out[#out + 1] = {kind = "system", text = shown(folder, "output frame " .. tostring(problem.index) .. ": " .. problem.message)}
     end
-    for _, observation in ipairs(step.observations) do
+    for index, observation in ipairs(step.observations) do
         local data = observation.data
         if data.type == "text" then
-            text_observation(folder, data, out)
+            -- A reader splits a completed segment into consecutive pieces.
+            local next_observation = step.observations[index + 1]
+            local following = next_observation and next_observation.data
+            local continues = data.operation == "complete" and following ~= nil and following.type == "text"
+                and following.segment_id == data.segment_id and following.operation == "complete" and following.channel == data.channel
+            text_observation(folder, data, out, continues)
         else
             flush(folder, out)
             if data.type == "tool.call" then

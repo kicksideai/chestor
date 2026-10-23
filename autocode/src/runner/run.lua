@@ -249,7 +249,7 @@ local function execute(run: repo.Run, job: {[string]: unknown}): Outcome
     end
     if account_err then emit("error", "account status: " .. tostring(account_err)) end
 
-    local answer = terminal and terminal.answer or ""
+    local answer = records.result(folder, terminal)
     local usage = records.usage(terminal)
     if was_cancelled then
         emit("system", "cancelled")

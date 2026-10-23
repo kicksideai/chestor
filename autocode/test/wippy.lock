@@ -3,8 +3,8 @@ directories:
     src: ./src
 modules:
     - name: bee/drivers
-      version: 0.1.13
-      hash: 8776bcd4dcadd67b3eb2a5e72d70d279c703e7ca5d4685a12353bd933962e037
+      version: 0.1.14
+      hash: 4f6ca55c52174d6b27201398d53cf4d88055a80f4dfc8c47c3c67a901a162410
     - name: chestor/autocode
       version: 0.0.0
     - name: kickside/blocks
