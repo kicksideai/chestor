@@ -76,6 +76,7 @@ entries:
     source: file://docker.lua
     modules:
       - exec
+      - stream
     imports:
       quote: chestor.autocode.runner:quote
 

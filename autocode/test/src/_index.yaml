@@ -433,3 +433,35 @@ entries:
     file_mode: 384
     lifecycle:
       auto_start: true
+
+  - name: runner_stubs
+    kind: library.lua
+    source: file://runner_stubs.lua
+    modules: [time]
+
+  # Distinct alias IDs keep each subject's dependency edges unique.
+
+  - name: stub_exec
+    kind: library.lua
+    source: file://stub_alias.lua
+    imports:
+      stubs: app:runner_stubs
+
+  - name: docker_subject
+    kind: library.lua
+    source: file://docker_subject.lua
+    modules: [stream]
+    imports:
+      exec: app:stub_exec
+      quote: chestor.autocode.runner:quote
+
+  - name: docker_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_docker, group: Autocode}
+    source: file://suites/docker_test.lua
+    modules: [registry]
+    method: run
+    imports:
+      test: wippy.test:test
+      docker_subject: app:docker_subject
+      stubs: app:runner_stubs
