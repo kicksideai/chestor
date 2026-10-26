@@ -210,6 +210,7 @@ entries:
       - { name: chestor.autocode:api_router, value: app:api }
       - { name: chestor.autocode:ui_server, value: app:gateway }
       - { name: chestor.autocode:workspace_roots, value: /srv/autocode-harness }
+      - { name: chestor.autocode:settings_path, value: "/settings?tab=autocode" }
 
   - name: test_runtime
     kind: security.policy
@@ -538,6 +539,7 @@ entries:
   - name: resume_subject
     kind: library.lua
     source: file://resume_subject.lua
+    modules: [security]
     imports:
       funcs: app:stub_funcs
       repo: app:stub_repo
@@ -599,6 +601,7 @@ entries:
     source: file://docker_subject.lua
     modules: [stream]
     imports:
+      registry: app:stub_registry
       exec: app:stub_exec
       quote: chestor.autocode.runner:quote
 
@@ -690,3 +693,108 @@ entries:
       test: wippy.test:test
       subject: app:retention_subject
       stubs: app:runner_stubs
+
+  - name: task_probe
+    kind: function.lua
+    source: file://task_probe.lua
+    method: call
+    modules: [contract, funcs]
+
+  - name: tasks_contract_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_tasks_contract, group: Autocode}
+    source: file://suites/tasks_contract_test.lua
+    method: run
+    modules: [registry, uuid, json, sql]
+    imports:
+      test: wippy.test:test
+      identity: app:identity
+      repo: chestor.autocode.persist:repo
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: image_requests_subject
+    kind: library.lua
+    source: file://image_requests_subject.lua
+    modules: [security, uuid, logger]
+    imports:
+      repo: app:stub_repo
+      deferred: app:stub_deferred
+      drivers: app:stub_drivers
+      values: chestor.autocode.service:values
+
+  - name: image_requests_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_image_requests, group: Autocode}
+    source: file://suites/image_requests_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      subject: app:image_requests_subject
+      stubs: app:runner_stubs
+
+  - name: image_management_subject
+    kind: library.lua
+    source: file://image_management_subject.lua
+    imports:
+      repo: app:stub_repo
+      resources: app:stub_resources
+      images: app:image_requests_subject
+      projections: chestor.autocode.service:projections
+      values: chestor.autocode.service:values
+      boundary: chestor.autocode.service:boundary
+      docker: app:stub_docker
+
+  - name: image_management_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_image_management, group: Autocode}
+    source: file://suites/image_management_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      subject: app:image_management_subject
+      stubs: app:runner_stubs
+
+  - name: tasks_subject
+    kind: library.lua
+    source: file://tasks_subject.lua
+    modules: [security, ctx, registry]
+    imports:
+      boundary: chestor.autocode.service:boundary
+      values: chestor.autocode.service:values
+      resources: app:stub_resources
+      drivers: app:stub_drivers
+      credentials: chestor.autocode.runner:credentials
+      runs: app:stub_runs
+      repo: app:stub_repo
+      accounts: chestor.autocode.service:accounts
+      projections: chestor.autocode.service:projections
+
+  - name: task_replay_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_task_replay, group: Autocode}
+    source: file://suites/task_replay_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      subject: app:tasks_subject
+      stubs: app:runner_stubs
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: resume_dispatch
+    kind: function.lua
+    source: file://task_probe.lua
+    method: resume_dispatch
+    modules: [contract, funcs]
+    security:
+      policies: [app:resume_dispatch_authority]
+
+  - name: resume_dispatch_authority
+    kind: security.policy
+    policy:
+      resources: chestor.autocode.blocks:resume
+      actions: funcs.call
+      effect: allow

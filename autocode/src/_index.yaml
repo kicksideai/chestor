@@ -170,6 +170,27 @@ entries:
       - entry: chestor.autocode:docker
         path: .default_env.PATH
 
+  - name: docker_executor
+    kind: ns.requirement
+    default: chestor.autocode:docker
+    meta:
+      value_kind: exec
+      comment: Host-owned executor for the Docker CLI, on a host that can reach the selected daemon.
+    targets:
+      - entry: chestor.autocode:runtime_config
+        path: .meta.docker_executor
+      - entry: chestor.autocode.security:docker_commands
+        path: .policy.resources +=
+
+  - name: docker_context
+    kind: ns.requirement
+    default: ""
+    meta:
+      comment: Docker CLI context selected by the host; empty uses the executor's default context.
+    targets:
+      - entry: chestor.autocode:runtime_config
+        path: .meta.docker_context
+
   # chestor.autocode:docker
   - name: docker
     kind: exec.native
@@ -271,6 +292,15 @@ entries:
     order: 80
     render: component
     component_tag: chestor-autocode-admin
+
+  - name: settings_path
+    kind: ns.requirement
+    default: ""
+    meta:
+      comment: Host-mounted URL for the Autocode settings tab; empty hides the navigation link.
+    targets:
+      - entry: chestor.autocode:settings_tab
+        path: .path
 
   # ─── Settings ────────────────────────────────────────────────────────
   - name: setting.run_timeout

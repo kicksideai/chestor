@@ -33,9 +33,9 @@ function repo.next_seq(run_id: string): (integer?, error?)
     return math.floor(value) + 1, nil
 end
 
-function repo.events(run_id: string, after_seq: integer): ({RunEvent}?, error?)
+function repo.events(run_id: string, after_seq: integer, limit: integer?): ({RunEvent}?, error?)
     local rows, err = query([[SELECT seq, kind, text, created_at FROM chestor_autocode_run_events
-        WHERE run_id = $1 AND seq > $2 ORDER BY seq LIMIT $3]], {run_id, after_seq, db.EVENTS_PAGE})
+        WHERE run_id = $1 AND seq > $2 ORDER BY seq LIMIT $3]], {run_id, after_seq, limit or db.EVENTS_PAGE})
     return decode(rows, err, event)
 end
 

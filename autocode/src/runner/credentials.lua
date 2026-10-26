@@ -33,10 +33,16 @@ end
 -- check returns why a secret cannot be the credential `kind` holds: a login
 -- file the driver reads as JSON must be a JSON object, and a key or token is
 -- one line.
+function M.format(kind: Kind): string
+    if kind.variable then return "single_line" end
+    if kind.file and kind.file.content_format == "json" then return "json_object" end
+    return "text"
+end
+
 function M.check(kind: Kind, secret: string): string?
     if kind.file and kind.file.content_format == "json" then
         local decoded = json.decode(secret)
-        if type(decoded) ~= "table" or decoded[1] ~= nil then return "~/" .. kind.file.path .. " must be a JSON object" end
+        if secret:sub(1, 1) ~= "{" or type(decoded) ~= "table" or decoded[1] ~= nil then return "~/" .. kind.file.path .. " must be a JSON object" end
     end
     if kind.variable and secret:find("[\r\n]") then return kind.variable .. " must be a single line" end
     return nil

@@ -32,7 +32,7 @@ const refresh = serial(async () => {
   try {
     const data = await autocode.workspaces()
     workspaces.value = data.workspaces
-    roots.value = data.roots
+    roots.value = data.roots ?? []
     loaded.value = true
     error.value = ''
   } catch (e) {

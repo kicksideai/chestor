@@ -72,10 +72,11 @@ function showLog(image: Image) {
 }
 function closeLog() { logGeneration++; log.value = null }
 
-async function saved() {
+async function saved(warning?: string) {
   editing.value = null
   adding.value = false
   await refresh()
+  if (warning) error.value = warning
 }
 
 async function remove(image: Image) {

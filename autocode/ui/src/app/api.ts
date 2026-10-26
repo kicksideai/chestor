@@ -108,6 +108,7 @@ export function errorText(e: unknown, fallback: string): string {
 }
 
 const idResponse = z.object({ id: z.string() })
+const imageCreated = idResponse.extend({ build_error: errorFields.extend({ message: z.string() }).optional() })
 export const autocode = {
   catalog: () => call('get', '/catalog', dto.catalog),
   accounts: () => call('get', '/accounts', z.object({ accounts: z.array(dto.account) })).then(r => r.accounts),
@@ -116,16 +117,16 @@ export const autocode = {
   deleteAccount: (id: string) => call('delete', `/accounts/${encodeURIComponent(id)}`, success),
   images: () => call('get', '/images', z.object({ images: z.array(dto.image) })).then(r => r.images),
   image: (id: string) => call('get', `/images/${encodeURIComponent(id)}`, dto.imageDetail),
-  createImage: (body: ImageSettings & { ref: string; dockerfile: string }) => call('post', '/images', idResponse, body),
+  createImage: (body: ImageSettings & { ref: string; dockerfile: string }) => call('post', '/images', imageCreated, body),
   updateImage: (id: string, body: ImageSettings) => call('put', `/images/${encodeURIComponent(id)}`, success, body),
   deleteImage: (id: string, removeFromDocker: boolean) => call('delete', `/images/${encodeURIComponent(id)}${removeFromDocker ? '?remove=1' : ''}`, success),
   prepareImage: (id: string) => call('post', `/images/${encodeURIComponent(id)}/prepare`, success),
   prune: () => call('post', '/maintenance/prune', z.object({ output: z.string() })).then(r => r.output),
-  workspaces: () => call('get', '/workspaces', z.object({ workspaces: z.array(dto.workspace), roots: z.array(z.string()) })),
+  workspaces: () => call('get', '/workspaces', z.object({ workspaces: z.array(dto.workspace), roots: z.array(z.string()).optional() })),
   createWorkspace: (body: { name: string; host_path: string }) => call('post', '/workspaces', idResponse, body),
   deleteWorkspace: (id: string) => call('delete', `/workspaces/${encodeURIComponent(id)}`, success),
   drivers: () => call('get', '/drivers', z.object({ drivers: z.array(dto.driverInfo) })).then(r => r.drivers),
-  runs: () => call('get', '/runs', z.object({ runs: z.array(dto.run) })).then(r => r.runs),
+  runs: (cursor?: string) => call('get', `/runs${cursor ? '?cursor=' + encodeURIComponent(cursor) : ''}`, z.object({ runs: z.array(dto.runSummary), next_cursor: z.string().optional() })),
   run: (id: string, after: number) => call('get', `/runs/${encodeURIComponent(id)}?after=${after}`, z.object({ run: dto.run, events: z.array(dto.runEvent), more: z.boolean() })),
   startRun: (body: { agent: string; account_id: string; image_id: string; workspace_id: string; repo_url: string; prompt: string; options: Record<string, unknown>; unattended: boolean }) => call('post', '/runs', idResponse, body),
   cancelRun: (id: string) => call('post', `/runs/${encodeURIComponent(id)}/cancel`, success),

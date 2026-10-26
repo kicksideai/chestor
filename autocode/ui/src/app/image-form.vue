@@ -9,7 +9,7 @@ import { autocode, errorText, type ImageDetail, type ImageRunSettings, type Imag
 // home and run settings of the image in `edit`. capabilities: what agents may
 // be allowed in a container, from the activated drivers; null while loading.
 const props = defineProps<{ edit: ImageDetail | null; capabilities: string[] | null }>()
-const emit = defineEmits<{ saved: []; cancel: [] }>()
+const emit = defineEmits<{ saved: [warning?: string]; cancel: [] }>()
 const catalog = useRequiredCatalog()
 
 type Form = ImageSettings & { ref: string; mode: 'build' | 'pull'; dockerfile: string; extra: string }
@@ -63,14 +63,16 @@ async function save() {
   error.value = ''
   saving.value = true
   try {
+    let warning: string | undefined
     if (props.edit) {
       await autocode.updateImage(props.edit.image.id, settings())
     } else {
       const f = form.value
-      await autocode.createImage({ ...settings(), ref: f.ref, dockerfile: f.mode === 'build' ? f.dockerfile : '' })
+      const created = await autocode.createImage({ ...settings(), ref: f.ref, dockerfile: f.mode === 'build' ? f.dockerfile : '' })
+      if (created.build_error) warning = `Image created. Build preparation has not started: ${created.build_error.message}. Use Prepare image to retry.`
       form.value = blank()
     }
-    emit('saved')
+    emit('saved', warning)
   } catch (e) {
     error.value = errorText(e, 'Could not save the image.')
   } finally {

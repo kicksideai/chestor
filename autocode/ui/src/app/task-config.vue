@@ -171,6 +171,10 @@ useHostVisibilityRefresh(serial(async () => {
         :locked="config.unattended !== false && driver.unattended ? driver.unattended : {}" @invalid="optionsValidity" @update:model-value="(v: Record<string, unknown>) => set({ options: v })" />
       <p v-if="invalidOptions" class="kx-err" role="alert">Driver options are invalid. These drafts and further changes are not applied to the workflow until all options are valid.</p>
       <label class="tc-field">
+        <span class="tc-lbl">Timeout</span>
+        <input class="tc-input tc-mono kx-focus-halo" :value="config.timeout" placeholder="Use configured timeout" @change="set({ timeout: ($event.target as HTMLInputElement).value })" />
+      </label>
+      <label class="tc-field">
         <span class="tc-lbl">Git repository</span>
         <input class="tc-input tc-mono kx-focus-halo" :value="config.repo_url" placeholder="optional" @change="set({ repo_url: ($event.target as HTMLInputElement).value })" />
       </label>

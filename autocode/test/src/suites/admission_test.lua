@@ -88,7 +88,7 @@ local function cases()
 
             local _, unknown = admit(member, {image_id = image_id, workspace_id = workspace_id})
             test.not_nil(unknown)
-            test.not_nil(tostring(unknown):find("unknown workspace", 1, true), tostring(unknown))
+            test.not_nil(tostring(unknown):find("select a workspace", 1, true), tostring(unknown))
 
             test.is_nil(share(admin, workspace_id, READ))
             local read_only, read_err = admit(member, {image_id = image_id, workspace_id = workspace_id})

@@ -2,8 +2,9 @@
 -- Live run updates for the owner's open autocode views over
 -- kickside.contract:realtime. The topic names what changed; the view reads
 -- the committed state from the module endpoints. Account, image and
--- workspace changes reach views as component meta changes.
+-- workspace changes reach views on their component topics.
 local contract = require("contract")
+local component = require("component")
 
 local M = {}
 
@@ -31,6 +32,18 @@ local function realtime(): (Realtime?, error?)
     end
     opened = instance :: Realtime
     return opened, nil
+end
+
+-- The component service resolves the current READ audience, including group
+-- and inherited grants; no worker selects notification recipients.
+function M.account(account_id: string): error?
+    local result, err = component.notify_access(account_id, nil, {event = "autocode.account.changed"})
+    if err then return err end
+    if not result or result.success ~= true then
+        return errors.new({kind = errors.UNAVAILABLE, message = "account notification refused", retryable = true,
+            details = {code = "autocode.account_notification_failed"}})
+    end
+    return nil
 end
 
 function M.notify(owner_id: string, topic: string): error?

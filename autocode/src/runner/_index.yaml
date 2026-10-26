@@ -16,6 +16,8 @@ entries:
     meta:
       comment: Live run updates for the run owner's open autocode views over kickside.contract:realtime.
     source: file://live.lua
+    imports:
+      component: kickside.component:component
     modules:
       - contract
 
@@ -77,6 +79,7 @@ entries:
       comment: Runs the docker CLI on the host executor with merged, line-streamed output, and copies files out of containers.
     source: file://docker.lua
     modules:
+      - registry
       - exec
       - stream
     imports:

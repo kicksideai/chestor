@@ -40,7 +40,7 @@ export function formatDuration(ms: number) {
   return `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`
 }
 
-export function duration(run: Run, now = Date.now()) {
+export function duration(run: Pick<Run, 'started_at' | 'finished_at' | 'status'>, now = Date.now()) {
   if (!run.started_at) return '—'
   const running = run.status === 'running' || run.status === 'queued'
   const ms = running ? now - Date.parse(run.started_at)

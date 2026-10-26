@@ -9,7 +9,7 @@ import AppDialog from './app-dialog.vue'
 import { agentIcon, relativeTime, duration, useRunClock } from './presentation.ts'
 import TaskForm from './task-form.vue'
 import RunDetail from './run-detail.vue'
-import { autocode, errorText, live, serial, shortTime, type Account, type DriverInfo, type Image, type Run, type Workspace } from './api.ts'
+import { autocode, errorText, live, serial, shortTime, type Account, type DriverInfo, type Image, type RunSummary, type Workspace } from './api.ts'
 import { useComponentTopics } from './live.ts'
 
 const props = defineProps<{ query: string }>()
@@ -22,31 +22,51 @@ const accounts = ref<Account[]>([])
 const images = ref<Image[]>([])
 const workspaces = ref<Workspace[]>([])
 const drivers = ref<DriverInfo[]>([])
-const runs = ref<Run[]>([])
+const runs = ref<RunSummary[]>([])
+const nextCursor = ref<string>()
 const loaded = ref(false)
 const error = ref('')
 const selected = ref<string | null>(null)
 const now = useRunClock()
 
+const refreshing = ref(false)
+let generation = 0
 const refreshAll = serial(async () => {
+  generation++
+  refreshing.value = true
   try {
     const [a, i, r, w, d] = await Promise.all([autocode.accounts(), autocode.images(), autocode.runs(), autocode.workspaces(), autocode.drivers()])
     accounts.value = a
     images.value = i
-    runs.value = r
+    runs.value = r.runs
+    nextCursor.value = r.next_cursor
     workspaces.value = w.workspaces
     drivers.value = d
     loaded.value = true
     error.value = ''
   } catch (e) {
     error.value = errorText(e, 'Could not load tasks.')
-  }
+  } finally { refreshing.value = false }
 })
 const unsubscribeRuns = live.runs(() => { void refreshAll() })
 useComponentTopics(() => [...images.value, ...accounts.value].map(i => i.id), () => { void refreshAll() })
 useHostVisibilityRefresh(refreshAll)
 onUnmounted(unsubscribeRuns)
 
+const loadingMore = ref(false)
+async function more() {
+  if (!nextCursor.value || loadingMore.value || refreshing.value) return
+  loadingMore.value = true
+  try {
+    const version = generation
+    const page = await autocode.runs(nextCursor.value)
+    if (generation !== version) return
+    const known = new Set(runs.value.map(run => run.id))
+    runs.value.push(...page.runs.filter(run => !known.has(run.id)))
+    nextCursor.value = page.next_cursor
+  } catch (e) { error.value = errorText(e, 'Could not load more tasks.') }
+  finally { loadingMore.value = false }
+}
 async function started(id: string) {
   composing.value = false
   await refreshAll()
@@ -57,7 +77,7 @@ async function started(id: string) {
 function changed() { void refreshAll() }
 
 const usable = computed(() => accounts.value.some(a => a.usable && a.enabled))
-const filtered = computed(() => runs.value.filter(r => [r.prompt, r.status, r.agent, agentTitle(r.agent), accountLabel(r.account_id)].join(' ').toLowerCase().includes(props.query.trim().toLowerCase())))
+const filtered = computed(() => runs.value.filter(r => [r.prompt_summary, r.status, r.agent, agentTitle(r.agent), accountLabel(r.account_id)].join(' ').toLowerCase().includes(props.query.trim().toLowerCase())))
 watch(runs, value => emit('count', value.length))
 function agentTitle(id: string) { return catalog.value.agents.find(a => a.id === id)?.title ?? id }
 function imageLabel(id: string) { return images.value.find(i => i.id === id)?.label ?? 'Unlisted image' }
@@ -83,13 +103,14 @@ function accountLabel(id: string) { return accounts.value.find((a) => a.id === i
       <li v-for="r in filtered" :key="r.id" class="ac-run">
         <button type="button" class="ac-run-main kx-focus-halo" @click="selected = r.id">
           <span class="ac-run-copy">
-            <span class="ac-run-title-row"><span class="ac-run-title">{{ r.prompt.split('\n')[0] }}</span><span class="kx-tag-sm ac-tone" :class="r.status">{{ r.status }}</span><span v-if="r.workflow" class="kx-tag-sm ac-tone">Workflow</span></span>
+            <span class="ac-run-title-row"><span class="ac-run-title">{{ r.prompt_summary.split('\n')[0] }}</span><span class="kx-tag-sm ac-tone" :class="r.status">{{ r.status }}</span><span v-if="r.workflow" class="kx-tag-sm ac-tone">Workflow</span></span>
             <span class="ac-run-meta"><span><Icon :icon="agentIcon(r.agent, catalog.agents)" />{{ agentTitle(r.agent) }}</span><span>{{ accountLabel(r.account_id) }}</span><span>{{ imageLabel(r.image_id) }}</span><span :title="shortTime(r.started_at || r.created_at)">{{ relativeTime(r.started_at || r.created_at, now) }}</span><span v-if="r.started_at">{{ duration(r, now) }} {{ r.status === 'running' ? 'elapsed' : 'duration' }}</span></span>
           </span>
           <Icon icon="tabler:chevron-right" class="ac-run-chevron ac-muted" />
         </button>
       </li>
     </ul>
+    <Button v-if="nextCursor" label="Load more tasks" :loading="loadingMore" :disabled="refreshing" @click="more" />
     <AppDialog v-if="composing" title="New task" wide @close="composing = false">
       <TaskForm :accounts="accounts" :images="images" :workspaces="workspaces" :drivers="drivers" @started="started" @cancel="composing = false" @agent-changed="emit('agentChanged', $event)" @goto="(_tab, agent) => emit('goto', agent)" />
     </AppDialog>

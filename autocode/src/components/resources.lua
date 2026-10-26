@@ -59,7 +59,7 @@ function M.flag(value: unknown, default: boolean): boolean
 end
 
 function M.strings(value: unknown): {string}
-    local result: {string} = {}
+    local result: {string} = table.create(1, 0)
     local decoded = type(value) == "string" and json.decode(value) or value
     if type(decoded) ~= "table" then return result end
     for _, item in ipairs(decoded) do
@@ -140,6 +140,15 @@ end
 function M.patch_context(id: string, patch: Object, expected_revision: integer?): error?
     local _, err = component.update(id, {{type = "PATCH_CONTEXT", payload = {component_id = id, patch = patch}}},
         expected_revision and {expected_revision = expected_revision} or nil)
+    return err
+end
+
+-- Related metadata and private-context changes share one component revision.
+function M.replace(id: string, fields: Object, patch: Object?, revision: integer): error?
+    local commands: {{type: string, payload: Object}} = {}
+    if next(fields) ~= nil then commands[#commands + 1] = {type = "SET_META", payload = {component_id = id, fields = fields}} end
+    if patch then commands[#commands + 1] = {type = "PATCH_CONTEXT", payload = {component_id = id, patch = patch}} end
+    local _, err = component.update(id, commands, {expected_revision = revision})
     return err
 end
 

@@ -102,7 +102,7 @@ async function start() {
     </p>
     <p v-if="!readyImages.length" class="ac-muted">
       No image with {{ agent?.title ?? agentId }}; ask an administrator.
-      <button v-if="catalog.manage && catalog.settings_path" class="ac-link kx-focus-outline" type="button" @click="openImages">Manage images</button>
+      <button v-if="catalog.can_images && catalog.settings_path" class="ac-link kx-focus-outline" type="button" @click="openImages">Manage images</button>
     </p>
     <div class="ac-picker-row">
       <label class="ac-field">

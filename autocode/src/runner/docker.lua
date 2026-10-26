@@ -2,10 +2,9 @@
 -- Runs the docker CLI on the host executor. Output is one merged stream
 -- delivered line by line; secrets arrive only through `env`.
 local exec = require("exec")
+local registry = require("registry")
 local stream = require("stream")
 local quote = require("quote")
-
-local EXECUTOR = "chestor.autocode:docker"
 
 type Options = {
     env: {[string]: string}?,
@@ -36,11 +35,19 @@ end
 -- `sh -c 'exec docker "$@" 2>&1'` folds docker's stderr into stdout so a
 -- single reader drains the child and a full stderr pipe cannot stall it.
 local function start(args: {string}, opts: Options): (Child?, error?)
-    local executor, err = exec.get(EXECUTOR)
+    local config, config_err = registry.get("chestor.autocode:runtime_config")
+    if not config then return nil, fail("docker configuration", config_err) end
+    local executor_id = config.meta.docker_executor
+    local context = config.meta.docker_context
+    if type(executor_id) ~= "string" or executor_id == "" or type(context) ~= "string" then return nil, fail("docker executor and context must be host-bound strings") end
+    local environment: {[string]: string} = {}
+    for key, value in pairs(opts.env or {}) do environment[key] = value end
+    if context ~= "" then environment.DOCKER_CONTEXT = context end
+    local executor, err = exec.get(executor_id)
     if not executor then return nil, fail("docker executor", err) end
     local argv = {"/bin/sh", "-c", 'exec docker "$@" 2>&1', "sh"}
     for _, arg in ipairs(args) do argv[#argv + 1] = arg end
-    local proc, proc_err = executor:exec(quote.line(argv), {env = opts.env or {}})
+    local proc, proc_err = executor:exec(quote.line(argv), {env = environment})
     if not proc then
         executor:release()
         return nil, fail("docker exec", proc_err)

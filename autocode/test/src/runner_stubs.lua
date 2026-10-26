@@ -1,6 +1,6 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 local time = require("time")
-local M = {state = {}, ACCESS = {READ = 1, WRITE = 2}}
+local M = {state = {}, ACCESS = {READ = 1, WRITE = 2, DELETE = 4, ADMIN = 8}}
 function M.reset()
     M.state = {resumes = 0, projects = 0, fetches = 0, stopped = 0, removed = 0, events = {},
         run = {id = "run", owner_id = "owner", account_id = "account", identity = {actor_id = "owner", actor_context = "{}"},
@@ -80,22 +80,39 @@ function M.stop() M.state.stopped = M.state.stopped + 1 end
 function M.remove() M.state.removed = M.state.removed + 1 end
 function M.container_name() return "container" end
 function M.notify() end
+function M.account(id)
+    M.state.health_topics = M.state.health_topics or {}
+    table.insert(M.state.health_topics, "component." .. id)
+end
 M.RUNS_TOPIC = "runs"
 function M.run_topic() return "run" end
 function M.nudge() return errors.new({kind = errors.UNAVAILABLE, message = "pool unavailable"}) end
-function M.enqueue() return function() end end
+function M.enqueue(job) M.state.enqueued = job; return function() end end
+function M.check() return nil end
+function M.capture() return {actor_id = "owner", actor_context = "{}"} end
+function M.request_image_build(id, identity, mode, work, generation)
+    M.state.requested_build = {image_id = id, identity = identity, mode = mode, build_id = generation}
+    if M.state.admission_error then return errors.new({kind = errors.UNAVAILABLE, message = "queue unavailable"}) end
+    if not generation then return errors.new({kind = errors.INVALID, message = "generation required"}) end
+    return nil
+end
 function M.settle_account() end
-function M.get(id)
+function M.get(id, resource_id)
+    if id == "image" and resource_id then return {id = resource_id, meta = {ref = "image"}, access = 15, owner = "owner"} end
+    if id == "account_cooldown" then return M.state.cooldown or "1m" end
     if id == "run_retention" then return M.state.retention or "1m" end
     if id == "account" then return M.state.account end
+    if id == "claude" and M.state.missing_driver then return nil, errors.new({kind = errors.NOT_FOUND, message = "driver removed"}) end
     if id == "claude" then return {id = "claude", credentials = {files = {{path = ".login.json", content_format = "json", write_back = true, initialize = {}}}, variables = {}, subscriptions = {}}} end
     if id == "chestor.autocode:runtime_config" then
         if M.state.registry_error then return nil, M.state.registry_error end
-        return {meta = {workspace_roots = M.state.roots}}
+        return {meta = {workspace_roots = M.state.roots, docker_executor = M.state.executor or "chestor.autocode:docker", docker_context = M.state.docker_context or ""}}
     end
-    if id ~= "chestor.autocode:docker" then return "1m" end
-    return {release = function() end, exec = function(_, command)
+    if id ~= "chestor.autocode:docker" and id ~= M.state.executor then return "1m" end
+    M.state.executor_id = id
+    return {release = function() end, exec = function(_, command, options)
         M.state.command = command
+        M.state.command_env = options.env
         local index = 0
         return {stdout_stream = function() return {close = function() end, read = function()
             index = index + 1
@@ -106,7 +123,7 @@ function M.get(id)
 end
 function M.reader()
     return {feed = function() return {problems = {}, observations = {}} end,
-        finish = function() return {problems = {}, observations = {}, terminal = {outcome = "succeeded"}} end}
+        finish = function() return {problems = {}, observations = {}, terminal = M.state.terminal or {outcome = "succeeded"}} end}
 end
 function M.prepared(value) return value end
 function M.recipe(value) return value end
@@ -116,4 +133,21 @@ function M.patch_context()
     M.state.patched = true
 end
 function M.prune_runs(before) M.state.before = before; return 0 end
+function M.register(_, meta, private)
+    M.state.registered = {meta = meta, private = private}
+    return "created"
+end
+function M.context() return {values = {}, revision = 7, access = 15} end
+function M.set_meta() M.state.meta_written = true end
+function M.replace(id, fields, patch, revision) M.state.replaced = {id = id, fields = fields, patch = patch, revision = revision} end
+function M.has(access, required) return math.floor(access / required) % 2 == 1 end
+
+function M.submit(request) M.state.submitted = request; return "existing-run" end
+
+function M.new()
+    return {with_actor = function(self) M.state.resume_actor_bound = true; return self end,
+        with_scope = function(self) M.state.resume_scope_bound = true; return self end,
+        call = function(_, ...) return M.call(...) end}
+end
+
 return M

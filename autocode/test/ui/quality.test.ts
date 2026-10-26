@@ -22,10 +22,11 @@ import RunDetail from '../../ui/src/app/run-detail.vue'
 
 const driver = { id: 'agent', title: 'Agent', icon: 'tabler:robot', credentials: [{ id: 'key', label: 'Key', hint: '', subscription: false }, { id: 'login', label: 'Login', hint: '', file: 'login.json', subscription: true }], endpoints: ['openai'], capabilities: [], options: [] }
 const settings = { memory: '8g', cpus: '3', pids_limit: 512, gpus: '', network: 'none', extra_args: [], allows: [] }
-const catalog = { agents: [driver], default_image: { ref: 'agent:latest', label: 'Agent', home: '/opt/agent', dockerfile: '', settings }, manage: false }
+const catalog = { agents: [driver], default_image: { ref: 'agent:latest', label: 'Agent', home: '/opt/agent', dockerfile: '', settings }, can_images: false, can_workspaces: false, can_prune: false }
 const account = { id: 'a', agent: 'removed', label: 'Orphan', credential_kind: 'key', subscription: false, enabled: true, owner: 'u', mine: true, usable: false, unavailable_reason: 'driver_inactive', writable: true, deletable: false, last_used_at: '', cooldown_until: '', last_error: '', runs_day: 1, failures_day: 0 }
 const image = { id: 'i', ref: 'agent:latest', label: 'Image', home: '/opt/agent', status: 'ready', agents: ['agent'], last_error: '', owner: 'u', writable: true, deletable: false }
 const run = { id: 'r', agent: 'agent', account_id: 'a', image_id: 'i', options: {}, unattended: false, repo_url: '', prompt: 'Task', status: 'failed', result: 'Partial answer', error: '', usage: { input_tokens: 12, output_tokens: 3, cached_tokens: 0 }, cancel_requested: false, timeout_ms: 1000, workflow: false, created_at: '', started_at: '', finished_at: '' }
+const summary = { ...run, prompt_summary: run.prompt }
 const option = { name: 'config', label: 'Configuration', description: '', section: '', group: '', order: 1, type: 'json', schema: { type: 'object' } }
 const wrappers: { unmount: () => void }[] = []
 function render<T extends Parameters<typeof mount>[0]>(component: T, props?: NonNullable<Parameters<typeof mount<T>>[1]>['props']) {
@@ -40,7 +41,7 @@ function respond(path: string) {
   if (path.endsWith('/images')) return { images: [image] }
   if (path.endsWith('/workspaces')) return { workspaces: [], roots: [] }
   if (path.includes('/runs/r')) return { run, events: [], more: false }
-  if (path.endsWith('/runs')) return { runs: [run] }
+  if (path.endsWith('/runs')) return { runs: [summary] }
   if (path.includes('/principals/')) return { principals: [] }
   throw new Error(path)
 }
@@ -153,7 +154,7 @@ describe('resource views', () => {
     mocks.callbacks.get('chestor.autocode.runs')?.()
     expect(mocks.get.mock.calls.filter(([path]) => path.endsWith('/runs'))).toHaveLength(1)
     normal()
-    complete({ data: { success: true, runs: [run] } })
+    complete({ data: { success: true, runs: [summary] } })
     await flushPromises()
   })
   it('shows actual token usage and partial results for a failed task', async () => {
@@ -327,5 +328,45 @@ describe('loaded task refresh errors', () => {
     await flushPromises()
     expect(w.text()).not.toContain('refresh offline')
     expect(w.text()).toContain('Task')
+  })
+})
+
+describe('image admission', () => {
+  it('reports an already-created image whose build admission fails', async () => {
+    normal()
+    mocks.post.mockResolvedValue({ data: { success: true, id: 'created', build_error: { message: 'Build queue unavailable', kind: 'Unavailable', retryable: true, details: { code: 'queue_unavailable' } } } })
+    const w = render(ImageForm, { edit: null, capabilities: [] })
+    const reference = w.findAll('input').find(input => input.attributes('placeholder')?.includes('name:tag'))
+    expect(reference).toBeDefined()
+    await reference!.setValue('agent:test')
+    const save = w.findAll('button').find(button => button.text().includes('Add image'))
+    await save!.trigger('click')
+    await flushPromises()
+    expect(w.emitted('saved')?.[0]?.[0]).toContain('Build queue unavailable')
+  })
+})
+
+describe('task pagination', () => {
+  it('loads successive cursors without replacing earlier pages', async () => {
+    normal()
+    mocks.get.mockImplementation(async (path: string) => {
+      const page = path.endsWith('/runs') ? { runs: [{ ...summary, id: 'one', prompt_summary: 'Task one' }], next_cursor: 'two' }
+        : path.endsWith('/runs?cursor=two') ? { runs: [{ ...summary, id: 'two', prompt_summary: 'Task two' }], next_cursor: 'three' }
+        : path.endsWith('/runs?cursor=three') ? { runs: [{ ...summary, id: 'three', prompt_summary: 'Task three' }] }
+        : respond(path)
+      return { data: { success: true, ...page } }
+    })
+    const w = render(Tasks, { query: '' })
+    await flushPromises()
+    const more = () => w.findAll('button-stub').find(button => button.attributes('label') === 'Load more tasks')
+    expect(more()).toBeDefined()
+    await more()!.trigger('click')
+    await flushPromises()
+    await more()!.trigger('click')
+    await flushPromises()
+    expect(w.text()).toContain('Task one')
+    expect(w.text()).toContain('Task two')
+    expect(w.text()).toContain('Task three')
+    expect(more()).toBeUndefined()
   })
 })

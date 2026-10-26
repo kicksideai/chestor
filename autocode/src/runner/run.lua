@@ -193,6 +193,11 @@ local function keep_credential(run_id: string, owner: Caller, prepared: Prepared
     return refresh_error
 end
 
+local function account_changed(account_id: string)
+    local err = live.account(account_id)
+    if err then logger:warn("autocode account notification failed", {account_id = account_id, error = tostring(err)}) end
+end
+
 local function settle_account(run: repo.Run, terminal: drivers.Terminal?, refresh_error: string?, redactor: redact.Redactor, emit: Emit)
     -- A success clears the account's last refusal; a retryable provider fault
     -- cools it down. Other failures belong to the task, not the account.
@@ -205,8 +210,13 @@ local function settle_account(run: repo.Run, terminal: drivers.Terminal?, refres
         if not cooldown then
             account_err = cooldown_err
         else
-            account_err = repo.settle_account(run.account_id, redact.apply(redactor, fault.code .. ": " .. fault.message),
-                time.now():add(cooldown):utc():format_rfc3339(), run.started_at)
+            local duration, duration_err = time.parse_duration(cooldown)
+            if not duration or duration:nanoseconds() <= 0 then
+                account_err = duration_err or errors.new({kind = errors.INVALID, message = "account cooldown must be a positive duration"})
+            else
+                account_err = repo.settle_account(run.account_id, redact.apply(redactor, fault.code .. ": " .. fault.message),
+                    time.now():add(duration):utc():format_rfc3339(), run.started_at)
+            end
         end
     end
     if account_err then emit("system", "account status: " .. tostring(account_err)) end
@@ -250,6 +260,7 @@ local function execute(run: repo.Run, job: {[string]: unknown}): Outcome
         if not settled then return {ok = true, output = {run_id = run_id, status = status}} end
         changed(live.run_topic(run_id))
         changed(live.RUNS_TOPIC)
+        account_changed(run.account_id)
         if run.flow then
             local nudge_err = deferred.nudge()
             if nudge_err then logger:warn("autocode workflow delivery awaits jobs reconciliation", {run_id = run_id, error = tostring(nudge_err)}) end
@@ -312,6 +323,7 @@ local function execute(run: repo.Run, job: {[string]: unknown}): Outcome
         if requested then return finish("cancelled", "", "cancelled by user", {}) end
         return fail(start_err and ("run start write failed: " .. tostring(start_err)) or "run is no longer queued")
     end
+    account_changed(run.account_id)
     run.started_at = repo.now()
     changed(live.run_topic(run_id))
     changed(live.RUNS_TOPIC)
@@ -330,6 +342,7 @@ local function execute(run: repo.Run, job: {[string]: unknown}): Outcome
     cleanup()
 
     settle_account(run, terminal, refresh_error, redactor, emit)
+    account_changed(run.account_id)
     local fault = terminal and terminal.error
     local answer = records.result(folder, terminal)
     local usage = records.usage(terminal)

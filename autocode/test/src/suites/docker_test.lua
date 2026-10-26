@@ -22,6 +22,15 @@ local function cases()
             end
             test.is_true(matches)
         end)
+        test.it("uses the host-bound executor and Docker context", function()
+            local state = stubs.reset()
+            state.executor, state.docker_context, state.chunks = "host:docker", "build-host", {}
+            local code, err = docker.run({"version"})
+            test.is_nil(err)
+            test.eq(code, 0)
+            test.eq(state.executor_id, "host:docker")
+            test.eq(state.command_env.DOCKER_CONTEXT, "build-host")
+        end)
         test.it("drops a completed line that crosses the bound in its last read", function()
             local state = stubs.reset()
             state.chunks = {string.rep("x", docker.MAX_LINE_BYTES - 1), "xx\nshort\n"}

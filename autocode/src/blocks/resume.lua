@@ -4,6 +4,7 @@
 -- the stored run's result, so nothing a caller supplies reaches the Flow.
 -- Blocks resumes under the Flow's own identity.
 local funcs = require("funcs")
+local security = require("security")
 local repo = require("repo")
 
 local RESUME = "kickside.blocks:resume"
@@ -23,7 +24,9 @@ local function run(input: {[string]: unknown}): ({run_id: string}?, error?)
     if stored.status ~= "succeeded" and stored.status ~= "failed" and stored.status ~= "cancelled" then
         return failure("run " .. run_id .. " has not settled", errors.INVALID)
     end
-    local _, resume_err = funcs.call(RESUME, {dataflow_id = flow.dataflow_id, signal_id = flow.signal_id,
+    local actor, scope = security.actor(), security.scope()
+    if not actor or not scope then return failure("workflow resume identity is required", errors.PERMISSION_DENIED) end
+    local _, resume_err = funcs.new():with_actor(actor):with_scope(scope):call(RESUME, {dataflow_id = flow.dataflow_id, signal_id = flow.signal_id,
         payload = {run_id = stored.id, status = stored.status, answer = stored.result, error = stored.error, usage = stored.usage,
             agent = stored.agent, account_id = stored.account_id}})
     if resume_err then return failure("workflow resume: " .. tostring(resume_err), errors.UNAVAILABLE) end

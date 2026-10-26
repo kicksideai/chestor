@@ -1,0 +1,45 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "workspaces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "name": {
+            "type": "string"
+          },
+          "writable": {
+            "type": "boolean"
+          },
+          "deletable": {
+            "type": "boolean"
+          },
+          "shareable": {
+            "type": "boolean"
+          },
+          "host_path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "writable",
+          "deletable",
+          "shareable"
+        ]
+      }
+    }
+  },
+  "required": [
+    "workspaces"
+  ]
+}

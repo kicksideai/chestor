@@ -55,8 +55,30 @@ end
 
 function repo.runs(owner_id: string, limit: integer): ({Run}?, error?)
     local rows, err = query("SELECT " .. RUN_COLUMNS .. [[ FROM chestor_autocode_runs
-        WHERE owner_id = $1 ORDER BY created_at DESC LIMIT $2]], {owner_id, limit})
+        WHERE owner_id = $1 ORDER BY created_at DESC, id DESC LIMIT $2]], {owner_id, limit})
     return decode(rows, err, run)
+end
+
+type RunSummary = {id: string, agent: string, account_id: string, image_id: string, workspace_id: string?,
+    status: RunStatus, workflow: boolean, cancel_requested: boolean, created_at: string, started_at: string, finished_at: string,
+    prompt_summary: string}
+function repo.run_summaries(owner_id: string, limit: integer, before: string, before_id: string): ({RunSummary}?, error?)
+    local rows, err = query([[SELECT id, agent, account_id, image_id, workspace_id, status, flow_dataflow_id,
+        cancel_requested, created_at, started_at, finished_at, SUBSTR(prompt, 1, 300) AS prompt_summary
+        FROM chestor_autocode_runs WHERE owner_id = $1
+        AND ($2 = '' OR created_at < $2 OR (created_at = $2 AND id < $3))
+        ORDER BY created_at DESC, id DESC LIMIT $4]], {owner_id, before, before_id, limit})
+    return decode(rows, err, function(row: Columns): RunSummary
+        local status = text(row, "status")
+        if status ~= "queued" and status ~= "running" and status ~= "succeeded" and status ~= "failed" and status ~= "cancelled" then
+            mismatch(row, "status", "a run status")
+            status = "failed"
+        end
+        return {id = text(row, "id"), agent = text(row, "agent"), account_id = text(row, "account_id"), image_id = text(row, "image_id"),
+            workspace_id = optional(row, "workspace_id"), status = status, workflow = text(row, "flow_dataflow_id") ~= "",
+            cancel_requested = flag(row, "cancel_requested"), created_at = text(row, "created_at"), started_at = text(row, "started_at"),
+            finished_at = text(row, "finished_at"), prompt_summary = text(row, "prompt_summary")}
+    end)
 end
 
 -- run reads one of the owner's runs.

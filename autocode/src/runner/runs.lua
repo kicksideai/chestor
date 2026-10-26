@@ -27,7 +27,7 @@ local SETTLE_MARGIN_MS = 600000
 type Object = {[string]: unknown}
 -- What a member asks for: an agent, and one of its accounts or none.
 type Request = {agent: string, account_id: string?, image_id: string, workspace_id: string?, options: Object,
-    unattended: boolean, repo_url: string, prompt: string, timeout: string?, idempotency_key: string?}
+    unattended: boolean?, repo_url: string, prompt: string, timeout: string?, idempotency_key: string?}
 type Endpoint = {protocol: string, base_url: string, model: string?}
 type Account = {id: string, label: string, owner: string, kind: credentials.Kind, endpoint: Endpoint?}
 type Image = {id: string, ref: string, home: string, memory: string, cpus: string, pids_limit: integer, gpus: string,
@@ -84,10 +84,22 @@ local function endpoint(meta: Object): Endpoint?
     return {protocol = text(meta.endpoint_protocol), base_url = base_url, model = model ~= "" and model or nil}
 end
 
+function M.valid_endpoint(url: string): boolean
+    local authority = url:match("^https?://([^/?#%s]+)[^?#%s]*$")
+    if not authority or authority:find("@", 1, true) then return false end
+    local host, port = authority:match("^(%[[%x:]+%]):(%d+)$")
+    if not host then host, port = authority:match("^([%w.-]+):(%d+)$") end
+    if not host then
+        return authority:match("^[%w][%w.-]*$") ~= nil or authority:match("^%[[%x:]+%]$") ~= nil
+    end
+    local number = tonumber(port)
+    return number ~= nil and number >= 1 and number <= 65535
+end
+
 -- usable decodes an account resource the caller may run on: an enabled
 -- account of the driver holding a credential it still reads, and for a
 -- subscription login, the caller's own.
-local function usable(driver: drivers.Driver, resource: resources.Resource, caller: string): (Account?, string?)
+function M.usable(driver: drivers.Driver, resource: resources.Resource, caller: string): (Account?, string?)
     local meta = resource.meta
     local label = text(meta.title)
     if text(meta.agent) ~= driver.id then return nil, "select one of your " .. driver.title .. " accounts" end
@@ -97,7 +109,13 @@ local function usable(driver: drivers.Driver, resource: resources.Resource, call
     if kind.subscription and resource.owner ~= caller then
         return nil, "account " .. label .. " is a personal subscription login; only its owner runs on it"
     end
-    return {id = resource.id, label = label, owner = resource.owner, kind = kind, endpoint = endpoint(meta)}, nil
+    local reach = endpoint(meta)
+    if reach then
+        if kind.subscription or not kind.variable or not M.valid_endpoint(reach.base_url) or not contains(driver.endpoints, reach.protocol) then
+            return nil, "account " .. label .. " has an unsupported endpoint"
+        end
+    end
+    return {id = resource.id, label = label, owner = resource.owner, kind = kind, endpoint = reach}, nil
 end
 
 -- account returns the named account, or the agent's next available one.
@@ -108,7 +126,7 @@ local function account(caller: string, driver: drivers.Driver, account_id: strin
             if errors.is(err, errors.NOT_FOUND) then return nil, refuse("select one of your " .. driver.title .. " accounts") end
             return nil, err
         end
-        local selected, problem = usable(driver, resource, caller)
+        local selected, problem = M.usable(driver, resource, caller)
         if not selected then return nil, refuse(problem or "account is not usable") end
         local states, state_err = repo.account_states({selected.id})
         if not states then return nil, state_err end
@@ -120,7 +138,7 @@ local function account(caller: string, driver: drivers.Driver, account_id: strin
     local candidates: {Account} = {}
     local ids: {string} = {}
     for _, resource in ipairs(all) do
-        local selected = usable(driver, resource, caller)
+        local selected = M.usable(driver, resource, caller)
         if selected then
             candidates[#candidates + 1] = selected
             ids[#ids + 1] = selected.id
@@ -170,7 +188,7 @@ end
 local function workspace(workspace_id: string): (Workspace?, error?)
     local context, err = resources.context("workspace", workspace_id, resources.ACCESS.READ)
     if not context then
-        if errors.is(err, errors.NOT_FOUND) then return nil, refuse("unknown workspace") end
+        if errors.is(err, errors.NOT_FOUND) then return nil, refuse("select a workspace") end
         return nil, err
     end
     local host_path = text(context.values.host_path)
@@ -215,6 +233,10 @@ function M.admit(request: Request): (Admitted?, error?)
         if errors.is(driver_err, errors.NOT_FOUND) then return nil, refuse("select an agent") end
         return nil, driver_err
     end
+    local unattended = request.unattended == true
+    if request.unattended == nil then unattended = driver.unattended ~= nil end
+    local limit, limit_err = timeout_ms(request.timeout)
+    if not limit then return nil, limit_err end
     local repo_err = repository(request.repo_url)
     if repo_err then return nil, repo_err end
     local selected, account_err = account(caller, driver, request.account_id)
@@ -230,16 +252,15 @@ function M.admit(request: Request): (Admitted?, error?)
     if mounted and request.repo_url ~= "" then
         return nil, refuse("repository cloning requires a scratch workspace; select a workspace to use its existing checkout")
     end
-    local limit, limit_err = timeout_ms(request.timeout)
-    if not limit then return nil, limit_err end
+
 
     local launch, launch_err = drivers.launch(driver.id, {profile_id = "batch", brief = request.prompt, home = chosen.home,
-        unattended = request.unattended, options = request.options, placement = placement(chosen, mounted),
+        unattended = unattended, options = request.options, placement = placement(chosen, mounted),
         endpoint = selected.endpoint})
     if not launch then return nil, launch_err end
 
     return {spec = {agent = driver.id, account_id = selected.id, image_id = chosen.id,
-        workspace_id = mounted and mounted.id or nil, options = request.options, unattended = request.unattended,
+        workspace_id = mounted and mounted.id or nil, options = request.options, unattended = unattended,
         repo_url = request.repo_url, prompt = request.prompt, timeout_ms = limit}, account = selected, driver = driver,
         image = chosen, workspace = mounted, workdir = workdir(chosen, mounted), launch = launch}, nil
 end
@@ -315,7 +336,7 @@ function M.submit(request: Request, flow: repo.FlowSignal?, idempotency_key: str
         if not all then return nil, list_err end
         candidates = {}
         for _, resource in ipairs(all) do
-            local selected = usable(admitted.driver, resource, owner_id)
+            local selected = M.usable(admitted.driver, resource, owner_id)
             if selected then candidates[#candidates + 1] = selected.id end
         end
     end

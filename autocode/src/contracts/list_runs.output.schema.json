@@ -1,0 +1,79 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "agent": {
+            "type": "string"
+          },
+          "account_id": {
+            "type": "string"
+          },
+          "image_id": {
+            "type": "string"
+          },
+          "workspace_id": {
+            "type": "string"
+          },
+          "workflow": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "cancel_requested": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "finished_at": {
+            "type": "string"
+          },
+          "prompt_summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "agent",
+          "account_id",
+          "image_id",
+          "workflow",
+          "status",
+          "cancel_requested",
+          "created_at",
+          "started_at",
+          "finished_at",
+          "prompt_summary"
+        ]
+      }
+    },
+    "next_cursor": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "runs"
+  ]
+}

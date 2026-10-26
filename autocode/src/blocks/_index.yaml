@@ -26,16 +26,17 @@ entries:
           additionalProperties: false
           required: [agent, image_id, prompt]
           properties:
-            agent: { type: string, minLength: 1, title: Agent }
+            agent: { type: string, minLength: 1, maxLength: 64, title: Agent }
             account_id: { type: string, title: Account, description: Empty balances across the agent's available accounts. }
-            image_id: { type: string, minLength: 1, title: Image }
+            image_id: { type: string, minLength: 1, maxLength: 64, title: Image }
             workspace_id: { type: string, title: Workspace, description: Empty works in a scratch directory. }
-            prompt: { type: string, minLength: 1, title: Task, format: textarea }
+            prompt: { type: string, minLength: 1, maxLength: 16384, title: Task, format: textarea }
             include_input: { type: boolean, title: Pass the node input to the agent, default: true }
-            unattended: { type: boolean, title: Unattended, default: true }
+            unattended: { type: boolean, title: Unattended }
             options: { type: object, title: Driver options, additionalProperties: true }
-            repo_url: { type: string, title: Git repository }
-        output:
+            repo_url: { type: string, maxLength: 2000, title: Git repository }
+            timeout: { type: string, maxLength: 64, title: Timeout, description: A duration of at least one minute; empty uses the configured run timeout. }
+        output: &task_output
           type: object
           additionalProperties: false
           required: [run_id, status, answer, error, usage, agent, account_id]
@@ -44,7 +45,13 @@ entries:
             status: { type: string, enum: [succeeded, failed, cancelled] }
             answer: { type: string }
             error: { type: string }
-            usage: { type: object }
+            usage:
+              type: object
+              additionalProperties: false
+              properties:
+                input_tokens: {type: number, minimum: 0}
+                output_tokens: {type: number, minimum: 0}
+                cached_tokens: {type: number, minimum: 0}
             agent: { type: string }
             account_id: { type: string }
         error:
@@ -54,14 +61,14 @@ entries:
             code: { type: string }
             message: { type: string }
         ports:
-          - { id: then, label: Succeeded, direction: out, condition: "output.status == 'succeeded'" }
-          - { id: else, label: Did not succeed, direction: out, condition: "output.status != 'succeeded'" }
+          - { id: then, label: Succeeded, direction: out, condition: "output.status == 'succeeded'", schema: *task_output }
+          - { id: else, label: Did not succeed, direction: out, condition: "output.status != 'succeeded'", schema: *task_output }
           - { id: failed, label: Failed, direction: out }
         presentation:
           category: Agents
           icon: tabler:robot
           hue: violet
-          blurb: Runs Claude Code, Codex, Antigravity or Muse on a task, then routes on its answer.
+          blurb: Runs an activated coding agent on a task, then routes on its answer.
           config_wc: chestor-autocode-task-config
         execution:
           kind: wait
@@ -73,10 +80,13 @@ entries:
     meta:
       comment: Arm of the agent task Block - submits the run under the Flow's identity; the run's settlement enqueues the node's resume.
     source: file://arm.lua
+    security:
+      policies: [chestor.autocode.security:flow_context]
     method: arm
     modules: [json]
     imports:
-      runs: chestor.autocode.runner:runs
+      client: chestor.autocode.service:client
+      boundary: chestor.autocode.service:boundary
 
   # chestor.autocode.blocks:resume
   - name: resume
@@ -85,13 +95,14 @@ entries:
       comment: Job that continues the workflow node a run started, with the stored run's result as the node's output.
     source: file://resume.lua
     method: run
-    modules: [funcs]
+    modules: [funcs, security]
     imports:
       repo: chestor.autocode.persist:repo
     security:
       actor:
         id: system:chestor.autocode.resume
       policies:
+        - chestor.autocode.security:worker_runtime
         - chestor.autocode.security:store
         - chestor.autocode.security:flow_resume
         - chestor.autocode.security:flow_identity

@@ -1,11 +1,12 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 -- Endpoint plumbing: the authenticated owner, typed request fields, JSON
 -- replies, and the HTTP status each error kind maps to.
+local boundary = require("boundary")
 local http = require("http")
 local security = require("security")
 
 type Body = {[string]: unknown}
-type Context = {req: http.Request, res: http.Response, owner_id: string}
+type Context = {req: http.Request, res: http.Response}
 
 local M = {}
 
@@ -17,7 +18,9 @@ function M.reply(res: http.Response, status: number, body: {[string]: unknown})
 end
 
 function M.fail(res: http.Response, status: number, message: string)
-    M.reply(res, status, {success = false, error = message})
+    local kind = status == M.STATUS.UNAUTHORIZED and errors.PERMISSION_DENIED or errors.INVALID
+    local err = boundary.error(kind, "autocode.invalid_request", message)
+    M.reply(res, status, {success = false, error = message, kind = err:kind(), retryable = false, details = err:details()})
 end
 
 -- fail_with answers with the status an error's kind maps to.
@@ -27,7 +30,9 @@ function M.fail_with(res: http.Response, err: error?)
     elseif errors.is(err, errors.NOT_FOUND) then status = M.STATUS.NOT_FOUND
     elseif errors.is(err, errors.CONFLICT) then status = M.STATUS.CONFLICT
     elseif errors.is(err, errors.PERMISSION_DENIED) then status = M.STATUS.FORBIDDEN end
-    M.fail(res, status, tostring(err))
+    local native = boundary.native(err) or boundary.error(errors.INTERNAL, "autocode.internal", "request failed")
+    M.reply(res, status, {success = false, error = native:message(), kind = native:kind(),
+        retryable = native:retryable(), details = native:details()})
 end
 
 -- Opens the request; nil means the reply is already written.
@@ -41,7 +46,7 @@ function M.open(): Context?
         M.fail(res, M.STATUS.UNAUTHORIZED, "authentication required")
         return nil
     end
-    return {req = req, res = res, owner_id = actor:id()}
+    return {req = req, res = res}
 end
 
 -- param returns a required path parameter; nil means the reply is written.
@@ -66,37 +71,6 @@ function M.body(ctx: Context): Body?
         if type(key) == "string" then body[key] = value end
     end
     return body
-end
-
--- Field readers for request bodies: each returns nil when the field is not
--- what it should be, and the caller refuses the request.
-
-function M.text(value: unknown, max: integer): string?
-    if type(value) ~= "string" then return nil end
-    local trimmed = value:match("^%s*(.-)%s*$")
-    if #trimmed > max then return nil end
-    return trimmed
-end
-
-function M.strings(value: unknown, max_items: integer, max_bytes: integer): {string}?
-    if type(value) ~= "table" then return nil end
-    local result: {string} = {}
-    for _, item in ipairs(value) do
-        if type(item) ~= "string" or #item > max_bytes then return nil end
-        result[#result + 1] = item
-    end
-    if #result > max_items then return nil end
-    return result
-end
-
-function M.object(value: unknown): {[string]: unknown}?
-    if type(value) ~= "table" then return nil end
-    local result: {[string]: unknown} = {}
-    for key, item in pairs(value) do
-        if type(key) ~= "string" then return nil end
-        result[key] = item
-    end
-    return result
 end
 
 return M

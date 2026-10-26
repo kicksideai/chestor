@@ -1,0 +1,167 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "agent": {
+          "type": "string"
+        },
+        "account_id": {
+          "type": "string"
+        },
+        "image_id": {
+          "type": "string"
+        },
+        "workspace_id": {
+          "type": "string"
+        },
+        "options": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "unattended": {
+          "type": "boolean"
+        },
+        "repo_url": {
+          "type": "string"
+        },
+        "prompt": {
+          "type": "string"
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 60000
+        },
+        "workflow": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "succeeded",
+            "failed",
+            "cancelled"
+          ]
+        },
+        "result": {
+          "type": "string"
+        },
+        "error": {
+          "type": "string"
+        },
+        "usage": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "input_tokens": {
+              "type": "number",
+              "minimum": 0
+            },
+            "output_tokens": {
+              "type": "number",
+              "minimum": 0
+            },
+            "cached_tokens": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "required": []
+        },
+        "cancel_requested": {
+          "type": "boolean"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "started_at": {
+          "type": "string"
+        },
+        "finished_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "agent",
+        "account_id",
+        "image_id",
+        "options",
+        "unattended",
+        "repo_url",
+        "prompt",
+        "timeout_ms",
+        "workflow",
+        "status",
+        "result",
+        "error",
+        "usage",
+        "cancel_requested",
+        "created_at",
+        "started_at",
+        "finished_at"
+      ]
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "seq": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "assistant",
+              "reasoning",
+              "tool",
+              "tool_result",
+              "tool_error",
+              "system",
+              "error",
+              "log"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "seq",
+          "kind",
+          "text",
+          "created_at"
+        ]
+      }
+    },
+    "more": {
+      "type": "boolean"
+    },
+    "next_seq": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "required": [
+    "run",
+    "events",
+    "more",
+    "next_seq"
+  ]
+}

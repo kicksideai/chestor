@@ -10,7 +10,7 @@ export const imageRunSettings = z.object({ memory: z.string(), cpus: z.string(),
 export const defaultImage = z.object({ ref: z.string(), label: z.string(), home: z.string(), dockerfile: z.string(), settings: imageRunSettings.optional() })
 export const accountLimits = z.object({ label_bytes: z.number().int().positive(), secret_bytes: z.number().int().positive(), endpoint_url_bytes: z.number().int().positive(), endpoint_model_bytes: z.number().int().positive() })
 export type AccountLimits = z.infer<typeof accountLimits>
-export const catalog = z.object({ agents: z.array(agentInfo), default_image: defaultImage, manage: z.boolean(), settings_path: z.string().optional(), account_limits: accountLimits.optional() })
+export const catalog = z.object({ agents: z.array(agentInfo), default_image: defaultImage, can_images: z.boolean(), can_workspaces: z.boolean(), can_prune: z.boolean(), settings_path: z.string().optional(), account_limits: accountLimits.optional() })
 export const account = z.object({
   id: z.string(), agent: z.string(), label: z.string(), credential_kind: z.string(), subscription: z.boolean(), enabled: z.boolean(),
   endpoint: endpoint.optional(), owner: z.string(), mine: z.boolean(), usable: z.boolean(), unavailable_reason: z.string().optional(),
@@ -27,6 +27,7 @@ export const runStatus = z.enum(['queued', 'running', 'succeeded', 'failed', 'ca
 export const run = z.object({
   id: z.string(), agent: z.string(), account_id: z.string(), image_id: z.string(), workspace_id: z.string().optional(), options: values, unattended: z.boolean(), repo_url: z.string(), prompt: z.string(), status: runStatus, result: z.string(), error: z.string(), usage, cancel_requested: z.boolean(), timeout_ms: z.number(), workflow: z.boolean(), created_at: z.string(), started_at: z.string(), finished_at: z.string(),
 })
+export const runSummary = run.pick({ id: true, agent: true, account_id: true, image_id: true, workspace_id: true, status: true, workflow: true, cancel_requested: true, created_at: true, started_at: true, finished_at: true }).extend({ prompt_summary: z.string() })
 export const runEvent = z.object({ seq: z.number().int(), kind: z.enum(['assistant', 'reasoning', 'tool', 'tool_result', 'tool_error', 'system', 'error', 'log']), text: z.string(), created_at: z.string() })
 
 export type CredentialKind = z.infer<typeof credentialKind>
@@ -46,3 +47,5 @@ export type Usage = z.infer<typeof usage>
 export type RunStatus = z.infer<typeof runStatus>
 export type Run = z.infer<typeof run>
 export type RunEvent = z.infer<typeof runEvent>
+
+export type RunSummary = z.infer<typeof runSummary>

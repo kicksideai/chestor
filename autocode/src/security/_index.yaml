@@ -22,6 +22,7 @@ entries:
         - chestor.autocode.security:ui_access
         - chestor.autocode.security:driver_activation
         - chestor.autocode.security:service_calls
+        - chestor.autocode.security:task_calls
     groups: []
     policy:
       resources:
@@ -34,6 +35,7 @@ entries:
         - chestor.autocode.persist:*
         - chestor.autocode.runner:*
         - chestor.autocode.security:*
+        - chestor.autocode.service:*
       actions: [registry.get, registry.find]
       effect: allow
 
@@ -61,6 +63,17 @@ entries:
         - chestor.autocode.api:runs_cancel
         - chestor.autocode.components:status
         - chestor.autocode.blocks:arm_task
+        - chestor.autocode.service:list_agents
+        - chestor.autocode.service:list_accounts
+        - chestor.autocode.service:list_images
+        - chestor.autocode.service:list_workspaces
+        - chestor.autocode.service:submit_task
+        - chestor.autocode.service:get_run
+        - chestor.autocode.service:list_runs
+        - chestor.autocode.service:cancel_run
+        - chestor.autocode.service:add_account
+        - chestor.autocode.service:update_account
+        - chestor.autocode.service:remove_account
       actions: [funcs.call]
       effect: allow
 
@@ -185,6 +198,8 @@ entries:
         path: ".groups +="
       - entry: chestor.autocode.security:service_calls
         path: ".groups +="
+      - entry: chestor.autocode.security:task_calls
+        path: ".groups +="
 
   # chestor.autocode.security:module_management
   - name: module_management
@@ -281,6 +296,7 @@ entries:
         - chestor.autocode.persist:*
         - chestor.autocode.runner:*
         - chestor.autocode.security:*
+        - chestor.autocode.service:*
         - bee.drivers:*
         - bee.drivers.*
         - kickside.settings:*
@@ -298,6 +314,7 @@ entries:
       comment: Owner-bound steps, live identity resolution, settings reads, and job wake calls.
     policy:
       resources:
+        - kickside.component:notify_access
         - chestor.autocode.runner:prepare
         - chestor.autocode.runner:keep_credential
         - chestor.autocode.runner:image_recipe
@@ -352,7 +369,6 @@ entries:
       comment: The only command line the module runs - the docker CLI behind its stderr-merging shell wrapper on the module's executor.
     policy:
       resources:
-        - chestor.autocode:docker
         - "/bin/sh -c 'exec docker \"$@\" 2>&1' sh *"
       actions: [exec.get, exec.run]
       effect: allow
@@ -387,8 +403,8 @@ entries:
     meta:
       comment: The resume job continues the workflow node a run started - the Blocks resume call and a Workflow run's resume handler.
     policy:
-      actions: [funcs.call, kickside.execution.defer]
-      resources: [kickside.blocks:resume, kickside.blocks:resume_under_identity, kickside.workflows.runs:resume]
+      actions: [funcs.call, funcs.security, kickside.execution.defer]
+      resources: [kickside.blocks:resume, kickside.blocks:resume_under_identity, kickside.workflows.runs:resume, security]
       effect: allow
 
   # chestor.autocode.security:flow_identity
@@ -399,4 +415,44 @@ entries:
     policy:
       actions: [security.actor.create, security.policy_group.get]
       resources: "*"
+      effect: allow
+
+  - name: task_calls
+    kind: security.policy
+    meta: {private: true, comment: Task and account contracts run under the caller's execution frame.}
+    groups: []
+    policy:
+      resources:
+        - chestor.autocode:tasks
+        - chestor.autocode:tasks_binding
+        - chestor.autocode:accounts
+        - chestor.autocode:accounts_binding
+        - list_agents
+        - list_accounts
+        - list_images
+        - list_workspaces
+        - submit_task
+        - get_run
+        - list_runs
+        - cancel_run
+        - add_account
+        - update_account
+        - remove_account
+      actions: [access, contract.get, contract.open, contract.call]
+      effect: allow
+
+  - name: account_notify
+    kind: security.policy
+    meta: {private: true, comment: Account changes publish through the component service's stored READ audience.}
+    policy:
+      resources: kickside.component:notify_access
+      actions: funcs.call
+      effect: allow
+
+  - name: flow_context
+    kind: security.policy
+    meta: {private: true, comment: The Block arm carries the parked callback outside the public task request.}
+    policy:
+      resources: context
+      actions: contract.context
       effect: allow
