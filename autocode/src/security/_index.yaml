@@ -99,7 +99,6 @@ entries:
         - chestor.autocode.api:workspaces_list.user.endpoint
         - chestor.autocode.api:runs_list.user.endpoint
         - chestor.autocode.api:runs_create.user.endpoint
-        - chestor.autocode.api:runs_preview.user.endpoint
         - chestor.autocode.api:runs_get.user.endpoint
         - chestor.autocode.api:runs_cancel.user.endpoint
       actions: access

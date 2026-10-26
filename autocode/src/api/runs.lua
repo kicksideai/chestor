@@ -84,19 +84,6 @@ local function create()
     web.reply(ctx.res, web.STATUS.CREATED, {success = true, id = id})
 end
 
--- POST /autocode/runs/preview — the launch a run with this body would get.
-local function preview()
-    local ctx = web.open()
-    if not ctx then return end
-    local body = web.body(ctx)
-    if not body then return end
-    local decoded, problem = request(body)
-    if not decoded then return web.fail(ctx.res, web.STATUS.BAD_REQUEST, problem or "invalid request") end
-    local admitted, err = runs.admit(decoded)
-    if not admitted then return web.fail_with(ctx.res, err) end
-    web.reply(ctx.res, web.STATUS.OK, {success = true, launch = admitted.launch})
-end
-
 local function cancel()
     local ctx = web.open()
     if not ctx then return end
@@ -107,4 +94,4 @@ local function cancel()
     web.reply(ctx.res, web.STATUS.OK, {success = true})
 end
 
-return { list = list, get = get, create = create, preview = preview, cancel = cancel }
+return { list = list, get = get, create = create, cancel = cancel }

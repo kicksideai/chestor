@@ -126,8 +126,6 @@ entries:
         path: .meta.router
       - entry: chestor.autocode.api:runs_create.user.endpoint
         path: .meta.router
-      - entry: chestor.autocode.api:runs_preview.user.endpoint
-        path: .meta.router
       - entry: chestor.autocode.api:runs_get.user.endpoint
         path: .meta.router
       - entry: chestor.autocode.api:runs_cancel.user.endpoint

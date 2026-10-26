@@ -95,6 +95,13 @@ local function cases()
                 end
             end
         end)
+
+        test.it("publishes no unused HTTP launch preview", function()
+            for _, id in ipairs({"chestor.autocode.api:runs_preview", "chestor.autocode.api:runs_preview.user.endpoint"}) do
+                local entry = registry.get(id)
+                test.is_nil(entry, id)
+            end
+        end)
     end)
 end
 
