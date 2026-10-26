@@ -1,15 +1,16 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
-import { ref, computed, inject, nextTick, onUnmounted, type Ref } from 'vue'
+import { useRequiredCatalog } from './catalog.ts'
+import { ref, computed, nextTick, onUnmounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useHostVisibilityRefresh } from '@wippy-fe/webcomponent-vue'
 import { agentIcon, relativeTime, duration, timeout, useRunClock } from './presentation.ts'
-import { autocode, errorText, live, serial, shortTime, type Catalog, type Account, type Image, type Run, type RunEvent, type Workspace } from './api.ts'
+import { autocode, errorText, live, serial, shortTime, type Account, type Image, type Run, type RunEvent, type Workspace } from './api.ts'
 
 const props = defineProps<{ runId: string; accounts: Account[]; images: Image[]; workspaces: Workspace[] }>()
-const emit = defineEmits<{ close: []; changed: [run: Run] }>()
+const emit = defineEmits<{ changed: [run: Run] }>()
 
-const catalog = inject<Ref<Catalog>>('catalog')!
+const catalog = useRequiredCatalog()
 const run = ref<Run | null>(null)
 const events = ref<RunEvent[]>([])
 const error = ref('')
@@ -49,7 +50,7 @@ const refresh = serial(async () => {
     if (alive && run.value) emit('changed', run.value)
     error.value = ''
   } catch (e) {
-    error.value = errorText(e, 'Could not load the run.')
+    error.value = errorText(e, 'Could not load the task.')
   }
 })
 const unsubscribe = live.run(props.runId, () => { void refresh() })
@@ -65,7 +66,7 @@ async function cancel() {
     await autocode.cancelRun(props.runId)
     await refresh()
   } catch (e) {
-    error.value = errorText(e, 'Could not cancel the run.')
+    error.value = errorText(e, 'Could not cancel the task.')
   }
 }
 
@@ -76,8 +77,9 @@ async function copyResult() {
       await navigator.clipboard.writeText(text)
     } catch {
       const field = document.createElement('textarea')
-      const focused = result.value?.getRootNode() as ShadowRoot | undefined
-      const previous = focused?.activeElement as HTMLElement | null
+      const root = result.value?.getRootNode()
+      const focused = root instanceof ShadowRoot || root instanceof Document ? root.activeElement : null
+      const previous = focused instanceof HTMLElement ? focused : null
       field.value = text
       field.readOnly = true
       field.style.cssText = 'position:fixed;opacity:0;pointer-events:none;'
@@ -108,19 +110,19 @@ function accountLabel(id: string) { return props.accounts.find((a) => a.id === i
 function workspaceLabel(id: string) { return props.workspaces.find((w) => w.id === id)?.name ?? 'Unlisted workspace' }
 function imageLabel(id: string) { return props.images.find((i) => i.id === id)?.label ?? 'Unlisted image' }
 function usageLine(r: Run) {
-  const u = r.usage as { cost_usd?: number; turns?: number }
   const parts: string[] = []
-  if (typeof u.turns === 'number') parts.push(`${u.turns} turns`)
-  if (typeof u.cost_usd === 'number') parts.push(`$${u.cost_usd.toFixed(4)} API-equivalent`)
-  return parts.join(' · ')
+  if (r.usage.input_tokens !== undefined) parts.push(`${r.usage.input_tokens} input`)
+  if (r.usage.output_tokens !== undefined) parts.push(`${r.usage.output_tokens} output`)
+  if (r.usage.cached_tokens !== undefined) parts.push(`${r.usage.cached_tokens} cached`)
+  return parts.length ? `${parts.join(' · ')} tokens` : ''
 }
 </script>
 
 <template>
   <section class="ac-form ac-detail">
-    <p v-if="error" class="ac-error" role="alert">{{ error }} <button type="button" class="ac-link kx-focus-outline" @click="refresh">Retry</button></p>
-    <div v-if="!run" class="kx-loading"><Icon icon="tabler:loader-2" class="spin" /> Loading the run…</div>
-    <template v-else>
+    <p v-if="error" class="kx-err" role="alert">{{ error }} <button type="button" class="ac-link kx-focus-outline" @click="refresh">Retry</button></p>
+    <div v-if="!run && !error" class="kx-loading"><Icon icon="tabler:loader-2" class="spin" /> Loading the task…</div>
+    <template v-else-if="run">
       <header class="ac-detail-head">
         <div class="ac-card-head">
           <span class="kx-tag-sm ac-tone" :class="run.status">{{ run.status }}</span>
@@ -128,7 +130,7 @@ function usageLine(r: Run) {
         </div>
         <h2 class="ac-detail-title">{{ run.prompt.split('\n')[0] }}</h2>
         <div class="ac-run-meta ac-detail-meta">
-          <span><Icon :icon="agentIcon(run.agent)" />{{ catalog.agents.find(a => a.id === run?.agent)?.title ?? run.agent }}</span>
+          <span><Icon :icon="agentIcon(run.agent, catalog.agents)" />{{ catalog.agents.find(a => a.id === run?.agent)?.title ?? run.agent }}</span>
           <span>{{ accountLabel(run.account_id) }}</span><span>{{ imageLabel(run.image_id) }}</span>
           <span :title="shortTime(run.started_at || run.created_at)">{{ run.started_at ? 'Started' : 'Queued' }} {{ relativeTime(run.started_at || run.created_at, now) }}</span>
           <span v-if="run.started_at">{{ duration(run, now) }} {{ active(run) ? 'elapsed' : 'duration' }}</span>
@@ -141,15 +143,15 @@ function usageLine(r: Run) {
         <div class="ac-section-head"><h3 id="ac-prompt-heading">Prompt</h3><button v-if="longPrompt" type="button" class="ac-link kx-focus-outline" :aria-expanded="promptExpanded" aria-controls="ac-prompt-text" @click="promptExpanded = !promptExpanded">{{ promptExpanded ? 'Collapse prompt' : 'Expand prompt' }}</button></div>
         <pre id="ac-prompt-text" class="ac-pre ac-prompt" :class="{ expanded: promptExpanded || !longPrompt }"><span>{{ run.prompt }}</span></pre>
       </section>
-      <section v-if="run.status === 'succeeded' && run.result" class="ac-detail-section ac-result" aria-labelledby="ac-result-heading">
-        <div class="ac-section-head"><h3 id="ac-result-heading">Result</h3><div class="ac-row-actions"><button v-if="longResult" type="button" class="ac-link kx-focus-outline" :aria-expanded="resultExpanded" aria-controls="ac-result-text" @click="toggleResult">{{ resultExpanded ? 'Collapse result' : 'Expand result' }}</button><button type="button" class="ac-btn kx-focus-halo" @click="copyResult"><Icon :icon="copied ? 'tabler:check' : 'tabler:copy'" />{{ copied ? 'Copied' : 'Copy' }}</button></div></div>
-        <p v-if="copyError" class="ac-error" role="alert">{{ copyError }}</p>
+      <section v-if="run.result" class="ac-detail-section ac-result" aria-labelledby="ac-result-heading">
+        <div class="ac-section-head"><h3 id="ac-result-heading">{{ run.status === 'succeeded' ? 'Result' : 'Partial result' }}</h3><div class="ac-row-actions"><button v-if="longResult" type="button" class="ac-link kx-focus-outline" :aria-expanded="resultExpanded" aria-controls="ac-result-text" @click="toggleResult">{{ resultExpanded ? 'Collapse result' : 'Expand result' }}</button><button type="button" class="ac-btn kx-focus-halo" @click="copyResult"><Icon :icon="copied ? 'tabler:check' : 'tabler:copy'" />{{ copied ? 'Copied' : 'Copy' }}</button></div></div>
+        <p v-if="copyError" class="kx-err" role="alert">{{ copyError }}</p>
         <pre id="ac-result-text" ref="result" class="ac-pre ac-result-text" :class="{ expanded: resultExpanded }" tabindex="0" aria-label="Result">{{ run.result }}</pre>
       </section>
-      <p v-if="run.error" class="ac-error" role="alert">{{ run.error }}</p>
+      <p v-if="run.error" class="kx-err" role="alert">{{ run.error }}</p>
       <section class="ac-detail-section" aria-labelledby="ac-log-heading">
         <div class="ac-section-head"><h3 id="ac-log-heading">Log</h3><span class="ac-muted">{{ events.length }} events</span></div>
-        <div ref="stream" class="ac-stream" tabindex="0" aria-label="Run log" @scroll="trackScroll">
+        <div ref="stream" class="ac-stream" tabindex="0" aria-label="Task log" @scroll="trackScroll">
           <div v-for="e in events" :key="e.seq" class="ac-event" :class="e.kind">
             <span class="ac-event-kind">{{ e.kind }}</span>
             <pre class="ac-event-text">{{ e.text }}</pre>

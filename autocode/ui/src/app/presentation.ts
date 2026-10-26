@@ -1,16 +1,25 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
-import type { Run } from './api.ts'
-import { onUnmounted, ref } from 'vue'
+import type { AgentInfo, Run } from './api.ts'
+import { onUnmounted, readonly, ref } from 'vue'
 
+const clock = ref(Date.now())
+let clockUsers = 0
+let clockTimer: ReturnType<typeof setInterval> | undefined
 export function useRunClock() {
-  const now = ref(Date.now())
-  const timer = window.setInterval(() => { now.value = Date.now() }, 1000)
-  onUnmounted(() => window.clearInterval(timer))
-  return now
+  clockUsers++
+  if (clockTimer === undefined) {
+    clock.value = Date.now()
+    clockTimer = setInterval(() => { clock.value = Date.now() }, 1000)
+  }
+  onUnmounted(() => {
+    clockUsers--
+    if (!clockUsers) { clearInterval(clockTimer); clockTimer = undefined }
+  })
+  return readonly(clock)
 }
 
-export function agentIcon(id: string) {
-  return ({ claude: 'simple-icons:claude', codex: 'simple-icons:openai', agy: 'simple-icons:googlegemini', muse: 'tabler:sparkles' } as Record<string, string>)[id] ?? 'tabler:terminal-2'
+export function agentIcon(id: string, agents: Pick<AgentInfo, 'id' | 'icon'>[]) {
+  return agents.find(agent => agent.id === id)?.icon || 'tabler:terminal-2'
 }
 
 export function relativeTime(value: string, now = Date.now()) {
@@ -35,7 +44,6 @@ export function duration(run: Run, now = Date.now()) {
   if (!run.started_at) return '—'
   const running = run.status === 'running' || run.status === 'queued'
   const ms = running ? now - Date.parse(run.started_at)
-    : typeof run.usage?.duration_ms === 'number' ? run.usage.duration_ms
     : Date.parse(run.finished_at) - Date.parse(run.started_at)
   return formatDuration(ms)
 }

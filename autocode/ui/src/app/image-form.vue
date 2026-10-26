@@ -1,28 +1,29 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
-import { ref, inject, watch, type Ref } from 'vue'
+import { useRequiredCatalog } from './catalog.ts'
+import { ref, watch } from 'vue'
 import { Icon } from '@iconify/vue'
-import { autocode, errorText, type Catalog, type ImageDetail, type ImageSettings } from './api.ts'
+import { autocode, errorText, type ImageDetail, type ImageRunSettings, type ImageSettings } from './api.ts'
 
 // Creates an image from a reference or a Dockerfile, or changes the label,
 // home and run settings of the image in `edit`. capabilities: what agents may
 // be allowed in a container, from the activated drivers; null while loading.
 const props = defineProps<{ edit: ImageDetail | null; capabilities: string[] | null }>()
 const emit = defineEmits<{ saved: []; cancel: [] }>()
-const catalog = inject<Ref<Catalog>>('catalog')!
+const catalog = useRequiredCatalog()
 
 type Form = ImageSettings & { ref: string; mode: 'build' | 'pull'; dockerfile: string; extra: string }
-function blank(): Form {
+function blank(settings: ImageRunSettings | undefined = catalog.value.default_image.settings): Form | null {
+  if (!settings) return null
   return {
     ref: '', mode: 'pull', dockerfile: '', label: '', home: catalog.value.default_image.home,
-    memory: '4g', cpus: '2', pids_limit: 1024, gpus: '', network: 'bridge', extra_args: [], extra: '',
-    allows: [...(props.capabilities ?? [])],
+    ...settings, extra_args: [...settings.extra_args], allows: [...settings.allows], extra: '',
   }
 }
-const form = ref<Form>(blank())
+const form = ref<Form | null>(blank())
 const labelEdited = ref(false)
-watch(() => form.value.ref, reference => {
-  if (!props.edit && !labelEdited.value) form.value.label = reference
+watch(() => form.value?.ref, reference => {
+  if (form.value && !props.edit && !labelEdited.value && reference !== undefined) form.value.label = reference
 })
 const saving = ref(false)
 const error = ref('')
@@ -30,24 +31,26 @@ const error = ref('')
 watch(() => props.edit, (detail) => {
   error.value = ''
   labelEdited.value = !!detail
-  if (!detail?.settings) { form.value = blank(); return }
+  if (!detail) { form.value = blank(); return }
+  if (!detail.settings) { form.value = null; return }
   const s = detail.settings
   form.value = {
-    ...blank(), ...s, ref: detail.image.ref, label: detail.image.label, home: detail.image.home,
+    ...s, ref: detail.image.ref, label: detail.image.label, home: detail.image.home, mode: 'pull', dockerfile: detail.dockerfile ?? '',
     extra: s.extra_args.join('\n'), allows: [...s.allows],
   }
 }, { immediate: true })
 
-watch(() => props.capabilities, (caps) => { if (!props.edit && caps) form.value.allows = [...caps] })
 
 function useDefault() {
   const d = catalog.value.default_image
   labelEdited.value = false
-  form.value = { ...blank(), ref: d.ref, label: d.ref, home: d.home, mode: 'build', dockerfile: d.dockerfile }
+  const initial = blank()
+  form.value = initial ? { ...initial, ref: d.ref, label: d.label, home: d.home, mode: 'build', dockerfile: d.dockerfile } : null
 }
 
 function settings(): ImageSettings {
   const f = form.value
+  if (!f) throw new Error('Image settings are unavailable.')
   return {
     label: f.label, home: f.home, memory: f.memory, cpus: f.cpus, pids_limit: Number(f.pids_limit) || 0,
     gpus: f.gpus, network: f.network, extra_args: f.extra.split('\n').map((s) => s.trim()).filter(Boolean),
@@ -56,6 +59,7 @@ function settings(): ImageSettings {
 }
 
 async function save() {
+  if (!form.value) return
   error.value = ''
   saving.value = true
   try {
@@ -76,9 +80,10 @@ async function save() {
 </script>
 
 <template>
-  <section class="ac-form">
+  <p v-if="!form" class="kx-err" role="alert">{{ edit ? 'Image settings are unavailable.' : 'Image defaults are unavailable.' }} Ask an administrator to update the image configuration.</p>
+  <section v-else class="ac-form">
     <div class="ac-card-head">
-      <span class="ac-muted">{{ edit ? 'Container run settings' : 'Use an image reference or the default agent recipe.' }}</span>
+      <span class="ac-muted">{{ edit ? 'Container settings' : 'Use an image reference or the default agent recipe.' }}</span>
       <button v-if="!edit" type="button" class="ac-btn kx-focus-halo" @click="useDefault"><Icon icon="tabler:sparkles" /> Default agent image</button>
 
     </div>
@@ -94,7 +99,7 @@ async function save() {
       <label v-if="form.mode === 'build'" class="ac-field">
         <span>Dockerfile</span>
         <textarea v-model="form.dockerfile" rows="9" class="ac-mono kx-focus-halo" />
-        <small class="ac-hint">Include <code>sh</code> and the agent CLIs; use a non-root user with the home below.</small>
+        <small class="ac-hint">Include <code>sh</code>, <code>git</code>, <code>mkdir</code>, <code>dirname</code>, a <code>timeout</code> that supports <code>-k</code>, and the agent CLIs. The image user needs writable home and work directories.</small>
       </label>
     </template>
     <p v-else class="ac-muted ac-mono">{{ edit.image.ref }}</p>
@@ -107,13 +112,13 @@ async function save() {
       <input v-model="form.home" class="ac-mono kx-focus-halo" />
     </label>
     <div class="ac-row-fields">
-      <label class="ac-field"><span>Memory</span><input v-model="form.memory" class="ac-mono kx-focus-halo" placeholder="4g" /></label>
-      <label class="ac-field"><span>CPUs</span><input v-model="form.cpus" class="ac-mono kx-focus-halo" placeholder="2" /></label>
+      <label class="ac-field"><span>Memory</span><input v-model="form.memory" class="ac-mono kx-focus-halo" :placeholder="catalog.default_image.settings?.memory" /></label>
+      <label class="ac-field"><span>CPUs</span><input v-model="form.cpus" class="ac-mono kx-focus-halo" :placeholder="catalog.default_image.settings?.cpus" /></label>
       <label class="ac-field"><span>PIDs limit</span><input v-model.number="form.pids_limit" type="number" min="0" class="ac-mono kx-focus-halo" /></label>
     </div>
     <div class="ac-row-fields">
       <label class="ac-field"><span>GPUs</span><input v-model="form.gpus" class="ac-mono kx-focus-halo" placeholder="all, or device=0" /></label>
-      <label class="ac-field"><span>Network</span><input v-model="form.network" class="ac-mono kx-focus-halo" placeholder="bridge" /></label>
+      <label class="ac-field"><span>Network</span><input v-model="form.network" class="ac-mono kx-focus-halo" :placeholder="catalog.default_image.settings?.network" /></label>
     </div>
     <div v-if="capabilities?.length" class="ac-field">
       <span>Agents may</span>
@@ -132,6 +137,6 @@ async function save() {
       <Icon icon="tabler:box" /> {{ saving ? 'Saving…' : edit ? 'Save settings' : form.mode === 'build' ? 'Build image' : 'Add image' }}
     </button>
     </footer>
-    <p v-if="error" class="ac-error">{{ error }}</p>
+    <p v-if="error" class="kx-err">{{ error }}</p>
   </section>
 </template>

@@ -38,12 +38,12 @@ const entries = {
 
 const customElement = (tag: string) => tag.startsWith('wc-') || tag.startsWith('chestor-') || tag.startsWith('kickside-')
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [vue({ template: { compilerOptions: { isCustomElement: customElement } } }), wippyComponentPlugin()],
   // Lib builds don't auto-replace process.env; provide it so deps that read
   // NODE_ENV don't throw "process is not defined" in the browser/shadow DOM.
   define: {
-    'process.env.NODE_ENV': JSON.stringify('production'),
+    'process.env.NODE_ENV': JSON.stringify(mode),
     'process.env': '{}',
   },
   build: {
@@ -63,6 +63,6 @@ export default defineConfig({
       },
       preserveEntrySignatures: false,
     },
-    sourcemap: true,
+    sourcemap: false,
   },
-})
+}))

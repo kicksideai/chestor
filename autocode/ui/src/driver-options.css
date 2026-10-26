@@ -3,7 +3,6 @@
    task Block's config editor. */
 .ac-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
 .ac-muted { color: var(--p-text-muted-color); font-size: 12px; overflow-wrap: anywhere; }
-.ac-error { color: var(--p-danger-color); margin: 0; overflow-wrap: anywhere; }
 .ac-options { border: 1px solid var(--p-content-border-color); border-radius: var(--kx-radius-8); padding: 8px 12px; }
 .ac-options summary { cursor: pointer; font-size: 13px; }
 .ac-options-filter { width: 100%; margin: 8px 0; }

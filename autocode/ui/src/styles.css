@@ -97,7 +97,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; min-width: 0;
 }
 
-.ac-event.assistant .ac-event-kind, .ac-event.result .ac-event-kind { color: var(--p-primary-color); }
+.ac-event.assistant .ac-event-kind { color: var(--p-primary-color); }
 .ac-event.tool .ac-event-text { color: var(--p-primary-color); }
 .ac-event.tool_result .ac-event-text, .ac-event.log .ac-event-text, .ac-event.reasoning .ac-event-text { color: var(--p-text-muted-color); }
 .ac-event.tool_error .ac-event-kind, .ac-event.error .ac-event-kind, .ac-event.error .ac-event-text { color: var(--p-danger-color); }

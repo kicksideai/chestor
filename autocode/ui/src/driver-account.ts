@@ -14,7 +14,7 @@ const PROPS_SCHEMA = {
   properties: {
     config: { type: 'object', description: 'Driver credential card: { driver, busy, error, saved }' },
   },
-} as unknown as WippyPropsSchema
+} satisfies WippyPropsSchema
 
 class DriverAccountElement extends WippyVueElement<{ config?: DriverAccountConfig }, DriverAccountEvents> {
   static get wippyConfig(): WippyElementConfig<{ config?: DriverAccountConfig }> {

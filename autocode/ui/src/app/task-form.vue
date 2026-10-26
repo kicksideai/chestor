@@ -1,23 +1,27 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
-import { ref, computed, inject, watch, type Ref } from 'vue'
+import { useRunClock } from './presentation.ts'
+import { useRequiredCatalog } from './catalog.ts'
+import { ref, computed, watch } from 'vue'
 import { Icon } from '@iconify/vue'
 import { defaultAgent, driverDefaults, matchingImages } from './defaults.ts'
 import AgentPicker from './agent-picker.vue'
 import DriverOptions from './driver-options.vue'
-import { autocode, accountState, errorText, shortTime, type Account, type Catalog, type DriverInfo, type Image, type Workspace } from './api.ts'
+import { autocode, accountState, errorText, shortTime, type Account, type DriverInfo, type Image, type Workspace } from './api.ts'
 
 // The new task form. Accounts list the caller's usable, enabled accounts of the
 // agent; an empty account balances across the ready ones. Images list the
 // ready images that carry the agent's CLI.
 const props = defineProps<{ accounts: Account[]; images: Image[]; workspaces: Workspace[]; drivers: DriverInfo[] }>()
 const emit = defineEmits<{ started: [id: string]; goto: [tab: 'accounts', agent: string]; agentChanged: [agent: string]; cancel: [] }>()
-const catalog = inject<Ref<Catalog>>('catalog')!
+const catalog = useRequiredCatalog()
 const root = ref<HTMLElement | null>(null)
 
 // Images live on the Autocode tab of the System settings.
 function openImages() {
-  root.value?.dispatchEvent(new CustomEvent('navigate', { detail: { path: '/system/autocode' }, bubbles: true, composed: true }))
+  const path = catalog.value.settings_path
+  if (!path) return
+  root.value?.dispatchEvent(new CustomEvent('navigate', { detail: { path }, bubbles: true, composed: true }))
 }
 
 const agentId = ref(defaultAgent(catalog.value, props.accounts))
@@ -35,11 +39,12 @@ const error = ref('')
 const agent = computed(() => catalog.value.agents.find((a) => a.id === agentId.value))
 const driver = computed(() => props.drivers.find((d) => d.id === agentId.value))
 const agentAccounts = computed(() => props.accounts.filter((a) => a.agent === agentId.value && a.usable && a.enabled))
-const ready = computed(() => agentAccounts.value.filter((a) => accountState(a) === 'ready'))
+const now = useRunClock()
+const ready = computed(() => agentAccounts.value.filter((a) => accountState(a, now.value) === 'ready'))
 const readyImages = computed(() => matchingImages(props.images, agentId.value))
 
 function accountTitle(a: Account) {
-  return accountState(a) === 'cooling' ? `${a.label} (cooling down until ${shortTime(a.cooldown_until)})` : a.label
+  return accountState(a, now.value) === 'cooling' ? `${a.label} (cooling down until ${shortTime(a.cooldown_until)})` : a.label
 }
 
 // The chosen image, account and workspace stay while the lists hold them.
@@ -97,7 +102,7 @@ async function start() {
     </p>
     <p v-if="!readyImages.length" class="ac-muted">
       No image with {{ agent?.title ?? agentId }}; ask an administrator.
-      <button v-if="catalog.manage" class="ac-link kx-focus-outline" type="button" @click="openImages">Manage images</button>
+      <button v-if="catalog.manage && catalog.settings_path" class="ac-link kx-focus-outline" type="button" @click="openImages">Manage images</button>
     </p>
     <div class="ac-picker-row">
       <label class="ac-field">
@@ -131,7 +136,7 @@ async function start() {
     <DriverOptions v-if="driver" :key="driver.id" v-model="options" :options="driver.options"
       :locked="unattended && driver.unattended ? driver.unattended : {}" @invalid="(n: number) => (invalidOptions = n)" />
     </div></details>
-    <p v-if="error" class="ac-error" role="alert">{{ error }}</p>
+    <p v-if="error" class="kx-err" role="alert">{{ error }}</p>
     <footer class="ac-dialog-foot"><button type="button" class="ac-btn kx-focus-halo" @click="emit('cancel')">Cancel</button>
     <button type="button" class="ac-btn primary kx-focus-halo"
       :disabled="starting || invalidOptions > 0 || !agentId || !(accountId || ready.length) || !imageId || !prompt.trim()" @click="start">
