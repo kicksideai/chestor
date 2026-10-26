@@ -1,0 +1,36 @@
+-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+local test = require("test")
+local workspaces = require("subject")
+local stubs = require("stubs")
+local function cases()
+    test.describe("autocode workspace roots", function()
+        test.it("preserves the filesystem root and normalizes each configured root", function()
+            local state = stubs.reset()
+            state.roots = " / , /srv/work///, /opt/repos/ "
+            local roots, err = workspaces.roots()
+            test.is_nil(err)
+            test.eq(roots[1], "/")
+            test.eq(roots[2], "/srv/work")
+            test.eq(roots[3], "/opt/repos")
+            test.is_true(workspaces.admit("/srv/project"))
+        end)
+        test.it("reports registry failures instead of treating them as empty roots", function()
+            local state = stubs.reset()
+            state.registry_error = errors.new({kind = errors.UNAVAILABLE, message = "registry unavailable"})
+            local roots, err = workspaces.roots()
+            test.is_nil(roots)
+            test.is_true(errors.is(err, errors.UNAVAILABLE))
+        end)
+        test.it("rejects relative roots and sibling path prefixes", function()
+            local state = stubs.reset()
+            state.roots = "relative/root"
+            local roots, err = workspaces.roots()
+            test.is_nil(roots)
+            test.not_nil(err)
+            state.roots = "/srv/work/"
+            test.is_false(workspaces.admit("/srv/work-neighbor"))
+        end)
+    end)
+end
+local run_cases = test.run_cases(cases)
+return {run = function(options) return run_cases(options) end}

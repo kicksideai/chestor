@@ -168,7 +168,8 @@ local function workspace(workspace_id: string): (Workspace?, error?)
         return nil, err
     end
     local host_path = text(context.values.host_path)
-    local allowed, path_err = workspaces.admit(host_path)
+    local allowed, path_err, config_err = workspaces.admit(host_path)
+    if config_err then return nil, config_err end
     if not allowed then return nil, refuse(path_err or "workspace path is not admitted") end
     return {id = workspace_id, host_path = host_path, writable = resources.has(context.access, resources.ACCESS.WRITE)}, nil
 end

@@ -465,3 +465,25 @@ entries:
       test: wippy.test:test
       docker_subject: app:docker_subject
       stubs: app:runner_stubs
+
+  - name: stub_registry
+    kind: library.lua
+    source: file://stub_alias.lua
+    imports:
+      stubs: app:runner_stubs
+
+  - name: workspaces_subject
+    kind: library.lua
+    source: file://workspaces_subject.lua
+    imports:
+      registry: app:stub_registry
+
+  - name: workspaces_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_workspace_roots, group: Autocode}
+    source: file://suites/workspaces_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      subject: app:workspaces_subject
+      stubs: app:runner_stubs
