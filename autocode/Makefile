@@ -20,7 +20,7 @@ test:
 	db=.wippy/run-$$(date +%s%N).db; \
 	trap 'rm -f "$$db" "$$db-wal" "$$db-shm"' EXIT; \
 	wippy test $(WIPPY_TEST_ARGS) $(RUNTIME_ARGS) $(TEST_ARGS) --set vars.sqlite_path=./$$db 2>&1 | tee .wippy/last-test-run.log; \
-	sed -E 's/\x1B\[[0-?]*[ -/]*[@-~]//g' .wippy/last-test-run.log | \
+	sed -E 's/\x1B\[[0-9;?]*[[:alpha:]]//g' .wippy/last-test-run.log | \
 	awk '/No tests found/ { empty=1 } /^[[:space:]]*FAILED([[:space:]]|$$)/ { failed=1 } /^[[:space:]]*PASSED([[:space:]]|$$)/ { passed=1 } END { exit(empty || failed || !passed) }'
 # A dedicated database per run keeps tests independent of other applications.
 test-pg:
@@ -30,7 +30,7 @@ test-pg:
 	trap 'psql "$(PG_URL)" -qc "DROP DATABASE $$db WITH (FORCE)"' EXIT; \
 	wippy lint $(WIPPY_LINT_ARGS) --ns 'chestor.autocode' --ns 'chestor.autocode.*' --profile postgres --set vars.pg_database=$$db $(RUNTIME_ARGS); \
 	wippy test $(WIPPY_TEST_ARGS) --profile postgres --set vars.pg_database=$$db $(RUNTIME_ARGS) $(TEST_ARGS) 2>&1 | tee .wippy/last-test-pg-run.log; \
-	sed -E 's/\x1B\[[0-?]*[ -/]*[@-~]//g' .wippy/last-test-pg-run.log | \
+	sed -E 's/\x1B\[[0-9;?]*[[:alpha:]]//g' .wippy/last-test-pg-run.log | \
 	awk '/No tests found/ { empty=1 } /^[[:space:]]*FAILED([[:space:]]|$$)/ { failed=1 } /^[[:space:]]*PASSED([[:space:]]|$$)/ { passed=1 } END { exit(empty || failed || !passed) }'
 typecheck: ui-kit
 	cd ui && npm run typecheck
