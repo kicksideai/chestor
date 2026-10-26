@@ -25,6 +25,8 @@ entries:
     meta:
       comment: Reads the autocode duration settings through kickside.settings:settings.
     source: file://settings.lua
+    imports:
+      job_outcome: chestor.autocode.runner:job_outcome
     modules:
       - contract
 
@@ -76,6 +78,7 @@ entries:
     source: file://docker.lua
     modules:
       - exec
+      - stream
     imports:
       quote: chestor.autocode.runner:quote
 
@@ -96,6 +99,7 @@ entries:
     source: file://deferred.lua
     imports:
       repo: chestor.autocode.persist:repo
+      job_outcome: chestor.autocode.runner:job_outcome
       jobs: kickside.core.jobs:jobs
       jobs_config: kickside.core.jobs:config
       jobs_wake: kickside.core.jobs.persist:wake
@@ -110,6 +114,8 @@ entries:
     modules:
       - security
       - time
+      - json
+      - logger
     imports:
       repo: chestor.autocode.persist:repo
       resources: chestor.autocode.components:resources
@@ -132,6 +138,9 @@ entries:
     imports:
       repo: chestor.autocode.persist:repo
       runs: chestor.autocode.runner:runs
+      transport: chestor.autocode.runner:transport
+      credentials: chestor.autocode.runner:credentials
+      drivers: bee.drivers:drivers
       resources: chestor.autocode.components:resources
 
   # chestor.autocode.runner:keep_credential
@@ -146,6 +155,9 @@ entries:
     imports:
       repo: chestor.autocode.persist:repo
       runs: chestor.autocode.runner:runs
+      transport: chestor.autocode.runner:transport
+      credentials: chestor.autocode.runner:credentials
+      drivers: bee.drivers:drivers
       resources: chestor.autocode.components:resources
 
   # chestor.autocode.runner:image_recipe
@@ -160,6 +172,9 @@ entries:
     imports:
       repo: chestor.autocode.persist:repo
       runs: chestor.autocode.runner:runs
+      transport: chestor.autocode.runner:transport
+      credentials: chestor.autocode.runner:credentials
+      drivers: bee.drivers:drivers
       resources: chestor.autocode.components:resources
 
   # chestor.autocode.runner:run
@@ -184,7 +199,8 @@ entries:
       settings: chestor.autocode.runner:settings
       execution_identity: kickside.execution:execution_identity
       deferred: chestor.autocode.runner:deferred
-      job_types: kickside.core.jobs:types
+      transport: chestor.autocode.runner:transport
+      job_outcome: chestor.autocode.runner:job_outcome
     security:
       actor:
         id: system:chestor.autocode.runner
@@ -211,7 +227,8 @@ entries:
       drivers: bee.drivers:drivers
       docker: chestor.autocode.runner:docker
       execution_identity: kickside.execution:execution_identity
-      job_types: kickside.core.jobs:types
+      transport: chestor.autocode.runner:transport
+      job_outcome: chestor.autocode.runner:job_outcome
       component: kickside.component:component
     security:
       actor:
@@ -248,3 +265,18 @@ entries:
         - chestor.autocode.security:worker_calls
         - chestor.autocode.security:service_calls
         - chestor.autocode.security:store
+
+  - name: transport
+    kind: library.lua
+    source: file://transport.lua
+    imports:
+      repo: chestor.autocode.persist:repo
+      runs: chestor.autocode.runner:runs
+      drivers: bee.drivers:drivers
+      credentials: chestor.autocode.runner:credentials
+
+  - name: job_outcome
+    kind: library.lua
+    source: file://job_outcome.lua
+    imports:
+      job_types: kickside.core.jobs:types

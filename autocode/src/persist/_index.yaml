@@ -15,9 +15,42 @@ entries:
     meta:
       comment: Typed account state, image build, run and run event records, decoded at the storage boundary.
     source: file://repo.lua
-    modules:
-      - sql
-      - json
-      - registry
-      - uuid
-      - time
+    imports:
+      database: chestor.autocode.persist:database
+      accounts: chestor.autocode.persist:accounts
+      builds: chestor.autocode.persist:builds
+      runs: chestor.autocode.persist:runs
+      events: chestor.autocode.persist:events
+
+  - name: database
+    kind: library.lua
+    source: file://database.lua
+    modules: [sql, json, registry, time]
+
+  - name: accounts
+    kind: library.lua
+    source: file://accounts.lua
+    modules: [time]
+    imports:
+      database: chestor.autocode.persist:database
+
+  - name: builds
+    kind: library.lua
+    source: file://builds.lua
+    modules: [sql, json]
+    imports:
+      database: chestor.autocode.persist:database
+
+  - name: runs
+    kind: library.lua
+    source: file://runs.lua
+    modules: [sql, uuid]
+    imports:
+      database: chestor.autocode.persist:database
+
+  - name: events
+    kind: library.lua
+    source: file://events.lua
+    modules: []
+    imports:
+      database: chestor.autocode.persist:database

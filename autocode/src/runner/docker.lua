@@ -2,6 +2,7 @@
 -- Runs the docker CLI on the host executor. Output is one merged stream
 -- delivered line by line; secrets arrive only through `env`.
 local exec = require("exec")
+local stream = require("stream")
 local quote = require("quote")
 
 local EXECUTOR = "chestor.autocode:docker"
@@ -14,7 +15,7 @@ type Options = {
     on_overflow: ((integer) -> ())?,
 }
 
-type Child = {proc: exec.Process, stdout: any, executor: exec.Executor}
+type Child = {proc: exec.Process, stdout: stream.Stream, executor: exec.Executor}
 
 local M = {}
 
@@ -50,7 +51,7 @@ local function start(args: {string}, opts: Options): (Child?, error?)
         executor:release()
         return nil, fail("docker stdout", stream_err)
     end
-    local child: Child = {proc = proc, stdout = stdout, executor = executor}
+    local child: Child = {proc = proc, stdout = stdout :: stream.Stream, executor = executor}
     local _, start_err = proc:start()
     if start_err then
         close(child)
@@ -88,7 +89,7 @@ function M.run(args: {string}, options: Options?): (integer?, error?)
     local buffer = ""
     local dropped = 0
     local function deliver(line: string)
-        if dropped > 0 then
+        if dropped > 0 or #line > M.MAX_LINE_BYTES then
             if opts.on_overflow then opts.on_overflow(dropped + #line) end
             dropped = 0
             return
@@ -154,28 +155,32 @@ local function capture(args: {string}, limit: integer): (string?, integer?, erro
 end
 
 -- archived_file returns the content of the regular file in a tar stream.
-local function archived_file(archive: string): string?
+local function archived_file(archive: string, limit: integer): (string?, error?)
     local offset = 1
     while offset + 511 <= #archive do
         local header = archive:sub(offset, offset + 511)
-        if header:match("^%z*$") then return nil end
+        if header:match("^%z*$") then return nil, fail("docker cp returned no regular file") end
         local size = tonumber((header:sub(125, 136):gsub("[%z%s]", "")), 8)
-        if not size then return nil end
+        if not size or size < 0 then return nil, fail("invalid tar entry size") end
         local content_start = offset + 512
         local type_flag = header:sub(157, 157)
-        if type_flag == "0" or type_flag == "\0" then return archive:sub(content_start, content_start + size - 1) end
+        if content_start + size - 1 > #archive then return nil, fail("truncated tar entry") end
+        if type_flag == "0" or type_flag == "\0" then
+            if size > limit then return nil, fail("copied file exceeds " .. tostring(limit) .. " bytes") end
+            return archive:sub(content_start, content_start + size - 1), nil
+        end
         offset = content_start + math.ceil(size / 512) * 512
     end
-    return nil
+    return nil, fail("docker cp returned no regular file")
 end
 
 -- copy_file reads one file out of a container, running or stopped.
 function M.copy_file(container: string, path: string, limit: integer): (string?, error?)
-    local archive, code, err = capture({"cp", container .. ":" .. path, "-"}, limit)
+    local archive, code, err = capture({"cp", container .. ":" .. path, "-"}, limit + 65536)
     if not archive then return nil, err end
     if code ~= 0 then return nil, fail("docker cp exited with code " .. tostring(code)) end
-    local content = archived_file(archive)
-    if not content then return nil, fail("docker cp returned no file for " .. path) end
+    local content, archive_err = archived_file(archive, limit)
+    if not content then return nil, archive_err end
     return content, nil
 end
 

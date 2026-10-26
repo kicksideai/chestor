@@ -18,12 +18,13 @@ local live = require("live")
 local settings = require("settings")
 local execution_identity = require("execution_identity")
 local deferred = require("deferred")
-local job_types = require("job_types")
+local job_outcome = require("job_outcome")
 local logger = require("logger")
 local time = require("time")
+local transport = require("transport")
 
 -- The largest credential file copied back out of a finished container.
-local MAX_CREDENTIAL_BYTES = 1048576
+local MAX_CREDENTIAL_BYTES = 65536
 -- The resource whose kickside.execution.defer grant lets the runner resolve
 -- a run owner's stored identity.
 local DEFERRED_OWNER = "chestor.autocode:runs"
@@ -34,10 +35,10 @@ local RESUME_JOB = "chestor.autocode.blocks:resume"
 local TIMED_OUT = 124
 
 type Container = {name: string, create: {string}, env: {[string]: string}, stdin: string?}
-type Outcome = {ok: boolean, output: {[string]: unknown}?, error_native: unknown?}
+type Outcome = job_outcome.Outcome
 -- What the run owner's admission returns: the admitted run, the account
 -- credential and the context revision a refreshed credential expects.
-type Prepared = {admitted: runs.Admitted, secret: string, revision: integer}
+type Prepared = transport.Prepared
 
 -- Image run settings: limits, GPU access, network, then the administrator's
 -- docker run arguments, all placed before the image reference.
@@ -60,8 +61,7 @@ end
 
 local function build(run_id: string, admitted: runs.Admitted, env: {[string]: string}): Container
     local name = runs.container_name(run_id)
-    local args: {string} = {"create", "-i", "--name", name, "--label", "chestor.autocode.run=" .. run_id,
-        "--add-host", "host.docker.internal:host-gateway"}
+    local args: {string} = {"create", "-i", "--name", name, "--label", "chestor.autocode.run=" .. run_id}
     local workspace = admitted.workspace
     if workspace then
         args[#args + 1] = "--mount"
@@ -79,8 +79,142 @@ local function build(run_id: string, admitted: runs.Admitted, env: {[string]: st
     return {name = name, create = args, env = env, stdin = admitted.launch.stdin}
 end
 
-local function failure(message: string, kind: string): Outcome
-    return {ok = false, error_native = job_types.error_to_data(errors.new({kind = kind, message = message}))}
+local failure = job_outcome.failure
+
+type Caller = {call: (self: Caller, string, {[string]: unknown}) -> (unknown, error?)}
+type Emit = (string, string) -> ()
+type Streamed = {folder: records.Folder, terminal: drivers.Terminal?, stream_error: string?, docker_error: error?,
+    code: integer?, last_log: string, cancel_seen: boolean}
+
+local function prepare(run: repo.Run): (Prepared?, Caller?, error?)
+    local stored, row_err = execution_identity.from_row(run.identity.actor_id, run.identity.actor_context)
+    if not stored then return nil, nil, job_outcome.native(row_err) end
+    local owner, bind_err = execution_identity.bind(stored, {deferred_owner = DEFERRED_OWNER})
+    if not owner then return nil, nil, job_outcome.native(bind_err) end
+    if (type(owner) ~= "table" and type(owner) ~= "userdata") or type(owner.call) ~= "function" then
+        return nil, nil, errors.new({kind = errors.INTERNAL, message = "run identity has no call method"})
+    end
+    local result, prepare_err = owner:call(PREPARE, {run_id = run.id})
+    if prepare_err then return nil, nil, job_outcome.native(prepare_err) end
+    local prepared, decode_err = transport.prepared(result, run)
+    if not prepared then return nil, nil, decode_err end
+    return prepared, owner :: Caller, nil
+end
+
+local function stream(admitted: runs.Admitted, box: Container, redactor: redact.Redactor, emit: Emit,
+    cancelled: () -> (boolean?, error?), persist_error: () -> string?): (Streamed?, error?)
+    local reader, reader_err = drivers.reader(admitted.driver.id, false)
+    if not reader then
+        return nil, reader_err
+    end
+    local folder = records.new(function(text: string): string return redact.apply(redactor, text) end)
+    local terminal: drivers.Terminal? = nil
+    local stream_err: string? = nil
+    local stopped = false
+    local cancel_seen = false
+    local function check_cancel()
+        local requested, read_err = cancelled()
+        if read_err then stream_err = stream_err or ("cancellation read: " .. tostring(read_err)) end
+        if requested then cancel_seen = true end
+        if requested or read_err or persist_error() then
+            local stop_err = docker.stop(box.name)
+            if stop_err then emit("system", "container stop: " .. tostring(stop_err)) end
+        end
+    end
+    local last_log = ""
+    local function settle(step: drivers.Step?, err: error?)
+        if not step then
+            stream_err = stream_err or tostring(err)
+            return
+        end
+        for _, event in ipairs(records.step(folder, step)) do emit(event.kind, event.text) end
+        if step.terminal then terminal = step.terminal end
+        if persist_error() and not stopped then
+            stopped = true
+            local stop_err = docker.stop(box.name)
+            if stop_err then emit("system", "container stop: " .. tostring(stop_err)) end
+        end
+    end
+    local watching = true
+    local watch_done = channel.new(1)
+    coroutine.spawn(function()
+        while watching do
+            check_cancel()
+            time.sleep("250ms")
+        end
+        watch_done:send(true)
+    end)
+    local code, docker_err = docker.run({"start", "-a", "-i", box.name}, {
+        stdin = box.stdin,
+        on_line = function(line: string)
+            check_cancel()
+            if line:match("^%s*{") then
+                settle(reader:feed(line .. "\n"))
+            elseif line ~= "" then
+                last_log = records.clip(redact.apply(redactor, line))
+                emit("log", last_log)
+            end
+        end,
+        on_overflow = function(bytes: integer)
+            emit("system", "dropped an output line of " .. tostring(bytes) .. " bytes, over the " .. tostring(docker.MAX_LINE_BYTES) .. "-byte bound")
+        end,
+    })
+    watching = false
+    watch_done:receive()
+    settle(reader:finish())
+    for _, event in ipairs(records.terminal(folder, terminal)) do emit(event.kind, event.text) end
+
+    return {folder = folder, terminal = terminal, stream_error = stream_err, docker_error = docker_err,
+        code = code, last_log = last_log, cancel_seen = cancel_seen}, nil
+end
+
+local function keep_credential(run_id: string, owner: Caller, prepared: Prepared, box: Container, emit: Emit): string?
+    local refresh_error: string? = nil
+    local admitted, secret = prepared.admitted, prepared.secret
+    local file = admitted.account.kind.file
+    if file and file.write_back then
+        local content, copy_err = docker.copy_file(box.name, admitted.image.home .. "/" .. file.path, MAX_CREDENTIAL_BYTES)
+        if not content then
+            refresh_error = "credential refresh cannot be saved; re-add the account login: " .. tostring(copy_err)
+            emit("system", refresh_error)
+        elseif content ~= secret then
+            local kept, keep_err = owner:call(KEEP_CREDENTIAL, {run_id = run_id, account_id = admitted.account.id, credential_kind = admitted.account.kind.id, credential = content, revision = prepared.revision})
+            if keep_err then
+                refresh_error = "credential refresh cannot be saved; re-add the account login: " .. tostring(keep_err)
+                emit("system", refresh_error)
+            elseif type(kept) ~= "boolean" then
+                refresh_error = "credential updater returned malformed data; re-add the account login"
+                emit("system", refresh_error)
+            elseif not kept then
+                emit("system", "the CLI refreshed its credential, but the account changed during the run; the newer stored credential is kept")
+            end
+        end
+    end
+    return refresh_error
+end
+
+local function settle_account(run: repo.Run, terminal: drivers.Terminal?, refresh_error: string?, redactor: redact.Redactor, emit: Emit)
+    -- A success clears the account's last refusal; a retryable provider fault
+    -- cools it down. Other failures belong to the task, not the account.
+    local fault = terminal and terminal.error
+    local account_err: error? = nil
+    if terminal and terminal.outcome == "succeeded" then
+        account_err = repo.settle_account(run.account_id, "", "", run.started_at)
+    elseif fault and fault.retryable then
+        local cooldown, cooldown_err = settings.get("account_cooldown")
+        if not cooldown then
+            account_err = cooldown_err
+        else
+            account_err = repo.settle_account(run.account_id, redact.apply(redactor, fault.code .. ": " .. fault.message),
+                time.now():add(cooldown):utc():format_rfc3339(), run.started_at)
+        end
+    end
+    if account_err then emit("system", "account status: " .. tostring(account_err)) end
+    if refresh_error then
+        local health_err = repo.record_account_error(run.account_id, redact.apply(redactor, refresh_error))
+        if health_err then emit("system", "account health write: " .. tostring(health_err)) end
+    end
+
 end
 
 local function execute(run: repo.Run, job: {[string]: unknown}): Outcome
@@ -118,7 +252,7 @@ local function execute(run: repo.Run, job: {[string]: unknown}): Outcome
         changed(live.RUNS_TOPIC)
         if run.flow then
             local nudge_err = deferred.nudge()
-            if nudge_err then return failure("workflow resume wake: " .. tostring(nudge_err), errors.UNAVAILABLE) end
+            if nudge_err then logger:warn("autocode workflow delivery awaits jobs reconciliation", {run_id = run_id, error = tostring(nudge_err)}) end
         end
         return {ok = true, output = {run_id = run_id, status = status}}
     end
@@ -135,13 +269,8 @@ local function execute(run: repo.Run, job: {[string]: unknown}): Outcome
         return fail("the runner stopped before the run settled")
     end
 
-    local stored, row_err = execution_identity.from_row(run.identity.actor_id, run.identity.actor_context)
-    if not stored then return fail("run identity: " .. tostring(row_err)) end
-    local owner, bind_err = execution_identity.bind(stored, {deferred_owner = DEFERRED_OWNER})
-    if not owner then return fail("the run owner can no longer run tasks: " .. tostring(bind_err)) end
-    local result, prepare_err = owner:call(PREPARE, {run_id = run_id})
-    if not result then return fail(tostring(prepare_err)) end
-    local prepared = result :: Prepared
+    local prepared, owner, prepare_err = prepare(run)
+    if not prepared or not owner then return fail(tostring(prepare_err)) end
     local admitted = prepared.admitted
     local secret = prepared.secret
     redactor = redact.new(secret)
@@ -150,105 +279,58 @@ local function execute(run: repo.Run, job: {[string]: unknown}): Outcome
     if not script then return fail(tostring(script_err)) end
     local box = build(run_id, admitted, script.env)
 
+    local function cancelled(): (boolean?, error?)
+        local current, read_err = repo.stored_run(run_id)
+        if read_err then return nil, read_err end
+        if not current then return nil, errors.new({kind = errors.NOT_FOUND, message = "run disappeared during execution"}) end
+        return current.cancel_requested, nil
+    end
+    local initial_cancel, initial_err = cancelled()
+    if initial_err then return fail("cancellation read: " .. tostring(initial_err)) end
+    if initial_cancel then return finish("cancelled", "", "cancelled by user", {}) end
     local create_output: {string} = {}
     local created, create_err = docker.run(box.create, {env = box.env, on_line = function(line: string) create_output[#create_output + 1] = line end})
     if create_err or created ~= 0 then
         return fail(create_err and tostring(create_err) or ("container create failed: " .. table.concat(create_output, "\n")))
     end
-    local function cancelled(): boolean
-        local current = repo.stored_run(run_id)
-        return current ~= nil and current.cancel_requested
+    local function cleanup()
+        local remove_err = docker.remove(box.name)
+        if remove_err then emit("system", "container cleanup: " .. tostring(remove_err)) end
     end
-    -- From here the container exists: a cancellation stops it, so start
-    -- either runs it or finds it stopped.
-    if cancelled() then
-        docker.remove(box.name)
+    local requested, cancel_err = cancelled()
+    if cancel_err then cleanup(); return fail("cancellation read: " .. tostring(cancel_err)) end
+    if requested then
+        cleanup()
         emit("system", "cancelled")
         return finish("cancelled", "", "cancelled by user", {})
     end
     local started, start_err = repo.start_run(run_id)
     if not started then
-        docker.remove(box.name)
+        cleanup()
+        local requested, read_err = cancelled()
+        if read_err then return fail("cancellation read: " .. tostring(read_err)) end
+        if requested then return finish("cancelled", "", "cancelled by user", {}) end
         return fail(start_err and ("run start write failed: " .. tostring(start_err)) or "run is no longer queued")
     end
+    run.started_at = repo.now()
     changed(live.run_topic(run_id))
     changed(live.RUNS_TOPIC)
     emit("system", "starting " .. admitted.driver.id .. " in " .. admitted.image.ref)
 
-    local reader, reader_err = drivers.reader(admitted.driver.id, false)
-    if not reader then
-        docker.remove(box.name)
-        return fail(tostring(reader_err))
-    end
-    local folder = records.new(function(text: string): string return redact.apply(redactor, text) end)
-    local terminal: drivers.Terminal? = nil
-    local stream_err: string? = nil
-    local stopped = false
-    local last_log = ""
-    local function settle(step: drivers.Step?, err: error?)
-        if not step then
-            stream_err = stream_err or tostring(err)
-            return
-        end
-        for _, event in ipairs(records.step(folder, step)) do emit(event.kind, event.text) end
-        if step.terminal then terminal = step.terminal end
-        if persist_err and not stopped then
-            stopped = true
-            docker.stop(box.name)
-        end
-    end
-    local code, docker_err = docker.run({"start", "-a", "-i", box.name}, {
-        stdin = box.stdin,
-        on_line = function(line: string)
-            if line:match("^%s*{") then
-                settle(reader:feed(line .. "\n"))
-            elseif line ~= "" then
-                last_log = records.clip(redact.apply(redactor, line))
-                emit("log", last_log)
-            end
-        end,
-        on_overflow = function(bytes: integer)
-            emit("system", "dropped an output line of " .. tostring(bytes) .. " bytes, over the " .. tostring(docker.MAX_LINE_BYTES) .. "-byte bound")
-        end,
-    })
-    settle(reader:finish())
-    for _, event in ipairs(records.terminal(folder, terminal)) do emit(event.kind, event.text) end
+    local streamed, stream_failure = stream(admitted, box, redactor, emit, cancelled, function(): string? return persist_err end)
+    if not streamed then cleanup(); return fail(tostring(stream_failure)) end
+    local terminal, folder = streamed.terminal, streamed.folder
+    local stream_err, docker_err, code = streamed.stream_error, streamed.docker_error, streamed.code
+    local last_log = streamed.last_log
 
-    local was_cancelled = cancelled()
-    local file = admitted.account.kind.file
-    if file and file.write_back then
-        local content, copy_err = docker.copy_file(box.name, admitted.image.home .. "/" .. file.path, MAX_CREDENTIAL_BYTES)
-        if not content then
-            emit("error", "credential copy: " .. tostring(copy_err))
-        elseif content ~= secret then
-            local kept, keep_err = owner:call(KEEP_CREDENTIAL, {account_id = admitted.account.id, credential = content, revision = prepared.revision})
-            if keep_err then
-                emit("error", "credential update: " .. tostring(keep_err))
-            elseif not kept then
-                emit("system", "the CLI refreshed its credential, but the account changed during the run; the newer stored credential is kept")
-            end
-        end
-    end
-    local remove_err = docker.remove(box.name)
-    if remove_err then emit("system", "container cleanup: " .. tostring(remove_err)) end
+    local was_cancelled, final_read_err = cancelled()
+    if final_read_err then stream_err = stream_err or ("cancellation read: " .. tostring(final_read_err)) end
+    was_cancelled = was_cancelled or streamed.cancel_seen
+    local refresh_error = keep_credential(run_id, owner, prepared, box, emit)
+    cleanup()
 
-    -- A success clears the account's last refusal; a retryable provider fault
-    -- cools it down. Other failures belong to the task, not the account.
+    settle_account(run, terminal, refresh_error, redactor, emit)
     local fault = terminal and terminal.error
-    local account_err: error? = nil
-    if terminal and terminal.outcome == "succeeded" then
-        account_err = repo.settle_account(run.account_id, "", "")
-    elseif fault and fault.retryable then
-        local cooldown, cooldown_err = settings.get("account_cooldown")
-        if not cooldown then
-            account_err = cooldown_err
-        else
-            account_err = repo.settle_account(run.account_id, redact.apply(redactor, fault.code .. ": " .. fault.message),
-                time.now():add(cooldown):utc():format_rfc3339())
-        end
-    end
-    if account_err then emit("error", "account status: " .. tostring(account_err)) end
-
     local answer = records.result(folder, terminal)
     local usage = records.usage(terminal)
     if was_cancelled then

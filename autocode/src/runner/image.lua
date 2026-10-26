@@ -9,18 +9,20 @@ local repo = require("repo")
 local drivers = require("drivers")
 local docker = require("docker")
 local execution_identity = require("execution_identity")
-local job_types = require("job_types")
+local job_outcome = require("job_outcome")
 local component = require("component")
+local transport = require("transport")
 
 local MAX_LOG = 65536
 local DEFERRED_OWNER = "chestor.autocode:images"
 local RECIPE = "chestor.autocode.runner:image_recipe"
 
 type Log = {lines: {string}, size: integer}
-type Recipe = {ref: string, dockerfile: string}
-type Outcome = {ok: boolean, output: {[string]: unknown}?, error_native: unknown?}
+type Recipe = transport.Recipe
+type Outcome = job_outcome.Outcome
 
 local function add(log: Log, line: string)
+    if #line > MAX_LOG then line = line:sub(1, MAX_LOG) end
     log.lines[#log.lines + 1] = line
     log.size = log.size + #line + 1
     while log.size > MAX_LOG and #log.lines > 1 do
@@ -44,6 +46,19 @@ local function fetch(ref: string, dockerfile: string, mode: repo.BuildMode, log:
     if mode == "initial" and step({"image", "inspect", "--format", "{{.Id}}", ref}) == 0 then return nil end
     add(log, "$ docker pull " .. ref)
     if step({"pull", ref}) ~= 0 then return "pull failed" end
+    return nil
+end
+
+local function runtime(recipe: Recipe, log: Log): string?
+    local probe = [[set -eu
+for tool in dirname mkdir git timeout; do command -v "$tool" >/dev/null || exit 127; done
+mkdir -p "$1/work"
+test -w "$1" && test -w "$1/work"
+timeout -k 1 1 sh -c ':'
+]]
+    local code, err = docker.run({"run", "--rm", "--network", "none", "--entrypoint", "sh", recipe.ref,
+        "-c", probe, "probe", recipe.home}, {on_line = function(line: string) add(log, line) end})
+    if err or code ~= 0 then return "runtime prerequisites: require dirname, mkdir, git, timeout -k, and a writable configured HOME/work: " .. tostring(err or code) end
     return nil
 end
 
@@ -74,45 +89,51 @@ local function contained(ref: string, log: Log): ({string}?, error?)
     return found, nil
 end
 
-local function failure(message: string, kind: string): Outcome
-    return {ok = false, error_native = job_types.error_to_data(errors.new({kind = kind, message = message}))}
-end
+local failure = job_outcome.failure
 
-local function settle(image_id: string, status: string, agents: {string}, problem: string): Outcome?
-    local _, err = component.set_runtime_meta(image_id, {status = status, agents = agents, last_error = problem})
+local function project(image_id: string, build_id: string): Outcome?
+    local err = repo.project_image_build(image_id, build_id, function(build: repo.ImageBuild): error?
+        local _, write_err = component.set_runtime_meta(image_id, {status = build.status, agents = build.agents, last_error = build.last_error})
+        return write_err
+    end)
     if err then return failure("image status: " .. tostring(err), errors.UNAVAILABLE) end
     return nil
 end
 
--- refused settles an image whose build cannot start.
-local function refused(image_id: string, problem: string): Outcome
-    local log_err = repo.finish_image_build(image_id, problem)
+local function refused(image_id: string, build_id: string, problem: string): Outcome
+    local log_err = repo.finish_image_build(image_id, problem, build_id, "failed", {}, problem)
     if log_err then return failure("image build log write: " .. tostring(log_err), errors.UNAVAILABLE) end
-    return settle(image_id, "failed", {}, problem) or {ok = true, output = {image_id = image_id, status = "failed"}}
+    return project(image_id, build_id) or {ok = true, output = {image_id = image_id, status = "failed"}}
 end
 
 local function main(input: {[string]: unknown}): Outcome
     local payload = type(input.payload) == "table" and input.payload or {}
     local image_id = type(payload.image_id) == "string" and payload.image_id or ""
+    local build_id = type(payload.build_id) == "string" and payload.build_id or ""
     local build, build_err = repo.image_build(image_id)
     if build_err then return failure("image build read: " .. tostring(build_err), errors.UNAVAILABLE) end
     if not build then return failure("image build " .. image_id .. " not found", errors.NOT_FOUND) end
-    if build.finished_at ~= "" then return {ok = true, output = {image_id = image_id}} end
+    if build.build_id ~= build_id then return failure("stale image build generation", errors.CONFLICT) end
+    if build.finished_at ~= "" then return project(image_id, build_id) or {ok = true, output = {image_id = image_id, status = build.status}} end
+    local projection_failure = project(image_id, build_id)
+    if projection_failure then return projection_failure end
 
     local stored, row_err = execution_identity.from_row(build.identity.actor_id, build.identity.actor_context)
-    if not stored then return refused(image_id, "image build identity: " .. tostring(row_err)) end
+    if not stored then return refused(image_id, build_id, "image build identity: " .. tostring(row_err)) end
     local requester, bind_err = execution_identity.bind(stored, {deferred_owner = DEFERRED_OWNER})
     if not requester then
-        return refused(image_id, "the build requester can no longer manage images: " .. tostring(bind_err))
+        return refused(image_id, build_id, "the build requester can no longer manage images: " .. tostring(bind_err))
     end
     local result, recipe_err = requester:call(RECIPE, {image_id = image_id})
-    if not result then return refused(image_id, tostring(recipe_err)) end
-    local recipe = result :: Recipe
+    if not result then return refused(image_id, build_id, tostring(recipe_err)) end
+    local recipe, decode_err = transport.recipe(result)
+    if not recipe then return refused(image_id, build_id, tostring(decode_err)) end
 
     local log: Log = {lines = {}, size = 0}
     local status = "failed"
     local agents: {string} = {}
     local problem = fetch(recipe.ref, recipe.dockerfile, build.mode, log)
+    if not problem then problem = runtime(recipe, log) end
     if problem then
         add(log, problem)
     else
@@ -124,9 +145,9 @@ local function main(input: {[string]: unknown}): Outcome
             add(log, problem)
         end
     end
-    local log_err = repo.finish_image_build(image_id, table.concat(log.lines, "\n"))
+    local log_err = repo.finish_image_build(image_id, table.concat(log.lines, "\n"), build_id, status, agents, problem or "")
     if log_err then return failure("image build log write: " .. tostring(log_err), errors.UNAVAILABLE) end
-    return settle(image_id, status, agents, problem or "") or {ok = true, output = {image_id = image_id, status = status}}
+    return project(image_id, build_id) or {ok = true, output = {image_id = image_id, status = status}}
 end
 
 return { main = main }

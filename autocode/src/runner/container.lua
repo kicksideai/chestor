@@ -8,8 +8,9 @@ local drivers = require("drivers")
 local credentials = require("credentials")
 local quote = require("quote")
 
-type Script = {script: string, env: {[string]: string}}
+type Script = {env: {[string]: string}}
 
+local KILL_GRACE_SECONDS = 30
 local M = {}
 
 -- timeout_seconds bounds the CLI: timeout stops it, then kills it 30 seconds
@@ -51,12 +52,12 @@ function M.script(kind: credentials.Kind, secret: string, home: string, workdir:
         lines[#lines + 1] = "cd repo"
     end
 
-    local command: {string} = {"timeout", "-k", "30", tostring(timeout_seconds), launch.executable}
+    local command: {string} = {"timeout", "-k", tostring(KILL_GRACE_SECONDS), tostring(timeout_seconds), launch.executable}
     for _, argument in ipairs(launch.argv) do command[#command + 1] = argument end
     lines[#lines + 1] = "exec " .. quote.line(command)
 
     env.AUTOCODE_SCRIPT = table.concat(lines, "\n")
-    return {script = env.AUTOCODE_SCRIPT, env = env}, nil
+    return {env = env}, nil
 end
 
 return M
