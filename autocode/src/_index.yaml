@@ -85,6 +85,8 @@ entries:
         path: .meta.target_db
       - entry: chestor.autocode.persist:db_config
         path: .meta.db_id
+      - entry: chestor.autocode.security:store
+        path: .policy.resources +=
 
   - name: api_router
     kind: ns.requirement
@@ -125,8 +127,6 @@ entries:
       - entry: chestor.autocode.api:runs_list.user.endpoint
         path: .meta.router
       - entry: chestor.autocode.api:runs_create.user.endpoint
-        path: .meta.router
-      - entry: chestor.autocode.api:runs_preview.user.endpoint
         path: .meta.router
       - entry: chestor.autocode.api:runs_get.user.endpoint
         path: .meta.router

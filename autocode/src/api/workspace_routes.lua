@@ -7,9 +7,10 @@
 local web = require("web")
 local resources = require("resources")
 local workspaces = require("workspaces")
+local security = require("security")
 
 -- host_path: present for callers who may share the workspace.
-type View = {id: string, name: string, writable: boolean, shareable: boolean, host_path: string?}
+type View = {id: string, name: string, writable: boolean, deletable: boolean, shareable: boolean, host_path: string?}
 
 local function list()
     local ctx = web.open()
@@ -26,9 +27,14 @@ local function list()
             host_path = type(context.values.host_path) == "string" and context.values.host_path or ""
         end
         views[#views + 1] = {id = workspace.id, name = type(workspace.meta.title) == "string" and workspace.meta.title or "",
-            writable = resources.has(workspace.access, resources.ACCESS.WRITE), shareable = shareable, host_path = host_path}
+            writable = resources.has(workspace.access, resources.ACCESS.WRITE),
+            deletable = resources.has(workspace.access, resources.ACCESS.DELETE), shareable = shareable, host_path = host_path}
     end
-    web.reply(ctx.res, web.STATUS.OK, {success = true, workspaces = views, roots = workspaces.roots()})
+    local body: {[string]: unknown} = {success = true, workspaces = views}
+    if security.can("access", "chestor.autocode.api:workspaces_create.endpoint") == true then
+        body.roots = workspaces.roots()
+    end
+    web.reply(ctx.res, web.STATUS.OK, body)
 end
 
 local function create()

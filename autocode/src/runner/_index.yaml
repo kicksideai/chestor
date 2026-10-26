@@ -190,10 +190,12 @@ entries:
         id: system:chestor.autocode.runner
       policies:
         - chestor.autocode.security:worker_runtime
+        - chestor.autocode.security:worker_calls
         - chestor.autocode.security:service_calls
         - chestor.autocode.security:store
         - chestor.autocode.security:deferred_runs
         - chestor.autocode.security:deferred_actor
+        - bee.drivers.security:host_access
         - chestor.autocode.security:docker_commands
         - chestor.autocode.security:run_notify
 
@@ -216,10 +218,12 @@ entries:
         id: system:chestor.autocode.images
       policies:
         - chestor.autocode.security:worker_runtime
+        - chestor.autocode.security:worker_calls
         - chestor.autocode.security:service_calls
         - chestor.autocode.security:store
         - chestor.autocode.security:deferred_images
         - chestor.autocode.security:deferred_actor
+        - bee.drivers.security:host_access
         - chestor.autocode.security:docker_commands
         - chestor.autocode.security:image_status
 
@@ -241,5 +245,6 @@ entries:
         id: system:chestor.autocode.retention
       policies:
         - chestor.autocode.security:worker_runtime
+        - chestor.autocode.security:worker_calls
         - chestor.autocode.security:service_calls
         - chestor.autocode.security:store

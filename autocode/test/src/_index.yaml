@@ -225,6 +225,20 @@ entries:
     groups: [app.security:admin]
     policy: { resources: "*", actions: "*", effect: allow }
 
+  - name: autocode_managers
+    kind: registry.entry
+    meta: {type: kickside.security.group_composition}
+    group_id: app:autocode_managers
+    policies: [chestor.autocode.security:module_management]
+
+  - name: workspace_management
+    kind: security.policy
+    groups: [app:workspace_managers]
+    policy:
+      resources: [chestor.autocode.api:workspaces_create.endpoint, chestor.autocode.api:workspaces_delete.endpoint]
+      actions: access
+      effect: allow
+
   - name: user.runtime_data_access
     namespace: app.security
     kind: security.policy
@@ -278,6 +292,14 @@ entries:
       resources: chestor.autocode.components:resources
       runs: chestor.autocode.runner:runs
       repo: chestor.autocode.persist:repo
+
+  - name: fixture_cleanup
+    kind: function.lua
+    source: file://boundary_probe.lua
+    method: cleanup
+    modules: [contract]
+    imports:
+      resources: chestor.autocode.components:resources
 
   - name: fixture_admit
     kind: function.lua

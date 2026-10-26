@@ -42,24 +42,54 @@ entries:
     kind: security.policy
     meta:
       private: true
-      comment: Runtime calls members make - the API handlers, the component kinds' contracts, the agent task Block's arm, and the run steps the runner takes under the run owner.
+      comment: Member HTTP handlers, component status, and the task arm under the recovered Flow identity.
     groups: []
     policy:
       resources:
-        - chestor.autocode.api:*
-        - chestor.autocode.components:*
+        - chestor.autocode.api:catalog
+        - chestor.autocode.api:drivers_list
+        - chestor.autocode.api:accounts_list
+        - chestor.autocode.api:accounts_create
+        - chestor.autocode.api:accounts_update
+        - chestor.autocode.api:accounts_delete
+        - chestor.autocode.api:images_list
+        - chestor.autocode.api:images_get
+        - chestor.autocode.api:workspaces_list
+        - chestor.autocode.api:runs_list
+        - chestor.autocode.api:runs_create
+        - chestor.autocode.api:runs_get
+        - chestor.autocode.api:runs_cancel
+        - chestor.autocode.components:status
         - chestor.autocode.blocks:arm_task
-        - chestor.autocode.runner:prepare
-        - chestor.autocode.runner:keep_credential
-      actions:
-        - contract.get
-        - contract.open
-        - contract.call
-        - contract.implementations
-        - contract.security
-        - funcs.call
-        - funcs.security
+      actions: [funcs.call]
       effect: allow
+
+  - name: component_teardown
+    kind: security.policy
+    meta:
+      private: true
+      comment: Only the component delete path opens the cleanup contracts.
+    policy:
+      resources:
+        - chestor.autocode.components:account
+        - chestor.autocode.components:image
+        - chestor.autocode.components:workspace
+        - kickside.contract:deletable
+        - kickside.core:threads
+        - kickside.core.threads:threads_binding
+        - purge
+      actions: [contract.get, contract.open, contract.call]
+      effect: allow
+
+  - name: teardown_security
+    kind: ns.requirement
+    default: chestor.autocode.security:component_teardown
+    meta:
+      value_kind: security.policy
+      comment: The component service carries the exact cleanup binding grant after its DELETE check.
+    targets:
+      - entry: kickside.component.binding:delete_component_func
+        path: .security.policies +=
 
   # chestor.autocode.security:service_calls
   - name: service_calls
@@ -99,7 +129,6 @@ entries:
         - chestor.autocode.api:workspaces_list.user.endpoint
         - chestor.autocode.api:runs_list.user.endpoint
         - chestor.autocode.api:runs_create.user.endpoint
-        - chestor.autocode.api:runs_preview.user.endpoint
         - chestor.autocode.api:runs_get.user.endpoint
         - chestor.autocode.api:runs_cancel.user.endpoint
       actions: access
@@ -164,9 +193,12 @@ entries:
       title: Autocode management
       surface: chestor.autocode
       intent: module_management
-      comment: Images, workspaces and Docker maintenance. Administrators assign it to the groups that manage them; members keep module_access.
+      comment: Images, workspaces and Docker maintenance, including the member catalog and views their managers use.
       includes:
         - chestor.autocode.security:management_runtime
+        - chestor.autocode.security:management_reads
+        - chestor.autocode.security:module_access
+        - bee.drivers.security:host_access
     groups: []
     policy:
       resources:
@@ -186,12 +218,41 @@ entries:
     kind: security.policy
     meta:
       private: true
-      comment: The build step the image builder takes under the administrator who requested the build.
+      comment: Management handlers and the platform contracts managers use without member-group membership.
     groups: []
     policy:
       resources:
-        - chestor.autocode.runner:image_recipe
-      actions: [funcs.call, funcs.security]
+        - chestor.autocode.api:images_create
+        - chestor.autocode.api:images_update
+        - chestor.autocode.api:images_delete
+        - chestor.autocode.api:images_prepare
+        - chestor.autocode.api:workspaces_create
+        - chestor.autocode.api:workspaces_delete
+        - chestor.autocode.api:maintenance_prune
+        - kickside.core.jobs.persist:pool_nudge
+        - kickside.component:component_service
+        - kickside.component.binding:component_service_impl
+        - kickside.settings:settings
+        - kickside.settings:settings_binding
+      actions: [funcs.call, contract.get, contract.open]
+      effect: allow
+
+  - name: management_reads
+    kind: security.policy
+    meta:
+      private: true
+      comment: Component queries resolve their host database binding under the manager.
+    groups: []
+    policy:
+      resources:
+        - kickside.component:db_config
+        - kickside.component:policy
+        - kickside.core:policy
+        - kickside.core:db_config
+        - kickside.core.jobs:db_config
+        - kickside.core.jobs:policy
+        - kickside.core.jobs:process_config
+      actions: [registry.get]
       effect: allow
 
   # chestor.autocode.security:store
@@ -200,7 +261,7 @@ entries:
     meta:
       comment: Trusted workers open the autocode database and read the module's host bindings.
     policy:
-      resources: "*"
+      resources: []
       actions: [db.get]
       effect: allow
 
@@ -208,7 +269,7 @@ entries:
   - name: worker_runtime
     kind: security.policy
     meta:
-      comment: Trusted workers read the registry and call the contracts and functions of autocode and of the modules it runs on.
+      comment: Trusted workers discover autocode and its platform dependencies.
     policy:
       resources:
         - chestor.autocode:*
@@ -228,16 +289,30 @@ entries:
         - kickside.execution:*
         - kickside.component:*
         - kickside.component.*
-      actions:
-        - registry.get
-        - registry.find
-        - contract.get
-        - contract.open
-        - contract.call
-        - contract.implementations
-        - contract.security
-        - funcs.call
-        - funcs.security
+      actions: [registry.get, registry.find]
+      effect: allow
+
+  - name: worker_calls
+    kind: security.policy
+    meta:
+      comment: Owner-bound steps, live identity resolution, settings reads, and job wake calls.
+    policy:
+      resources:
+        - chestor.autocode.runner:prepare
+        - chestor.autocode.runner:keep_credential
+        - chestor.autocode.runner:image_recipe
+        - kickside.contract:scope_resolver
+        - kickside.users:scope_resolver_binding
+        - kickside.component:component_service
+        - kickside.component.binding:component_service_impl
+        - kickside.settings:settings
+        - kickside.settings:settings_binding
+        - kickside.core.jobs.persist:pool_nudge
+        - kickside.mcp:credential_restriction
+        - kickside.identity:link_get
+        - resolve
+        - security
+      actions: [funcs.call, funcs.security, contract.get, contract.open, contract.call, contract.security]
       effect: allow
 
   # chestor.autocode.security:deferred_runs

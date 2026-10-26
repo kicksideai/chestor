@@ -113,6 +113,11 @@ function M.request(user: User?, method: string, path: string, body: any?): Respo
     return send(method, base_url() .. prefix .. path, user and user.token or nil, body)
 end
 
+-- Container requests use the same gateway port as the harness HTTP service.
+function M.container_url(): string
+    return (base_url():gsub("127%.0%.0%.1", "host.docker.internal"))
+end
+
 -- Deletes the user, which revokes its sessions.
 function M.release(user: User)
     local _, err = user_lifecycle_repo.delete(user.id)

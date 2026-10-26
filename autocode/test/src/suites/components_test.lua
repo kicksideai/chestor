@@ -1,6 +1,6 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
--- Agent accounts are components: the credential lives in private context
--- and never leaves it, grants decide who sees an account, and a personal
+-- Agent accounts are components: HTTP responses omit their credentials,
+-- grants decide who sees an account, and a personal
 -- subscription login stays its owner's to run on even when shared.
 local test = require("test")
 local identity = require("identity")
@@ -107,7 +107,7 @@ local function cases()
             local mine = listed(owner, created.json.id)
             test.eq(mine.subscription, true)
             test.eq(mine.usable, true)
-            test.eq(mine.shareable, false)
+            test.is_nil(mine.shareable)
             local share_err = share(owner, created.json.id, READ)
             test.is_nil(share_err)
             local theirs = listed(other, created.json.id)
@@ -141,6 +141,51 @@ local function cases()
             test.eq(identity.request(owner, "DELETE", "/autocode/accounts/" .. id).status, 200)
             test.is_nil(listed(owner, id))
         end)
+
+        test.it("reports account DELETE independently of WRITE", function()
+            local owner = track(identity.member())
+            local other = track(identity.member())
+            local key = kinds(owner)
+            local created = create(owner, key, "Grant masks", "sk-ant-harness-" .. string.rep("g", 32))
+            test.eq(created.status, 201, created.body)
+            local id = created.json.id
+            test.eq(listed(owner, id).deletable, true)
+            test.is_nil(listed(owner, id).shareable)
+            test.is_nil(share(owner, id, 3))
+            test.eq(listed(other, id).writable, true)
+            test.eq(listed(other, id).deletable, false)
+            test.eq(identity.request(other, "DELETE", "/autocode/accounts/" .. id).status, 404)
+            test.is_nil(share(owner, id, 5))
+            test.eq(listed(other, id).writable, false)
+            test.eq(listed(other, id).deletable, true)
+            test.eq(identity.request(other, "DELETE", "/autocode/accounts/" .. id).status, 200)
+        end)
+
+        for _, kind in ipairs({"image", "workspace"}) do
+            test.it("reports " .. kind .. " DELETE independently of WRITE", function()
+                local admin = track(identity.admin())
+                local member = track(identity.member())
+                local id, err = identity.call(admin, "app:fixture_register", kind,
+                    {title = "Grant masks", ref = "autocode-harness:grant-masks", status = "ready"}, {})
+                test.is_nil(err)
+                test.not_nil(id)
+                local function view()
+                    local response = identity.request(member, "GET", "/autocode/" .. kind .. "s")
+                    test.eq(response.status, 200, response.body)
+                    for _, item in ipairs(response.json[kind .. "s"]) do
+                        if item.id == id then return item end
+                    end
+                    error("shared " .. kind .. " is not listed")
+                end
+                test.is_nil(share(admin, id, 3))
+                test.eq(view().writable, true)
+                test.eq(view().deletable, false)
+                test.is_nil(share(admin, id, 5))
+                test.eq(view().writable, false)
+                test.eq(view().deletable, true)
+                test.eq(identity.request(member, "DELETE", "/autocode/" .. kind .. "s/" .. id).status, 403)
+            end)
+        end
     end)
 end
 

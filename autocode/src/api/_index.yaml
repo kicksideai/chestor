@@ -315,6 +315,7 @@ entries:
     meta:
       comment: "GET /autocode/workspaces - Workspaces the caller can see, with the mount mode its grant gives."
     source: file://workspace_routes.lua
+    modules: [security]
     method: list
     imports:
       web: chestor.autocode.api:web
@@ -336,6 +337,7 @@ entries:
     meta:
       comment: "POST /autocode/workspaces - Register a host directory under the workspace roots as a workspace."
     source: file://workspace_routes.lua
+    modules: [security]
     method: create
     imports:
       web: chestor.autocode.api:web
@@ -357,6 +359,7 @@ entries:
     meta:
       comment: "DELETE /autocode/workspaces/{id} - Delete a workspace; its host directory stays."
     source: file://workspace_routes.lua
+    modules: [security]
     method: delete
     imports:
       web: chestor.autocode.api:web
@@ -413,27 +416,6 @@ entries:
     method: POST
     func: runs_create
     path: /autocode/runs
-
-  # chestor.autocode.api:runs_preview
-  - name: runs_preview
-    kind: function.lua
-    meta:
-      comment: "POST /autocode/runs/preview - The launch a run with this body would get."
-    source: file://runs.lua
-    method: preview
-    imports:
-      web: chestor.autocode.api:web
-      repo: chestor.autocode.persist:repo
-      runs: chestor.autocode.runner:runs
-
-  # chestor.autocode.api:runs_preview.user.endpoint
-  - name: runs_preview.user.endpoint
-    kind: http.endpoint
-    meta:
-      comment: "POST /autocode/runs/preview"
-    method: POST
-    func: runs_preview
-    path: /autocode/runs/preview
 
   # chestor.autocode.api:runs_get
   - name: runs_get

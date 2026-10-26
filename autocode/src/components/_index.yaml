@@ -4,7 +4,7 @@ namespace: chestor.autocode.components
 
 # Agent accounts, Docker images and host workspaces are Kickside components:
 # owner and group grants decide who sees and uses each one, private context
-# holds what a run needs and members never read, and deleting one runs the
+# holds what a run needs, and deleting one runs the
 # module's teardown. All three are standalone kinds listed on the Autocode
 # pages, never placed in the workspace tree.
 

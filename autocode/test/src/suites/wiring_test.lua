@@ -95,6 +95,45 @@ local function cases()
                 end
             end
         end)
+
+        test.it("names callable runtime resources exactly", function()
+            for _, id in ipairs({"chestor.autocode.security:module_runtime", "chestor.autocode.security:worker_runtime"}) do
+                local entry, err = registry.get(id)
+                test.is_nil(err)
+                local policy = entry.data.policy
+                local callable = false
+                for _, action in ipairs(policy.actions) do
+                    if action == "funcs.call" or action == "contract.open" or action == "contract.call" then callable = true end
+                end
+                if callable then
+                    for _, resource in ipairs(policy.resources) do
+                        test.is_nil(resource:find("*", 1, true), id .. ": " .. resource)
+                    end
+                end
+            end
+        end)
+
+        test.it("uses the component service's method names as contract.call resources", function()
+            local entry, err = registry.get("chestor.autocode.security:service_calls")
+            test.is_nil(err)
+            local binding, binding_err = registry.get("kickside.component.binding:component_service_impl")
+            test.is_nil(binding_err)
+            local methods = binding.data.contracts[1].methods
+            for _, method in ipairs(entry.data.policy.resources) do
+                test.not_nil(methods[method], "component service has no method " .. method)
+                local target, target_err = registry.get(methods[method])
+                test.is_nil(target_err)
+                test.not_nil(target)
+                test.eq(target.kind, "function.lua")
+            end
+        end)
+
+        test.it("publishes no unused HTTP launch preview", function()
+            for _, id in ipairs({"chestor.autocode.api:runs_preview", "chestor.autocode.api:runs_preview.user.endpoint"}) do
+                local entry = registry.get(id)
+                test.is_nil(entry, id)
+            end
+        end)
     end)
 end
 

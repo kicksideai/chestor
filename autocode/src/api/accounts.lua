@@ -1,7 +1,7 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 -- /autocode/accounts — agent account components the caller can see, with
--- their balancing state. The credential is write-only: checked and stored in
--- the account's private context on create, never returned. A subscription
+-- their balancing state. Account HTTP responses omit the credential stored
+-- in component private context. A subscription
 -- login is personal: it runs only for its owner, whoever else can see it.
 local web = require("web")
 local repo = require("repo")
@@ -10,10 +10,9 @@ local drivers = require("drivers")
 local credentials = require("credentials")
 
 type Endpoint = {protocol: string, base_url: string, model: string?}
--- mine: the caller owns the account; usable: the caller's runs may use it;
--- shareable: the caller may grant it to others.
+-- mine: the caller owns the account; usable: the caller's runs may use it.
 type View = {id: string, agent: string, label: string, credential_kind: string, subscription: boolean, enabled: boolean,
-    endpoint: Endpoint?, owner: string, mine: boolean, usable: boolean, writable: boolean, shareable: boolean,
+    endpoint: Endpoint?, owner: string, mine: boolean, usable: boolean, writable: boolean, deletable: boolean,
     last_used_at: string, cooldown_until: string, last_error: string, runs_day: integer, failures_day: integer}
 
 local function text(value: unknown): string
@@ -46,7 +45,7 @@ local function list()
             credential_kind = text(meta.credential_kind), subscription = subscription, enabled = resources.flag(meta.enabled, true),
             endpoint = endpoint_of(meta), owner = account.owner, mine = mine, usable = mine or not subscription,
             writable = resources.has(account.access, resources.ACCESS.WRITE),
-            shareable = not subscription and resources.has(account.access, resources.ACCESS.ADMIN),
+            deletable = resources.has(account.access, resources.ACCESS.DELETE),
             last_used_at = state.last_used_at, cooldown_until = state.cooldown_until, last_error = state.last_error,
             runs_day = state.runs_day, failures_day = state.failures_day}
     end

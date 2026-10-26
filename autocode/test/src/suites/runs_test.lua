@@ -77,7 +77,7 @@ USER node
             test.is_nil(err)
             test.eq(code, 0, table.concat(output, "\n"))
             local member, image_id, account_id = setup(image_ref, {protocol = "anthropic-messages",
-                base_url = "http://host.docker.internal:19347/mock", model = "claude-sonnet-4-6"})
+                base_url = identity.container_url() .. "/mock", model = "claude-sonnet-4-6"})
             local submitted = identity.request(member, "POST", "/autocode/runs",
                 {agent = "claude", image_id = image_id, account_id = account_id, prompt = "Return the fixture answer."})
             test.eq(submitted.status, 201, submitted.body)
