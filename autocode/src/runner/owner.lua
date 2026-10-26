@@ -8,9 +8,12 @@ local repo = require("repo")
 local runs = require("runs")
 local resources = require("resources")
 local security = require("security")
+local transport = require("transport")
+local credentials = require("credentials")
+local drivers = require("drivers")
 
-type Prepared = {admitted: runs.Admitted, secret: string, revision: integer}
-type Recipe = {ref: string, dockerfile: string}
+type Prepared = transport.Prepared
+type Recipe = transport.Recipe
 
 local function owner(): (string?, error?)
     local actor = security.actor()
@@ -37,7 +40,26 @@ end
 
 -- keep_credential stores a login file the CLI refreshed during the run, only
 -- while the stored credential is still the revision the run started with.
-local function keep_credential(args: {account_id: string, credential: string, revision: integer}): (boolean?, error?)
+local function keep_credential(args: {run_id: string, account_id: string, credential: string, credential_kind: string, revision: integer}): (boolean?, error?)
+    local owner_id, owner_err = owner()
+    if not owner_id then return nil, owner_err end
+    local run, run_err = repo.run(owner_id, args.run_id)
+    if not run then return nil, run_err or errors.new({kind = errors.NOT_FOUND, message = "run not found"}) end
+    if run.account_id ~= args.account_id or run.status ~= "running" then
+        return nil, errors.new({kind = errors.CONFLICT, message = "run no longer maintains this account"})
+    end
+    local account, account_err = resources.get("account", args.account_id, resources.ACCESS.WRITE)
+    if not account then return nil, account_err end
+    if resources.text(account.meta.agent) ~= run.agent or resources.text(account.meta.credential_kind) ~= args.credential_kind then
+        return nil, errors.new({kind = errors.CONFLICT, message = "account credential kind changed during the run"})
+    end
+    local driver, driver_err = drivers.get(run.agent)
+    if not driver then return nil, driver_err end
+    local kind = credentials.kind(driver, resources.text(account.meta.credential_kind))
+    if not kind or not kind.file or not kind.file.write_back then return nil, errors.new({kind = errors.INVALID, message = "account no longer accepts a refreshed login file"}) end
+    if #args.credential == 0 or #args.credential > 65536 then return nil, errors.new({kind = errors.INVALID, message = "refreshed credential must be between 1 and 65536 bytes"}) end
+    local problem = credentials.check(kind, args.credential)
+    if problem then return nil, errors.new({kind = errors.INVALID, message = problem}) end
     local err = resources.patch_context(args.account_id, {credential = args.credential}, args.revision)
     if err then
         if errors.is(err, errors.CONFLICT) then return false, nil end
@@ -54,7 +76,7 @@ local function image_recipe(args: {image_id: string}): (Recipe?, error?)
     local context, context_err = resources.context("image", args.image_id, resources.ACCESS.WRITE)
     if not context then return nil, context_err end
     local dockerfile = context.values.dockerfile
-    return {ref = tostring(image.meta.ref or ""), dockerfile = type(dockerfile) == "string" and dockerfile or ""}, nil
+    return {ref = tostring(image.meta.ref or ""), home = tostring(image.meta.home or ""), dockerfile = type(dockerfile) == "string" and dockerfile or ""}, nil
 end
 
 return { prepare = prepare, keep_credential = keep_credential, image_recipe = image_recipe }

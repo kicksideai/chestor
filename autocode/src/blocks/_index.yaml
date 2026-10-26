@@ -88,7 +88,6 @@ entries:
     modules: [funcs]
     imports:
       repo: chestor.autocode.persist:repo
-      job_types: kickside.core.jobs:types
     security:
       actor:
         id: system:chestor.autocode.resume

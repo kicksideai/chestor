@@ -10,6 +10,7 @@ local time = require("time")
 local funcs = require("funcs")
 local anthropic = require("anthropic")
 local docker = require("docker")
+local registry = require("registry")
 
 local READ = 1
 local SECRET = "sk-ant-harness-" .. string.rep("r", 32)
@@ -43,7 +44,8 @@ local function cases()
             end
             local image_id, err = identity.call(admin, "app:fixture_register", "image", {title = "Missing image",
                 ref = image_ref or "chestor-autocode-harness:missing", home = "/opt/agent", status = "ready", agents = {"claude"}, last_error = ""},
-                {dockerfile = "", settings = {network = endpoint and "bridge" or "none", allows = allows}})
+                {dockerfile = "", settings = {network = endpoint and "bridge" or "none", allows = allows,
+                    extra_args = endpoint and {"--add-host", "host.docker.internal:host-gateway"} or {}}})
             test.is_nil(err)
             share(admin, image_id, READ)
             local created = identity.request(member, "POST", "/autocode/accounts",
@@ -77,7 +79,7 @@ USER node
             test.is_nil(err)
             test.eq(code, 0, table.concat(output, "\n"))
             local member, image_id, account_id = setup(image_ref, {protocol = "anthropic-messages",
-                base_url = "http://host.docker.internal:19347/mock", model = "claude-sonnet-4-6"})
+                base_url = "http://host.docker.internal" .. registry.get("app:gateway").data.addr .. "/mock", model = "claude-sonnet-4-6"})
             local submitted = identity.request(member, "POST", "/autocode/runs",
                 {agent = "claude", image_id = image_id, account_id = account_id, prompt = "Return the fixture answer."})
             test.eq(submitted.status, 201, submitted.body)

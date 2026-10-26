@@ -18,7 +18,7 @@ local function run(): {[string]: unknown}
     if duration:seconds() <= 0 then
         return {success = false, error = errors.new({kind = errors.INVALID, message = "run_retention must be positive: " .. retention})}
     end
-    local before = time.now():add("-" .. retention):utc():format_rfc3339()
+    local before = time.now():add(-duration:nanoseconds()):utc():format_rfc3339()
     local deleted, err = repo.prune_runs(before, BATCH)
     if err then return {success = false, error = err} end
     return {success = true, deleted = deleted}

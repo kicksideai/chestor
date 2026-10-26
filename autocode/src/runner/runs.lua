@@ -17,6 +17,8 @@ local settings = require("settings")
 local deferred = require("deferred")
 local security = require("security")
 local time = require("time")
+local json = require("json")
+local logger = require("logger")
 
 local RUN_JOB = "chestor.autocode.runner:run"
 -- How long the runner keeps after the run's own timeout to settle the run.
@@ -25,7 +27,7 @@ local SETTLE_MARGIN_MS = 600000
 type Object = {[string]: unknown}
 -- What a member asks for: an agent, and one of its accounts or none.
 type Request = {agent: string, account_id: string?, image_id: string, workspace_id: string?, options: Object,
-    unattended: boolean, repo_url: string, prompt: string, timeout: string?}
+    unattended: boolean, repo_url: string, prompt: string, timeout: string?, idempotency_key: string?}
 type Endpoint = {protocol: string, base_url: string, model: string?}
 type Account = {id: string, label: string, owner: string, kind: credentials.Kind, endpoint: Endpoint?}
 type Image = {id: string, ref: string, home: string, memory: string, cpus: string, pids_limit: integer, gpus: string,
@@ -45,9 +47,7 @@ function M.container_name(run_id: string): string
     return "chestor-autocode-" .. run_id
 end
 
-local function text(value: unknown): string
-    return type(value) == "string" and value or ""
-end
+local text = resources.text
 
 local function list(value: unknown): {string}
     local result: {string} = {}
@@ -102,7 +102,7 @@ end
 
 -- account returns the named account, or the agent's next available one.
 local function account(caller: string, driver: drivers.Driver, account_id: string?): (Account?, error?)
-    if account_id then
+    if account_id and account_id ~= "" then
         local resource, err = resources.get("account", account_id, resources.ACCESS.READ)
         if not resource then
             if errors.is(err, errors.NOT_FOUND) then return nil, refuse("select one of your " .. driver.title .. " accounts") end
@@ -110,6 +110,9 @@ local function account(caller: string, driver: drivers.Driver, account_id: strin
         end
         local selected, problem = usable(driver, resource, caller)
         if not selected then return nil, refuse(problem or "account is not usable") end
+        local states, state_err = repo.account_states({selected.id})
+        if not states then return nil, state_err end
+        if states[selected.id].cooldown_until > repo.now() then return nil, refuse("account " .. selected.label .. " is cooling down") end
         return selected, nil
     end
     local all, list_err = resources.list("account")
@@ -127,12 +130,12 @@ local function account(caller: string, driver: drivers.Driver, account_id: strin
     if not states then return nil, state_err end
     local now = repo.now()
     local best: Account? = nil
-    local best_used = ""
+    local best_order = 0
     for _, candidate in ipairs(candidates) do
         local state = states[candidate.id]
         local cooling = state.cooldown_until ~= "" and state.cooldown_until > now
-        if not cooling and (not best or state.last_used_at < best_used) then
-            best, best_used = candidate, state.last_used_at
+        if not cooling and (not best or state.reservation_order < best_order or (state.reservation_order == best_order and candidate.id < best.id)) then
+            best, best_order = candidate, state.reservation_order
         end
     end
     if not best then
@@ -147,6 +150,9 @@ local function image(driver: drivers.Driver, image_id: string): (Image?, error?)
         if errors.is(err, errors.NOT_FOUND) then return nil, refuse("select an image") end
         return nil, err
     end
+    local pending, pending_err = repo.image_build(image_id)
+    if pending_err then return nil, pending_err end
+    if pending and (pending.finished_at == "" or not pending.projected) then return nil, refuse("image has a pending build") end
     local meta = resource.meta
     local ref = text(meta.ref)
     if text(meta.status) ~= "ready" then return nil, refuse("image " .. ref .. " is " .. text(meta.status)) end
@@ -221,6 +227,9 @@ function M.admit(request: Request): (Admitted?, error?)
         if not found then return nil, workspace_err end
         mounted = found
     end
+    if mounted and request.repo_url ~= "" then
+        return nil, refuse("repository cloning requires a scratch workspace; select a workspace to use its existing checkout")
+    end
     local limit, limit_err = timeout_ms(request.timeout)
     if not limit then return nil, limit_err end
 
@@ -242,28 +251,86 @@ function M.request(run: repo.Run): Request
         timeout = tostring(run.timeout_ms) .. "ms"}
 end
 
--- submit admits a request under the caller and records the run with the
--- caller's execution identity together with its job; a run a workflow Block
--- starts names the Flow signal its node waits on.
-function M.submit(request: Request, flow: repo.FlowSignal?): (string?, error?)
+-- Canonical JSON makes object-key order irrelevant to submission identity.
+local function canonical(value: unknown): (string?, error?)
+    if type(value) ~= "table" then
+        local encoded, err = json.encode(value)
+        if type(encoded) ~= "string" then return nil, err end
+        return encoded, nil
+    end
+    local keys: {string} = {}
+    local parts: {string} = {}
+    local array = value[1] ~= nil
+    if array then
+        local count = 0
+        for index in pairs(value) do
+            if type(index) ~= "number" or index < 1 or index ~= math.floor(index) then return nil, refuse("option arrays must have consecutive integer keys") end
+            count = count + 1
+        end
+        if count ~= #value then return nil, refuse("option arrays must have consecutive integer keys") end
+        for _, item in ipairs(value) do
+            local encoded, err = canonical(item)
+            if not encoded then return nil, err end
+            parts[#parts + 1] = encoded
+        end
+        return "[" .. table.concat(parts, ",") .. "]", nil
+    end
+    for key in pairs(value) do
+        if type(key) ~= "string" then return nil, refuse("options must have string object keys") end
+        keys[#keys + 1] = key
+    end
+    table.sort(keys)
+    for _, key in ipairs(keys) do
+        local encoded_key, key_err = canonical(key)
+        if not encoded_key then return nil, key_err end
+        local encoded, err = canonical(value[key])
+        if not encoded then return nil, err end
+        parts[#parts + 1] = encoded_key .. ":" .. encoded
+    end
+    return "{" .. table.concat(parts, ",") .. "}", nil
+end
+
+-- submit commits a run, callback and caller key together with the job.
+function M.submit(request: Request, flow: repo.FlowSignal?, idempotency_key: string?): (string?, error?)
+    local actor = security.actor()
+    if not actor then return nil, errors.new({kind = errors.PERMISSION_DENIED, message = "authentication required"}) end
+    local owner_id = actor:id()
+    local key = idempotency_key or request.idempotency_key
+    local submission: repo.Submission? = nil
+    if key then
+        if key == "" or #key > 200 then return nil, refuse("idempotency key must be between 1 and 200 bytes") end
+        local encoded, encode_err = canonical({agent = request.agent, account_id = request.account_id or "", image_id = request.image_id,
+            workspace_id = request.workspace_id or "", options = request.options, unattended = request.unattended,
+            repo_url = request.repo_url, prompt = request.prompt, timeout = request.timeout or "", flow = flow})
+        if not encoded then return nil, encode_err end
+        submission = {key = key, canonical = encoded}
+        local replayed, replay_err = repo.find_submission(owner_id, submission)
+        if replayed or replay_err then return replayed, replay_err end
+    end
     local admitted, admit_err = M.admit(request)
     if not admitted then return nil, admit_err end
+    local candidates: {string}? = nil
+    if not request.account_id or request.account_id == "" then
+        local all, list_err = resources.list("account")
+        if not all then return nil, list_err end
+        candidates = {}
+        for _, resource in ipairs(all) do
+            local selected = usable(admitted.driver, resource, owner_id)
+            if selected then candidates[#candidates + 1] = selected.id end
+        end
+    end
     local database_err = deferred.check()
     if database_err then return nil, database_err end
     local row, capture_err = deferred.capture()
     if not row then return nil, capture_err end
     admitted.spec.flow = flow
-    local actor = security.actor()
-    local owner_id = actor and actor:id() or ""
-    -- The second attempt exists for recovery: it settles a run whose first
-    -- attempt the runtime stopped.
     local id, create_err = repo.create_run(owner_id, row, admitted.spec, function(run_id: string): repo.Transactional
         return deferred.enqueue({scope = run_id, key = "run", owner_id = owner_id, job_type = RUN_JOB, max_attempts = 2,
             payload = {run_id = run_id, max_execution_ms = admitted.spec.timeout_ms + SETTLE_MARGIN_MS}})
-    end)
+    end, submission, candidates)
     if not id then return nil, create_err end
     local nudge_err = deferred.nudge()
-    if nudge_err then return nil, nudge_err end
+    if nudge_err then logger:warn("autocode committed run awaits jobs reconciliation", {run_id = id, error = tostring(nudge_err)}) end
     return id, nil
 end
 

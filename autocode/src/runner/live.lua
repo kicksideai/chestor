@@ -17,15 +17,19 @@ end
 
 -- notify tells the owner's connected clients that topic changed. Delivery is
 -- a no-op when the owner has no open client.
-local opened: any = nil
+type Realtime = {notify: (self: Realtime, {user_id: string, topic: string, data: {[string]: unknown}}) -> (unknown, error?)}
+local opened: Realtime? = nil
 
-local function realtime(): (any, error?)
+local function realtime(): (Realtime?, error?)
     if opened then return opened, nil end
     local definition, definition_err = contract.get("kickside.contract:realtime")
     if definition_err or not definition then return nil, definition_err end
     local instance, open_err = definition:open()
     if open_err or not instance then return nil, open_err end
-    opened = instance
+    if (type(instance) ~= "table" and type(instance) ~= "userdata") or type(instance.notify) ~= "function" then
+        return nil, errors.new({kind = errors.INTERNAL, message = "realtime contract has no notify method"})
+    end
+    opened = instance :: Realtime
     return opened, nil
 end
 

@@ -388,7 +388,7 @@ entries:
       comment: Submitted runs keep complete streamed answers, settle under the owner, stay the owner's, and retention prunes them.
     source: file://suites/runs_test.lua
     method: run
-    modules: [time, funcs]
+    modules: [time, funcs, registry]
     imports:
       test: wippy.test:test
       identity: app:identity
@@ -434,14 +434,139 @@ entries:
     lifecycle:
       auto_start: true
 
+  - name: persistence_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_persistence, group: Autocode}
+    source: file://suites/persistence_test.lua
+    method: run
+    modules: [sql, uuid]
+    imports:
+      test: wippy.test:test
+      repo: chestor.autocode.persist:repo
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
   - name: runner_stubs
     kind: library.lua
     source: file://runner_stubs.lua
     modules: [time]
 
   # Distinct alias IDs keep each subject's dependency edges unique.
+  - name: stub_component
+    kind: library.lua
+    source: file://stub_alias.lua
+    imports:
+      stubs: app:runner_stubs
 
-  - name: stub_exec
+  - name: stub_deferred
+    kind: library.lua
+    source: file://stub_alias.lua
+    imports:
+      stubs: app:runner_stubs
+
+  - name: stub_docker
+    kind: library.lua
+    source: file://stub_alias.lua
+    imports:
+      stubs: app:runner_stubs
+
+  - name: stub_drivers
+    kind: library.lua
+    source: file://stub_alias.lua
+    imports:
+      stubs: app:runner_stubs
+
+  - name: stub_execution_identity
+    kind: library.lua
+    source: file://stub_alias.lua
+    imports:
+      stubs: app:runner_stubs
+
+  - name: stub_funcs
+    kind: library.lua
+    source: file://stub_alias.lua
+    imports:
+      stubs: app:runner_stubs
+
+  - name: stub_live
+    kind: library.lua
+    source: file://stub_alias.lua
+    imports:
+      stubs: app:runner_stubs
+
+  - name: stub_repo
+    kind: library.lua
+    source: file://stub_alias.lua
+    imports:
+      stubs: app:runner_stubs
+
+  - name: stub_runs
+    kind: library.lua
+    source: file://stub_alias.lua
+    imports:
+      stubs: app:runner_stubs
+
+  - name: stub_settings
+    kind: library.lua
+    source: file://stub_alias.lua
+    imports:
+      stubs: app:runner_stubs
+
+  - name: resume_subject
+    kind: library.lua
+    source: file://resume_subject.lua
+    imports:
+      funcs: app:stub_funcs
+      repo: app:stub_repo
+
+  - name: image_subject
+    kind: library.lua
+    source: file://image_subject.lua
+    imports:
+      repo: app:stub_repo
+      drivers: app:stub_drivers
+      docker: app:stub_docker
+      execution_identity: app:stub_execution_identity
+      component: app:stub_component
+      transport: app:stub_transport
+      job_outcome: chestor.autocode.runner:job_outcome
+
+  - name: run_subject
+    kind: library.lua
+    source: file://run_subject.lua
+    modules: [logger, time]
+    imports:
+      repo: app:stub_repo
+      runs: app:stub_runs
+      container: chestor.autocode.runner:container
+      drivers: app:stub_drivers
+      records: chestor.autocode.runner:records
+      redact: chestor.autocode.runner:redact
+      docker: app:stub_docker
+      live: app:stub_live
+      settings: app:stub_settings
+      execution_identity: app:stub_execution_identity
+      deferred: app:stub_deferred
+      transport: app:stub_transport
+      job_outcome: chestor.autocode.runner:job_outcome
+
+  - name: runner_faults_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_runner_faults, group: Autocode}
+    source: file://suites/runner_faults_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      stubs: app:runner_stubs
+      resume_subject: app:resume_subject
+      image_subject: app:image_subject
+      run_subject: app:run_subject
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: stub_transport
     kind: library.lua
     source: file://stub_alias.lua
     imports:
@@ -455,6 +580,12 @@ entries:
       exec: app:stub_exec
       quote: chestor.autocode.runner:quote
 
+  - name: stub_exec
+    kind: library.lua
+    source: file://stub_alias.lua
+    imports:
+      stubs: app:runner_stubs
+
   - name: docker_test
     kind: function.lua
     meta: {type: test, suite: autocode_docker, group: Autocode}
@@ -466,17 +597,17 @@ entries:
       docker_subject: app:docker_subject
       stubs: app:runner_stubs
 
-  - name: stub_registry
-    kind: library.lua
-    source: file://stub_alias.lua
-    imports:
-      stubs: app:runner_stubs
-
   - name: workspaces_subject
     kind: library.lua
     source: file://workspaces_subject.lua
     imports:
       registry: app:stub_registry
+
+  - name: stub_registry
+    kind: library.lua
+    source: file://stub_alias.lua
+    imports:
+      stubs: app:runner_stubs
 
   - name: workspaces_test
     kind: function.lua
@@ -486,4 +617,54 @@ entries:
     imports:
       test: wippy.test:test
       subject: app:workspaces_subject
+      stubs: app:runner_stubs
+
+  - name: owner_subject
+    kind: library.lua
+    source: file://owner_subject.lua
+    modules: [security]
+    imports:
+      repo: app:stub_repo
+      runs: app:stub_runs
+      resources: app:stub_resources
+      transport: chestor.autocode.runner:transport
+      credentials: chestor.autocode.runner:credentials
+      drivers: app:stub_drivers
+
+  - name: stub_resources
+    kind: library.lua
+    source: file://stub_alias.lua
+    imports:
+      stubs: app:runner_stubs
+
+  - name: credential_refresh_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_credential_refresh, group: Autocode}
+    source: file://suites/credential_refresh_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      subject: app:owner_subject
+      stubs: app:runner_stubs
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: retention_subject
+    kind: library.lua
+    source: file://retention_subject.lua
+    modules: [time]
+    imports:
+      repo: app:stub_repo
+      settings: app:stub_settings
+
+  - name: retention_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_retention, group: Autocode}
+    source: file://suites/retention_test.lua
+    modules: [time]
+    method: run
+    imports:
+      test: wippy.test:test
+      subject: app:retention_subject
       stubs: app:runner_stubs

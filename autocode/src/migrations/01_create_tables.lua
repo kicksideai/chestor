@@ -1,4 +1,5 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+local sql = require("sql")
 -- Module-owned rows beside the account, image and workspace components: the
 -- balancing state of each account, the latest build of each image with the
 -- identity it was requested under, runs with the execution identity they were
@@ -67,25 +68,28 @@ local TABLES = {
     "chestor_autocode_account_state",
 }
 
-local function apply(db, now: string)
+local function apply(db: sql.DB, now: string)
     for _, statement in ipairs(statements(now)) do
         local _, err = db:execute(statement)
         if err then error("autocode migration: " .. tostring(err)) end
     end
 end
 
-local function drop(db)
-    for _, name in ipairs(TABLES) do db:execute("DROP TABLE " .. name) end
+local function drop(db: sql.DB)
+    for _, name in ipairs(TABLES) do
+        local _, err = db:execute("DROP TABLE " .. name)
+        if err then error("autocode rollback: " .. tostring(err)) end
+    end
 end
 
 return require("migration").define(function()
     migration("Create autocode tables", function()
         database("postgres", function()
-            up(function(db) apply(db, [[(to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))]]) end)
+            up(function(db: sql.DB) apply(db, [[(to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))]]) end)
             down(drop)
         end)
         database("sqlite", function()
-            up(function(db) apply(db, [[(strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))]]) end)
+            up(function(db: sql.DB) apply(db, [[(strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))]]) end)
             down(drop)
         end)
     end)

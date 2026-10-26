@@ -86,6 +86,7 @@ function M.nudge() return errors.new({kind = errors.UNAVAILABLE, message = "pool
 function M.enqueue() return function() end end
 function M.settle_account() end
 function M.get(id)
+    if id == "run_retention" then return M.state.retention or "1m" end
     if id == "account" then return M.state.account end
     if id == "claude" then return {id = "claude", credentials = {files = {{path = ".login.json", content_format = "json", write_back = true, initialize = {}}}, variables = {}, subscriptions = {}}} end
     if id == "chestor.autocode:runtime_config" then
@@ -114,4 +115,5 @@ function M.patch_context()
     if M.state.patch_conflict then return errors.new({kind = errors.CONFLICT, message = "revision conflict"}) end
     M.state.patched = true
 end
+function M.prune_runs(before) M.state.before = before; return 0 end
 return M

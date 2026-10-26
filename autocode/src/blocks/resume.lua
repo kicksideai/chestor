@@ -5,17 +5,14 @@
 -- Blocks resumes under the Flow's own identity.
 local funcs = require("funcs")
 local repo = require("repo")
-local job_types = require("job_types")
 
 local RESUME = "kickside.blocks:resume"
 
-type Outcome = {ok: boolean, output: {[string]: unknown}?, error_native: unknown?}
-
-local function failure(message: string, kind: string): Outcome
-    return {ok = false, error_native = job_types.error_to_data(errors.new({kind = kind, message = message}))}
+local function failure(message: string, kind: string): (nil, error)
+    return nil, errors.new({kind = kind, message = message})
 end
 
-local function run(input: {[string]: unknown}): Outcome
+local function run(input: {[string]: unknown}): ({run_id: string}?, error?)
     local payload = type(input.payload) == "table" and input.payload or {}
     local run_id = type(payload.run_id) == "string" and payload.run_id or ""
     local stored, err = repo.stored_run(run_id)
@@ -30,7 +27,9 @@ local function run(input: {[string]: unknown}): Outcome
         payload = {run_id = stored.id, status = stored.status, answer = stored.result, error = stored.error, usage = stored.usage,
             agent = stored.agent, account_id = stored.account_id}})
     if resume_err then return failure("workflow resume: " .. tostring(resume_err), errors.UNAVAILABLE) end
-    return {ok = true, output = {run_id = run_id}}
+    local delivery_err = repo.acknowledge_delivery(run_id)
+    if delivery_err then return nil, delivery_err end
+    return {run_id = run_id}, nil
 end
 
 return { run = run }

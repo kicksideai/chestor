@@ -11,6 +11,19 @@ entries:
       comment: Create the account state, image build, run, and run event tables.
       timestamp: "2026-10-22T20:00:00Z"
     source: file://01_create_tables.lua
+    modules: [sql]
+    imports:
+      migration: wippy.migration:migration
+    method: migrate
+
+  - name: 02_delivery_and_generations
+    kind: function.lua
+    meta:
+      type: migration
+      comment: Fence image builds and keep workflow results until delivery.
+      timestamp: "2026-10-26T16:00:00Z"
+    source: file://02_delivery_and_generations.lua
+    modules: [sql]
     imports:
       migration: wippy.migration:migration
     method: migrate

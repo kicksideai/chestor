@@ -11,6 +11,8 @@ local execution_identity = require("execution_identity")
 type Job = {scope: string, key: string, owner_id: string, job_type: string, max_attempts: integer,
     payload: {[string]: unknown}}
 
+local job_outcome = require("job_outcome")
+
 local M = {}
 
 -- check refuses work when the autocode tables and the jobs live apart.
@@ -28,10 +30,13 @@ end
 -- worker resolves again before it acts.
 function M.capture(): (repo.Identity?, error?)
     local identity, err = execution_identity.capture()
-    if not identity then return nil, err :: error end
+    if not identity then return nil, job_outcome.native(err) end
     local row, row_err = execution_identity.to_row(identity)
-    if not row then return nil, row_err :: error end
-    return {actor_id = tostring(row.actor_id), actor_context = tostring(row.actor_context)}, nil
+    if not row then return nil, job_outcome.native(row_err) end
+    if type(row.actor_id) ~= "string" or row.actor_id == "" or type(row.actor_context) ~= "string" then
+        return nil, errors.new({kind = errors.INTERNAL, message = "execution identity returned malformed row data"})
+    end
+    return {actor_id = row.actor_id, actor_context = row.actor_context}, nil
 end
 
 -- enqueue returns the transactional step that enqueues `job`.
