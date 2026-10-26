@@ -5,7 +5,6 @@ type Object = {[string]: unknown}
 local function reply(ctx: web.Context, method: string, input: Object, status: number)
     local result, err = client.call("chestor.autocode:tasks", method, input)
     if not result then return web.fail_with(ctx.res, err) end
-    if method == "submit_task" then result.id = result.run_id; result.run_id = nil end
     result.success = true
     web.reply(ctx.res, status, result)
 end
@@ -13,7 +12,7 @@ local function list()
     local ctx = web.open()
     if not ctx then return end
     local limit = ctx.req:query("limit")
-    reply(ctx, "list_runs", {limit = limit and (tonumber(limit) or limit) or nil, cursor = ctx.req:query("cursor")}, web.STATUS.OK)
+    reply(ctx, "list_runs", {limit = limit, cursor = ctx.req:query("cursor")}, web.STATUS.OK)
 end
 local function get()
     local ctx = web.open()
@@ -22,8 +21,8 @@ local function get()
     if not id then return end
     local after = ctx.req:query("after")
     local limit = ctx.req:query("limit")
-    reply(ctx, "get_run", {run_id = id, after_seq = after and (tonumber(after) or after) or nil,
-        limit = limit and (tonumber(limit) or limit) or nil}, web.STATUS.OK)
+    reply(ctx, "get_run", {run_id = id, after_seq = after,
+        limit = limit}, web.STATUS.OK)
 end
 local function create()
     local ctx = web.open()

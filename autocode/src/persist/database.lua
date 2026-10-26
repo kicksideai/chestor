@@ -27,7 +27,7 @@ type AccountState = {reservation_order: integer, last_used_at: string, cooldown_
 -- "refresh" pulls it again.
 type BuildMode = "initial" | "refresh"
 type ImageBuild = {identity: Identity, mode: BuildMode, log: string, requested_at: string, finished_at: string,
-    build_id: string, status: string, agents: {string}, last_error: string, projected: boolean}
+    build_id: string, status: string, agents: {string}, last_error: string, projected: boolean, recipe: Object}
 type Submission = {key: string, canonical: string}
 -- flow: the workflow Flow and signal a run started by an agent task Block resumes.
 type FlowSignal = {dataflow_id: string, signal_id: string}

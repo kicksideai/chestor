@@ -128,6 +128,6 @@ export const autocode = {
   drivers: () => call('get', '/drivers', z.object({ drivers: z.array(dto.driverInfo) })).then(r => r.drivers),
   runs: (cursor?: string) => call('get', `/runs${cursor ? '?cursor=' + encodeURIComponent(cursor) : ''}`, z.object({ runs: z.array(dto.runSummary), next_cursor: z.string().optional() })),
   run: (id: string, after: number) => call('get', `/runs/${encodeURIComponent(id)}?after=${after}`, z.object({ run: dto.run, events: z.array(dto.runEvent), more: z.boolean() })),
-  startRun: (body: { agent: string; account_id: string; image_id: string; workspace_id: string; repo_url: string; prompt: string; options: Record<string, unknown>; unattended: boolean }) => call('post', '/runs', idResponse, body),
+  startRun: (body: { agent: string; account_id: string; image_id: string; workspace_id: string; repo_url: string; prompt: string; options: Record<string, unknown>; unattended: boolean }) => call('post', '/runs', z.object({ run_id: z.string() }), body),
   cancelRun: (id: string) => call('post', `/runs/${encodeURIComponent(id)}/cancel`, success),
 }

@@ -1,5 +1,5 @@
-import { on as m, api as h } from "@wippy-fe/proxy";
-import { o, r as D, g as $, e as v, s, h as T, l as I, i as C, j as c, k as U, m as E, p as x, w as S, q as A, t as M, v as _, x as j } from "./dto-BwnY4_Sk.js";
+import { on as d, api as h } from "@wippy-fe/proxy";
+import { o, r as D, g as $, e as v, s as a, h as T, l as I, i as C, j as c, k as U, m as E, p as x, w as S, q as _, t as A, v as M, x as j } from "./dto-BwnY4_Sk.js";
 import { ref as N, onUnmounted as P, readonly as q } from "vue";
 const F = "/api/v1/autocode";
 function H(e, t = Date.now()) {
@@ -10,7 +10,7 @@ function J(e) {
   const t = new Date(e);
   return Number.isNaN(t.getTime()) ? e : t.toLocaleString(void 0, { dateStyle: "short", timeStyle: "short" });
 }
-const w = o({ kind: s().optional(), code: s().optional(), retryable: v().optional(), details: D($()).optional() }), L = w.extend({ success: I(!1), error: T([s(), w.extend({ message: s() })]) });
+const g = o({ kind: a().optional(), code: a().optional(), retryable: v().optional(), details: D($()).optional() }), L = g.extend({ success: I(!1), error: T([a(), g.extend({ message: a() })]) });
 class y extends Error {
   kind;
   code;
@@ -31,30 +31,30 @@ function W(e, t) {
   const r = b(e);
   if (r) throw r;
   i.parse(e);
-  const a = t.safeParse(e);
-  if (!a.success) throw new Error(`Invalid API response: ${a.error.issues.map((u) => u.path.join(".") + ": " + u.message).join("; ")}`);
-  return a.data;
+  const s = t.safeParse(e);
+  if (!s.success) throw new Error(`Invalid API response: ${s.error.issues.map((u) => u.path.join(".") + ": " + u.message).join("; ")}`);
+  return s.data;
 }
-async function k(e, t, r, a) {
+async function k(e, t, r, s) {
   try {
-    const p = (e === "get" || e === "delete" ? await h[e](t) : await h[e](t, a)).data;
+    const p = (e === "get" || e === "delete" ? await h[e](t) : await h[e](t, s)).data;
     return W(p, r);
   } catch (u) {
     const p = o({ response: o({ data: $() }) }).safeParse(u);
     throw p.success ? b(p.data.response.data) ?? new Error("Invalid API error response.") : u instanceof Error ? u : new Error("Request failed.");
   }
 }
-function n(e, t, r, a) {
-  return k(e, F + t, r, a);
+function n(e, t, r, s) {
+  return k(e, F + t, r, s);
 }
 const K = {
-  runs: (e) => m("chestor.autocode.runs", e),
-  run: (e, t) => m(`chestor.autocode.run.${e}`, t),
-  component: (e, t) => m(`component.${e}`, t)
+  runs: (e) => d("chestor.autocode.runs", e),
+  run: (e, t) => d(`chestor.autocode.run.${e}`, t),
+  component: (e, t) => d(`component.${e}`, t)
 };
 function Q(e) {
   let t = null, r = !1;
-  const a = async () => {
+  const s = async () => {
     try {
       do
         r = !1, await e();
@@ -63,45 +63,45 @@ function Q(e) {
       t = null;
     }
   };
-  return () => t ? (r = !0, t) : (t = a(), t);
+  return () => t ? (r = !0, t) : (t = s(), t);
 }
 async function V(e) {
   if (!e.length) return {};
-  const t = await k("post", "/api/v1/principals/resolve", o({ principals: c(o({ id: s(), label: s() })) }), { refs: e.map((r) => ({ type: "user", id: r })) });
+  const t = await k("post", "/api/v1/principals/resolve", o({ principals: c(o({ id: a(), label: a() })) }), { refs: e.map((r) => ({ type: "user", id: r })) });
   return Object.fromEntries(t.principals.map((r) => [r.id, r.label]));
 }
 function X(e, t) {
   return e instanceof Error && e.message ? e.message : t;
 }
-const d = o({ id: s() }), B = d.extend({ build_error: w.extend({ message: s() }).optional() }), Y = {
+const w = o({ id: a() }), B = w.extend({ build_error: g.extend({ message: a() }).optional() }), Y = {
   catalog: () => n("get", "/catalog", j),
-  accounts: () => n("get", "/accounts", o({ accounts: c(M) })).then((e) => e.accounts),
-  createAccount: (e) => n("post", "/accounts", d, e),
+  accounts: () => n("get", "/accounts", o({ accounts: c(A) })).then((e) => e.accounts),
+  createAccount: (e) => n("post", "/accounts", w, e),
   updateAccount: (e, t) => n("put", `/accounts/${encodeURIComponent(e)}`, i, t),
   deleteAccount: (e) => n("delete", `/accounts/${encodeURIComponent(e)}`, i),
-  images: () => n("get", "/images", o({ images: c(A) })).then((e) => e.images),
-  image: (e) => n("get", `/images/${encodeURIComponent(e)}`, _),
+  images: () => n("get", "/images", o({ images: c(_) })).then((e) => e.images),
+  image: (e) => n("get", `/images/${encodeURIComponent(e)}`, M),
   createImage: (e) => n("post", "/images", B, e),
   updateImage: (e, t) => n("put", `/images/${encodeURIComponent(e)}`, i, t),
   deleteImage: (e, t) => n("delete", `/images/${encodeURIComponent(e)}${t ? "?remove=1" : ""}`, i),
   prepareImage: (e) => n("post", `/images/${encodeURIComponent(e)}/prepare`, i),
-  prune: () => n("post", "/maintenance/prune", o({ output: s() })).then((e) => e.output),
-  workspaces: () => n("get", "/workspaces", o({ workspaces: c(S), roots: c(s()).optional() })),
-  createWorkspace: (e) => n("post", "/workspaces", d, e),
+  prune: () => n("post", "/maintenance/prune", o({ output: a() })).then((e) => e.output),
+  workspaces: () => n("get", "/workspaces", o({ workspaces: c(S), roots: c(a()).optional() })),
+  createWorkspace: (e) => n("post", "/workspaces", w, e),
   deleteWorkspace: (e) => n("delete", `/workspaces/${encodeURIComponent(e)}`, i),
   drivers: () => n("get", "/drivers", o({ drivers: c(x) })).then((e) => e.drivers),
-  runs: (e) => n("get", `/runs${e ? "?cursor=" + encodeURIComponent(e) : ""}`, o({ runs: c(E), next_cursor: s().optional() })),
+  runs: (e) => n("get", `/runs${e ? "?cursor=" + encodeURIComponent(e) : ""}`, o({ runs: c(E), next_cursor: a().optional() })),
   run: (e, t) => n("get", `/runs/${encodeURIComponent(e)}?after=${t}`, o({ run: C, events: c(U), more: v() })),
-  startRun: (e) => n("post", "/runs", d, e),
+  startRun: (e) => n("post", "/runs", o({ run_id: a() }), e),
   cancelRun: (e) => n("post", `/runs/${encodeURIComponent(e)}/cancel`, i)
-}, f = N(Date.now());
-let g = 0, l;
+}, m = N(Date.now());
+let f = 0, l;
 function Z() {
-  return g++, l === void 0 && (f.value = Date.now(), l = setInterval(() => {
-    f.value = Date.now();
+  return f++, l === void 0 && (m.value = Date.now(), l = setInterval(() => {
+    m.value = Date.now();
   }, 1e3)), P(() => {
-    g--, g || (clearInterval(l), l = void 0);
-  }), q(f);
+    f--, f || (clearInterval(l), l = void 0);
+  }), q(m);
 }
 function ee(e, t) {
   return t.find((r) => r.id === e)?.icon || "tabler:terminal-2";
@@ -119,8 +119,8 @@ function R(e) {
 }
 function re(e, t = Date.now()) {
   if (!e.started_at) return "—";
-  const a = e.status === "running" || e.status === "queued" ? t - Date.parse(e.started_at) : Date.parse(e.finished_at) - Date.parse(e.started_at);
-  return R(a);
+  const s = e.status === "running" || e.status === "queued" ? t - Date.parse(e.started_at) : Date.parse(e.finished_at) - Date.parse(e.started_at);
+  return R(s);
 }
 function ne(e) {
   return `${R(e).replace(/ 00[ms]$/, "")} timeout`;

@@ -1,6 +1,7 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 local test = require("test")
 local identity = require("identity")
+local build_fixture = require("build_fixture")
 local registry = require("registry")
 local repo = require("repo")
 local uuid = require("uuid")
@@ -35,9 +36,20 @@ local function cases()
             for _, agent in ipairs(list.agents) do if agent.id == "claude" then allows = agent.capabilities end end
             local image, err = identity.call(admin, "app:fixture_register", "image", {title = "fixture", ref = "chestor-autocode-harness:missing", home = "/opt/agent", agents = {"claude"}, status = "ready"}, {settings = {network = "none", allows = allows}})
             test.is_nil(err)
+            build_fixture.ready(image, admin.id, "chestor-autocode-harness:missing", "/opt/agent", {network = "none", allows = allows})
             local shared = identity.request(admin, "POST", "/component-access/share/" .. image, {subject_id = user.id, subject_type = "user", access_mask = 1})
             test.eq(shared.status, 200, shared.body)
             return image
+        end
+        local function flow_for(user)
+            local id = uuid.v7()
+            local db = sql.get("app:db")
+            local _, err = db:execute([[INSERT INTO dataflows
+                (dataflow_id, actor_id, type, status, created_at, updated_at)
+                VALUES ($1, $2, 'test', 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)]], {id, user.id})
+            db:release()
+            test.is_nil(err)
+            return id
         end
         test.after_each(function()
             for _, user in ipairs(users) do identity.release(user) end
@@ -77,13 +89,14 @@ local function cases()
         end)
         test.it("uses the same typed task validation for HTTP and the Block", function()
             local user = member()
+            local flow_id = flow_for(user)
             for _, config in ipairs({{agent = "claude", image_id = "image", prompt = " "},
                 {agent = "claude", image_id = "image", prompt = "task", options = {"bad"}},
                 {agent = "claude", image_id = "image", prompt = "task", unattended = "yes"},
                 {agent = "claude", image_id = "image", prompt = "task", timeout = "bad"}}) do
                 local http = identity.request(user, "POST", "/autocode/runs", config)
                 test.eq(http.status, 400, http.body)
-                local _, err = identity.call(user, "chestor.autocode.blocks:arm_task", {config = config, idempotency_key = uuid.v7(), dataflow_id = "flow", signal_id = "signal", include_input = false})
+                local _, err = identity.call(user, "chestor.autocode.blocks:arm_task", {config = config, idempotency_key = uuid.v7(), dataflow_id = flow_id, signal_id = "signal", include_input = false})
                 test.is_true(errors.is(err, errors.INVALID), tostring(err))
                 local fields = {details = err:details()}
                 test.eq(http.json.details.code, fields.details.code)
@@ -136,7 +149,7 @@ local function cases()
             test.not_nil(submitted.run_id)
             local replay = identity.request(user, "POST", "/autocode/runs", request)
             test.eq(replay.status, 201, replay.body)
-            test.eq(replay.json.id, submitted.run_id)
+            test.eq(replay.json.run_id, submitted.run_id)
             local run = call(user, "get_run", {run_id = submitted.run_id})
             test.eq(run.run.unattended, false)
             request.prompt = "changed"
@@ -145,19 +158,34 @@ local function cases()
             test.eq(conflict:retryable(), false)
             test.not_nil(conflict:details().code)
         end)
+        test.it("refuses another user's dataflow and signal before submission", function()
+            local user, other = member(), member()
+            local flow_id, signal_id = flow_for(other), uuid.v7()
+            local account = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "key", secret = "key"})
+            local image = image_for(user)
+            local result, err = identity.call(user, "chestor.autocode.blocks:arm_task", {
+                config = {agent = "claude", account_id = account.json.id, image_id = image, prompt = "task"},
+                idempotency_key = uuid.v7(), dataflow_id = flow_id, signal_id = signal_id})
+            test.is_nil(result)
+            test.is_true(errors.is(err, errors.PERMISSION_DENIED), tostring(err))
+            test.eq(err:details().code, "autocode.flow_access_denied")
+            local listed = call(user, "list_runs", {})
+            test.eq(#listed.runs, 0)
+        end)
         test.it("passes the durable arm key unchanged and records its callback atomically", function()
             local user = member()
             local account = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "key", secret = "key"})
             local image = image_for(user)
+            local flow_id = flow_for(user)
             local key = " durable " .. uuid.v7() .. " "
-            local args = {config = {agent = "claude", account_id = account.json.id, image_id = image, prompt = "task", unattended = false}, idempotency_key = key, dataflow_id = "flow", signal_id = "signal"}
+            local args = {config = {agent = "claude", account_id = account.json.id, image_id = image, prompt = "task", unattended = false}, idempotency_key = key, dataflow_id = flow_id, signal_id = "signal"}
             local first, err = identity.call(user, "chestor.autocode.blocks:arm_task", args)
             test.is_nil(err, tostring(err))
             local second, replay_err = identity.call(user, "chestor.autocode.blocks:arm_task", args)
             test.is_nil(replay_err, tostring(replay_err))
             test.eq(first.run_id, second.run_id)
             local stored = repo.run(user.id, first.run_id)
-            test.eq(stored.flow.dataflow_id, "flow")
+            test.eq(stored.flow.dataflow_id, flow_id)
             test.eq(stored.flow.signal_id, "signal")
             local db = sql.get("app:db")
             local rows, read_err = db:query("SELECT key FROM chestor_autocode_submissions WHERE run_id = $1", {first.run_id})
@@ -199,6 +227,16 @@ local function cases()
             repo.finish_run(id, "cancelled", "", "cancelled", {})
             local _, conflict = call(user, "cancel_run", {run_id = id})
             test.is_true(errors.is(conflict, errors.CONFLICT))
+        end)
+        test.it("decodes HTTP page bounds through shared contract validation", function()
+            local user = member()
+            local page = identity.request(user, "GET", "/autocode/runs?limit=2")
+            test.eq(page.status, 200, page.body)
+            for _, value in ipairs({"bad", "0", "2.5", "101"}) do
+                local invalid = identity.request(user, "GET", "/autocode/runs?limit=" .. value)
+                test.eq(invalid.status, 400, invalid.body)
+                test.eq(invalid.json.details.code, "autocode.invalid_request")
+            end
         end)
         test.it("manages accounts through a separate credential-bearing contract", function()
             local user, other = member(), member()

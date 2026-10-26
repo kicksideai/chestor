@@ -5,6 +5,8 @@ Run coding agent CLIs in Docker with shared agent accounts, prepared images,
 host workspaces, durable jobs, and streamed output. Includes a member page,
 a System management tab, a driver account card, and a workflow task Block.
 
+Sharing an API-key account shares its key with the grantees, and subscription logins run only for their owner.
+
 This module installs independently into a [KickSide](https://kickside.ai) host.
 
 ## Quick start

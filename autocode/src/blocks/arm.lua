@@ -2,9 +2,19 @@
 local json = require("json")
 local client = require("client")
 local boundary = require("boundary")
+local dataflow_repo = require("dataflow_repo")
+local security = require("security")
 type Object = {[string]: unknown}
 type Args = {dataflow_id: string, node_id: string, signal_id: string, idempotency_key: string?, input: unknown, config: Object, run_context: unknown}
 local function arm(args: Args): (Object?, error?)
+    local actor = security.actor()
+    local flow, flow_err = dataflow_repo.get(args.dataflow_id)
+    if flow_err then
+        return nil, boundary.error(errors.UNAVAILABLE, "autocode.flow_unavailable", "Flow read failed: " .. tostring(flow_err))
+    end
+    if not actor or not flow or flow.actor_id ~= actor:id() then
+        return nil, boundary.error(errors.PERMISSION_DENIED, "autocode.flow_access_denied", "Flow belongs to another identity or is unavailable")
+    end
     local config = type(args.config) == "table" and args.config or {}
     local request: Object = {}
     for key, value in pairs(config) do if key ~= "include_input" then request[key] = value end end

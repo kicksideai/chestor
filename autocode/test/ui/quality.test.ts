@@ -49,6 +49,10 @@ function normal() { mocks.get.mockImplementation(async path => ({ data: { succes
 afterEach(() => { wrappers.splice(0).forEach(w => w.unmount()); mocks.callbacks.clear(); vi.restoreAllMocks() })
 
 describe('API boundary', () => {
+  it('reads the canonical run_id from submission', async () => {
+    mocks.post.mockResolvedValue({ data: { success: true, run_id: 'started' } })
+    expect(await autocode.startRun({ agent: 'agent', account_id: 'account', image_id: 'image', workspace_id: '', repo_url: '', prompt: 'task', options: {}, unattended: false })).toEqual({ run_id: 'started' })
+  })
   it('rejects malformed endpoint DTOs before a consumer receives them', async () => {
     mocks.get.mockResolvedValue({ data: { success: true, accounts: [{ id: 'bad' }] } })
     await expect(autocode.accounts()).rejects.toThrow(/account|response/i)

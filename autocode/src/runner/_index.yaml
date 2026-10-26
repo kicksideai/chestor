@@ -108,26 +108,42 @@ entries:
       jobs_wake: kickside.core.jobs.persist:wake
       execution_identity: kickside.execution:execution_identity
 
-  # chestor.autocode.runner:runs
-  - name: runs
+  - name: admission
     kind: library.lua
-    meta:
-      comment: The run lifecycle - admission under the caller's grants, shared by preview, submission and the runner; submission with its job; cancellation.
-    source: file://runs.lua
-    modules:
-      - security
-      - time
-      - json
-      - logger
+    source: file://admission.lua
+    modules: [security, time]
     imports:
       repo: chestor.autocode.persist:repo
       resources: chestor.autocode.components:resources
       drivers: bee.drivers:drivers
       credentials: chestor.autocode.runner:credentials
       workspaces: chestor.autocode.runner:workspaces
+      settings: chestor.autocode.runner:settings
+
+  - name: runs
+    kind: library.lua
+    source: file://runs.lua
+    modules: [security, json, logger]
+    imports:
+      admission: chestor.autocode.runner:admission
+      repo: chestor.autocode.persist:repo
+      resources: chestor.autocode.components:resources
+      deferred: chestor.autocode.runner:deferred
+      docker: chestor.autocode.runner:docker
+
+  - name: run_io
+    kind: library.lua
+    source: file://run_io.lua
+    modules: [time]
+    imports:
+      repo: chestor.autocode.persist:repo
+      runs: chestor.autocode.runner:runs
+      records: chestor.autocode.runner:records
+      drivers: bee.drivers:drivers
+      redact: chestor.autocode.runner:redact
       docker: chestor.autocode.runner:docker
       settings: chestor.autocode.runner:settings
-      deferred: chestor.autocode.runner:deferred
+      transport: chestor.autocode.runner:transport
 
   # chestor.autocode.runner:prepare
   - name: prepare
@@ -189,17 +205,15 @@ entries:
     method: main
     modules:
       - logger
-      - time
     imports:
       repo: chestor.autocode.persist:repo
       runs: chestor.autocode.runner:runs
       container: chestor.autocode.runner:container
-      drivers: bee.drivers:drivers
       records: chestor.autocode.runner:records
       redact: chestor.autocode.runner:redact
       docker: chestor.autocode.runner:docker
       live: chestor.autocode.runner:live
-      settings: chestor.autocode.runner:settings
+      run_io: chestor.autocode.runner:run_io
       execution_identity: kickside.execution:execution_identity
       deferred: chestor.autocode.runner:deferred
       transport: chestor.autocode.runner:transport

@@ -16,7 +16,7 @@ local function admit(request: {[string]: any}): ({[string]: any}?, error?)
     local workspace = admitted.workspace
     local writable: boolean? = nil
     if workspace then writable = workspace.writable end
-    return {account_id = admitted.account.id, image_id = admitted.image.id, workspace_writable = writable,
+    return {account_id = admitted.account.id, image_id = admitted.image.id, image = admitted.image, workspace_writable = writable,
         timeout_ms = admitted.spec.timeout_ms}, nil
 end
 

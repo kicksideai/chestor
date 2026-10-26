@@ -6,6 +6,8 @@
 -- owner's, and retention removes settled runs with their events.
 local test = require("test")
 local identity = require("identity")
+local build_fixture = require("build_fixture")
+local repo = require("repo")
 local time = require("time")
 local funcs = require("funcs")
 local anthropic = require("anthropic")
@@ -42,11 +44,32 @@ local function cases()
             for _, driver in ipairs(listed.json.drivers) do
                 if driver.id == "claude" then allows = driver.capabilities end
             end
-            local image_id, err = identity.call(admin, "app:fixture_register", "image", {title = "Missing image",
-                ref = image_ref or "chestor-autocode-harness:missing", home = "/opt/agent", status = "ready", agents = {"claude"}, last_error = ""},
-                {dockerfile = "", settings = {network = endpoint and "bridge" or "none", allows = allows,
-                    extra_args = endpoint and {"--add-host", "host.docker.internal:host-gateway"} or {}}})
-            test.is_nil(err)
+            local settings = {network = endpoint and "bridge" or "none", allows = allows,
+                extra_args = endpoint and {"--add-host", "host.docker.internal:host-gateway"} or {}}
+            local image_id
+            if image_ref then
+                local created = identity.request(admin, "POST", "/autocode/images", {ref = image_ref, home = "/opt/agent",
+                    network = settings.network, allows = settings.allows, extra_args = settings.extra_args})
+                test.eq(created.status, 201, created.body)
+                image_id = created.json.id
+                local deadline = time.now():add("180s")
+                while true do
+                    local build = repo.image_build(image_id)
+                    if build and build.finished_at ~= "" and build.projected then
+                        test.eq(build.status, "ready", build.log)
+                        break
+                    end
+                    if time.now():after(deadline) then error("image build does not finish") end
+                    time.sleep("100ms")
+                end
+            else
+                local err
+                image_id, err = identity.call(admin, "app:fixture_register", "image", {title = "Missing image",
+                    ref = "chestor-autocode-harness:missing", home = "/opt/agent", status = "ready", agents = {"claude"}, last_error = ""},
+                    {dockerfile = "", settings = settings})
+                test.is_nil(err)
+                build_fixture.ready(image_id, admin.id, "chestor-autocode-harness:missing", "/opt/agent", settings)
+            end
             share(admin, image_id, READ)
             local created = identity.request(member, "POST", "/autocode/accounts",
                 {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "Key", secret = SECRET, endpoint = endpoint})
@@ -67,12 +90,13 @@ local function cases()
             end
         end
 
-        test.it("stores the complete final answer from a local Messages stream", function()
+        test.it("runs a management-built image and stores the complete final answer", function()
             local image_ref = "chestor-autocode-harness:claude"
             local output = {}
             local code, err = docker.run({"build", "-t", image_ref, "-"}, {stdin = [[
 FROM node:22-bookworm-slim
 RUN npm install -g @anthropic-ai/claude-code@2.1.307
+RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
 RUN mkdir -p /opt/agent && chown node:node /opt/agent
 USER node
 ]], on_line = function(line) output[#output + 1] = line end})
@@ -83,7 +107,7 @@ USER node
             local submitted = identity.request(member, "POST", "/autocode/runs",
                 {agent = "claude", image_id = image_id, account_id = account_id, prompt = "Return the fixture answer."})
             test.eq(submitted.status, 201, submitted.body)
-            local done = settled(member, submitted.json.id)
+            local done = settled(member, submitted.json.run_id)
             test.eq(done.json.run.status, "succeeded", done.body)
             test.eq(done.json.run.result, anthropic.answer())
         end)
@@ -93,7 +117,7 @@ USER node
             local submitted = identity.request(member, "POST", "/autocode/runs",
                 {agent = "claude", image_id = image_id, prompt = "say hello"})
             test.eq(submitted.status, 201, submitted.body)
-            local done = settled(member, submitted.json.id)
+            local done = settled(member, submitted.json.run_id)
             test.eq(done.json.run.status, "failed", done.body)
             test.not_nil(done.json.run.error:find("container create failed", 1, true), done.json.run.error)
             test.is_nil(done.body:find(SECRET, 1, true), "the run record carries the credential")
@@ -106,7 +130,7 @@ USER node
             local submitted = identity.request(member, "POST", "/autocode/runs",
                 {agent = "claude", image_id = image_id, prompt = "say hello"})
             test.eq(submitted.status, 201, submitted.body)
-            local id = submitted.json.id
+            local id = submitted.json.run_id
             test.eq(identity.request(other, "GET", "/autocode/runs/" .. id).status, 404)
             test.eq(identity.request(other, "POST", "/autocode/runs/" .. id .. "/cancel").status, 404)
             settled(member, id)
@@ -118,11 +142,11 @@ USER node
             local submitted = identity.request(member, "POST", "/autocode/runs",
                 {agent = "claude", image_id = image_id, prompt = "say hello"})
             test.eq(submitted.status, 201, submitted.body)
-            settled(member, submitted.json.id)
+            settled(member, submitted.json.run_id)
             local deleted, err = funcs.call("app:fixture_prune", time.now():add("1h"):utc():format_rfc3339())
             test.is_nil(err)
             test.is_true(deleted >= 1)
-            test.eq(identity.request(member, "GET", "/autocode/runs/" .. submitted.json.id).status, 404)
+            test.eq(identity.request(member, "GET", "/autocode/runs/" .. submitted.json.run_id).status, 404)
         end)
     end)
 end

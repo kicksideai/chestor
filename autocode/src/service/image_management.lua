@@ -48,7 +48,7 @@ local function create(body: Object)
 end
 
 -- PUT /autocode/images/{id} — change the label, home and run settings; the
--- next run uses them, without a rebuild.
+-- next management build records them for runs.
 local function update(body: Object)
     local id = values.text(body.id, 64)
     if not id or id == "" then return nil, boundary.error(errors.INVALID, "autocode.invalid_request", "image id is required") end

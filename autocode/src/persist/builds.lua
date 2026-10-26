@@ -30,14 +30,14 @@ local function image_build(row: Columns): ImageBuild
             if type(value) ~= "string" then mismatch(row, "agents", "strings") else agents[#agents + 1] = value end
         end
     end
-    return {projected = flag(row, "projected"), build_id = text(row, "build_id"), status = text(row, "status"), agents = agents, last_error = text(row, "last_error"),
+    return {recipe = db.object(row, "recipe"), projected = flag(row, "projected"), build_id = text(row, "build_id"), status = text(row, "status"), agents = agents, last_error = text(row, "last_error"),
         identity = {actor_id = text(row, "actor_id"), actor_context = text(row, "actor_context")},
         mode = text(row, "mode") == "refresh" and "refresh" or "initial", log = text(row, "log"),
         requested_at = text(row, "requested_at"), finished_at = text(row, "finished_at")}
 end
 
 function repo.image_build(image_id: string): (ImageBuild?, error?)
-    local rows, err = query([[SELECT actor_id, actor_context, mode, log, requested_at, finished_at, build_id, status, agents, last_error, projected
+    local rows, err = query([[SELECT actor_id, actor_context, mode, log, requested_at, finished_at, build_id, status, agents, last_error, projected, recipe
         FROM chestor_autocode_image_builds WHERE image_id = $1]], {image_id})
     return first(rows, err, image_build)
 end
@@ -52,7 +52,7 @@ function repo.request_image_build(image_id: string, identity: Identity, mode: Bu
             VALUES ($1, $2, $3, $4, '', $5, '', $6, 'preparing', '[]', '', 0)
             ON CONFLICT (image_id) DO UPDATE SET actor_id = excluded.actor_id, actor_context = excluded.actor_context,
             mode = excluded.mode, log = '', requested_at = excluded.requested_at, finished_at = '', build_id = excluded.build_id,
-            status = 'preparing', agents = '[]', last_error = '', projected = 0 WHERE chestor_autocode_image_builds.finished_at <> '' AND chestor_autocode_image_builds.projected = 1
+            status = 'preparing', agents = '[]', last_error = '', projected = 0, recipe = '{}' WHERE chestor_autocode_image_builds.finished_at <> '' AND chestor_autocode_image_builds.projected = 1
             AND chestor_autocode_image_builds.build_id <> excluded.build_id]],
             {image_id, identity.actor_id, identity.actor_context, mode, db.now(), build_id})
         if err then return err end
@@ -68,12 +68,14 @@ function repo.request_image_build(image_id: string, identity: Identity, mode: Bu
     end)
 end
 
-function repo.finish_image_build(image_id: string, log: string, build_id: string, status: string, agents: {string}, problem: string): error?
+function repo.finish_image_build(image_id: string, log: string, build_id: string, status: string, agents: {string}, problem: string, recipe: db.Object?): error?
     local agents_json, json_err = encoded(agents, "agents")
     if not agents_json then return json_err end
+    local recipe_json, recipe_err = db.encode_object(recipe or {}, "recipe")
+    if not recipe_json then return recipe_err end
     local count, err = execute([[UPDATE chestor_autocode_image_builds SET log = $1, finished_at = $2,
-        status = $3, agents = $4, last_error = $5 WHERE image_id = $6 AND build_id = $7 AND finished_at = '']],
-        {log, db.now(), status, agents_json, problem, image_id, build_id})
+        status = $3, agents = $4, last_error = $5, recipe = $6 WHERE image_id = $7 AND build_id = $8 AND finished_at = '']],
+        {log, db.now(), status, agents_json, problem, recipe_json, image_id, build_id})
     if err then return err end
     if count ~= 1 then return errors.new({kind = errors.CONFLICT, message = "image build generation is no longer active"}) end
     return nil

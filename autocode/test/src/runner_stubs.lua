@@ -41,7 +41,7 @@ function M.from_row() return {} end
 function M.bind()
     return {call = function(_, entry)
         if M.state.malformed then return {bad = true} end
-        if entry:find("image_recipe", 1, true) then return {ref = "image", dockerfile = "", home = "/home/agent"} end
+        if entry:find("image_recipe", 1, true) then return {ref = "image", dockerfile = "", home = "/home/agent", settings = {}} end
         return M.state.prepared
     end}
 end

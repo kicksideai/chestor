@@ -79,12 +79,12 @@ async function start() {
   error.value = ''
   starting.value = true
   try {
-    const { id } = await autocode.startRun({
+    const { run_id } = await autocode.startRun({
       agent: agentId.value, account_id: accountId.value, image_id: imageId.value, workspace_id: workspaceId.value,
       repo_url: repoUrl.value, prompt: prompt.value, options: options.value, unattended: unattended.value,
     })
     prompt.value = ''
-    emit('started', id)
+    emit('started', run_id)
   } catch (e) {
     error.value = errorText(e, 'Could not start the task.')
   } finally {

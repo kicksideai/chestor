@@ -145,7 +145,8 @@ local function main(input: {[string]: unknown}): Outcome
             add(log, problem)
         end
     end
-    local log_err = repo.finish_image_build(image_id, table.concat(log.lines, "\n"), build_id, status, agents, problem or "")
+    local log_err = repo.finish_image_build(image_id, table.concat(log.lines, "\n"), build_id, status, agents, problem or "",
+        {ref = recipe.ref, home = recipe.home, settings = recipe.settings})
     if log_err then return failure("image build log write: " .. tostring(log_err), errors.UNAVAILABLE) end
     return project(image_id, build_id) or {ok = true, output = {image_id = image_id, status = status}}
 end

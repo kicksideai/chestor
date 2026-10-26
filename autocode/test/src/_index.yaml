@@ -398,6 +398,7 @@ entries:
     imports:
       test: wippy.test:test
       identity: app:identity
+      build_fixture: app:build_fixture
     security:
       actor: { id: app:test_runner }
       policies: [app:test_runtime]
@@ -415,8 +416,10 @@ entries:
     imports:
       test: wippy.test:test
       identity: app:identity
+      build_fixture: app:build_fixture
       anthropic: app:anthropic
       docker: chestor.autocode.runner:docker
+      repo: chestor.autocode.persist:repo
     security:
       actor: { id: app:test_runner }
       policies: [app:test_runtime]
@@ -559,17 +562,16 @@ entries:
   - name: run_subject
     kind: library.lua
     source: file://run_subject.lua
-    modules: [logger, time]
+    modules: [logger]
     imports:
       repo: app:stub_repo
       runs: app:stub_runs
       container: chestor.autocode.runner:container
-      drivers: app:stub_drivers
       records: chestor.autocode.runner:records
       redact: chestor.autocode.runner:redact
       docker: app:stub_docker
       live: app:stub_live
-      settings: app:stub_settings
+      run_io: app:run_io_subject
       execution_identity: app:stub_execution_identity
       deferred: app:stub_deferred
       transport: app:stub_transport
@@ -709,6 +711,7 @@ entries:
     imports:
       test: wippy.test:test
       identity: app:identity
+      build_fixture: app:build_fixture
       repo: chestor.autocode.persist:repo
     security:
       actor: {id: app:test_runner}
@@ -798,3 +801,24 @@ entries:
       resources: chestor.autocode.blocks:resume
       actions: funcs.call
       effect: allow
+
+  - name: run_io_subject
+    kind: library.lua
+    source: file://run_io_subject.lua
+    modules: [time]
+    imports:
+      repo: app:stub_repo
+      runs: app:stub_runs
+      records: chestor.autocode.runner:records
+      drivers: app:stub_drivers
+      redact: chestor.autocode.runner:redact
+      docker: app:stub_docker
+      settings: app:stub_settings
+      transport: app:stub_transport
+
+  - name: build_fixture
+    kind: library.lua
+    source: file://build_fixture.lua
+    modules: [uuid]
+    imports:
+      repo: chestor.autocode.persist:repo

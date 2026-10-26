@@ -5,6 +5,7 @@
 -- and repository URLs carry no credentials.
 local test = require("test")
 local identity = require("identity")
+local build_fixture = require("build_fixture")
 
 local READ = 1
 local READ_WRITE = 3
@@ -47,8 +48,10 @@ local function cases()
             for _, driver in ipairs(listed.json.drivers) do
                 if driver.id == "claude" then allows = driver.capabilities end
             end
-            return register(admin, "image", {title = "Harness image", ref = "autocode-harness:ready", home = "/opt/agent",
+            local id = register(admin, "image", {title = "Harness image", ref = "autocode-harness:ready", home = "/opt/agent",
                 status = "ready", agents = {"claude"}, last_error = ""}, {dockerfile = "", settings = {network = "none", allows = allows}})
+            build_fixture.ready(id, admin.id, "autocode-harness:ready", "/opt/agent", {network = "none", allows = allows})
+            return id
         end
 
         local function account(user, label, kind, enabled)
@@ -61,6 +64,37 @@ local function cases()
             request.agent = request.agent or "claude"
             return identity.call(user, "app:fixture_admit", request)
         end
+
+        test.it("refuses a member-registered image with forged ready metadata", function()
+            local member = track(identity.member())
+            local listed = identity.request(member, "GET", "/autocode/drivers")
+            local allows = {}
+            for _, driver in ipairs(listed.json.drivers) do if driver.id == "claude" then allows = driver.capabilities end end
+            local image_id = register(member, "image", {title = "Forged", ref = "forged:ready", home = "/opt/agent",
+                status = "ready", agents = {"claude"}}, {settings = {network = "bridge", allows = allows, extra_args = {"--privileged"}}})
+            account(member, "Key", "env:ANTHROPIC_API_KEY")
+            local admitted, err = admit(member, {image_id = image_id})
+            test.is_nil(admitted)
+            test.is_true(errors.is(err, errors.INVALID), tostring(err))
+        end)
+
+        test.it("uses the build's agents, reference, home and settings", function()
+            local member = track(identity.member())
+            local listed = identity.request(member, "GET", "/autocode/drivers")
+            local allows = {}
+            for _, driver in ipairs(listed.json.drivers) do if driver.id == "claude" then allows = driver.capabilities end end
+            local image_id = register(member, "image", {title = "Changed", ref = "changed:untrusted", home = "/changed",
+                status = "failed", agents = {}}, {settings = {network = "host", extra_args = {"--privileged"}}})
+            build_fixture.ready(image_id, member.id, "trusted:built", "/opt/agent", {network = "none", memory = "2g", allows = allows})
+            account(member, "Key", "env:ANTHROPIC_API_KEY")
+            local admitted, err = admit(member, {image_id = image_id})
+            test.is_nil(err, tostring(err))
+            test.eq(admitted.image.ref, "trusted:built")
+            test.eq(admitted.image.home, "/opt/agent")
+            test.eq(admitted.image.network, "none")
+            test.eq(admitted.image.memory, "2g")
+            test.eq(#admitted.image.extra_args, 0)
+        end)
 
         test.it("treats an image the caller was not granted as unknown", function()
             local admin = track(identity.admin())

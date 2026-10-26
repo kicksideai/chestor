@@ -76,7 +76,8 @@ local function image_recipe(args: {image_id: string}): (Recipe?, error?)
     local context, context_err = resources.context("image", args.image_id, resources.ACCESS.WRITE)
     if not context then return nil, context_err end
     local dockerfile = context.values.dockerfile
-    return {ref = tostring(image.meta.ref or ""), home = tostring(image.meta.home or ""), dockerfile = type(dockerfile) == "string" and dockerfile or ""}, nil
+    return {ref = tostring(image.meta.ref or ""), home = tostring(image.meta.home or ""), dockerfile = type(dockerfile) == "string" and dockerfile or "",
+        settings = type(context.values.settings) == "table" and context.values.settings or {}}, nil
 end
 
 return { prepare = prepare, keep_credential = keep_credential, image_recipe = image_recipe }

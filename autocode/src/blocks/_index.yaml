@@ -83,10 +83,11 @@ entries:
     security:
       policies: [chestor.autocode.security:flow_context]
     method: arm
-    modules: [json]
+    modules: [json, security]
     imports:
       client: chestor.autocode.service:client
       boundary: chestor.autocode.service:boundary
+      dataflow_repo: userspace.dataflow.persist:dataflow_repo
 
   # chestor.autocode.blocks:resume
   - name: resume
