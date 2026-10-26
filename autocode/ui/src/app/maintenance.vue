@@ -12,7 +12,7 @@ const error = ref('')
 async function prune() {
   const ok = await host.confirm({
     header: 'Clean up Docker',
-    message: 'Run the Docker cleanup on the host now?',
+    message: 'Prune stopped Autocode containers and unused images and build cache across this Docker host? Other modules may use the shared image cache.',
     icon: 'tabler:trash-x',
     acceptLabel: 'Clean up',
     rejectLabel: 'Cancel',
@@ -38,8 +38,8 @@ async function prune() {
         <Icon :icon="pruning ? 'tabler:loader-2' : 'tabler:trash-x'" :class="{ spin: pruning }" /> {{ pruning ? 'Cleaning…' : 'Clean up Docker' }}
       </button>
     </div>
-    <p class="ac-hint">Prune stopped autocode containers, dangling layers and build cache older than a day; keep tagged images.</p>
-    <p v-if="error" class="ac-error">{{ error }}</p>
+    <p class="ac-hint">Prune stopped Autocode containers, dangling images and build cache across the Docker host. Tagged images stay.</p>
+    <p v-if="error" class="kx-err">{{ error }}</p>
     <pre v-if="output" class="ac-pre">{{ output }}</pre>
   </section>
 </template>

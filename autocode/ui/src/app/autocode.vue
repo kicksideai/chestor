@@ -32,7 +32,7 @@ function create() { if (tab.value === 'tasks') tasks.value?.open(); else account
 
 <template>
   <div class="ac">
-    <PageHead title="Autocode" subtitle="Run coding agents with your accounts and workspaces." :count="`${count} ${tab === 'tasks' ? 'run' : 'account'}${count === 1 ? '' : 's'}`" :action="tab === 'tasks' ? 'New task' : 'Add account'" v-model:query="query" :placeholder="tab === 'tasks' ? 'Search tasks…' : 'Search accounts…'" @create="create" />
+    <PageHead title="Autocode" subtitle="Run coding agents with your accounts and workspaces." :count="`${count} ${tab === 'tasks' ? 'task' : 'account'}${count === 1 ? '' : 's'}`" :action="tab === 'tasks' ? 'New task' : 'Add account'" v-model:query="query" :placeholder="tab === 'tasks' ? 'Search tasks…' : 'Search accounts…'" @create="create" />
     <div class="ac-bar"><nav class="ac-tabs" aria-label="Autocode views">
       <button v-for="t in tabs" :key="t.id" type="button" class="ac-tab kx-focus-outline" :class="{ active: tab === t.id }" :aria-pressed="tab === t.id" @click="tab = t.id; query = ''; count = 0"><Icon :icon="t.icon" /> {{ t.label }}</button>
     </nav></div>

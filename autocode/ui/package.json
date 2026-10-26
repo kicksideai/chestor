@@ -15,19 +15,25 @@
     "@kickside/ui-kit": "*",
     "@wippy-fe/theme": "~0.0.56",
     "@wippy-fe/webcomponent-core": "~0.0.56",
-    "@wippy-fe/webcomponent-vue": "~0.0.56"
+    "@wippy-fe/webcomponent-vue": "~0.0.56",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@iconify/vue": "^5.0.0",
     "@types/node": "^22.0.0",
     "@vitejs/plugin-vue": "^5.0.0",
+    "@vue/test-utils": "^2.5.1",
     "@wippy-fe/proxy": "~0.0.56",
     "@wippy-fe/vite-plugin": "~0.0.56",
+    "happy-dom": "^21.0.4",
+    "primevue": "4.5.5",
     "typescript": "^5.0.0",
     "vite": "^6.0.0",
+    "vitest": "^3.2.7",
     "vue": "^3.5.0",
-    "vue-tsc": "^2.2.12",
-    "primevue": "4.5.5"
+    "vue-tsc": "^2.2.12"
   },
   "peerDependencies": {
     "@wippy-fe/proxy": "~0.0.56",
@@ -47,8 +53,9 @@
   },
   "scripts": {
     "build": "vite build --outDir ../static --emptyOutDir",
-    "dev": "vite build --watch --outDir ../static --emptyOutDir",
-    "typecheck": "vue-tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json"
+    "dev": "vite build --watch --mode development --outDir ../static --emptyOutDir",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json && vue-tsc --noEmit -p tsconfig.test.json && tsc --noEmit -p tsconfig.node.json",
+    "test": "vitest run --config vitest.config.ts"
   },
   "workspaces": [
     "./.wippy/npm/@*/*"

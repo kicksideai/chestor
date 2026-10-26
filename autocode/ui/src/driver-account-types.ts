@@ -1,9 +1,14 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 // The contract of the chestor-autocode-driver-account element.
-import type { AgentInfo, Endpoint } from './app/api.ts'
+import { z } from 'zod'
+import { accountLimits, agentInfo, endpoint } from './app/dto.ts'
+import type { Endpoint } from './app/api.ts'
 
 // driver: the agent and the credentials it reads; busy and error reflect the
 // host's save; the host bumps saved after it stores an account.
-export interface DriverAccountConfig { driver: AgentInfo; busy?: boolean; error?: string; saved?: number }
+export const driverAccountConfig = z.object({ driver: agentInfo, busy: z.boolean().optional(), error: z.string().optional(), saved: z.number().optional(), limits: accountLimits.optional() })
+export type DriverAccountConfig = z.infer<typeof driverAccountConfig>
 export interface DriverAccountSubmit { agent: string; credential_kind: string; label: string; secret: string; endpoint?: Endpoint }
 export interface DriverAccountEvents { submit: DriverAccountSubmit }
+
+export const accountSubmission = z.object({ agent: z.string(), credential_kind: z.string(), label: z.string(), secret: z.string(), endpoint: endpoint.optional() })

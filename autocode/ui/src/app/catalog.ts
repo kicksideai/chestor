@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
-import { provide, ref } from 'vue'
+import { computed, inject, provide, ref, type Ref } from 'vue'
 import { useHostVisibilityRefresh } from '@wippy-fe/webcomponent-vue'
 import { autocode, errorText, serial, type Catalog } from './api.ts'
 
@@ -19,4 +19,13 @@ export function useCatalog() {
   provide('catalog', catalog)
   useHostVisibilityRefresh(load)
   return { catalog, error, load }
+}
+
+export function useRequiredCatalog() {
+  const provided = inject<Ref<Catalog | null>>('catalog')
+  if (!provided) throw new Error('Autocode catalog provider is missing.')
+  return computed(() => {
+    if (!provided.value) throw new Error('Autocode catalog is not loaded.')
+    return provided.value
+  })
 }

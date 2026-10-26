@@ -2,7 +2,7 @@
 import { WippyVueElement, define } from '@wippy-fe/webcomponent-vue'
 import type { WippyElementConfig, WippyPropsSchema } from '@wippy-fe/webcomponent-vue'
 import TaskConfig from './app/task-config.vue'
-import type { TaskConfig as TaskConfigValue } from './app/task-config.vue'
+import type { TaskConfig as TaskConfigValue } from './task-config-types.ts'
 import stylesText from './task-config.css?inline'
 
 // chestor-autocode-task-config - the config editor of the coding agent task
@@ -11,7 +11,7 @@ import stylesText from './task-config.css?inline'
 const PROPS_SCHEMA = {
   type: 'object',
   properties: { config: { type: 'object', description: 'Coding agent task Block instance configuration.' } },
-} as unknown as WippyPropsSchema
+} satisfies WippyPropsSchema
 
 class TaskConfigElement extends WippyVueElement<{ config?: TaskConfigValue }, { 'config-changed': TaskConfigValue }> {
   static get wippyConfig(): WippyElementConfig<{ config?: TaskConfigValue }> {

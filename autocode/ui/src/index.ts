@@ -10,7 +10,7 @@ import pkg from '../package.json'
 class ChestorAutocodeElement extends WippyVueElement<ComponentProps, Record<string, never>> {
   static get wippyConfig(): WippyElementConfig<ComponentProps> {
     return {
-      propsSchema: pkg.wippy.props as WippyPropsSchema,
+      propsSchema: pkg.wippy.props satisfies WippyPropsSchema,
       hostCssKeys: ['themeConfigUrl', 'primeVueCssUrl', 'iframeCssUrl'] as const,
       inlineCss: stylesText,
     }

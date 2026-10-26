@@ -1,32 +1,27 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { useRunClock } from './presentation.ts'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useProps, useEvents, useHostVisibilityRefresh } from '@wippy-fe/webcomponent-vue'
 import { defaultAgent, driverDefaults, matchingImages } from './defaults.ts'
 import DriverOptions from './driver-options.vue'
+import { taskConfigSchema, type TaskConfig } from '../task-config-types.ts'
 import { autocode, accountState, errorText, serial, type Account, type Catalog, type DriverInfo, type Image, type Workspace } from './api.ts'
 
 // The config editor of the coding agent task Block: the agent, one of its
 // usable accounts or balancing, an image that carries the agent's CLI, a workspace,
 // the task, and the agent driver's own options. The workflow owns the value;
-// every edit emits the whole config.
-export interface TaskConfig {
-  agent?: string
-  account_id?: string
-  image_id?: string
-  workspace_id?: string
-  prompt?: string
-  include_input?: boolean
-  unattended?: boolean
-  options?: Record<string, unknown>
-  repo_url?: string
-}
+// valid edits emit the whole config; invalid drafts remain local.
 const props = useProps<{ config?: TaskConfig | null }>()
 const emit = useEvents<{ 'config-changed': TaskConfig }>()
 
-const config = ref<TaskConfig>({ ...(props.value.config ?? {}) })
-watch(() => props.value.config, next => {
-  if (next && Object.keys(next).length) config.value = { ...next }
+const decoded = computed(() => taskConfigSchema.safeParse(props.value.config ?? {}))
+const configError = computed(() => decoded.value.success ? '' : 'Workflow configuration is invalid.')
+const config = ref<TaskConfig>(decoded.value.success ? decoded.value.data : {})
+watch(decoded, result => {
+  if (!result.success) return
+  const next = result.data
+  if (next && Object.keys(next).length) { config.value = { ...next }; pending.value = false }
   else {
     config.value = {}
     fillEmpty()
@@ -39,9 +34,12 @@ const images = ref<Image[]>([])
 const workspaces = ref<Workspace[]>([])
 const drivers = ref<DriverInfo[]>([])
 const error = ref('')
+const invalidOptions = ref(0)
+const pending = ref(false)
 
 const agentAccounts = computed(() => accounts.value.filter((a) => a.agent === config.value.agent && a.usable && a.enabled))
-const ready = computed(() => agentAccounts.value.filter((a) => accountState(a) === 'ready'))
+const now = useRunClock()
+const ready = computed(() => agentAccounts.value.filter((a) => accountState(a, now.value) === 'ready'))
 const agentImages = computed(() => matchingImages(images.value, config.value.agent ?? ''))
 const driver = computed(() => drivers.value.find((d) => d.id === config.value.agent))
 
@@ -55,10 +53,18 @@ const optionValues = computed(() => ({ ...driverDefaults(driver.value), ...confi
 function set(patch: Partial<TaskConfig>) {
   const next: TaskConfig = { ...config.value, ...patch }
   config.value = next
+  if (invalidOptions.value > 0) { pending.value = true; return }
+  pending.value = false
   emit('config-changed', next)
 }
 
+function optionsValidity(count: number) {
+  invalidOptions.value = count
+  if (!count && pending.value) void nextTick(() => { if (!invalidOptions.value && pending.value) set({}) })
+}
+
 function chooseAgent(agent: string) {
+  invalidOptions.value = 0
   const choices = matchingImages(images.value, agent)
   const nextDriver = drivers.value.find(d => d.id === agent)
   set({ agent, account_id: '', options: driverDefaults(nextDriver), unattended: !!nextDriver?.unattended,
@@ -68,7 +74,7 @@ function chooseAgent(agent: string) {
 // Fill a new node once after all catalogs arrive. Stored selections stay intact
 // until the user accepts a replacement, including missing or incompatible ids.
 function fillEmpty() {
-  if (!catalog.value || Object.keys(config.value).length) return
+  if (!catalog.value || configError.value || Object.keys(config.value).length) return
   const agent = defaultAgent(catalog.value, accounts.value)
   const nextDriver = drivers.value.find(d => d.id === agent)
   set({ agent, image_id: matchingImages(images.value, agent)[0]?.id ?? '', account_id: '', workspace_id: '',
@@ -93,9 +99,10 @@ useHostVisibilityRefresh(serial(async () => {
 
 <template>
   <div class="tc">
+    <p v-if="configError" class="kx-err" role="alert">{{ configError }}</p>
     <p v-if="error" class="kx-err inline">{{ error }}</p>
     <div v-else-if="!catalog" class="kx-loading">Loading agents…</div>
-    <template v-else>
+    <template v-else-if="!configError">
       <div class="tc-pair">
         <label class="tc-field">
           <span class="tc-lbl">Agent</span>
@@ -114,7 +121,7 @@ useHostVisibilityRefresh(serial(async () => {
         </label>
       </div>
       <p v-if="invalidAgent" class="tc-hint" role="alert">This saved agent no longer exists.
-        <button v-if="catalog.agents.length" type="button" class="ac-link kx-focus-outline" @click="chooseAgent(defaultAgent(catalog!, accounts))">Use default agent</button>
+        <button v-if="catalog.agents.length" type="button" class="ac-link kx-focus-outline" @click="chooseAgent(defaultAgent(catalog, accounts))">Use default agent</button>
       </p>
       <p v-if="invalidAccount" class="tc-hint" role="alert">This saved account no longer exists, is disabled or cannot run {{ agentTitle }}.
         <button type="button" class="ac-link kx-focus-outline" @click="set({ account_id: '' })">Use Auto</button>
@@ -122,7 +129,7 @@ useHostVisibilityRefresh(serial(async () => {
       <p v-if="!agentAccounts.length" class="tc-hint">Add an account on Autocode → Accounts to run {{ agentTitle }}.</p>
       <div class="tc-pair">
         <label class="tc-field">
-          <span class="tc-lbl">Image</span>
+          <span class="tc-lbl">Image (required)</span>
           <select class="tc-input kx-focus-halo" :value="config.image_id ?? ''" @change="set({ image_id: ($event.target as HTMLSelectElement).value })">
             <option v-if="invalidImage" :value="config.image_id ?? ''">{{ config.image_id ? 'Unavailable image: ' + config.image_id : 'Choose an image' }}</option>
             <option v-for="i in agentImages" :key="i.id" :value="i.id">{{ i.label }}</option>
@@ -145,10 +152,12 @@ useHostVisibilityRefresh(serial(async () => {
         <button type="button" class="ac-link kx-focus-outline" @click="set({ workspace_id: '' })">Use Scratch</button>
       </p>
       <label class="tc-field">
-        <span class="tc-lbl">Task</span>
+        <span class="tc-lbl">Task (required)</span>
         <textarea class="tc-input kx-focus-halo" rows="4" :value="config.prompt" placeholder="What should the agent do?"
           @input="set({ prompt: ($event.target as HTMLTextAreaElement).value })" />
       </label>
+      <p v-if="!config.prompt?.trim()" class="kx-err" role="alert">Enter a task prompt.</p>
+      <p v-if="!config.image_id" class="kx-err" role="alert">Choose an image.</p>
       <label class="tc-check">
         <input type="checkbox" class="kx-focus-outline" :checked="config.include_input !== false" @change="set({ include_input: ($event.target as HTMLInputElement).checked })" />
         Pass the node's input to the agent after the task
@@ -159,7 +168,8 @@ useHostVisibilityRefresh(serial(async () => {
         Unattended: skip permission prompts
       </label>
       <DriverOptions v-if="driver" :key="driver.id" :options="driver.options" :model-value="optionValues"
-        :locked="config.unattended !== false && driver.unattended ? driver.unattended : {}" @update:model-value="(v: Record<string, unknown>) => set({ options: v })" />
+        :locked="config.unattended !== false && driver.unattended ? driver.unattended : {}" @invalid="optionsValidity" @update:model-value="(v: Record<string, unknown>) => set({ options: v })" />
+      <p v-if="invalidOptions" class="kx-err" role="alert">Driver options are invalid. These drafts and further changes are not applied to the workflow until all options are valid.</p>
       <label class="tc-field">
         <span class="tc-lbl">Git repository</span>
         <input class="tc-input tc-mono kx-focus-halo" :value="config.repo_url" placeholder="optional" @change="set({ repo_url: ($event.target as HTMLInputElement).value })" />

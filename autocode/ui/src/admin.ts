@@ -8,7 +8,7 @@ import stylesText from './styles.css?inline'
 
 // chestor-autocode-admin - the Autocode tab of the System settings, built as its
 // own bundle (admin.js) from the page's sources and styles.
-const PROPS_SCHEMA = { type: 'object', properties: {} } as unknown as WippyPropsSchema
+const PROPS_SCHEMA = { type: 'object', properties: {} } satisfies WippyPropsSchema
 
 class ChestorAutocodeAdminElement extends WippyVueElement<ComponentProps, Record<string, never>> {
   static get wippyConfig(): WippyElementConfig<ComponentProps> {
