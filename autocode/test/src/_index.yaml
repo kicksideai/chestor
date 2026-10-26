@@ -410,6 +410,7 @@ entries:
     imports:
       test: wippy.test:test
       records: chestor.autocode.runner:records
+      redact: chestor.autocode.runner:redact
 
   # Harness-owned host_environment
   - name: driver_host_environment

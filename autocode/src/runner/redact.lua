@@ -13,7 +13,7 @@ local M = {}
 M.MIN_LENGTH = 12
 M.MARK = "[redacted]"
 
-local function collect(value: any, needles: {string})
+local function collect(value: unknown, needles: {string})
     if type(value) == "string" then
         if #value >= M.MIN_LENGTH then needles[#needles + 1] = value end
     elseif type(value) == "table" then
@@ -45,7 +45,7 @@ local function structured(text: string): string
         if #value >= M.MIN_LENGTH and secret_field(name) then return prefix .. M.MARK .. suffix end
         return prefix .. value .. suffix
     end)
-    text = text:gsub("(%a[%w+.%-]*://)([^/%s@]+)@", function(scheme: string, userinfo: string): string
+    text = text:gsub("(://)([^/%s@]+)@", function(scheme: string, userinfo: string): string
         return scheme .. M.MARK .. "@"
     end)
     text = text:gsub("([Bb]earer%s+)([%w%-%._~%+/=]+)", function(prefix: string, value: string): string
