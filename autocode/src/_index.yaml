@@ -85,6 +85,8 @@ entries:
         path: .meta.target_db
       - entry: chestor.autocode.persist:db_config
         path: .meta.db_id
+      - entry: chestor.autocode.security:store
+        path: .policy.resources +=
 
   - name: api_router
     kind: ns.requirement

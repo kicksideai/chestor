@@ -1,15 +1,18 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 -- GET /autocode/catalog — the activated agent drivers with the credentials
--- each reads, the default agent image recipe, and whether the caller
--- manages images and workspaces.
+-- each reads, the default agent image recipe, and management capabilities.
 local security = require("security")
 local web = require("web")
 local drivers = require("drivers")
 local credentials = require("credentials")
 local images = require("images")
 
--- An administrator is a caller the image management endpoint admits.
-local MANAGE_ENDPOINT = "chestor.autocode.api:images_create.endpoint"
+local function allowed(endpoints: {string}): boolean
+    for _, endpoint in ipairs(endpoints) do
+        if security.can("access", "chestor.autocode.api:" .. endpoint .. ".endpoint") ~= true then return false end
+    end
+    return true
+end
 
 -- file: the login file's path under HOME; subscription: a person's own login.
 type Choice = {id: string, label: string, hint: string, file: string?, subscription: boolean}
@@ -31,7 +34,9 @@ local function handler()
         agents[#agents + 1] = {id = driver.id, title = driver.title, credentials = choices, endpoints = driver.endpoints}
     end
     web.reply(ctx.res, web.STATUS.OK, {success = true, agents = agents, default_image = images.DEFAULT,
-        manage = security.can("access", MANAGE_ENDPOINT) == true})
+        can_images = allowed({"images_create", "images_update", "images_delete", "images_prepare"}),
+        can_workspaces = allowed({"workspaces_create", "workspaces_delete"}),
+        can_prune = allowed({"maintenance_prune"})})
 end
 
 return { handler = handler }

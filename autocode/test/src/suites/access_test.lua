@@ -62,10 +62,68 @@ local function cases()
         test.it("reports image management to an administrator only", function()
             local member = identity.request(track(identity.member()), "GET", "/autocode/catalog")
             test.eq(member.status, 200, member.body)
-            test.eq(member.json.manage, false)
+            test.eq(member.json.can_images, false)
+            test.eq(member.json.can_workspaces, false)
+            test.eq(member.json.can_prune, false)
             local admin = identity.request(track(identity.admin()), "GET", "/autocode/catalog")
             test.eq(admin.status, 200, admin.body)
-            test.eq(admin.json.manage, true)
+            test.eq(admin.json.can_images, true)
+            test.eq(admin.json.can_workspaces, true)
+            test.eq(admin.json.can_prune, true)
+        end)
+
+        test.it("loads management data without the member group", function()
+            local manager = track(identity.user({identity.SIGNED_IN, "app:autocode_managers"}))
+            local catalog = identity.request(manager, "GET", "/autocode/catalog")
+            test.eq(catalog.status, 200, catalog.body)
+            test.eq(catalog.json.can_images, true)
+            test.is_true(#catalog.json.agents > 0)
+            for _, resource in ipairs({"chestor.autocode:ui_static", "chestor.autocode:settings_tab_view"}) do
+                local seen, err = identity.call(manager, "app:session_probe", resource)
+                test.is_nil(err)
+                test.eq(seen.access, true, resource)
+            end
+            for _, path in ipairs({"/autocode/images", "/autocode/workspaces"}) do
+                local response = identity.request(manager, "GET", path)
+                test.eq(response.status, 200, response.body)
+            end
+            local created = identity.request(manager, "POST", "/autocode/workspaces",
+                {name = "Managed workspace", host_path = "/srv/autocode-harness/managed"})
+            test.eq(created.status, 201, created.body)
+            local deleted = identity.request(manager, "DELETE", "/autocode/workspaces/" .. created.json.id)
+            test.eq(deleted.status, 200, deleted.body)
+        end)
+
+        test.it("reports workspace management independently of image management", function()
+            local manager = track(identity.user({identity.SIGNED_IN, identity.MEMBERS, "app:workspace_managers"}))
+            local catalog = identity.request(manager, "GET", "/autocode/catalog")
+            test.eq(catalog.status, 200, catalog.body)
+            test.eq(catalog.json.can_images, false)
+            test.eq(catalog.json.can_workspaces, true)
+            test.eq(catalog.json.can_prune, false)
+        end)
+
+        test.it("gives members no direct cleanup or credential worker calls", function()
+            local member = track(identity.member())
+            for _, resource in ipairs({"chestor.autocode.components:delete_account", "chestor.autocode.components:delete_image",
+                "chestor.autocode.components:delete_workspace", "chestor.autocode.runner:prepare",
+                "chestor.autocode.runner:keep_credential"}) do
+                local seen, err = identity.call(member, "app:session_probe", resource, "funcs.call")
+                test.is_nil(err)
+                test.eq(seen.access, false, resource)
+            end
+        end)
+
+        test.it("refuses caller-supplied cleanup context", function()
+            local member = track(identity.member())
+            local id, register_err = identity.call(member, "app:fixture_register", "workspace", {title = "Own workspace"}, {})
+            test.is_nil(register_err)
+            for _, kind in ipairs({"account", "image", "workspace"}) do
+                local result, err = identity.call(member, "app:fixture_cleanup", {kind = kind, id = id})
+                test.is_nil(result)
+                test.not_nil(err)
+                test.is_true(errors.is(err, errors.PERMISSION_DENIED), tostring(err))
+            end
         end)
 
         test.it("shows host workspace roots only to workspace managers", function()
