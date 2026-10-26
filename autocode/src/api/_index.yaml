@@ -315,6 +315,7 @@ entries:
     meta:
       comment: "GET /autocode/workspaces - Workspaces the caller can see, with the mount mode its grant gives."
     source: file://workspace_routes.lua
+    modules: [security]
     method: list
     imports:
       web: chestor.autocode.api:web
@@ -336,6 +337,7 @@ entries:
     meta:
       comment: "POST /autocode/workspaces - Register a host directory under the workspace roots as a workspace."
     source: file://workspace_routes.lua
+    modules: [security]
     method: create
     imports:
       web: chestor.autocode.api:web
@@ -357,6 +359,7 @@ entries:
     meta:
       comment: "DELETE /autocode/workspaces/{id} - Delete a workspace; its host directory stays."
     source: file://workspace_routes.lua
+    modules: [security]
     method: delete
     imports:
       web: chestor.autocode.api:web

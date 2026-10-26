@@ -67,6 +67,15 @@ local function cases()
             test.eq(admin.status, 200, admin.body)
             test.eq(admin.json.manage, true)
         end)
+
+        test.it("shows host workspace roots only to workspace managers", function()
+            local member = identity.request(track(identity.member()), "GET", "/autocode/workspaces")
+            test.eq(member.status, 200, member.body)
+            test.is_nil(member.json.roots)
+            local manager = identity.request(track(identity.admin()), "GET", "/autocode/workspaces")
+            test.eq(manager.status, 200, manager.body)
+            test.is_true(#manager.json.roots > 0)
+        end)
     end)
 end
 

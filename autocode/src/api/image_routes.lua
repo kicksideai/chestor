@@ -10,7 +10,7 @@ local images = require("images")
 local docker = require("docker")
 
 type View = {id: string, ref: string, label: string, home: string, status: string, agents: {string}, last_error: string,
-    owner: string, writable: boolean, shareable: boolean}
+    owner: string, writable: boolean, deletable: boolean, shareable: boolean}
 
 local function text(value: unknown): string
     return type(value) == "string" and value or ""
@@ -21,6 +21,7 @@ local function view(image: resources.Resource): View
     return {id = image.id, ref = text(meta.ref), label = text(meta.title), home = text(meta.home), status = text(meta.status),
         agents = resources.strings(meta.agents), last_error = text(meta.last_error), owner = image.owner,
         writable = resources.has(image.access, resources.ACCESS.WRITE),
+        deletable = resources.has(image.access, resources.ACCESS.DELETE),
         shareable = resources.has(image.access, resources.ACCESS.ADMIN)}
 end
 
