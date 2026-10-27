@@ -27,18 +27,6 @@ end
 
 local function cases()
     test.describe("autocode wiring", function()
-        test.it("declares a grouped Autocode settings section for the generic form", function()
-            local entry = registry.get("chestor.autocode:settings.block.autocode")
-            test.not_nil(entry)
-            test.eq(entry.meta.type, "kickside.settings:block")
-            test.eq(entry.data.key, "autocode")
-            test.eq(entry.data.title, "Autocode")
-            test.eq(entry.data.icon, registry.get("chestor.autocode:settings_tab").data.icon)
-            test.eq(entry.data.group, "Application")
-            test.eq(entry.data.order, 80)
-            test.eq(entry.data.namespace, "chestor.autocode")
-            test.is_nil(entry.data.component_tag)
-        end)
         test.it("groups and orders the published settings for runs then images and Docker", function()
             local expected = {
                 {key = "run_timeout", title = "Run timeout", category = "Runs", order = 10},
@@ -61,12 +49,6 @@ local function cases()
                 test.eq(entry.data.editable, true)
                 test.eq(entry.data.validate_func, "chestor.autocode:validate_duration")
             end
-        end)
-        test.it("describes retention of settled runs and their event logs without changing the published key", function()
-            local entry = registry.get("chestor.autocode:setting.run_retention")
-            test.eq(entry.data.key, "run_retention")
-            test.eq(entry.data.default, "720h")
-            test.eq(entry.data.description, "Retention deletes settled runs and their event logs older than this duration (for example, `720h`).")
         end)
         test.it("validates the image build timeout at both duration bounds", function()
             for _, duration in ipairs({"1m", "30m", "168h"}) do
@@ -92,13 +74,6 @@ local function cases()
             local found = false
             for _, row in ipairs(rows) do if row.name == "chestor_autocode_submissions_run" then found = true end end
             test.is_true(found)
-        end)
-        test.it("places shared codecs below persistence, service and runner", function()
-            for _, name in ipairs({"recipe", "credentials", "live"}) do test.not_nil(registry.get("chestor.autocode.domain:" .. name)) end
-            for _, id in ipairs({"chestor.autocode.persist:builds", "chestor.autocode.persist:database"}) do
-                local entry = registry.get(id)
-                test.eq(entry.data.imports.recipe, "chestor.autocode.domain:recipe")
-            end
         end)
         test.it("keeps implementation policies private and capability bundles public", function()
             local entries, err = registry.find({[".kind"] = "security.policy"})

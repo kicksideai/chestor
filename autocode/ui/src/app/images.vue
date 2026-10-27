@@ -1,12 +1,12 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
 import { useRequiredCatalog } from './catalog.ts'
-import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import { host } from '@wippy-fe/proxy'
 import { useHostVisibilityRefresh } from '@wippy-fe/webcomponent-vue'
 import { autocode, principalLabels, type Image, type ImageDetail } from './api.ts'
-import { useComponentTopics, serial } from './live.ts'
+import { reconcile, useComponentTopics, serial } from './live.ts'
 import ShareControl from './share-control.vue'
 import AppDialog from './app-dialog.vue'
 import { agentIcon, errorText } from './presentation.ts'
@@ -42,15 +42,8 @@ async function readLog(id: string) {
 // A status change refetches the list and the open build log.
 const refresh = serial(async () => {
   try {
-    let list = await autocode.images()
-    // Subscribe to discovered IDs before reconciling their current state.
-    while (alive && list.some(i => !topicIds.value.includes(i.id))) {
-      topicIds.value = list.map(i => i.id)
-      await nextTick()
-      list = await autocode.images()
-    }
+    const list = await reconcile(autocode.images, list => list.map(i => i.id), topicIds, () => alive)
     if (!alive) return
-    topicIds.value = list.map(i => i.id)
     images.value = list
     void readOwnership(list, ++ownershipGeneration)
     if (log.value && list.some(i => i.id === log.value?.id)) await readLog(log.value.id)

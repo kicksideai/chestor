@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
 import { useRequiredCatalog } from './catalog.ts'
-import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useHostVisibilityRefresh } from '@wippy-fe/webcomponent-vue'
 import Button from 'primevue/button'
@@ -10,7 +10,7 @@ import { agentIcon, relativeTime, duration, useRunClock, errorText, shortTime } 
 import TaskForm from './task-form.vue'
 import RunDetail from './run-detail.vue'
 import { autocode, type Account, type Image, type RunSummary, type Workspace } from './api.ts'
-import { useComponentTopics, live, serial, useAlive } from './live.ts'
+import { reconcile, useComponentTopics, live, serial, useAlive } from './live.ts'
 
 const alive = useAlive()
 const topicIds = ref<string[]>([])
@@ -49,15 +49,11 @@ const refreshAll = serial(async () => {
   generation++
   refreshing.value = true
   try {
-    let [a, i, r, w] = await Promise.all([autocode.accounts(), autocode.images(), refreshRuns(), autocode.workspaces()])
-    while (alive() && [...a, ...i, ...w.workspaces].some(item => !topicIds.value.includes(item.id))) {
-      topicIds.value = [...a, ...i, ...w.workspaces].map(item => item.id)
-      await nextTick()
-      if (!alive()) return
-      ;[a, i, r, w] = await Promise.all([autocode.accounts(), autocode.images(), refreshRuns(), autocode.workspaces()])
-    }
+    const [a, i, r, w] = await reconcile(
+      () => Promise.all([autocode.accounts(), autocode.images(), refreshRuns(), autocode.workspaces()]),
+      ([a, i, , w]) => [...a, ...i, ...w.workspaces].map(item => item.id), topicIds, alive,
+    )
     if (!alive()) return
-    topicIds.value = [...a, ...i, ...w.workspaces].map(item => item.id)
     accounts.value = a
     images.value = i
     runs.value = r.runs

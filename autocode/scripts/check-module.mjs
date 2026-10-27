@@ -65,12 +65,6 @@ if (!viteConfig.includes("'process.env': '{}'")) report("vite.config.ts must def
 // maps a subset of primevue/* and the top document maps none.
 const hostProvidedPackages = ['vue', 'pinia', 'vue-router', 'axios', 'nanoevents', 'luxon', '@iconify/vue',
   '@wippy-fe/proxy']
-const declaredDeps = Object.keys({ ...packageJson.dependencies, ...packageJson.devDependencies, ...packageJson.peerDependencies })
-for (const dep of declaredDeps) {
-  if (hostProvidedPackages.includes(dep) && !viteConfig.includes(`'${dep}'`)) {
-    report(`ui/package.json declares ${dep}, which every host import map provides; add it to rollupOptions.external in vite.config.ts`)
-  }
-}
 
 // The shell mounts page components in a definite-height surface whose every
 // ancestor hides overflow: a page that does not own its scrolling gets

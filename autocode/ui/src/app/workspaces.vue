@@ -1,11 +1,11 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Icon } from '@iconify/vue'
 import { host } from '@wippy-fe/proxy'
 import { useHostVisibilityRefresh } from '@wippy-fe/webcomponent-vue'
 import { autocode, type Workspace } from './api.ts'
-import { serial, useAlive, useComponentTopics } from './live.ts'
+import { reconcile, serial, useAlive, useComponentTopics } from './live.ts'
 import { errorText } from './presentation.ts'
 import ShareControl from './share-control.vue'
 import AppDialog from './app-dialog.vue'
@@ -35,15 +35,8 @@ watch(hostPath, path => {
 
 const refresh = serial(async () => {
   try {
-    let data = await autocode.workspaces()
-    while (alive() && data.workspaces.some(w => !topicIds.value.includes(w.id))) {
-      topicIds.value = data.workspaces.map(w => w.id)
-      await nextTick()
-      if (!alive()) return
-      data = await autocode.workspaces()
-    }
+    const data = await reconcile(autocode.workspaces, data => data.workspaces.map(w => w.id), topicIds, alive)
     if (!alive()) return
-    topicIds.value = data.workspaces.map(w => w.id)
     workspaces.value = data.workspaces
     roots.value = data.roots ?? []
     loaded.value = true

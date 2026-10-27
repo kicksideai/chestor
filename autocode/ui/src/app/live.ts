@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
-import { onUnmounted, watch } from 'vue'
+import { nextTick, onUnmounted, watch, type Ref } from 'vue'
 import { on } from '@wippy-fe/proxy'
 
 // Topics announce changes for views to refetch.
@@ -26,6 +26,19 @@ export function serial(task: () => Promise<void>, active: () => boolean = () => 
     current = run()
     return current
   }
+}
+
+// Subscribe to discovered IDs before reconciling their current state.
+export async function reconcile<T>(fetch: () => Promise<T>, ids: (data: T) => string[], topics: Ref<string[]>, active: () => boolean): Promise<T> {
+  let data = await fetch()
+  while (active() && ids(data).some(id => !topics.value.includes(id))) {
+    topics.value = ids(data)
+    await nextTick()
+    if (!active()) return data
+    data = await fetch()
+  }
+  if (active()) topics.value = ids(data)
+  return data
 }
 
 // Component subscriptions follow the listed ids and end on unmount.

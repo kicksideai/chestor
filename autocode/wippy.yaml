@@ -41,8 +41,6 @@ exclude:
   - "test:**"
   - ".wippy:**"
   - "ui/dist/**"
-  - "test/stubs/**"
-  - "test/stubs:**"
   - "src/**/stubs/**"
   - "src/**/*.spec.ts"
   - "src/**/*.spec.tsx"

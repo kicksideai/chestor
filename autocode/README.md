@@ -144,8 +144,7 @@ account state. Reads return no credential or account share capability.
 accepts JSON with a separate bound of 65,536 UTF-8 bytes after serialization.
 The Block passes node input through this field when `include_input` is enabled;
 the runner composes the prompt followed by `\n\nInput:\n` and the serialized input
-at launch. The driver release needs a dedicated brief bound that admits the
-combined maximum of 81,929 bytes; its general text bound remains independent.
+at launch.
 Input and prompt are stored separately and both participate in replay.
 Optional `repo_ref` in task submission and Block config selects a branch or tag
 for `repo_url` (up to 200 bytes);

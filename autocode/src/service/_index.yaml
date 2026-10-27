@@ -229,11 +229,3 @@ entries:
     admission: chestor.autocode.service:admission
     drivers: bee.drivers:drivers
     credentials: chestor.autocode.domain:credentials
-
-- name: workflow_resume
-  kind: library.lua
-  source: file://workflow_resume.lua
-  modules: [funcs, security]
-  imports:
-    repo: chestor.autocode.persist:repo
-    canonical_json: kickside.contract:canonical_json

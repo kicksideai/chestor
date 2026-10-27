@@ -125,7 +125,7 @@ fieldset.ac-form { border: 0; margin: 0; padding: 0; min-width: 0; }
 .ac-dialog[open] { display: flex; flex-direction: column; overflow: hidden; }
 .ac-dialog::backdrop { background: var(--p-mask-background); }
 .ac-dialog-wide { width: min(880px, calc(100vw - 40px)); }
-.ac-dialog-header, .ac-dialog-footer { flex: none; padding: 20px; }
+.ac-dialog-header { flex: none; padding: 20px; }
 .ac-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .ac-dialog-header h2 { margin: 0; font-size: 17px; }
 .ac-dialog-content { padding: 0 20px 20px; min-height: 0; overflow: auto; overscroll-behavior: contain; }

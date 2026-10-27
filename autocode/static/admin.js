@@ -1,9 +1,9 @@
-import { u as ee, _ as Y, a as pe, b as me, s as ke, P as fe } from "./styles-K-SJETe9.js";
+import { u as ee, _ as Y, a as pe, b as me, s as fe, P as ke } from "./styles-B_GLD-6F.js";
 import { u as le, W as be } from "./dto-CcYNmUR0.js";
-import { defineComponent as W, ref as p, watch as R, openBlock as s, createElementBlock as o, Fragment as M, createElementVNode as a, createVNode as D, unref as m, createCommentVNode as g, toDisplayString as y, createTextVNode as I, withDirectives as N, vModelText as B, normalizeClass as z, createStaticVNode as ge, renderList as H, vModelCheckbox as ye, computed as J, onUnmounted as he, createBlock as O, withCtx as Z, nextTick as oe } from "vue";
+import { defineComponent as W, ref as v, watch as R, openBlock as s, createElementBlock as o, Fragment as M, createElementVNode as a, createVNode as C, unref as m, createCommentVNode as b, toDisplayString as g, createTextVNode as I, withDirectives as N, vModelText as T, normalizeClass as z, createStaticVNode as ge, renderList as H, vModelCheckbox as ye, computed as J, onUnmounted as he, createBlock as O, withCtx as Z } from "vue";
 import { Icon as L } from "@iconify/vue";
-import { loadByTagName as _e, host as Q, define as we } from "@wippy-fe/proxy";
-import { e as q, a as P, u as ne, b as xe, s as ie, p as $e, c as Ce } from "./presentation-BDm-VNGA.js";
+import { loadByTagName as _e, host as Q, define as xe } from "@wippy-fe/proxy";
+import { e as B, a as q, u as oe, b as we, s as ne, r as ie, p as $e, c as Ce } from "./presentation-Cbft0Qfp.js";
 const De = {
   key: 1,
   class: "kx-err",
@@ -15,42 +15,42 @@ const De = {
     title: {}
   },
   setup(U) {
-    const S = U, d = p(!1), k = p(null), _ = p("");
+    const S = U, d = v(!1), f = v(null), _ = v("");
     function V() {
       d.value = !1;
     }
-    return R(k, async (l) => {
+    return R(f, async (l) => {
       if (l) {
         _.value = "";
         try {
-          if (customElements.get("kickside-share") || await _e("kickside-share", { timeoutMs: 8e3 }), k.value !== l) return;
-          const c = document.createElement("kickside-share");
-          c.setAttribute("config", JSON.stringify({
+          if (customElements.get("kickside-share") || await _e("kickside-share", { timeoutMs: 8e3 }), f.value !== l) return;
+          const r = document.createElement("kickside-share");
+          r.setAttribute("config", JSON.stringify({
             resource_id: S.id,
             title: S.title,
             access_url: `/api/v1/component-access/grants/${encodeURIComponent(S.id)}`,
             share_url: `/api/v1/component-access/share/${encodeURIComponent(S.id)}`
-          })), c.style.display = "block", c.addEventListener("close", V), l.appendChild(c);
-        } catch (c) {
-          _.value = q(c, "Could not open sharing.");
+          })), r.style.display = "block", r.addEventListener("close", V), l.appendChild(r);
+        } catch (r) {
+          _.value = B(r, "Could not open sharing.");
         }
       }
-    }), (l, c) => (s(), o(M, null, [
+    }), (l, r) => (s(), o(M, null, [
       a("button", {
         type: "button",
         class: "ac-icon-btn kx-focus-outline",
         title: "Share",
         "aria-label": "Share",
-        onClick: c[0] || (c[0] = ($) => d.value = !0)
+        onClick: r[0] || (r[0] = ($) => d.value = !0)
       }, [
-        D(m(L), { icon: "tabler:share" })
+        C(m(L), { icon: "tabler:share" })
       ]),
       d.value ? (s(), o("div", {
         key: 0,
         ref_key: "shareHost",
-        ref: k
-      }, null, 512)) : g("", !0),
-      _.value ? (s(), o("span", De, y(_.value), 1)) : g("", !0)
+        ref: f
+      }, null, 512)) : b("", !0),
+      _.value ? (s(), o("span", De, g(_.value), 1)) : b("", !0)
     ], 64));
   }
 }), Ue = {
@@ -77,7 +77,7 @@ const De = {
   },
   emits: ["saved", "cancel", "busy"],
   setup(U, { emit: S }) {
-    const d = U, k = S, _ = ee();
+    const d = U, f = S, _ = ee();
     function V(t = _.value.default_image.settings) {
       return t ? {
         ref: "",
@@ -91,13 +91,13 @@ const De = {
         extra: ""
       } : null;
     }
-    const l = p(V()), c = p(!1);
+    const l = v(V()), r = v(!1);
     R(() => l.value?.ref, (t) => {
-      l.value && !d.edit && !c.value && t !== void 0 && (l.value.label = t);
+      l.value && !d.edit && !r.value && t !== void 0 && (l.value.label = t);
     });
-    const $ = p(!1), w = p("");
+    const $ = v(!1), x = v("");
     R(() => d.edit, (t) => {
-      if (w.value = "", c.value = !!t, !t) {
+      if (x.value = "", r.value = !!t, !t) {
         l.value = V();
         return;
       }
@@ -118,9 +118,9 @@ const De = {
         allows: [...e.allows]
       };
     }, { immediate: !0 });
-    function C() {
+    function D() {
       const t = _.value.default_image;
-      c.value = !0;
+      r.value = !0;
       const e = V();
       l.value = e ? { ...e, ref: t.ref, label: t.label, home: t.home, mode: "build", dockerfile: t.dockerfile } : null;
     }
@@ -140,23 +140,23 @@ const De = {
         allows: [...t.allows]
       };
     }
-    async function x() {
+    async function w() {
       if (!(!l.value || $.value)) {
-        w.value = "", $.value = !0, k("busy", !0);
+        x.value = "", $.value = !0, f("busy", !0);
         try {
           let t;
           if (d.edit) {
-            const e = await P.updateImage(d.edit.image.id, { ...h(), ref: l.value.ref, dockerfile: l.value.mode === "build" ? l.value.dockerfile : "" });
+            const e = await q.updateImage(d.edit.image.id, { ...h(), ref: l.value.ref, dockerfile: l.value.mode === "build" ? l.value.dockerfile : "" });
             e.build_error && (t = `Settings saved. Build preparation has not started: ${e.build_error.message}. Use Prepare image to retry.`);
           } else {
-            const e = l.value, u = await P.createImage({ ...h(), ref: e.ref, dockerfile: e.mode === "build" ? e.dockerfile : "" });
-            u.build_error && (t = `Image created. Build preparation has not started: ${u.build_error.message}. Use Prepare image to retry.`), l.value = V();
+            const e = l.value, i = await q.createImage({ ...h(), ref: e.ref, dockerfile: e.mode === "build" ? e.dockerfile : "" });
+            i.build_error && (t = `Image created. Build preparation has not started: ${i.build_error.message}. Use Prepare image to retry.`), l.value = V();
           }
-          k("saved", t);
+          f("saved", t);
         } catch (t) {
-          w.value = q(t, "Could not save the image.");
+          x.value = B(t, "Could not save the image.");
         } finally {
-          $.value = !1, k("busy", !1);
+          $.value = !1, f("busy", !1);
         }
       }
     }
@@ -166,101 +166,101 @@ const De = {
       disabled: $.value
     }, [
       a("div", Le, [
-        a("span", Ie, y(U.edit ? "Container settings" : "Use an image reference or the default agent recipe."), 1),
-        U.edit ? g("", !0) : (s(), o("button", {
+        a("span", Ie, g(U.edit ? "Container settings" : "Use an image reference or the default agent recipe."), 1),
+        U.edit ? b("", !0) : (s(), o("button", {
           key: 0,
           type: "button",
           class: "ac-btn kx-focus-halo",
-          onClick: C
+          onClick: D
         }, [
-          D(m(L), { icon: "tabler:sparkles" }),
+          C(m(L), { icon: "tabler:sparkles" }),
           e[15] || (e[15] = I(" Default agent image", -1))
         ]))
       ]),
       a("label", Ve, [
         e[16] || (e[16] = a("span", null, "Image reference", -1)),
         N(a("input", {
-          "onUpdate:modelValue": e[0] || (e[0] = (u) => l.value.ref = u),
+          "onUpdate:modelValue": e[0] || (e[0] = (i) => l.value.ref = i),
           class: "ac-mono kx-focus-halo",
           placeholder: "registry/name:tag"
         }, null, 512), [
-          [B, l.value.ref]
+          [T, l.value.ref]
         ])
       ]),
       a("div", Se, [
         a("button", {
           type: "button",
           class: z(["kx-focus-outline", { active: l.value.mode === "pull" }]),
-          onClick: e[1] || (e[1] = (u) => l.value.mode = "pull")
+          onClick: e[1] || (e[1] = (i) => l.value.mode = "pull")
         }, "Use or pull existing", 2),
         a("button", {
           type: "button",
           class: z(["kx-focus-outline", { active: l.value.mode === "build" }]),
-          onClick: e[2] || (e[2] = (u) => l.value.mode = "build")
+          onClick: e[2] || (e[2] = (i) => l.value.mode = "build")
         }, "Build from Dockerfile", 2)
       ]),
       l.value.mode === "build" ? (s(), o("label", Ee, [
         e[17] || (e[17] = a("span", null, "Dockerfile", -1)),
         N(a("textarea", {
-          "onUpdate:modelValue": e[3] || (e[3] = (u) => l.value.dockerfile = u),
+          "onUpdate:modelValue": e[3] || (e[3] = (i) => l.value.dockerfile = i),
           rows: "9",
           class: "ac-mono kx-focus-halo"
         }, null, 512), [
-          [B, l.value.dockerfile]
+          [T, l.value.dockerfile]
         ]),
         e[18] || (e[18] = ge('<small class="ac-hint">Include <code>sh</code>, <code>git</code>, <code>mkdir</code>, <code>dirname</code>, a <code>timeout</code> that supports <code>-k</code>, and the agent CLIs. The image user needs writable home and work directories.</small>', 1))
-      ])) : g("", !0),
-      U.edit ? (s(), o("p", Ne, "Saving container settings prepares the image automatically.")) : g("", !0),
+      ])) : b("", !0),
+      U.edit ? (s(), o("p", Ne, "Saving container settings prepares the image automatically.")) : b("", !0),
       a("label", Pe, [
         e[19] || (e[19] = a("span", null, "Label", -1)),
         N(a("input", {
-          "onUpdate:modelValue": e[4] || (e[4] = (u) => l.value.label = u),
+          "onUpdate:modelValue": e[4] || (e[4] = (i) => l.value.label = i),
           class: "kx-focus-halo",
-          onInput: e[5] || (e[5] = (u) => c.value = !0)
+          onInput: e[5] || (e[5] = (i) => r.value = !0)
         }, null, 544), [
-          [B, l.value.label]
+          [T, l.value.label]
         ])
       ]),
       a("label", Te, [
         e[20] || (e[20] = a("span", null, "Home directory in the image", -1)),
         N(a("input", {
-          "onUpdate:modelValue": e[6] || (e[6] = (u) => l.value.home = u),
+          "onUpdate:modelValue": e[6] || (e[6] = (i) => l.value.home = i),
           class: "ac-mono kx-focus-halo"
         }, null, 512), [
-          [B, l.value.home]
+          [T, l.value.home]
         ])
       ]),
       a("div", Be, [
         a("label", qe, [
           e[21] || (e[21] = a("span", null, "Memory", -1)),
           N(a("input", {
-            "onUpdate:modelValue": e[7] || (e[7] = (u) => l.value.memory = u),
+            "onUpdate:modelValue": e[7] || (e[7] = (i) => l.value.memory = i),
             class: "ac-mono kx-focus-halo",
             placeholder: m(_).default_image.settings?.memory
           }, null, 8, je), [
-            [B, l.value.memory]
+            [T, l.value.memory]
           ])
         ]),
         a("label", Re, [
           e[22] || (e[22] = a("span", null, "CPUs", -1)),
           N(a("input", {
-            "onUpdate:modelValue": e[8] || (e[8] = (u) => l.value.cpus = u),
+            "onUpdate:modelValue": e[8] || (e[8] = (i) => l.value.cpus = i),
             class: "ac-mono kx-focus-halo",
             placeholder: m(_).default_image.settings?.cpus
           }, null, 8, Me), [
-            [B, l.value.cpus]
+            [T, l.value.cpus]
           ])
         ]),
         a("label", Oe, [
           e[23] || (e[23] = a("span", null, "PIDs limit", -1)),
           N(a("input", {
-            "onUpdate:modelValue": e[9] || (e[9] = (u) => l.value.pids_limit = u),
+            "onUpdate:modelValue": e[9] || (e[9] = (i) => l.value.pids_limit = i),
             type: "number",
             min: "0",
             class: "ac-mono kx-focus-halo"
           }, null, 512), [
             [
-              B,
+              T,
               l.value.pids_limit,
               void 0,
               { number: !0 }
@@ -272,74 +272,74 @@ const De = {
         a("label", We, [
           e[24] || (e[24] = a("span", null, "GPUs", -1)),
           N(a("input", {
-            "onUpdate:modelValue": e[10] || (e[10] = (u) => l.value.gpus = u),
+            "onUpdate:modelValue": e[10] || (e[10] = (i) => l.value.gpus = i),
             class: "ac-mono kx-focus-halo",
             placeholder: "all, or device=0"
           }, null, 512), [
-            [B, l.value.gpus]
+            [T, l.value.gpus]
           ])
         ]),
         a("label", Ge, [
           e[25] || (e[25] = a("span", null, "Network", -1)),
           N(a("input", {
-            "onUpdate:modelValue": e[11] || (e[11] = (u) => l.value.network = u),
+            "onUpdate:modelValue": e[11] || (e[11] = (i) => l.value.network = i),
             class: "ac-mono kx-focus-halo",
             placeholder: m(_).default_image.settings?.network
           }, null, 8, Ke), [
-            [B, l.value.network]
+            [T, l.value.network]
           ])
         ])
       ]),
       U.capabilities?.length ? (s(), o("div", ze, [
         e[26] || (e[26] = a("span", null, "Agents may", -1)),
         a("div", Fe, [
-          (s(!0), o(M, null, H(U.capabilities, (u) => (s(), o("label", {
-            key: u,
+          (s(!0), o(M, null, H(U.capabilities, (i) => (s(), o("label", {
+            key: i,
             class: "ac-check ac-mono"
           }, [
             N(a("input", {
               "onUpdate:modelValue": e[12] || (e[12] = (E) => l.value.allows = E),
               type: "checkbox",
               class: "kx-focus-outline",
-              value: u
+              value: i
             }, null, 8, Je), [
               [ye, l.value.allows]
             ]),
-            I(" " + y(u), 1)
+            I(" " + g(i), 1)
           ]))), 128))
         ])
-      ])) : g("", !0),
+      ])) : b("", !0),
       a("label", Qe, [
         e[27] || (e[27] = a("span", null, "Extra docker run arguments", -1)),
         N(a("textarea", {
-          "onUpdate:modelValue": e[13] || (e[13] = (u) => l.value.extra = u),
+          "onUpdate:modelValue": e[13] || (e[13] = (i) => l.value.extra = i),
           rows: "3",
           class: "ac-mono kx-focus-halo",
           placeholder: `One argument per line, e.g.
 --device=/dev/dri
 --shm-size=2g`
         }, null, 512), [
-          [B, l.value.extra]
+          [T, l.value.extra]
         ])
       ]),
       a("footer", Xe, [
         a("button", {
           type: "button",
           class: "ac-btn kx-focus-halo",
-          onClick: e[14] || (e[14] = (u) => k("cancel"))
+          onClick: e[14] || (e[14] = (i) => f("cancel"))
         }, "Cancel"),
         a("button", {
           type: "button",
           class: "ac-btn primary kx-focus-halo",
           disabled: $.value || !U.capabilities || !l.value.ref,
-          onClick: x
+          onClick: w
         }, [
-          D(m(L), { icon: "tabler:box" }),
-          I(" " + y($.value ? "Saving…" : U.edit ? "Save settings" : l.value.mode === "build" ? "Build image" : "Add image"), 1)
+          C(m(L), { icon: "tabler:box" }),
+          I(" " + g($.value ? "Saving…" : U.edit ? "Save settings" : l.value.mode === "build" ? "Build image" : "Add image"), 1)
         ], 8, Ye)
       ]),
-      w.value ? (s(), o("p", Ze, y(w.value), 1)) : g("", !0)
-    ], 8, Ae)) : (s(), o("p", Ue, y(U.edit ? "Image settings are unavailable." : "Image defaults are unavailable.") + " Ask an administrator to update the image configuration.", 1));
+      x.value ? (s(), o("p", Ze, g(x.value), 1)) : b("", !0)
+    ], 8, Ae)) : (s(), o("p", Ue, g(U.edit ? "Image settings are unavailable." : "Image defaults are unavailable.") + " Ask an administrator to update the image configuration.", 1));
   }
 }), aa = { class: "ac-stack" }, ta = {
   key: 0,
@@ -357,88 +357,86 @@ const De = {
 }, ia = { class: "ac-list ac-resource-list" }, ra = { class: "ac-resource-icon" }, ua = { class: "ac-account-main" }, ca = { class: "ac-row-title" }, da = {
   key: 0,
   class: "kx-tag-sm ac-tone ready"
-}, va = { class: "ac-muted ac-mono" }, pa = { class: "ac-chips" }, ma = { class: "ac-muted" }, ka = {
+}, va = { class: "ac-muted ac-mono" }, pa = { class: "ac-chips" }, ma = { class: "ac-muted" }, fa = {
   key: 0,
   class: "kx-err ac-small"
-}, fa = { class: "ac-row-actions" }, ba = ["disabled", "onClick"], ga = ["onClick"], ya = ["onClick"], ha = ["onClick"], _a = { class: "ac-form" }, wa = { class: "ac-mono" }, xa = { class: "ac-pre ac-build-log" }, $a = /* @__PURE__ */ W({
+}, ka = { class: "ac-row-actions" }, ba = ["disabled", "onClick"], ga = ["onClick"], ya = ["onClick"], ha = ["onClick"], _a = { class: "ac-form" }, xa = { class: "ac-mono" }, wa = { class: "ac-pre ac-build-log" }, $a = /* @__PURE__ */ W({
   __name: "images",
   props: {
     query: {}
   },
   emits: ["count"],
   setup(U, { expose: S, emit: d }) {
-    const k = ee(), _ = U, V = d, l = p(!1), c = p(!1), $ = p({});
+    const f = ee(), _ = U, V = d, l = v(!1), r = v(!1), $ = v({});
     S({ open: ae });
-    const w = p([]), C = p([]), h = p(""), x = p(null), t = p(null), e = J(() => [...new Set(k.value.agents.flatMap((i) => i.capabilities))].sort()), u = p(!1);
-    let E = !0, T = 0, j = 0, G = 0;
+    const x = v([]), D = v([]), h = v(""), w = v(null), t = v(null), e = J(() => [...new Set(f.value.agents.flatMap((u) => u.capabilities))].sort()), i = v(!1);
+    let E = !0, P = 0, j = 0, G = 0;
     he(() => {
-      E = !1, T++, j++;
+      E = !1, P++, j++;
     });
-    async function F(i) {
-      const v = T, n = await P.image(i);
-      !E || v !== T || t.value?.id !== i || (t.value = { id: i, ref: n.image.ref, text: n.build_log || "(empty)" });
+    async function F(u) {
+      const k = P, n = await q.image(u);
+      !E || k !== P || t.value?.id !== u || (t.value = { id: u, ref: n.image.ref, text: n.build_log || "(empty)" });
     }
-    const f = ie(async () => {
+    const y = ne(async () => {
       try {
-        let i = await P.images();
-        for (; E && i.some((v) => !C.value.includes(v.id)); )
-          C.value = i.map((v) => v.id), await oe(), i = await P.images();
+        const u = await ie(q.images, (k) => k.map((n) => n.id), D, () => E);
         if (!E) return;
-        C.value = i.map((v) => v.id), w.value = i, r(i, ++G), t.value && i.some((v) => v.id === t.value?.id) && await F(t.value.id), u.value = !0, h.value = "";
-      } catch (i) {
-        h.value = q(i, "Could not load images.");
+        x.value = u, c(u, ++G), t.value && u.some((k) => k.id === t.value?.id) && await F(t.value.id), i.value = !0, h.value = "";
+      } catch (u) {
+        h.value = B(u, "Could not load images.");
       }
     });
-    async function r(i, v) {
+    async function c(u, k) {
       try {
-        const n = await $e([...new Set(i.map((A) => A.owner))]);
-        if (!E || v !== G) return;
-        $.value = Object.fromEntries(i.map((A) => [A.id, `Owner: ${n[A.owner] || A.owner}`]));
+        const n = await $e([...new Set(u.map((A) => A.owner))]);
+        if (!E || k !== G) return;
+        $.value = Object.fromEntries(u.map((A) => [A.id, `Owner: ${n[A.owner] || A.owner}`]));
       } catch (n) {
-        E && v === G && (h.value = q(n, "Could not load image owners."));
+        E && k === G && (h.value = B(n, "Could not load image owners."));
       }
     }
-    ne(() => C.value, () => {
-      f();
-    }), le(f);
-    async function b(i, v) {
+    oe(() => D.value, () => {
+      y();
+    }), le(y);
+    async function p(u, k) {
       h.value = "";
       try {
-        await i(), await f();
+        await u(), await y();
       } catch (n) {
-        h.value = q(n, v);
+        h.value = B(n, k);
       }
     }
-    async function X(i) {
-      const v = ++j;
+    async function X(u) {
+      const k = ++j;
       h.value = "";
       try {
-        const n = await P.image(i.id);
-        E && v === j && (x.value = n);
+        const n = await q.image(u.id);
+        E && k === j && (w.value = n);
       } catch (n) {
-        E && v === j && (h.value = q(n, "Could not load the image settings."));
+        E && k === j && (h.value = B(n, "Could not load the image settings."));
       }
     }
     function K() {
-      j++, l.value = !1, x.value = null;
+      j++, l.value = !1, w.value = null;
     }
     function ae() {
       K(), l.value = !0;
     }
-    const ue = (i) => b(() => P.prepareImage(i.id), "Could not start the image preparation.");
-    function ce(i) {
-      T++, t.value = { id: i.id, ref: i.ref, text: "Loading…" }, f();
+    const ue = (u) => p(() => q.prepareImage(u.id), "Could not start the image preparation.");
+    function ce(u) {
+      P++, t.value = { id: u.id, ref: u.ref, text: "Loading…" }, y();
     }
     function te() {
-      T++, t.value = null;
+      P++, t.value = null;
     }
-    async function de(i) {
-      K(), await f(), i && (h.value = i);
+    async function de(u) {
+      K(), await y(), u && (h.value = u);
     }
-    async function ve(i) {
+    async function ve(u) {
       if (!await Q.confirm({
         header: "Delete image",
-        message: `Delete image "${i.label}"? Tasks keep their history.`,
+        message: `Delete image "${u.label}"? Tasks keep their history.`,
         icon: "tabler:trash",
         acceptLabel: "Delete",
         rejectLabel: "Cancel",
@@ -446,84 +444,84 @@ const De = {
       })) return;
       const n = await Q.confirm({
         header: "Docker image",
-        message: `Also remove ${i.ref} from Docker on the host? Keeping it lets a later image with the same reference reuse it.`,
+        message: `Also remove ${u.ref} from Docker on the host? Keeping it lets a later image with the same reference reuse it.`,
         icon: "tabler:brand-docker",
         acceptLabel: "Remove from Docker",
         rejectLabel: "Keep in Docker",
         acceptClass: "p-button-danger"
       });
-      j++, x.value?.image.id === i.id && K(), t.value?.id === i.id && te(), h.value = "";
+      j++, w.value?.image.id === u.id && K(), t.value?.id === u.id && te(), h.value = "";
       try {
-        const A = await P.deleteImage(i.id, n);
-        await f(), A.docker_error && (h.value = `Image deleted. Docker cleanup failed: ${A.docker_error.message}. Docker prune covers removal of unused images.`);
+        const A = await q.deleteImage(u.id, n);
+        await y(), A.docker_error && (h.value = `Image deleted. Docker cleanup failed: ${A.docker_error.message}. Docker prune covers removal of unused images.`);
       } catch (A) {
-        h.value = q(A, "Could not delete the image.");
+        h.value = B(A, "Could not delete the image.");
       }
     }
-    const se = J(() => w.value.filter((i) => [i.label, i.ref, ...i.agents].join(" ").toLowerCase().includes(_.query.toLowerCase())));
-    return R(w, (i) => V("count", i.length)), (i, v) => (s(), o("div", aa, [
-      v[7] || (v[7] = a("p", { class: "ac-hint" }, "Share ready images to make them available for tasks.", -1)),
+    const se = J(() => x.value.filter((u) => [u.label, u.ref, ...u.agents].join(" ").toLowerCase().includes(_.query.toLowerCase())));
+    return R(x, (u) => V("count", u.length)), (u, k) => (s(), o("div", aa, [
+      k[7] || (k[7] = a("p", { class: "ac-hint" }, "Share ready images to make them available for tasks.", -1)),
       h.value ? (s(), o("p", ta, [
-        I(y(h.value) + " ", 1),
+        I(g(h.value) + " ", 1),
         a("button", {
           type: "button",
           class: "ac-link kx-focus-outline",
-          onClick: v[0] || (v[0] = //@ts-ignore
-          (...n) => m(f) && m(f)(...n))
+          onClick: k[0] || (k[0] = //@ts-ignore
+          (...n) => m(y) && m(y)(...n))
         }, "Retry")
-      ])) : g("", !0),
-      !u.value && !h.value ? (s(), o("div", sa, "Loading images…")) : g("", !0),
-      u.value && !w.value.length ? (s(), o("div", la, [
+      ])) : b("", !0),
+      !i.value && !h.value ? (s(), o("div", sa, "Loading images…")) : b("", !0),
+      i.value && !x.value.length ? (s(), o("div", la, [
         a("div", oa, [
-          D(m(L), { icon: "tabler:box" })
+          C(m(L), { icon: "tabler:box" })
         ]),
-        v[4] || (v[4] = a("div", { class: "kx-empty-title" }, "No images yet", -1)),
-        v[5] || (v[5] = a("div", { class: "kx-empty-sub" }, "Start with the default agent recipe or use an existing image.", -1)),
+        k[4] || (k[4] = a("div", { class: "kx-empty-title" }, "No images yet", -1)),
+        k[5] || (k[5] = a("div", { class: "kx-empty-sub" }, "Start with the default agent recipe or use an existing image.", -1)),
         a("button", {
           class: "ac-btn primary kx-focus-halo",
           onClick: ae
         }, "Add image")
-      ])) : u.value && !se.value.length ? (s(), o("div", na, [...v[6] || (v[6] = [
+      ])) : i.value && !se.value.length ? (s(), o("div", na, [...k[6] || (k[6] = [
         a("div", { class: "kx-empty-title" }, "No matches", -1),
         a("div", { class: "kx-empty-sub" }, "Try another image, reference or agent.", -1)
-      ])])) : g("", !0),
+      ])])) : b("", !0),
       a("ul", ia, [
         (s(!0), o(M, null, H(se.value, (n) => (s(), o("li", {
           key: n.id,
           class: "ac-row ac-resource"
         }, [
           a("span", ra, [
-            D(m(L), { icon: "tabler:box" })
+            C(m(L), { icon: "tabler:box" })
           ]),
           a("div", ua, [
             a("div", ca, [
-              I(y(n.label), 1),
+              I(g(n.label), 1),
               a("span", {
                 class: z(["kx-tag-sm ac-tone", n.status])
-              }, y(n.status === "unprepared" ? "Needs preparation" : n.status.charAt(0).toUpperCase() + n.status.slice(1)), 3),
-              n.usable ? (s(), o("span", da, "Usable")) : g("", !0)
+              }, g(n.status === "unprepared" ? "Needs preparation" : n.status.charAt(0).toUpperCase() + n.status.slice(1)), 3),
+              n.usable ? (s(), o("span", da, "Usable")) : b("", !0)
             ]),
-            a("div", va, y(n.ref) + " · " + y(n.home), 1),
+            a("div", va, g(n.ref) + " · " + g(n.home), 1),
             a("div", pa, [
               (s(!0), o(M, null, H(n.agents, (A) => (s(), o("span", {
                 key: A,
                 class: "kx-tag-sm ac-tone"
               }, [
-                D(m(L), {
-                  icon: m(xe)(A, m(k).agents)
+                C(m(L), {
+                  icon: m(we)(A, m(f).agents)
                 }, null, 8, ["icon"]),
-                I(y(A), 1)
+                I(g(A), 1)
               ]))), 128))
             ]),
-            a("div", ma, y($.value[n.id]), 1),
-            n.last_error ? (s(), o("div", ka, y(n.last_error), 1)) : g("", !0)
+            a("div", ma, g($.value[n.id]), 1),
+            n.last_error ? (s(), o("div", fa, g(n.last_error), 1)) : b("", !0)
           ]),
-          a("div", fa, [
+          a("div", ka, [
             n.shareable ? (s(), O(re, {
               key: 0,
               id: n.id,
               title: n.label
-            }, null, 8, ["id", "title"])) : g("", !0),
+            }, null, 8, ["id", "title"])) : b("", !0),
             n.writable ? (s(), o("button", {
               key: 1,
               type: "button",
@@ -533,8 +531,8 @@ const De = {
               disabled: n.status === "preparing",
               onClick: (A) => ue(n)
             }, [
-              D(m(L), { icon: "tabler:refresh" })
-            ], 8, ba)) : g("", !0),
+              C(m(L), { icon: "tabler:refresh" })
+            ], 8, ba)) : b("", !0),
             a("button", {
               type: "button",
               class: "ac-icon-btn kx-focus-outline",
@@ -542,7 +540,7 @@ const De = {
               "aria-label": "Build log",
               onClick: (A) => ce(n)
             }, [
-              D(m(L), { icon: "tabler:file-text" })
+              C(m(L), { icon: "tabler:file-text" })
             ], 8, ga),
             n.writable ? (s(), o("button", {
               key: 2,
@@ -552,8 +550,8 @@ const De = {
               "aria-label": "Edit settings",
               onClick: (A) => X(n)
             }, [
-              D(m(L), { icon: "tabler:pencil" })
-            ], 8, ya)) : g("", !0),
+              C(m(L), { icon: "tabler:pencil" })
+            ], 8, ya)) : b("", !0),
             n.deletable ? (s(), o("button", {
               key: 3,
               type: "button",
@@ -562,29 +560,29 @@ const De = {
               "aria-label": "Delete image",
               onClick: (A) => ve(n)
             }, [
-              D(m(L), { icon: "tabler:trash" })
-            ], 8, ha)) : g("", !0)
+              C(m(L), { icon: "tabler:trash" })
+            ], 8, ha)) : b("", !0)
           ])
         ]))), 128))
       ]),
-      l.value || x.value ? (s(), O(Y, {
+      l.value || w.value ? (s(), O(Y, {
         key: 4,
-        title: x.value ? "Edit image" : "Add image",
-        busy: c.value,
+        title: w.value ? "Edit image" : "Add image",
+        busy: r.value,
         wide: "",
-        onClose: v[3] || (v[3] = (n) => K())
+        onClose: k[3] || (k[3] = (n) => K())
       }, {
         default: Z(() => [
-          D(ea, {
-            onBusy: v[1] || (v[1] = (n) => c.value = n),
-            edit: x.value,
+          C(ea, {
+            onBusy: k[1] || (k[1] = (n) => r.value = n),
+            edit: w.value,
             capabilities: e.value,
             onSaved: de,
-            onCancel: v[2] || (v[2] = (n) => K())
+            onCancel: k[2] || (k[2] = (n) => K())
           }, null, 8, ["edit", "capabilities"])
         ]),
         _: 1
-      }, 8, ["title", "busy"])) : g("", !0),
+      }, 8, ["title", "busy"])) : b("", !0),
       t.value ? (s(), O(Y, {
         key: 5,
         title: "Build log",
@@ -593,12 +591,12 @@ const De = {
       }, {
         default: Z(() => [
           a("div", _a, [
-            a("strong", wa, y(t.value.ref), 1),
-            a("pre", xa, y(t.value.text), 1)
+            a("strong", xa, g(t.value.ref), 1),
+            a("pre", wa, g(t.value.text), 1)
           ])
         ]),
         _: 1
-      })) : g("", !0)
+      })) : b("", !0)
     ]));
   }
 }), Ca = { class: "ac-stack" }, Da = {
@@ -637,204 +635,200 @@ const De = {
   },
   emits: ["count"],
   setup(U, { expose: S, emit: d }) {
-    const k = Ce(), _ = p([]), V = U, l = d, c = p(!1);
+    const f = Ce(), _ = v([]), V = U, l = d, r = v(!1);
     S({ open: () => {
-      c.value = !0;
+      r.value = !0;
     } });
-    const $ = p([]), w = p([]), C = p(""), h = p(!1), x = p(""), t = p(!1), e = p(""), u = p(!1);
-    function E(f) {
-      return f.replace(/\/+$/, "") + "/";
+    const $ = v([]), x = v([]), D = v(""), h = v(!1), w = v(""), t = v(!1), e = v(""), i = v(!1);
+    function E(y) {
+      return y.replace(/\/+$/, "") + "/";
     }
-    R([c, w], () => {
-      c.value && !e.value && w.value.length && (e.value = E(w.value[0]));
-    }), R(e, (f) => {
-      t.value || (x.value = f.trim().split("/").filter(Boolean).pop() ?? "");
+    R([r, x], () => {
+      r.value && !e.value && x.value.length && (e.value = E(x.value[0]));
+    }), R(e, (y) => {
+      t.value || (w.value = y.trim().split("/").filter(Boolean).pop() ?? "");
     });
-    const T = ie(async () => {
+    const P = ne(async () => {
       try {
-        let f = await P.workspaces();
-        for (; k() && f.workspaces.some((r) => !_.value.includes(r.id)); ) {
-          if (_.value = f.workspaces.map((r) => r.id), await oe(), !k()) return;
-          f = await P.workspaces();
-        }
-        if (!k()) return;
-        _.value = f.workspaces.map((r) => r.id), $.value = f.workspaces, w.value = f.roots ?? [], u.value = !0, C.value = "";
-      } catch (f) {
-        k() && (C.value = q(f, "Could not load workspaces."));
+        const y = await ie(q.workspaces, (c) => c.workspaces.map((p) => p.id), _, f);
+        if (!f()) return;
+        $.value = y.workspaces, x.value = y.roots ?? [], i.value = !0, D.value = "";
+      } catch (y) {
+        f() && (D.value = B(y, "Could not load workspaces."));
       }
-    }, k);
-    ne(() => _.value, () => {
-      T();
-    }), le(T);
+    }, f);
+    oe(() => _.value, () => {
+      P();
+    }), le(P);
     async function j() {
-      C.value = "", h.value = !0;
+      D.value = "", h.value = !0;
       try {
-        if (await P.createWorkspace({ name: x.value, host_path: e.value }), !k()) return;
-        t.value = !1, x.value = "", e.value = "", c.value = !1, await T();
-      } catch (f) {
-        k() && (C.value = q(f, "Could not save the workspace."));
+        if (await q.createWorkspace({ name: w.value, host_path: e.value }), !f()) return;
+        t.value = !1, w.value = "", e.value = "", r.value = !1, await P();
+      } catch (y) {
+        f() && (D.value = B(y, "Could not save the workspace."));
       } finally {
-        k() && (h.value = !1);
+        f() && (h.value = !1);
       }
     }
-    async function G(f) {
-      const r = await Q.confirm({
+    async function G(y) {
+      const c = await Q.confirm({
         header: "Delete workspace",
-        message: `Delete workspace "${f.name}"? The host directory stays untouched.`,
+        message: `Delete workspace "${y.name}"? The host directory stays untouched.`,
         icon: "tabler:trash",
         acceptLabel: "Delete",
         rejectLabel: "Cancel",
         acceptClass: "p-button-danger"
       });
-      if (!(!k() || !r)) {
-        C.value = "";
+      if (!(!f() || !c)) {
+        D.value = "";
         try {
-          await P.deleteWorkspace(f.id), await T();
-        } catch (b) {
-          k() && (C.value = q(b, "Could not delete the workspace."));
+          await q.deleteWorkspace(y.id), await P();
+        } catch (p) {
+          f() && (D.value = B(p, "Could not delete the workspace."));
         }
       }
     }
-    const F = J(() => $.value.filter((f) => [f.name, f.host_path].join(" ").toLowerCase().includes(V.query.toLowerCase())));
-    return R($, (f) => l("count", f.length)), (f, r) => (s(), o("div", Ca, [
-      r[15] || (r[15] = a("p", { class: "ac-hint" }, "Tasks use shared workspaces with the access you grant.", -1)),
-      C.value && !c.value ? (s(), o("p", Da, [
-        I(y(C.value) + " ", 1),
+    const F = J(() => $.value.filter((y) => [y.name, y.host_path].join(" ").toLowerCase().includes(V.query.toLowerCase())));
+    return R($, (y) => l("count", y.length)), (y, c) => (s(), o("div", Ca, [
+      c[15] || (c[15] = a("p", { class: "ac-hint" }, "Tasks use shared workspaces with the access you grant.", -1)),
+      D.value && !r.value ? (s(), o("p", Da, [
+        I(g(D.value) + " ", 1),
         a("button", {
           type: "button",
           class: "ac-link kx-focus-outline",
-          onClick: r[0] || (r[0] = //@ts-ignore
-          (...b) => m(T) && m(T)(...b))
+          onClick: c[0] || (c[0] = //@ts-ignore
+          (...p) => m(P) && m(P)(...p))
         }, "Retry")
-      ])) : g("", !0),
-      !u.value && !C.value ? (s(), o("div", Ua, "Loading workspaces…")) : g("", !0),
-      w.value.length ? (s(), o("div", Aa, [
-        r[7] || (r[7] = a("span", { class: "ac-muted" }, "Allowed roots", -1)),
-        (s(!0), o(M, null, H(w.value, (b) => (s(), o("span", {
-          key: b,
+      ])) : b("", !0),
+      !i.value && !D.value ? (s(), o("div", Ua, "Loading workspaces…")) : b("", !0),
+      x.value.length ? (s(), o("div", Aa, [
+        c[7] || (c[7] = a("span", { class: "ac-muted" }, "Allowed roots", -1)),
+        (s(!0), o(M, null, H(x.value, (p) => (s(), o("span", {
+          key: p,
           class: "ac-hint-chip ac-mono"
-        }, y(b), 1))), 128))
-      ])) : g("", !0),
-      u.value && !$.value.length ? (s(), o("div", La, [
+        }, g(p), 1))), 128))
+      ])) : b("", !0),
+      i.value && !$.value.length ? (s(), o("div", La, [
         a("div", Ia, [
-          D(m(L), { icon: "tabler:folder" })
+          C(m(L), { icon: "tabler:folder" })
         ]),
-        r[8] || (r[8] = a("div", { class: "kx-empty-title" }, "No workspaces yet", -1)),
-        r[9] || (r[9] = a("div", { class: "kx-empty-sub" }, "Add a host directory, or let tasks use a scratch directory.", -1)),
+        c[8] || (c[8] = a("div", { class: "kx-empty-title" }, "No workspaces yet", -1)),
+        c[9] || (c[9] = a("div", { class: "kx-empty-sub" }, "Add a host directory, or let tasks use a scratch directory.", -1)),
         a("button", {
           class: "ac-btn primary kx-focus-halo",
-          onClick: r[1] || (r[1] = (b) => c.value = !0)
+          onClick: c[1] || (c[1] = (p) => r.value = !0)
         }, "Add workspace")
-      ])) : u.value && !F.value.length ? (s(), o("div", Va, [...r[10] || (r[10] = [
+      ])) : i.value && !F.value.length ? (s(), o("div", Va, [...c[10] || (c[10] = [
         a("div", { class: "kx-empty-title" }, "No matches", -1),
         a("div", { class: "kx-empty-sub" }, "Try another workspace name or path.", -1)
-      ])])) : g("", !0),
+      ])])) : b("", !0),
       a("ul", Sa, [
-        (s(!0), o(M, null, H(F.value, (b) => (s(), o("li", {
-          key: b.id,
+        (s(!0), o(M, null, H(F.value, (p) => (s(), o("li", {
+          key: p.id,
           class: "ac-row ac-resource"
         }, [
           a("span", Ea, [
-            D(m(L), { icon: "tabler:folder" })
+            C(m(L), { icon: "tabler:folder" })
           ]),
           a("div", Na, [
             a("div", Pa, [
-              I(y(b.name), 1),
-              a("span", Ta, y(b.writable ? "read-write" : "read-only"), 1)
+              I(g(p.name), 1),
+              a("span", Ta, g(p.writable ? "read-write" : "read-only"), 1)
             ]),
-            b.host_path ? (s(), o("div", Ba, y(b.host_path), 1)) : g("", !0)
+            p.host_path ? (s(), o("div", Ba, g(p.host_path), 1)) : b("", !0)
           ]),
           a("div", qa, [
-            b.shareable ? (s(), O(re, {
+            p.shareable ? (s(), O(re, {
               key: 0,
-              id: b.id,
-              title: b.name
-            }, null, 8, ["id", "title"])) : g("", !0),
-            b.deletable ? (s(), o("button", {
+              id: p.id,
+              title: p.name
+            }, null, 8, ["id", "title"])) : b("", !0),
+            p.deletable ? (s(), o("button", {
               key: 1,
               type: "button",
               class: "ac-icon-btn kx-focus-outline",
               title: "Delete workspace",
               "aria-label": "Delete workspace",
-              onClick: (X) => G(b)
+              onClick: (X) => G(p)
             }, [
-              D(m(L), { icon: "tabler:trash" })
-            ], 8, ja)) : g("", !0)
+              C(m(L), { icon: "tabler:trash" })
+            ], 8, ja)) : b("", !0)
           ])
         ]))), 128))
       ]),
-      c.value ? (s(), O(Y, {
+      r.value ? (s(), O(Y, {
         key: 5,
         title: "Add workspace",
         busy: h.value,
-        onClose: r[6] || (r[6] = (b) => c.value = !1)
+        onClose: c[6] || (c[6] = (p) => r.value = !1)
       }, {
         default: Z(() => [
           a("fieldset", {
             class: "ac-form",
             disabled: h.value
           }, [
-            w.value.length ? (s(), o("div", Oa, [
-              r[11] || (r[11] = a("span", null, "Allowed roots", -1)),
+            x.value.length ? (s(), o("div", Oa, [
+              c[11] || (c[11] = a("span", null, "Allowed roots", -1)),
               a("div", Ha, [
-                (s(!0), o(M, null, H(w.value, (b) => (s(), o("button", {
-                  key: b,
+                (s(!0), o(M, null, H(x.value, (p) => (s(), o("button", {
+                  key: p,
                   type: "button",
                   class: "ac-chip ac-mono kx-focus-halo",
                   title: "Start from this root",
-                  onClick: (X) => e.value = E(b)
-                }, y(b), 9, Wa))), 128))
+                  onClick: (X) => e.value = E(p)
+                }, g(p), 9, Wa))), 128))
               ])
             ])) : (s(), o("p", Ma, "The host administrator configures allowed workspace roots.")),
             a("label", Ga, [
-              r[12] || (r[12] = a("span", null, "Name", -1)),
+              c[12] || (c[12] = a("span", null, "Name", -1)),
               N(a("input", {
-                "onUpdate:modelValue": r[2] || (r[2] = (b) => x.value = b),
-                onInput: r[3] || (r[3] = (b) => t.value = !0),
+                "onUpdate:modelValue": c[2] || (c[2] = (p) => w.value = p),
+                onInput: c[3] || (c[3] = (p) => t.value = !0),
                 autofocus: "",
                 class: "kx-focus-halo",
                 placeholder: "e.g. Kickside checkout"
               }, null, 544), [
-                [B, x.value]
+                [T, w.value]
               ])
             ]),
             a("label", Ka, [
-              r[13] || (r[13] = a("span", null, "Host directory", -1)),
+              c[13] || (c[13] = a("span", null, "Host directory", -1)),
               N(a("input", {
-                "onUpdate:modelValue": r[4] || (r[4] = (b) => e.value = b),
+                "onUpdate:modelValue": c[4] || (c[4] = (p) => e.value = p),
                 class: "ac-mono kx-focus-halo",
-                placeholder: (w.value[0] ?? "/srv/work") + "/project"
+                placeholder: (x.value[0] ?? "/srv/work") + "/project"
               }, null, 8, za), [
-                [B, e.value]
+                [T, e.value]
               ]),
-              r[14] || (r[14] = a("small", { class: "ac-hint" }, [
+              c[14] || (c[14] = a("small", { class: "ac-hint" }, [
                 I("An existing directory, mounted at "),
                 a("code", null, "/workspace"),
                 I(".")
               ], -1))
             ]),
-            C.value ? (s(), o("p", Fa, y(C.value), 1)) : g("", !0),
+            D.value ? (s(), o("p", Fa, g(D.value), 1)) : b("", !0),
             a("footer", Ja, [
               a("button", {
                 type: "button",
                 class: "ac-btn kx-focus-halo",
                 disabled: h.value,
-                onClick: r[5] || (r[5] = (b) => c.value = !1)
+                onClick: c[5] || (c[5] = (p) => r.value = !1)
               }, "Cancel", 8, Qa),
               a("button", {
                 type: "button",
                 class: "ac-btn primary kx-focus-halo",
-                disabled: h.value || !x.value.trim() || !e.value.trim(),
+                disabled: h.value || !w.value.trim() || !e.value.trim(),
                 onClick: j
               }, [
-                D(m(L), { icon: "tabler:folder-plus" }),
-                I(y(h.value ? "Saving…" : "Add workspace"), 1)
+                C(m(L), { icon: "tabler:folder-plus" }),
+                I(g(h.value ? "Saving…" : "Add workspace"), 1)
               ], 8, Xa)
             ])
           ], 8, Ra)
         ]),
         _: 1
-      }, 8, ["busy"])) : g("", !0)
+      }, 8, ["busy"])) : b("", !0)
     ]));
   }
 }), Za = { class: "ac-card ac-narrow" }, et = { class: "ac-card-head" }, at = { class: "ac-card-title" }, tt = ["disabled"], st = {
@@ -846,7 +840,7 @@ const De = {
 }, ot = /* @__PURE__ */ W({
   __name: "maintenance",
   setup(U) {
-    const S = ee(), d = p(!1), k = p(""), _ = p("");
+    const S = ee(), d = v(!1), f = v(""), _ = v("");
     async function V() {
       if (await Q.confirm({
         header: "Clean up Docker",
@@ -857,19 +851,19 @@ const De = {
       })) {
         _.value = "", d.value = !0;
         try {
-          k.value = await P.prune();
-        } catch (c) {
-          _.value = q(c, "Cleanup failed.");
+          f.value = await q.prune();
+        } catch (r) {
+          _.value = B(r, "Cleanup failed.");
         } finally {
           d.value = !1;
         }
       }
     }
-    return (l, c) => (s(), o("section", Za, [
+    return (l, r) => (s(), o("section", Za, [
       a("div", et, [
         a("h2", at, [
-          D(m(L), { icon: "tabler:brand-docker" }),
-          c[0] || (c[0] = I("Docker cleanup", -1))
+          C(m(L), { icon: "tabler:brand-docker" }),
+          r[0] || (r[0] = I("Docker cleanup", -1))
         ]),
         a("button", {
           type: "button",
@@ -877,16 +871,16 @@ const De = {
           disabled: d.value,
           onClick: V
         }, [
-          D(m(L), {
+          C(m(L), {
             icon: d.value ? "tabler:loader-2" : "tabler:trash-x",
             class: z({ spin: d.value })
           }, null, 8, ["icon", "class"]),
-          I(" " + y(d.value ? "Cleaning…" : "Clean up Docker"), 1)
+          I(" " + g(d.value ? "Cleaning…" : "Clean up Docker"), 1)
         ], 8, tt)
       ]),
-      c[1] || (c[1] = a("p", { class: "ac-hint" }, "Prune stopped Autocode containers, dangling images and build cache across the Docker host. Tagged images stay.", -1)),
-      _.value ? (s(), o("p", st, y(_.value), 1)) : g("", !0),
-      k.value ? (s(), o("pre", lt, y(k.value), 1)) : g("", !0)
+      r[1] || (r[1] = a("p", { class: "ac-hint" }, "Prune stopped Autocode containers, dangling images and build cache across the Docker host. Tagged images stay.", -1)),
+      _.value ? (s(), o("p", st, g(_.value), 1)) : b("", !0),
+      f.value ? (s(), o("pre", lt, g(f.value), 1)) : b("", !0)
     ]));
   }
 }), nt = { class: "ac" }, it = { class: "ac-bar" }, rt = {
@@ -911,22 +905,22 @@ const De = {
       { id: "images", label: "Images", icon: "tabler:box" },
       { id: "workspaces", label: "Workspaces", icon: "tabler:folder" },
       { id: "docker", label: "Docker", icon: "tabler:brand-docker" }
-    ], d = p(), { catalog: k, error: _, load: V } = pe(), l = J(() => S.filter((x) => x.id === "images" ? k.value?.can_images : x.id === "workspaces" ? k.value?.can_workspaces : k.value?.can_prune));
-    R(l, (x) => {
-      x.some((t) => t.id === d.value) || (d.value = x[0]?.id);
+    ], d = v(), { catalog: f, error: _, load: V } = pe(), l = J(() => S.filter((w) => w.id === "images" ? f.value?.can_images : w.id === "workspaces" ? f.value?.can_workspaces : f.value?.can_prune));
+    R(l, (w) => {
+      w.some((t) => t.id === d.value) || (d.value = w[0]?.id);
     }, { immediate: !0 });
-    const c = p(""), $ = p(0), w = p(null), C = p(null);
+    const r = v(""), $ = v(0), x = v(null), D = v(null);
     function h() {
-      d.value === "images" ? w.value?.open() : C.value?.open();
+      d.value === "images" ? x.value?.open() : D.value?.open();
     }
-    return (x, t) => (s(), o("div", nt, [
-      D(me, {
+    return (w, t) => (s(), o("div", nt, [
+      C(me, {
         title: "Autocode",
         subtitle: "Manage agent images, workspaces and Docker.",
         count: d.value && d.value !== "docker" ? `${$.value} ${$.value === 1 ? d.value.slice(0, -1) : d.value}` : void 0,
         action: d.value === "images" ? "Add image" : d.value === "workspaces" ? "Add workspace" : void 0,
-        query: c.value,
-        "onUpdate:query": t[0] || (t[0] = (e) => c.value = e),
+        query: r.value,
+        "onUpdate:query": t[0] || (t[0] = (e) => r.value = e),
         placeholder: d.value === "docker" ? void 0 : "Search resources…",
         onCreate: h
       }, null, 8, ["count", "action", "query", "placeholder"]),
@@ -937,41 +931,41 @@ const De = {
             type: "button",
             class: z(["ac-tab kx-focus-outline", { active: d.value === e.id }]),
             "aria-pressed": d.value === e.id,
-            onClick: (u) => {
-              d.value !== e.id && (d.value = e.id, c.value = "", $.value = 0);
+            onClick: (i) => {
+              d.value !== e.id && (d.value = e.id, r.value = "", $.value = 0);
             }
           }, [
-            D(m(L), {
+            C(m(L), {
               icon: e.icon
             }, null, 8, ["icon"]),
-            I(" " + y(e.label), 1)
+            I(" " + g(e.label), 1)
           ], 10, ut))), 128))
         ])
       ]),
-      m(_) && !m(k) ? (s(), o("p", ct, [
-        I(y(m(_)) + " ", 1),
+      m(_) && !m(f) ? (s(), o("p", ct, [
+        I(g(m(_)) + " ", 1),
         a("button", {
           class: "ac-link kx-focus-outline",
           type: "button",
           onClick: t[1] || (t[1] = //@ts-ignore
           (...e) => m(V) && m(V)(...e))
         }, "Retry")
-      ])) : m(k) ? (s(), o("main", vt, [
+      ])) : m(f) ? (s(), o("main", vt, [
         d.value === "images" ? (s(), O($a, {
           key: 0,
           ref_key: "images",
-          ref: w,
-          query: c.value,
+          ref: x,
+          query: r.value,
           onCount: t[2] || (t[2] = (e) => $.value = e)
         }, null, 8, ["query"])) : d.value === "workspaces" ? (s(), O(Ya, {
           key: 1,
           ref_key: "workspaces",
-          ref: C,
-          query: c.value,
+          ref: D,
+          query: r.value,
           onCount: t[3] || (t[3] = (e) => $.value = e)
         }, null, 8, ["query"])) : d.value === "docker" ? (s(), O(ot, { key: 2 })) : (s(), o("p", pt, "No management areas are available."))
       ])) : (s(), o("div", dt, [
-        D(m(L), {
+        C(m(L), {
           icon: "tabler:loader-2",
           class: "spin"
         }),
@@ -979,13 +973,13 @@ const De = {
       ]))
     ]));
   }
-}), kt = { type: "object", properties: {} };
-class ft extends be {
+}), ft = { type: "object", properties: {} };
+class kt extends be {
   static get wippyConfig() {
-    return { propsSchema: kt, hostCssKeys: ["themeConfigUrl", "primeVueCssUrl", "iframeCssUrl"], inlineCss: ke };
+    return { propsSchema: ft, hostCssKeys: ["themeConfigUrl", "primeVueCssUrl", "iframeCssUrl"], inlineCss: fe };
   }
   static get vueConfig() {
-    return { rootComponent: mt, plugins: [fe] };
+    return { rootComponent: mt, plugins: [ke] };
   }
 }
-we(import.meta.url, ft);
+xe(import.meta.url, kt);

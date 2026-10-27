@@ -96,10 +96,12 @@ entries:
     kind: function.lua
     meta:
       comment: Job that continues the workflow node a run started, with the stored run's result as the node's output.
-    source: file://resume.lua
+    source: file://../service/workflow_resume.lua
     method: run
+    modules: [funcs, security]
     imports:
-      workflow_resume: chestor.autocode.service:workflow_resume
+      repo: chestor.autocode.persist:repo
+      canonical_json: kickside.contract:canonical_json
     security:
       actor:
         id: system:chestor.autocode.resume

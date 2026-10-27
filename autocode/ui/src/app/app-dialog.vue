@@ -25,6 +25,5 @@ onBeforeUnmount(() => { if (dialog.value?.open) dialog.value.close() })
   <dialog ref="dialog" :class="['ac-dialog', { 'ac-dialog-wide': wide }]" :aria-label="title" aria-modal="true" :aria-busy="busy || undefined" @cancel="cancel" @close="!busy && emit('close')" @click="backdrop">
     <header class="ac-dialog-header"><h2>{{ title }}</h2><button type="button" class="ac-icon-btn kx-focus-outline" aria-label="Close dialog" :disabled="busy" @click="emit('close')">×</button></header>
     <div class="ac-dialog-content"><slot /></div>
-    <footer v-if="$slots.footer" class="ac-dialog-footer"><slot name="footer" /></footer>
   </dialog>
 </template>

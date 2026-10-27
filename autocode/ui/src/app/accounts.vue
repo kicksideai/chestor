@@ -1,12 +1,12 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
 import { useRequiredCatalog } from './catalog.ts'
-import { ref, computed, onMounted, watch, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import { host, loadByTagName } from '@wippy-fe/proxy'
 import { useHostVisibilityRefresh } from '@wippy-fe/webcomponent-vue'
 import { autocode, principalLabels, type Account } from './api.ts'
-import { useComponentTopics, serial, live, useAlive } from './live.ts'
+import { reconcile, useComponentTopics, serial, live, useAlive } from './live.ts'
 import Button from 'primevue/button'
 import AppDialog from './app-dialog.vue'
 import AgentPicker from './agent-picker.vue'
@@ -65,15 +65,8 @@ async function annotate(list: Account[]) {
 
 const refresh = serial(async () => {
   try {
-    let list = await autocode.accounts()
-    while (alive() && list.some(a => !topicIds.value.includes(a.id))) {
-      topicIds.value = list.map(a => a.id)
-      await nextTick()
-      if (!alive()) return
-      list = await autocode.accounts()
-    }
+    const list = await reconcile(autocode.accounts, list => list.map(a => a.id), topicIds, alive)
     if (!alive()) return
-    topicIds.value = list.map(a => a.id)
     accounts.value = list
     await annotate(list)
     if (!alive()) return
