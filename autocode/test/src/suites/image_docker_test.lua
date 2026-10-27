@@ -5,9 +5,10 @@ local docker = require("docker")
 local image = require("image")
 local maintenance = require("maintenance")
 local stubs = require("stubs")
-local function output(args)
+local BASE = "chestor-autocode-harness:base"
+local function output(args, stdin)
     local lines = {}
-    local code, err = docker.run(args, {on_line = function(line) lines[#lines + 1] = line end})
+    local code, err = docker.run(args, {stdin = stdin, on_line = function(line) lines[#lines + 1] = line end})
     test.is_nil(err, tostring(err))
     test.eq(code, 0, table.concat(lines, "\n"))
     return table.concat(lines, "\n")
@@ -20,7 +21,19 @@ local function cases()
             for _, ref in ipairs(references) do docker.run({"image", "rm", ref}) end
             containers, references = {}, {}
         end)
+        -- The suite builds its own small base, so it never depends on images other suites create.
+        local base_built = false
+        local function base()
+            if base_built then return BASE end
+            output({"build", "-t", BASE, "-"}, [[FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /opt/agent
+]])
+            base_built = true
+            return BASE
+        end
         local function build(component, generation, ref, home, dockerfile, after_build)
+            if dockerfile then dockerfile = dockerfile:gsub("^FROM BASE", "FROM " .. base()) end
             references[#references + 1] = "chestor-autocode/" .. component .. ":" .. generation
             local state = stubs.reset()
             state.after_build = after_build
@@ -36,7 +49,7 @@ local function cases()
             local generation, component = uuid.v7(), uuid.v7()
             local ref = "autocode-test-clone:" .. generation
             references[#references + 1] = ref
-            local built = build(component, generation, ref, "/opt/agent", [[FROM chestor-autocode-harness:claude
+            local built = build(component, generation, ref, "/opt/agent", [[FROM BASE
 RUN mkdir /opt/agent/source && cd /opt/agent/source && git init -b main && git config user.name fixture && git config user.email fixture@example.com && echo main > chosen && git add chosen && git commit -m main && git checkout -b selected && echo selected > chosen && git commit -am selected && git tag selected-tag && git checkout main
 ]])
             test.eq(built.status, "ready", built.log)
@@ -58,11 +71,11 @@ RUN mkdir /opt/agent/source && cd /opt/agent/source && git init -b main && git c
             local generation = uuid.v7()
             local ref = "autocode-test-replaced:" .. generation
             references[#references + 1] = ref
-            local first = build("a", generation, ref, "/opt/agent", "FROM chestor-autocode-harness:claude\nLABEL lane.m=" .. generation .. "\n")
+            local first = build("a", generation, ref, "/opt/agent", "FROM BASE\nLABEL autocode.test.generation=" .. generation .. "\n")
             test.eq(first.status, "ready", first.log)
             references[#references + 1] = first.recipe.ref
             local approved = output({"image", "inspect", "--format", "{{.Id}}", ref})
-            local second = build("b", uuid.v7(), ref, "/proc/autocode", "FROM chestor-autocode-harness:claude\nLABEL lane.m=other-" .. generation .. "\n")
+            local second = build("b", uuid.v7(), ref, "/proc/autocode", "FROM BASE\nLABEL autocode.test.generation=other-" .. generation .. "\n")
             test.eq(second.status, "failed", second.log)
             test.eq(output({"image", "inspect", "--format", "{{.Id}}", ref}), approved)
             local name = "autocode-pin-" .. generation
@@ -77,9 +90,9 @@ RUN mkdir /opt/agent/source && cd /opt/agent/source && git init -b main && git c
             local ref = "autocode-test-shared:" .. ga
             references[#references + 1] = ref
             local second
-            local first = build(a, ga, ref, "/opt/agent", "FROM chestor-autocode-harness:claude\nLABEL lane.n=" .. ga .. "\n", function()
+            local first = build(a, ga, ref, "/opt/agent", "FROM BASE\nLABEL autocode.test.generation=" .. ga .. "\n", function()
                 local saved = stubs.state
-                second = build(b, gb, ref, "/opt/agent", "FROM chestor-autocode-harness:claude\nLABEL lane.n=" .. gb .. "\n")
+                second = build(b, gb, ref, "/opt/agent", "FROM BASE\nLABEL autocode.test.generation=" .. gb .. "\n")
                 stubs.state = saved
             end)
             test.eq(first.status, "ready", first.log)
@@ -93,10 +106,10 @@ RUN mkdir /opt/agent/source && cd /opt/agent/source && git init -b main && git c
             local ref = "autocode-test-shared:" .. generation
             local a, b = uuid.v7(), uuid.v7()
             references[#references + 1] = ref
-            local first = build(a, generation, ref, "/opt/agent", "FROM chestor-autocode-harness:claude\nLABEL lane.n=" .. generation .. "\n")
+            local first = build(a, generation, ref, "/opt/agent", "FROM BASE\nLABEL autocode.test.generation=" .. generation .. "\n")
             test.eq(first.status, "ready", first.log)
             local second_generation = uuid.v7()
-            local second = build(b, second_generation, ref, "/opt/agent", "FROM chestor-autocode-harness:claude\nLABEL lane.n=other-" .. generation .. "\n")
+            local second = build(b, second_generation, ref, "/opt/agent", "FROM BASE\nLABEL autocode.test.generation=other-" .. generation .. "\n")
             test.eq(second.status, "ready", second.log)
             test.is_true(first.recipe.ref ~= second.recipe.ref)
             output({"image", "prune", "-f"})
@@ -106,12 +119,12 @@ RUN mkdir /opt/agent/source && cd /opt/agent/source && git init -b main && git c
             local component, ga, gb = uuid.v7(), uuid.v7(), uuid.v7()
             local ref = "autocode-test-shared:" .. ga
             references[#references + 1] = ref
-            local first = build(component, ga, ref, "/opt/agent", "FROM chestor-autocode-harness:claude\nLABEL lane.n=" .. ga .. "\n")
+            local first = build(component, ga, ref, "/opt/agent", "FROM BASE\nLABEL autocode.test.generation=" .. ga .. "\n")
             test.eq(first.status, "ready", first.log)
             local name = "autocode-retire-" .. ga
             containers[#containers + 1] = name
             output({"run", "-d", "--name", name, "--entrypoint", "sh", first.recipe.ref, "-c", "sleep 300"})
-            local second = build(component, gb, ref, "/opt/agent", "FROM chestor-autocode-harness:claude\nLABEL lane.n=" .. gb .. "\n")
+            local second = build(component, gb, ref, "/opt/agent", "FROM BASE\nLABEL autocode.test.generation=" .. gb .. "\n")
             test.eq(second.status, "ready", second.log)
             local code = docker.run({"image", "inspect", "chestor-autocode/" .. component .. ":" .. ga})
             test.eq(code, 1)
@@ -122,12 +135,12 @@ RUN mkdir /opt/agent/source && cd /opt/agent/source && git init -b main && git c
             local component, approved_generation = uuid.v7(), uuid.v7()
             local ref = "autocode-test-failed:" .. approved_generation
             references[#references + 1] = ref
-            local approved = build(component, approved_generation, ref, "/opt/agent", "FROM chestor-autocode-harness:claude\nLABEL lane.p=" .. approved_generation .. "\n")
+            local approved = build(component, approved_generation, ref, "/opt/agent", "FROM BASE\nLABEL autocode.test.generation=" .. approved_generation .. "\n")
             test.eq(approved.status, "ready", approved.log)
             local ids = {[approved.recipe.ref] = true}
             for attempt = 1, 3 do
                 local generation = uuid.v7()
-                local failed = build(component, generation, ref, "/proc/autocode", "FROM chestor-autocode-harness:claude\nLABEL lane.p=" .. generation .. "\n")
+                local failed = build(component, generation, ref, "/proc/autocode", "FROM BASE\nLABEL autocode.test.generation=" .. generation .. "\n")
                 test.eq(failed.status, "failed", failed.log)
                 test.is_nil(ids[failed.recipe.ref])
                 ids[failed.recipe.ref] = true
@@ -145,10 +158,10 @@ RUN mkdir /opt/agent/source && cd /opt/agent/source && git init -b main && git c
             containers[#containers + 1] = name
             local function leftover()
                 output({"run", "-d", "--name", name, "--label", "chestor.autocode", "--label", "chestor.autocode.probe=" .. generation,
-                    "--label", "chestor.autocode.image=" .. component, "--entrypoint", "sh", "chestor-autocode-harness:claude", "-c", "sleep 300"})
+                    "--label", "chestor.autocode.image=" .. component, "--entrypoint", "sh", base(), "-c", "sleep 300"})
             end
             leftover()
-            local result = build(component, generation, "chestor-autocode-harness:claude", "/opt/agent")
+            local result = build(component, generation, base(), "/opt/agent")
             test.eq(result.status, "ready", result.log)
             test.eq(output({"ps", "-aq", "--filter", "name=^" .. name .. "$"}), "")
             leftover()
