@@ -1,0 +1,71 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: chestor.autocode.security
+
+entries:
+  - name: module_management
+    kind: security.policy
+    meta:
+      title: Autocode management
+      surface: chestor.autocode
+      intent: module_management
+      comment: Images, workspaces and Docker maintenance, including the member catalog and views their managers use.
+      includes:
+        - chestor.autocode.security:management_runtime
+        - chestor.autocode.security:management_reads
+        - chestor.autocode.security:module_access
+        - bee.drivers.security:host_access
+    groups: []
+    policy:
+      resources:
+        - chestor.autocode.api:images_create.endpoint
+        - chestor.autocode.api:images_update.endpoint
+        - chestor.autocode.api:images_delete.endpoint
+        - chestor.autocode.api:images_prepare.endpoint
+        - chestor.autocode.api:workspaces_create.endpoint
+        - chestor.autocode.api:workspaces_delete.endpoint
+        - chestor.autocode.api:maintenance_prune.endpoint
+        - chestor.autocode:settings_tab_view
+      actions: access
+      effect: allow
+
+  - name: management_runtime
+    kind: security.policy
+    meta:
+      private: true
+      comment: Management handlers and the platform contracts managers use without member-group membership.
+    groups: []
+    policy:
+      resources:
+        - chestor.autocode.api:images_create
+        - chestor.autocode.api:images_update
+        - chestor.autocode.api:images_delete
+        - chestor.autocode.api:images_prepare
+        - chestor.autocode.api:workspaces_create
+        - chestor.autocode.api:workspaces_delete
+        - chestor.autocode.api:maintenance_prune
+        - kickside.core.jobs.persist:pool_nudge
+        - kickside.component:component_service
+        - kickside.component.binding:component_service_impl
+        - kickside.settings:settings
+        - kickside.settings:settings_binding
+      actions: [funcs.call, contract.get, contract.open]
+      effect: allow
+
+  - name: management_reads
+    kind: security.policy
+    meta:
+      private: true
+      comment: Component queries resolve their host database binding under the manager.
+    groups: []
+    policy:
+      resources:
+        - kickside.component:db_config
+        - kickside.component:policy
+        - kickside.core:policy
+        - kickside.core:db_config
+        - kickside.core.jobs:db_config
+        - kickside.core.jobs:policy
+        - kickside.core.jobs:process_config
+      actions: [registry.get]
+      effect: allow

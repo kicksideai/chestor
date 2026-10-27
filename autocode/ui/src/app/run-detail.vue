@@ -13,6 +13,7 @@ const emit = defineEmits<{ changed: [run: Run] }>()
 const catalog = useRequiredCatalog()
 const run = ref<Run | null>(null)
 const events = ref<RunEvent[]>([])
+const nextSeq = ref(0)
 const error = ref('')
 const stream = ref<HTMLElement | null>(null)
 const result = ref<HTMLElement | null>(null)
@@ -36,10 +37,10 @@ const refresh = serial(async () => {
   try {
     let more = true
     while (more && alive) {
-      const after = events.value.length ? events.value[events.value.length - 1].seq : 0
-      const data = await autocode.run(props.runId, after)
+      const data = await autocode.run(props.runId, nextSeq.value)
       if (!alive) return
       run.value = data.run
+      nextSeq.value = data.next_seq
       if (data.events.length) {
         events.value = events.value.concat(data.events)
         await nextTick()

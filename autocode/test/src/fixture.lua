@@ -4,11 +4,11 @@
 local resources = require("resources")
 local runs = require("runs")
 
-local function register(kind: string, meta: {[string]: any}, private: {[string]: any}): (string?, error?)
+local function register(kind: string, meta: {[string]: unknown}, private: {[string]: unknown}): (string?, error?)
     return resources.register(kind, meta, private)
 end
 
-local function admit(request: {[string]: any}): ({[string]: any}?, error?)
+local function admit(request: {[string]: unknown}): ({[string]: unknown}?, error?)
     local admitted, err = runs.admit({agent = request.agent, account_id = request.account_id, image_id = request.image_id,
         workspace_id = request.workspace_id, options = {}, unattended = true, repo_url = request.repo_url or "",
         prompt = "harness task"})

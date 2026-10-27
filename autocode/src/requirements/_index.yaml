@@ -1,0 +1,125 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: chestor.autocode
+
+entries:
+  - name: target_db
+    kind: ns.requirement
+    meta:
+      value_kind: db.sql
+      comment: Database resource for the autocode tables; it is the jobs database, so rows and their jobs commit together.
+    targets:
+      - entry: chestor.autocode.migrations:03_image_recipe
+        path: .meta.target_db
+      - entry: chestor.autocode.migrations:02_delivery_and_generations
+        path: .meta.target_db
+      - entry: chestor.autocode.migrations:01_create_tables
+        path: .meta.target_db
+      - entry: chestor.autocode.persist:db_config
+        path: .meta.db_id
+      - entry: chestor.autocode.security:store
+        path: .policy.resources +=
+
+  - name: api_router
+    kind: ns.requirement
+    meta:
+      value_kind: http.router
+      comment: Authenticated HTTP router the autocode endpoints attach to.
+    targets:
+      - entry: chestor.autocode.api:catalog.user.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:drivers_list.user.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:accounts_list.user.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:accounts_create.user.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:accounts_update.user.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:accounts_delete.user.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:images_list.user.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:images_get.user.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:images_create.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:images_update.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:images_delete.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:images_prepare.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:workspaces_list.user.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:workspaces_create.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:workspaces_delete.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:runs_list.user.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:runs_create.user.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:runs_get.user.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:runs_cancel.user.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:maintenance_prune.endpoint
+        path: .meta.router
+
+  - name: ui_server
+    kind: ns.requirement
+    meta:
+      value_kind: http.service
+      comment: HTTP server the autocode UI bundle is served from.
+    targets:
+      - entry: chestor.autocode:ui_static
+        path: .meta.server
+
+  - name: workspace_roots
+    kind: ns.requirement
+    default: ""
+    meta:
+      comment: Comma-separated absolute host directories under which workspaces may be registered and bind-mounted - the operator's ceiling on what administrators register. Empty admits none.
+    targets:
+      - entry: chestor.autocode:runtime_config
+        path: .meta.workspace_roots
+
+  - name: docker_path
+    kind: ns.requirement
+    default: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    meta:
+      comment: Host executable search path for the Docker executor; override when Docker is installed elsewhere.
+    targets:
+      - entry: chestor.autocode:docker
+        path: .default_env.PATH
+
+  - name: docker_executor
+    kind: ns.requirement
+    default: chestor.autocode:docker
+    meta:
+      value_kind: exec
+      comment: Host-owned executor for the Docker CLI, on a host that can reach the selected daemon.
+    targets:
+      - entry: chestor.autocode:runtime_config
+        path: .meta.docker_executor
+      - entry: chestor.autocode.security:docker_commands
+        path: .policy.resources +=
+
+  - name: docker_context
+    kind: ns.requirement
+    default: ""
+    meta:
+      comment: Docker CLI context selected by the host; empty uses the executor's default context.
+    targets:
+      - entry: chestor.autocode:runtime_config
+        path: .meta.docker_context
+
+  - name: settings_path
+    kind: ns.requirement
+    default: ""
+    meta:
+      comment: Host-mounted URL for the Autocode settings tab; empty hides the navigation link.
+    targets:
+      - entry: chestor.autocode:settings_tab
+        path: .path

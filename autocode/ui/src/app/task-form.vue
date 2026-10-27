@@ -13,7 +13,7 @@ import { autocode, accountState, errorText, shortTime, type Account, type Driver
 // agent; an empty account balances across the ready ones. Images list the
 // ready images that carry the agent's CLI.
 const props = defineProps<{ accounts: Account[]; images: Image[]; workspaces: Workspace[]; drivers: DriverInfo[] }>()
-const emit = defineEmits<{ started: [id: string]; goto: [tab: 'accounts', agent: string]; agentChanged: [agent: string]; cancel: [] }>()
+const emit = defineEmits<{ started: [id: string]; goto: [tab: 'accounts', agent: string]; agentChanged: [agent: string]; cancel: []; busy: [value: boolean] }>()
 const catalog = useRequiredCatalog()
 const root = ref<HTMLElement | null>(null)
 
@@ -76,8 +76,10 @@ watch(unattended, (on) => {
 })
 
 async function start() {
+  if (starting.value) return
   error.value = ''
   starting.value = true
+  emit('busy', true)
   try {
     const { run_id } = await autocode.startRun({
       agent: agentId.value, account_id: accountId.value, image_id: imageId.value, workspace_id: workspaceId.value,
@@ -89,12 +91,13 @@ async function start() {
     error.value = errorText(e, 'Could not start the task.')
   } finally {
     starting.value = false
+    emit('busy', false)
   }
 }
 </script>
 
 <template>
-  <section ref="root" class="ac-form ac-new">
+  <fieldset ref="root" class="ac-form ac-new" :disabled="starting">
     <label class="ac-field ac-composer"><span>Prompt</span><textarea v-model="prompt" autofocus rows="8" class="kx-focus-halo" placeholder="What should the agent do?" /></label>
     <div class="ac-field"><span>Agent</span><AgentPicker v-model="agentId" :agents="catalog.agents" /></div>
     <p v-if="agentId && !agentAccounts.length" class="ac-muted">
@@ -143,5 +146,5 @@ async function start() {
       <Icon icon="tabler:player-play" /> {{ starting ? 'Starting…' : 'Start' }}
     </button>
     </footer>
-  </section>
+  </fieldset>
 </template>

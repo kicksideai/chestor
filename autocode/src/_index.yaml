@@ -3,203 +3,78 @@ version: "1.0"
 namespace: chestor.autocode
 
 entries:
-  # chestor.autocode:definition
   - name: definition
     kind: ns.definition
     meta:
       title: Autocode
       description: Run coding agent CLIs in Docker images across accounts, as a page and as a workflow Block, with streamed task output.
 
-  # chestor.autocode:dep.bee.drivers
-  - version: "*"
-    name: dep.bee.drivers
+  - name: dep.bee.drivers
+    version: "*"
     kind: ns.dependency
     meta:
       comment: Declarative agent CLI drivers and the drivers library; the host binds activation to chestor.autocode.drivers:activation and supplies its own environment storages.
     component: bee/drivers
 
-  # chestor.autocode:dep.kickside.contract
-  - version: "*"
-    name: dep.kickside.contract
+  - name: dep.kickside.contract
+    version: "*"
     kind: ns.dependency
     meta:
       comment: Kickside contracts; runs notify their owner through kickside.contract:realtime.
     component: kickside/contract
 
-  # chestor.autocode:dep.kickside.component
-  - version: "*"
-    name: dep.kickside.component
+  - name: dep.kickside.component
+    version: "*"
     kind: ns.dependency
     meta:
       comment: Component service - accounts, images and workspaces are component kinds with grants and teardown.
     component: kickside/component
 
-  # chestor.autocode:dep.kickside.jobs
-  - version: "*"
-    name: dep.kickside.jobs
+  - name: dep.kickside.jobs
+    version: "*"
     kind: ns.dependency
     meta:
       comment: Durable jobs - each run, image build and workflow resume is a job committed with its rows.
     component: kickside/jobs
 
-  # chestor.autocode:dep.kickside.execution
-  - version: "*"
-    name: dep.kickside.execution
+  - name: dep.kickside.execution
+    version: "*"
     kind: ns.dependency
     meta:
       comment: Execution identity - a run and an image build record who started them; the workers resolve it live.
     component: kickside/execution
 
-  # chestor.autocode:dep.kickside.settings
-  - version: "*"
-    name: dep.kickside.settings
+  - name: dep.kickside.settings
+    version: "*"
     kind: ns.dependency
     meta:
       comment: Admin settings for the run timeout, the account cooldown and run retention.
     component: kickside/settings
 
-  # chestor.autocode:dep.kickside.blocks
-  - version: "*"
-    name: dep.kickside.blocks
+  - name: dep.kickside.blocks
+    version: "*"
     kind: ns.dependency
     meta:
       comment: Typed Block composition, durable parking and Signal resume for the coding agent task Block.
     component: kickside/blocks
 
-  # chestor.autocode:dep.wippy.migration
-  - version: "*"
-    name: dep.wippy.migration
+  - name: dep.wippy.migration
+    version: "*"
     kind: ns.dependency
     meta:
       comment: Migration framework for the account state, image build, run, and run event tables.
     component: wippy/migration
 
-  # ─── Dependency interface (ns.requirement) ───────────────────────────
-  - name: target_db
-    kind: ns.requirement
-    meta:
-      value_kind: db.sql
-      comment: Database resource for the autocode tables; it is the jobs database, so rows and their jobs commit together.
-    targets:
-      - entry: chestor.autocode.migrations:03_image_recipe
-        path: .meta.target_db
-      - entry: chestor.autocode.migrations:02_delivery_and_generations
-        path: .meta.target_db
-      - entry: chestor.autocode.migrations:01_create_tables
-        path: .meta.target_db
-      - entry: chestor.autocode.persist:db_config
-        path: .meta.db_id
-      - entry: chestor.autocode.security:store
-        path: .policy.resources +=
-
-  - name: api_router
-    kind: ns.requirement
-    meta:
-      value_kind: http.router
-      comment: Authenticated HTTP router the autocode endpoints attach to.
-    targets:
-      - entry: chestor.autocode.api:catalog.user.endpoint
-        path: .meta.router
-      - entry: chestor.autocode.api:drivers_list.user.endpoint
-        path: .meta.router
-      - entry: chestor.autocode.api:accounts_list.user.endpoint
-        path: .meta.router
-      - entry: chestor.autocode.api:accounts_create.user.endpoint
-        path: .meta.router
-      - entry: chestor.autocode.api:accounts_update.user.endpoint
-        path: .meta.router
-      - entry: chestor.autocode.api:accounts_delete.user.endpoint
-        path: .meta.router
-      - entry: chestor.autocode.api:images_list.user.endpoint
-        path: .meta.router
-      - entry: chestor.autocode.api:images_get.user.endpoint
-        path: .meta.router
-      - entry: chestor.autocode.api:images_create.endpoint
-        path: .meta.router
-      - entry: chestor.autocode.api:images_update.endpoint
-        path: .meta.router
-      - entry: chestor.autocode.api:images_delete.endpoint
-        path: .meta.router
-      - entry: chestor.autocode.api:images_prepare.endpoint
-        path: .meta.router
-      - entry: chestor.autocode.api:workspaces_list.user.endpoint
-        path: .meta.router
-      - entry: chestor.autocode.api:workspaces_create.endpoint
-        path: .meta.router
-      - entry: chestor.autocode.api:workspaces_delete.endpoint
-        path: .meta.router
-      - entry: chestor.autocode.api:runs_list.user.endpoint
-        path: .meta.router
-      - entry: chestor.autocode.api:runs_create.user.endpoint
-        path: .meta.router
-      - entry: chestor.autocode.api:runs_get.user.endpoint
-        path: .meta.router
-      - entry: chestor.autocode.api:runs_cancel.user.endpoint
-        path: .meta.router
-      - entry: chestor.autocode.api:maintenance_prune.endpoint
-        path: .meta.router
-
-  - name: ui_server
-    kind: ns.requirement
-    meta:
-      value_kind: http.service
-      comment: HTTP server the autocode UI bundle is served from.
-    targets:
-      - entry: chestor.autocode:ui_static
-        path: .meta.server
-
-  - name: workspace_roots
-    kind: ns.requirement
-    default: ""
-    meta:
-      comment: Comma-separated absolute host directories under which workspaces may be registered and bind-mounted - the operator's ceiling on what administrators register. Empty admits none.
-    targets:
-      - entry: chestor.autocode:runtime_config
-        path: .meta.workspace_roots
-
-  # chestor.autocode:runtime_config
   - name: runtime_config
     kind: registry.entry
     meta:
       comment: Holds the workspace roots; the workspace_roots requirement rewrites meta.workspace_roots.
 
-  - name: docker_path
-    kind: ns.requirement
-    default: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-    meta:
-      comment: Host executable search path for the Docker executor; override when Docker is installed elsewhere.
-    targets:
-      - entry: chestor.autocode:docker
-        path: .default_env.PATH
-
-  - name: docker_executor
-    kind: ns.requirement
-    default: chestor.autocode:docker
-    meta:
-      value_kind: exec
-      comment: Host-owned executor for the Docker CLI, on a host that can reach the selected daemon.
-    targets:
-      - entry: chestor.autocode:runtime_config
-        path: .meta.docker_executor
-      - entry: chestor.autocode.security:docker_commands
-        path: .policy.resources +=
-
-  - name: docker_context
-    kind: ns.requirement
-    default: ""
-    meta:
-      comment: Docker CLI context selected by the host; empty uses the executor's default context.
-    targets:
-      - entry: chestor.autocode:runtime_config
-        path: .meta.docker_context
-
-  # chestor.autocode:docker
   - name: docker
     kind: exec.native
     meta:
       comment: Host executor for the docker CLI. Commands are argv lines; secrets travel only in the per-command environment.
 
-  # ─── UI ──────────────────────────────────────────────────────────────
   - name: ui_fs
     kind: fs.directory
     meta:
@@ -233,10 +108,6 @@ entries:
       description: Starts agent tasks across your agent accounts and streams their output. Subscription logins are for personal use only; use API keys or your own endpoints for production or multiple users.
       props: {}
 
-  # The credential card of one agent driver (chestor-autocode-driver-account), served from
-  # the same bundle directory (driver-account.js). A surface that holds agent
-  # accounts mounts it by tag, passes {driver, busy, error, saved} as `config`
-  # and stores the `submit` it emits.
   - name: driver_account_view
     kind: registry.entry
     meta:
@@ -251,8 +122,6 @@ entries:
       props:
         config: {type: object}
 
-  # The config editor of the coding agent task Block (chestor-autocode-task-config),
-  # mounted by the workflow builder as the Block's presentation.config_wc.
   - name: task_config_view
     kind: registry.entry
     meta:
@@ -267,8 +136,6 @@ entries:
       props:
         config: {type: object}
 
-  # The management tab on the System page (chestor-autocode-admin): images,
-  # workspaces and Docker maintenance, served from the same bundle (admin.js).
   - name: settings_tab_view
     kind: registry.entry
     meta:
@@ -294,67 +161,6 @@ entries:
     order: 80
     render: component
     component_tag: chestor-autocode-admin
-
-  - name: settings_path
-    kind: ns.requirement
-    default: ""
-    meta:
-      comment: Host-mounted URL for the Autocode settings tab; empty hides the navigation link.
-    targets:
-      - entry: chestor.autocode:settings_tab
-        path: .path
-
-  # ─── Settings ────────────────────────────────────────────────────────
-  - name: setting.run_timeout
-    kind: registry.entry
-    meta:
-      type: kickside.settings:definition
-      comment: How long a run's agent CLI may work before the run stops as failed.
-    namespace: chestor.autocode
-    key: run_timeout
-    value_type: duration
-    default: 2h
-    title: Run timeout
-    category: Runs
-    order: 10
-    description: "How long an agent task may run (a duration such as `30m` or `2h`); the CLI is stopped and the run fails after it."
-    scope: global
-    editable: true
-    visible: true
-
-  - name: setting.account_cooldown
-    kind: registry.entry
-    meta:
-      type: kickside.settings:definition
-      comment: How long a retryable provider refusal keeps an account out of balancing.
-    namespace: chestor.autocode
-    key: account_cooldown
-    value_type: duration
-    default: 30m
-    title: Account cooldown
-    category: Runs
-    order: 20
-    description: "How long an account rests after the provider refuses a run with a retryable fault such as a rate limit (a duration such as `30m`)."
-    scope: global
-    editable: true
-    visible: true
-
-  - name: setting.run_retention
-    kind: registry.entry
-    meta:
-      type: kickside.settings:definition
-      comment: How long settled runs and their event logs are kept.
-    namespace: chestor.autocode
-    key: run_retention
-    value_type: duration
-    default: 720h
-    title: Run retention
-    category: Runs
-    order: 30
-    description: "How long a settled run and its event log are kept before retention deletes them (a duration such as `720h`)."
-    scope: global
-    editable: true
-    visible: true
 
   - name: nav_item
     kind: registry.entry

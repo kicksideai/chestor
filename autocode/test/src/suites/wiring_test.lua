@@ -14,7 +14,7 @@ local TABLES = {
     "chestor_autocode_run_events",
 }
 
-local function query(statement: string, args: {any}?): {any}
+local function query(statement: string, args: {unknown}?): {unknown}
     local db, db_err = sql.get("app:db")
     test.is_nil(db_err)
     local rows, err = db:query(statement, args or {})

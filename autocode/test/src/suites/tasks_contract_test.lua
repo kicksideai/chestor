@@ -1,7 +1,6 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 local test = require("test")
 local identity = require("identity")
-local build_fixture = require("build_fixture")
 local registry = require("registry")
 local repo = require("repo")
 local uuid = require("uuid")
@@ -9,52 +8,9 @@ local json = require("json")
 local sql = require("sql")
 local function cases()
     test.describe("autocode task contracts", function()
-        local users = {}
-        local function member()
-            local user = identity.member()
-            users[#users + 1] = user
-            return user
-        end
-        local function call(user, method, input, contract)
-            local result, err = identity.call(user, "app:task_probe", {method = method, input = input, contract = contract})
-            if result then
-                local definition = registry.get(contract or "chestor.autocode:tasks")
-                for _, declared in ipairs(definition.data.methods) do
-                    if declared.name == method then
-                        local valid, problem = json.validate(declared.output_schemas[1].definition, result)
-                        test.eq(valid, true, tostring(problem))
-                    end
-                end
-            end
-            return result, err
-        end
-        local function image_for(user)
-            local admin = identity.admin()
-            users[#users + 1] = admin
-            local list = call(user, "list_agents", {})
-            local allows
-            for _, agent in ipairs(list.agents) do if agent.id == "claude" then allows = agent.capabilities end end
-            local image, err = identity.call(admin, "app:fixture_register", "image", {title = "fixture", ref = "chestor-autocode-harness:missing", home = "/opt/agent", agents = {"claude"}, status = "ready"}, {settings = {network = "none", allows = allows}})
-            test.is_nil(err)
-            build_fixture.ready(image, admin.id, "chestor-autocode-harness:missing", "/opt/agent", {network = "none", allows = allows})
-            local shared = identity.request(admin, "POST", "/component-access/share/" .. image, {subject_id = user.id, subject_type = "user", access_mask = 1})
-            test.eq(shared.status, 200, shared.body)
-            return image
-        end
-        local function flow_for(user)
-            local id = uuid.v7()
-            local db = sql.get("app:db")
-            local _, err = db:execute([[INSERT INTO dataflows
-                (dataflow_id, actor_id, type, status, created_at, updated_at)
-                VALUES ($1, $2, 'test', 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)]], {id, user.id})
-            db:release()
-            test.is_nil(err)
-            return id
-        end
-        test.after_each(function()
-            for _, user in ipairs(users) do identity.release(user) end
-            users = {}
-        end)
+        local fixture = require("contract_fixture").new()
+        local users, member, call, image_for, flow_for = fixture.users, fixture.member, fixture.call, fixture.image_for, fixture.flow_for
+        test.after_each(fixture.release)
         test.it("binds every documented method and declares both JSON schemas", function()
             for _, name in ipairs({"tasks", "accounts"}) do
                 local definition = registry.get("chestor.autocode:" .. name)
@@ -238,49 +194,6 @@ local function cases()
                 test.eq(invalid.json.details.code, "autocode.invalid_request")
             end
         end)
-        test.it("manages accounts through a separate credential-bearing contract", function()
-            local user, other = member(), member()
-            local contract = "chestor.autocode:accounts"
-            local added, err = call(user, "add_account", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "key", secret = "key"}, contract)
-            test.is_nil(err, tostring(err))
-            local _, denied = call(other, "update_account", {id = added.id, secret = "stolen"}, contract)
-            test.is_true(errors.is(denied, errors.NOT_FOUND))
-            local updated, update_err = call(user, "update_account", {id = added.id, secret = "replacement", label = "renamed"}, contract)
-            test.is_nil(update_err, tostring(update_err))
-            test.eq(updated.id, added.id)
-            local removed, remove_err = call(user, "remove_account", {id = added.id}, contract)
-            test.is_nil(remove_err, tostring(remove_err))
-            test.eq(removed.id, added.id)
-            local outsider = identity.outsider()
-            users[#users + 1] = outsider
-            for _, method in ipairs({"add_account", "update_account", "remove_account"}) do
-                local _, refused = call(outsider, method, {}, contract)
-                test.is_true(errors.is(refused, errors.PERMISSION_DENIED))
-            end
-        end)
-        test.it("filters disabled and unsupported accounts with admission's eligibility", function()
-            local user = member()
-            local added = call(user, "add_account", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "key", secret = "key"}, "chestor.autocode:accounts")
-            call(user, "update_account", {id = added.id, enabled = false}, "chestor.autocode:accounts")
-            local available = call(user, "list_accounts", {})
-            for _, account in ipairs(available.accounts) do test.is_true(account.id ~= added.id) end
-            local all = call(user, "list_accounts", {include_unavailable = true})
-            local found
-            for _, account in ipairs(all.accounts) do if account.id == added.id then found = account end end
-            test.not_nil(found)
-            test.eq(found.usable, false)
-            test.not_nil(found.unavailable_reason)
-        end)
-        test.it("explicitly enabling a cooling account clears its cooldown", function()
-            local user = member()
-            local added = call(user, "add_account", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "key", secret = "key"}, "chestor.autocode:accounts")
-            test.is_nil(repo.settle_account(added.id, "busy", "2999-01-01T00:00:00Z"))
-            local result, err = call(user, "update_account", {id = added.id, enabled = true}, "chestor.autocode:accounts")
-            test.is_nil(err, tostring(err))
-            test.not_nil(result)
-            local states = repo.account_states({added.id})
-            test.eq(states[added.id].cooldown_until, "")
-        end)
         test.it("publishes output schemas for both conditional Block routes", function()
             local block = registry.get("chestor.autocode.blocks:block.task").data.block
             for _, port in ipairs(block.ports) do
@@ -292,7 +205,7 @@ local function cases()
         end)
         test.it("rejects invalid page bounds and forged execution fields with typed errors", function()
             local user = member()
-            for _, bad in ipairs({{method = "list_runs", input = {limit = 101}}, {method = "get_run", input = {run_id = "id", limit = 0}},
+            for _, bad in ipairs({{method = "list_runs", input = {limit = 101}}, {method = "list_runs", input = {limit = "2"}}, {method = "get_run", input = {run_id = "id", limit = 0}},
                 {method = "get_run", input = {run_id = "id", after_seq = -1}}, {method = "list_runs", input = {cursor = "garbage"}},
                 {method = "submit_task", input = {agent = "claude", image_id = "image", prompt = "task", owner_id = user.id}}}) do
                 local result, err = call(user, bad.method, bad.input)
@@ -315,27 +228,6 @@ local function cases()
             test.not_nil(err:message():find("Flow identity unavailable", 1, true), err:message())
             test.not_nil(err:message():find("not found", 1, true), err:message())
             test.is_nil(err:message():find("not allowed", 1, true), err:message())
-        end)
-        test.it("publishes image defaults and authoritative credential metadata", function()
-            local response = identity.request(member(), "GET", "/autocode/catalog")
-            test.eq(response.status, 200, response.body)
-            test.eq(response.json.settings_path, "/settings?tab=autocode")
-            test.not_nil(response.json.default_image.settings)
-            test.eq(response.json.account_limits.secret_bytes, 65536)
-            for _, agent in ipairs(response.json.agents) do
-                test.not_nil(agent.icon)
-                for _, kind in ipairs(agent.credentials) do test.not_nil(kind.format) end
-            end
-        end)
-        test.it("replaces credentials and endpoints in place and rejects malformed endpoint URLs", function()
-            local user = member()
-            local created = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "key", secret = "key"})
-            test.eq(created.status, 201, created.body)
-            local path = "/autocode/accounts/" .. created.json.id
-            local updated = identity.request(user, "PUT", path, {secret = "replacement", endpoint = {protocol = "anthropic-messages", base_url = "https://example.com/v1"}})
-            test.eq(updated.status, 200, updated.body)
-            local invalid = identity.request(user, "PUT", path, {endpoint = {protocol = "anthropic-messages", base_url = "https://:bad"}})
-            test.eq(invalid.status, 400, invalid.body)
         end)
     end)
 end

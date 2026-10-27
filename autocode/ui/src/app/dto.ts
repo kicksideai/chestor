@@ -30,6 +30,8 @@ export const run = z.object({
 export const runSummary = run.pick({ id: true, agent: true, account_id: true, image_id: true, workspace_id: true, status: true, workflow: true, cancel_requested: true, created_at: true, started_at: true, finished_at: true }).extend({ prompt_summary: z.string() })
 export const runEvent = z.object({ seq: z.number().int(), kind: z.enum(['assistant', 'reasoning', 'tool', 'tool_result', 'tool_error', 'system', 'error', 'log']), text: z.string(), created_at: z.string() })
 
+export const runPage = z.object({ run, events: z.array(runEvent), more: z.boolean(), next_seq: z.number().int().nonnegative() })
+
 export type CredentialKind = z.infer<typeof credentialKind>
 export type AgentInfo = z.infer<typeof agentInfo>
 export type Endpoint = z.infer<typeof endpoint>

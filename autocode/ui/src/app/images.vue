@@ -15,6 +15,7 @@ const catalog = useRequiredCatalog()
 const props = defineProps<{ query: string }>()
 const emit = defineEmits<{ count: [value: number] }>()
 const adding = ref(false)
+const saving = ref(false)
 const ownership = ref<Record<string, string>>({})
 defineExpose({ open: () => { adding.value = true } })
 const images = ref<Image[]>([])
@@ -107,7 +108,7 @@ watch(images, value => emit('count', value.length))
 
 <template>
   <div class="ac-stack">
-    <p class="ac-hint">Ready images with READ access are available to tasks.</p>
+    <p class="ac-hint">Share ready images to make them available for tasks.</p>
     <p v-if="error" class="kx-err" role="alert">{{ error }} <button type="button" class="ac-link kx-focus-outline" @click="refresh">Retry</button></p>
     <div v-if="!loaded && !error" class="kx-loading">Loading images…</div>
     <div v-if="loaded && !images.length" class="kx-empty"><div class="kx-empty-ico"><Icon icon="tabler:box" /></div><div class="kx-empty-title">No images yet</div><div class="kx-empty-sub">Start with the default agent recipe or use an existing image.</div><button class="ac-btn primary kx-focus-halo" @click="adding = true">Add image</button></div>
@@ -130,7 +131,7 @@ watch(images, value => emit('count', value.length))
         </div>
       </li>
     </ul>
-    <AppDialog v-if="adding || editing" :title="editing ? 'Edit image' : 'Add image'" wide @close="adding = false; editing = null"><ImageForm :edit="editing" :capabilities="capabilities" @saved="saved" @cancel="adding = false; editing = null" /></AppDialog>
+    <AppDialog v-if="adding || editing" :title="editing ? 'Edit image' : 'Add image'" :busy="saving" wide @close="adding = false; editing = null"><ImageForm @busy="saving = $event" :edit="editing" :capabilities="capabilities" @saved="saved" @cancel="adding = false; editing = null" /></AppDialog>
     <AppDialog v-if="log" title="Build log" wide @close="closeLog"><div class="ac-form"><strong class="ac-mono">{{ log.ref }}</strong><pre class="ac-pre ac-build-log">{{ log.text }}</pre></div></AppDialog>
   </div>
 </template>

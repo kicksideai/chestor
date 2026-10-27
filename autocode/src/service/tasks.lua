@@ -183,7 +183,8 @@ function M.cancel_run(args: unknown): (Object?, error?)
     local cancel_err = runs.cancel(actor:id(), id)
     if cancel_err then return nil, boundary.native(cancel_err) end
     local run, read_err = repo.run(actor:id(), id)
-    if not run then return nil, boundary.native(read_err) end
+    if read_err then return nil, boundary.native(read_err) end
+    if not run then return nil, boundary.error(errors.NOT_FOUND, "autocode.run_not_found", "run not found") end
     return {run_id = id, status = run.status, cancel_requested = run.cancel_requested}, nil
 end
 return M

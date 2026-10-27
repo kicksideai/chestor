@@ -2,14 +2,7 @@
 version: "1.0"
 namespace: chestor.autocode.security
 
-# Module access for members, a separate management capability administrators
-# assign, and the policies of the trusted workers. Members hold no Docker,
-# process or identity capability: the entries that need one declare it.
-# Account, image and workspace grants are component access, checked per
-# resource by the component service.
-
 entries:
-  # chestor.autocode.security:module_access
   - name: module_access
     kind: security.policy
     meta:
@@ -39,7 +32,6 @@ entries:
       actions: [registry.get, registry.find]
       effect: allow
 
-  # chestor.autocode.security:module_runtime
   - name: module_runtime
     kind: security.policy
     meta:
@@ -104,7 +96,6 @@ entries:
       - entry: kickside.component.binding:delete_component_func
         path: .security.policies +=
 
-  # chestor.autocode.security:service_calls
   - name: service_calls
     kind: security.policy
     meta:
@@ -123,7 +114,6 @@ entries:
       actions: contract.call
       effect: allow
 
-  # chestor.autocode.security:member_endpoints
   - name: member_endpoints
     kind: security.policy
     meta:
@@ -147,7 +137,6 @@ entries:
       actions: access
       effect: allow
 
-  # chestor.autocode.security:ui_access
   - name: ui_access
     kind: security.policy
     meta:
@@ -163,7 +152,6 @@ entries:
       actions: access
       effect: allow
 
-  # chestor.autocode.security:driver_activation
   - name: driver_activation
     kind: security.policy
     meta:
@@ -177,7 +165,6 @@ entries:
         - registry.get
       effect: allow
 
-  # chestor.autocode.security:user_security_scope
   - name: user_security_scope
     kind: ns.requirement
     default: kickside.security.groups:members
@@ -200,222 +187,6 @@ entries:
         path: ".groups +="
       - entry: chestor.autocode.security:task_calls
         path: ".groups +="
-
-  # chestor.autocode.security:module_management
-  - name: module_management
-    kind: security.policy
-    meta:
-      title: Autocode management
-      surface: chestor.autocode
-      intent: module_management
-      comment: Images, workspaces and Docker maintenance, including the member catalog and views their managers use.
-      includes:
-        - chestor.autocode.security:management_runtime
-        - chestor.autocode.security:management_reads
-        - chestor.autocode.security:module_access
-        - bee.drivers.security:host_access
-    groups: []
-    policy:
-      resources:
-        - chestor.autocode.api:images_create.endpoint
-        - chestor.autocode.api:images_update.endpoint
-        - chestor.autocode.api:images_delete.endpoint
-        - chestor.autocode.api:images_prepare.endpoint
-        - chestor.autocode.api:workspaces_create.endpoint
-        - chestor.autocode.api:workspaces_delete.endpoint
-        - chestor.autocode.api:maintenance_prune.endpoint
-        - chestor.autocode:settings_tab_view
-      actions: access
-      effect: allow
-
-  # chestor.autocode.security:management_runtime
-  - name: management_runtime
-    kind: security.policy
-    meta:
-      private: true
-      comment: Management handlers and the platform contracts managers use without member-group membership.
-    groups: []
-    policy:
-      resources:
-        - chestor.autocode.api:images_create
-        - chestor.autocode.api:images_update
-        - chestor.autocode.api:images_delete
-        - chestor.autocode.api:images_prepare
-        - chestor.autocode.api:workspaces_create
-        - chestor.autocode.api:workspaces_delete
-        - chestor.autocode.api:maintenance_prune
-        - kickside.core.jobs.persist:pool_nudge
-        - kickside.component:component_service
-        - kickside.component.binding:component_service_impl
-        - kickside.settings:settings
-        - kickside.settings:settings_binding
-      actions: [funcs.call, contract.get, contract.open]
-      effect: allow
-
-  - name: management_reads
-    kind: security.policy
-    meta:
-      private: true
-      comment: Component queries resolve their host database binding under the manager.
-    groups: []
-    policy:
-      resources:
-        - kickside.component:db_config
-        - kickside.component:policy
-        - kickside.core:policy
-        - kickside.core:db_config
-        - kickside.core.jobs:db_config
-        - kickside.core.jobs:policy
-        - kickside.core.jobs:process_config
-      actions: [registry.get]
-      effect: allow
-
-  # chestor.autocode.security:store
-  - name: store
-    kind: security.policy
-    meta:
-      comment: Trusted workers open the autocode database and read the module's host bindings.
-    policy:
-      resources: []
-      actions: [db.get]
-      effect: allow
-
-  # chestor.autocode.security:worker_runtime
-  - name: worker_runtime
-    kind: security.policy
-    meta:
-      comment: Trusted workers discover autocode and its platform dependencies.
-    policy:
-      resources:
-        - chestor.autocode:*
-        - chestor.autocode.api:*
-        - chestor.autocode.blocks:*
-        - chestor.autocode.components:*
-        - chestor.autocode.drivers:*
-        - chestor.autocode.migrations:*
-        - chestor.autocode.persist:*
-        - chestor.autocode.runner:*
-        - chestor.autocode.security:*
-        - chestor.autocode.service:*
-        - bee.drivers:*
-        - bee.drivers.*
-        - kickside.settings:*
-        - kickside.core.jobs:*
-        - kickside.core.jobs.*
-        - kickside.execution:*
-        - kickside.component:*
-        - kickside.component.*
-      actions: [registry.get, registry.find]
-      effect: allow
-
-  - name: worker_calls
-    kind: security.policy
-    meta:
-      comment: Owner-bound steps, live identity resolution, settings reads, and job wake calls.
-    policy:
-      resources:
-        - kickside.component:notify_access
-        - chestor.autocode.runner:prepare
-        - chestor.autocode.runner:keep_credential
-        - chestor.autocode.runner:image_recipe
-        - kickside.contract:scope_resolver
-        - kickside.users:scope_resolver_binding
-        - kickside.component:component_service
-        - kickside.component.binding:component_service_impl
-        - kickside.settings:settings
-        - kickside.settings:settings_binding
-        - kickside.core.jobs.persist:pool_nudge
-        - kickside.mcp:credential_restriction
-        - kickside.identity:link_get
-        - resolve
-        - security
-      actions: [funcs.call, funcs.security, contract.get, contract.open, contract.call, contract.security]
-      effect: allow
-
-  # chestor.autocode.security:deferred_runs
-  - name: deferred_runs
-    kind: security.policy
-    meta:
-      comment: The runner resolves a run owner's stored execution identity.
-    policy:
-      resources: chestor.autocode:runs
-      actions: kickside.execution.defer
-      effect: allow
-
-  # chestor.autocode.security:deferred_images
-  - name: deferred_images
-    kind: security.policy
-    meta:
-      comment: The image builder resolves the stored execution identity of the administrator who requested a build.
-    policy:
-      resources: chestor.autocode:images
-      actions: kickside.execution.defer
-      effect: allow
-
-  # chestor.autocode.security:deferred_actor
-  - name: deferred_actor
-    kind: security.policy
-    meta:
-      comment: Workers construct the live principal actor after Users resolution.
-    policy:
-      resources: "*"
-      actions: security.actor.create
-      effect: allow
-
-  # chestor.autocode.security:docker_commands
-  - name: docker_commands
-    kind: security.policy
-    meta:
-      comment: The only command line the module runs - the docker CLI behind its stderr-merging shell wrapper on the module's executor.
-    policy:
-      resources:
-        - "/bin/sh -c 'exec docker \"$@\" 2>&1' sh *"
-      actions: [exec.get, exec.run]
-      effect: allow
-
-  # chestor.autocode.security:run_notify
-  - name: run_notify
-    kind: security.policy
-    meta:
-      comment: The runner tells a run owner's open views that the run changed.
-    policy:
-      resources: [kickside.contract:realtime, kickside.realtime:realtime_binding, kickside.realtime:notify, notify]
-      actions: [contract.get, contract.open, contract.call, realtime.notify]
-      effect: allow
-
-  # chestor.autocode.security:image_status
-  - name: image_status
-    kind: security.policy
-    meta:
-      comment: The image builder settles the public status of image components through the trusted runtime meta write.
-    policy:
-      resources: "*"
-      actions: component.runtime_meta.write
-      effect: allow
-      conditions:
-        - field: meta.impl_id
-          operator: eq
-          value: chestor.autocode.components:image
-
-  # chestor.autocode.security:flow_resume
-  - name: flow_resume
-    kind: security.policy
-    meta:
-      comment: The resume job continues the workflow node a run started - the Blocks resume call and a Workflow run's resume handler.
-    policy:
-      actions: [funcs.call, funcs.security, kickside.execution.defer]
-      resources: [kickside.blocks:resume, kickside.blocks:resume_under_identity, kickside.workflows.runs:resume, security]
-      effect: allow
-
-  # chestor.autocode.security:flow_identity
-  - name: flow_identity
-    kind: security.policy
-    meta:
-      comment: Blocks resume rebuilds the Flow's stored identity, as the Inbox review resume does.
-    policy:
-      actions: [security.actor.create, security.policy_group.get]
-      resources: "*"
-      effect: allow
 
   - name: task_calls
     kind: security.policy
@@ -441,18 +212,17 @@ entries:
       actions: [access, contract.get, contract.open, contract.call]
       effect: allow
 
-  - name: account_notify
+  - name: tool_access
     kind: security.policy
-    meta: {private: true, comment: Account changes publish through the component service's stored READ audience.}
+    meta:
+      title: Autocode tools
+      surface: chestor.autocode
+      intent: tool_access
+    groups: []
     policy:
-      resources: kickside.component:notify_access
-      actions: funcs.call
-      effect: allow
-
-  - name: flow_context
-    kind: security.policy
-    meta: {private: true, comment: The Block arm carries the parked callback outside the public task request.}
-    policy:
-      resources: context
-      actions: contract.context
+      resources:
+        - chestor.autocode.traits:coding_tasks
+        - chestor.autocode.traits:submit_coding_task
+        - chestor.autocode.traits:read_coding_run
+      actions: [access, registry.get, registry.find, funcs.call]
       effect: allow

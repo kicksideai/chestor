@@ -113,8 +113,6 @@ async function remove(a: Account) {
   if (ok) await attempt(() => autocode.deleteAccount(a.id), 'Could not delete the account.')
 }
 
-function closeAdding() { if (!saving.value) adding.value = false }
-
 onMounted(() => {
   loadByTagName('chestor-autocode-driver-account', { timeoutMs: 8000 }).catch(() => { error.value = 'The driver account card could not load.' })
 })
@@ -136,7 +134,7 @@ onMounted(() => {
         <AccountRow v-for="a in g.accounts" :key="a.id" :account="a" :kind-label="kindLabel(a)" :owner-label="owners[a.owner] || a.owner" @toggle="toggle(a)" @rename="(label: string) => rename(a, label)" @remove="remove(a)" />
       </ul>
     </section>
-    <AppDialog v-if="adding" title="Add account" @close="closeAdding">
+    <AppDialog v-if="adding" title="Add account" :busy="saving" @close="adding = false">
       <div class="ac-form"><AgentPicker :disabled="saving" v-model="agent" :agents="catalog.agents" /><p class="ac-hint">Tasks balance across your ready accounts automatically.</p><chestor-autocode-driver-account v-if="agentInfo" :config.attr="card" @submit="submit" /></div>
     </AppDialog>
   </div>

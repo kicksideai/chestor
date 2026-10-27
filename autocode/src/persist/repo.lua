@@ -30,7 +30,6 @@ repo.finish_image_build = builds.finish_image_build
 repo.project_image_build = builds.project_image_build
 repo.delete_image_build = builds.delete_image_build
 repo.run_summaries = runs.run_summaries
-repo.runs = runs.runs
 repo.run = runs.run
 repo.stored_run = runs.stored_run
 repo.find_submission = runs.find_submission

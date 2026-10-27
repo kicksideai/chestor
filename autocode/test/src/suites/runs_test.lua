@@ -12,7 +12,6 @@ local time = require("time")
 local funcs = require("funcs")
 local anthropic = require("anthropic")
 local docker = require("docker")
-local registry = require("registry")
 
 local READ = 1
 local SECRET = "sk-ant-harness-" .. string.rep("r", 32)
@@ -36,9 +35,9 @@ local function cases()
             test.eq(response.status, 200, response.body)
         end
 
-        local function setup(image_ref, endpoint)
+        local function setup(image_ref, endpoint, tools)
             local admin = track(identity.admin())
-            local member = track(identity.member())
+            local member = track(tools and identity.user({identity.SIGNED_IN, identity.MEMBERS, "app:coding_tools"}) or identity.member())
             local listed = identity.request(admin, "GET", "/autocode/drivers")
             local allows = {}
             for _, driver in ipairs(listed.json.drivers) do
@@ -78,11 +77,18 @@ local function cases()
         end
 
         -- settled waits for the runner to settle the run.
-        local function settled(member, id)
+        local function settled(member, id, tools)
             local deadline = time.now():add("90s")
             while true do
-                local response = identity.request(member, "GET", "/autocode/runs/" .. id)
-                test.eq(response.status, 200, response.body)
+                local response
+                if tools then
+                    local result, err = identity.call(member, "chestor.autocode.traits:read_coding_run", {run_id = id})
+                    test.is_nil(err, tostring(err))
+                    response = {json = result, body = "tool run " .. id}
+                else
+                    response = identity.request(member, "GET", "/autocode/runs/" .. id)
+                    test.eq(response.status, 200, response.body)
+                end
                 local status = response.json.run.status
                 if status ~= "queued" and status ~= "running" then return response end
                 if time.now():after(deadline) then error("run " .. id .. " did not settle: " .. status) end
@@ -90,7 +96,7 @@ local function cases()
             end
         end
 
-        test.it("runs a management-built image and stores the complete final answer", function()
+        test.it("submits through the agent tool and reads the complete real runner result", function()
             local image_ref = "chestor-autocode-harness:claude"
             local output = {}
             local code, err = docker.run({"build", "-t", image_ref, "-"}, {stdin = [[
@@ -103,11 +109,11 @@ USER node
             test.is_nil(err)
             test.eq(code, 0, table.concat(output, "\n"))
             local member, image_id, account_id = setup(image_ref, {protocol = "anthropic-messages",
-                base_url = identity.container_url() .. "/mock", model = "claude-sonnet-4-6"})
-            local submitted = identity.request(member, "POST", "/autocode/runs",
+                base_url = identity.container_url() .. "/mock", model = "claude-sonnet-4-6"}, true)
+            local submitted, submit_err = identity.call(member, "chestor.autocode.traits:submit_coding_task",
                 {agent = "claude", image_id = image_id, account_id = account_id, prompt = "Return the fixture answer."})
-            test.eq(submitted.status, 201, submitted.body)
-            local done = settled(member, submitted.json.run_id)
+            test.is_nil(submit_err, tostring(submit_err))
+            local done = settled(member, submitted.run_id, true)
             test.eq(done.json.run.status, "succeeded", done.body)
             test.eq(done.json.run.result, anthropic.answer())
         end)

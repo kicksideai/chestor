@@ -8,11 +8,11 @@ import * as dto from './dto.ts'
 import type { Account, Endpoint, ImageSettings } from './dto.ts'
 export type * from './dto.ts'
 
-export type AccountState = 'ready' | 'cooling' | 'disabled'
+export type AccountState = 'ready' | 'cooling' | 'disabled' | 'unavailable'
 export function accountState(a: Account, now = Date.now()): AccountState {
   if (!a.enabled) return 'disabled'
   if (a.cooldown_until && Date.parse(a.cooldown_until) > now) return 'cooling'
-  return 'ready'
+  return a.usable ? 'ready' : 'unavailable'
 }
 
 export function shortTime(value: string): string {
@@ -127,7 +127,7 @@ export const autocode = {
   deleteWorkspace: (id: string) => call('delete', `/workspaces/${encodeURIComponent(id)}`, success),
   drivers: () => call('get', '/drivers', z.object({ drivers: z.array(dto.driverInfo) })).then(r => r.drivers),
   runs: (cursor?: string) => call('get', `/runs${cursor ? '?cursor=' + encodeURIComponent(cursor) : ''}`, z.object({ runs: z.array(dto.runSummary), next_cursor: z.string().optional() })),
-  run: (id: string, after: number) => call('get', `/runs/${encodeURIComponent(id)}?after=${after}`, z.object({ run: dto.run, events: z.array(dto.runEvent), more: z.boolean() })),
+  run: (id: string, afterSeq: number) => call('get', `/runs/${encodeURIComponent(id)}?after_seq=${afterSeq}`, dto.runPage),
   startRun: (body: { agent: string; account_id: string; image_id: string; workspace_id: string; repo_url: string; prompt: string; options: Record<string, unknown>; unattended: boolean }) => call('post', '/runs', z.object({ run_id: z.string() }), body),
   cancelRun: (id: string) => call('post', `/runs/${encodeURIComponent(id)}/cancel`, success),
 }

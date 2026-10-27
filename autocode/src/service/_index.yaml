@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
-version: '1.0'
+version: "1.0"
 namespace: chestor.autocode.service
+
 entries:
 - name: boundary
   kind: library.lua
@@ -9,9 +10,11 @@ entries:
   - registry
   - json
   - security
+
 - name: values
   kind: library.lua
   source: file://values.lua
+
 - name: client
   kind: library.lua
   source: file://client.lua
@@ -19,12 +22,14 @@ entries:
   - contract
   imports:
     boundary: chestor.autocode.service:boundary
+
 - name: projections
   kind: library.lua
   source: file://projections.lua
   imports:
     repo: chestor.autocode.persist:repo
     resources: chestor.autocode.components:resources
+
 - name: accounts
   kind: library.lua
   source: file://accounts.lua
@@ -40,6 +45,7 @@ entries:
     credentials: chestor.autocode.runner:credentials
     runs: chestor.autocode.runner:runs
     live: chestor.autocode.runner:live
+
 - name: images
   kind: library.lua
   source: file://images.lua
@@ -52,6 +58,7 @@ entries:
     repo: chestor.autocode.persist:repo
     drivers: bee.drivers:drivers
     deferred: chestor.autocode.runner:deferred
+
 - name: catalog
   kind: library.lua
   source: file://catalog.lua
@@ -63,159 +70,14 @@ entries:
     images: chestor.autocode.service:images
     accounts: chestor.autocode.service:accounts
     boundary: chestor.autocode.service:boundary
-- name: list_agents
-  kind: function.lua
-  source: file://tasks.lua
-  method: list_agents
-  modules:
-  - security
-  - ctx
-  - registry
-  imports:
-    boundary: chestor.autocode.service:boundary
-    values: chestor.autocode.service:values
-    resources: chestor.autocode.components:resources
-    drivers: bee.drivers:drivers
-    credentials: chestor.autocode.runner:credentials
-    runs: chestor.autocode.runner:runs
-    repo: chestor.autocode.persist:repo
-    accounts: chestor.autocode.service:accounts
-    projections: chestor.autocode.service:projections
-- name: list_accounts
-  kind: function.lua
-  source: file://tasks.lua
-  method: list_accounts
-  modules:
-  - security
-  - ctx
-  - registry
-  imports:
-    boundary: chestor.autocode.service:boundary
-    values: chestor.autocode.service:values
-    resources: chestor.autocode.components:resources
-    drivers: bee.drivers:drivers
-    credentials: chestor.autocode.runner:credentials
-    runs: chestor.autocode.runner:runs
-    repo: chestor.autocode.persist:repo
-    accounts: chestor.autocode.service:accounts
-    projections: chestor.autocode.service:projections
-- name: list_images
-  kind: function.lua
-  source: file://tasks.lua
-  method: list_images
-  modules:
-  - security
-  - ctx
-  - registry
-  imports:
-    boundary: chestor.autocode.service:boundary
-    values: chestor.autocode.service:values
-    resources: chestor.autocode.components:resources
-    drivers: bee.drivers:drivers
-    credentials: chestor.autocode.runner:credentials
-    runs: chestor.autocode.runner:runs
-    repo: chestor.autocode.persist:repo
-    accounts: chestor.autocode.service:accounts
-    projections: chestor.autocode.service:projections
-- name: list_workspaces
-  kind: function.lua
-  source: file://tasks.lua
-  method: list_workspaces
-  modules:
-  - security
-  - ctx
-  - registry
-  imports:
-    boundary: chestor.autocode.service:boundary
-    values: chestor.autocode.service:values
-    resources: chestor.autocode.components:resources
-    drivers: bee.drivers:drivers
-    credentials: chestor.autocode.runner:credentials
-    runs: chestor.autocode.runner:runs
-    repo: chestor.autocode.persist:repo
-    accounts: chestor.autocode.service:accounts
-    projections: chestor.autocode.service:projections
-- name: submit_task
-  kind: function.lua
-  source: file://tasks.lua
-  method: submit_task
-  modules:
-  - security
-  - ctx
-  - registry
-  imports:
-    boundary: chestor.autocode.service:boundary
-    values: chestor.autocode.service:values
-    resources: chestor.autocode.components:resources
-    drivers: bee.drivers:drivers
-    credentials: chestor.autocode.runner:credentials
-    runs: chestor.autocode.runner:runs
-    repo: chestor.autocode.persist:repo
-    accounts: chestor.autocode.service:accounts
-    projections: chestor.autocode.service:projections
-- name: get_run
-  kind: function.lua
-  source: file://tasks.lua
-  method: get_run
-  modules:
-  - security
-  - ctx
-  - registry
-  imports:
-    boundary: chestor.autocode.service:boundary
-    values: chestor.autocode.service:values
-    resources: chestor.autocode.components:resources
-    drivers: bee.drivers:drivers
-    credentials: chestor.autocode.runner:credentials
-    runs: chestor.autocode.runner:runs
-    repo: chestor.autocode.persist:repo
-    accounts: chestor.autocode.service:accounts
-    projections: chestor.autocode.service:projections
-- name: list_runs
-  kind: function.lua
-  source: file://tasks.lua
-  method: list_runs
-  modules:
-  - security
-  - ctx
-  - registry
-  imports:
-    boundary: chestor.autocode.service:boundary
-    values: chestor.autocode.service:values
-    resources: chestor.autocode.components:resources
-    drivers: bee.drivers:drivers
-    credentials: chestor.autocode.runner:credentials
-    runs: chestor.autocode.runner:runs
-    repo: chestor.autocode.persist:repo
-    accounts: chestor.autocode.service:accounts
-    projections: chestor.autocode.service:projections
-- name: cancel_run
-  kind: function.lua
-  source: file://tasks.lua
-  method: cancel_run
-  modules:
-  - security
-  - ctx
-  - registry
-  imports:
-    boundary: chestor.autocode.service:boundary
-    values: chestor.autocode.service:values
-    resources: chestor.autocode.components:resources
-    drivers: bee.drivers:drivers
-    credentials: chestor.autocode.runner:credentials
-    runs: chestor.autocode.runner:runs
-    repo: chestor.autocode.persist:repo
-    accounts: chestor.autocode.service:accounts
-    projections: chestor.autocode.service:projections
-  security:
-    policies:
-    - chestor.autocode.security:docker_commands
+
 - name: add_account
   kind: function.lua
   source: file://account_methods.lua
   method: add_account
   imports:
     accounts: chestor.autocode.service:accounts
+
 - name: update_account
   security:
     policies:
@@ -225,12 +87,14 @@ entries:
   method: update_account
   imports:
     accounts: chestor.autocode.service:accounts
+
 - name: remove_account
   kind: function.lua
   source: file://account_methods.lua
   method: remove_account
   imports:
     accounts: chestor.autocode.service:accounts
+
 - name: image_management
   kind: library.lua
   source: file://image_management.lua
@@ -242,6 +106,7 @@ entries:
     values: chestor.autocode.service:values
     boundary: chestor.autocode.service:boundary
     docker: chestor.autocode.runner:docker
+
 - name: workspace_management
   kind: library.lua
   source: file://workspace_management.lua
@@ -253,6 +118,7 @@ entries:
     workspaces: chestor.autocode.runner:workspaces
     client: chestor.autocode.service:client
     boundary: chestor.autocode.service:boundary
+
 - name: maintenance
   kind: library.lua
   source: file://maintenance.lua

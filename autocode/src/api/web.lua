@@ -1,10 +1,10 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
--- Endpoint plumbing: the authenticated owner, typed request fields, JSON
--- replies, and the HTTP status each error kind maps to.
 local boundary = require("boundary")
 local http = require("http")
+local json = require("json")
 local security = require("security")
 
+type NumberQuery = number | string
 type Body = {[string]: unknown}
 type Context = {req: http.Request, res: http.Response}
 
@@ -23,19 +23,20 @@ function M.fail(res: http.Response, status: number, message: string)
     M.reply(res, status, {success = false, error = message, kind = err:kind(), retryable = false, details = err:details()})
 end
 
--- fail_with answers with the status an error's kind maps to.
 function M.fail_with(res: http.Response, err: error?)
     local status = M.STATUS.INTERNAL_ERROR
     if errors.is(err, errors.INVALID) then status = M.STATUS.BAD_REQUEST
     elseif errors.is(err, errors.NOT_FOUND) then status = M.STATUS.NOT_FOUND
     elseif errors.is(err, errors.CONFLICT) then status = M.STATUS.CONFLICT
-    elseif errors.is(err, errors.PERMISSION_DENIED) then status = M.STATUS.FORBIDDEN end
+    elseif errors.is(err, errors.PERMISSION_DENIED) then status = M.STATUS.FORBIDDEN
+    elseif errors.is(err, errors.UNAVAILABLE) then status = M.STATUS.SERVICE_UNAVAILABLE
+    elseif errors.is(err, errors.TIMEOUT) then status = M.STATUS.GATEWAY_TIMEOUT
+    elseif errors.is(err, errors.RATE_LIMITED) then status = M.STATUS.TOO_MANY_REQUESTS end
     local native = boundary.native(err) or boundary.error(errors.INTERNAL, "autocode.internal", "request failed")
     M.reply(res, status, {success = false, error = native:message(), kind = native:kind(),
         retryable = native:retryable(), details = native:details()})
 end
 
--- Opens the request; nil means the reply is already written.
 function M.open(): Context?
     local req = http.request()
     local res = http.response()
@@ -49,7 +50,6 @@ function M.open(): Context?
     return {req = req, res = res}
 end
 
--- param returns a required path parameter; nil means the reply is written.
 function M.param(ctx: Context, name: string): string?
     local value = ctx.req:param(name)
     if not value or value == "" then
@@ -59,18 +59,31 @@ function M.param(ctx: Context, name: string): string?
     return value
 end
 
--- body returns the JSON object body; nil means the reply is written.
 function M.body(ctx: Context): Body?
-    local data, err = ctx.req:body_json()
+    local raw, read_err = ctx.req:body()
+    if read_err or type(raw) ~= "string" or not raw:match("^%s*{") then
+        M.fail(ctx.res, M.STATUS.BAD_REQUEST, "request body must be a JSON object")
+        return nil
+    end
+    local data, err = json.decode(raw)
     if err or type(data) ~= "table" then
         M.fail(ctx.res, M.STATUS.BAD_REQUEST, "request body must be a JSON object")
         return nil
     end
     local body: Body = {}
     for key, value in pairs(data) do
-        if type(key) == "string" then body[key] = value end
+        if type(key) ~= "string" then
+            M.fail(ctx.res, M.STATUS.BAD_REQUEST, "request body must be a JSON object")
+            return nil
+        end
+        body[key] = value
     end
     return body
+end
+
+function M.number_query(ctx: Context, name: string): NumberQuery?
+    local value = ctx.req:query(name)
+    return value and (tonumber(value) or value) or nil
 end
 
 return M

@@ -133,8 +133,9 @@
 .kx-head-sub { max-width: 440px; }
 .kx-count { color: var(--p-text-muted-color); font-size: 12px; white-space: nowrap; }
 .kx-search { position: relative; display: flex; align-items: center; }
-.kx-search > svg { position: absolute; left: 10px; color: var(--p-text-muted-color); }
-.kx-search .kx-search-input { padding-left: 30px; width: 205px; }
+.kx-search > svg { pointer-events: none; position: absolute; left: 10px; color: var(--p-text-muted-color); }
+.kx-search .kx-search-input { padding-left: 30px; padding-right: 30px; width: 205px; }
+fieldset.ac-form { border: 0; margin: 0; padding: 0; min-width: 0; }
 .ac-form { display: flex; flex-direction: column; gap: 16px; }
 .ac-dialog { width: min(620px, calc(100vw - 40px)); max-height: calc(100dvh - 48px); display: flex; flex-direction: column; overflow: hidden; font-family: var(--kx-font-body); font-size: 13px; color: var(--p-text-color); }
 .ac-dialog-wide { width: min(880px, calc(100vw - 40px)); }
@@ -189,4 +190,11 @@ p.ac-hint { margin: 0; }
   .ac-detail .ac-stream .ac-event { grid-template-columns: 64px minmax(0, 1fr); }
   .ac-resource { flex-wrap: wrap; }
   .ac-hover-actions .ac-row-actions { opacity: 1; }
+}
+
+.kx-search-clear { position: absolute; right: 8px; display: inline-flex; border: 0; padding: 2px; background: transparent; color: var(--p-text-muted-color); cursor: pointer; }
+.ac-load-more { display: flex; justify-content: center; padding-top: 16px; }
+@media (prefers-reduced-motion: reduce) {
+  .ac-pulse, .spin { animation: none; }
+  .ac-switch span, .ac-switch span::after, .ac-hover-actions .ac-row-actions { transition: none; }
 }

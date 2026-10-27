@@ -1,6 +1,5 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 local M = {}
--- Field readers preserve the distinction between omitted and invalid values.
 
 function M.text(value: unknown, max: integer): string?
     if type(value) ~= "string" then return nil end

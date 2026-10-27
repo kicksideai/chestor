@@ -1,6 +1,4 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
--- The component status of an account, image or workspace: the status its
--- public meta renders.
 local ctx = require("ctx")
 local component = require("component")
 

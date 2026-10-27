@@ -14,7 +14,7 @@ local user_groups_repo = require("user_groups_repo")
 local user_lifecycle_repo = require("user_lifecycle_repo")
 
 type User = {id: string, email: string, groups: {string}, token: string}
-type Response = {status: integer, body: string, json: any}
+type Response = {status: integer, body: string, json: unknown}
 
 local M = {}
 
@@ -28,7 +28,7 @@ M.ADMINS = "app.security:admin"
 local TOKEN_STORE = "kickside.users.security:tokens"
 local PASSWORD = "Autocode-harness-123!"
 
-local function data_of(id: string): {[string]: any}
+local function data_of(id: string): {[string]: unknown}
     local entry, err = registry.get(id)
     if not entry then error("harness entry " .. id .. " is missing: " .. tostring(err)) end
     return entry.data or {}
@@ -40,10 +40,10 @@ local function base_url(): string
     return "http://127.0.0.1:" .. port
 end
 
-local function send(method: string, url: string, token: string?, body: any?): Response
+local function send(method: string, url: string, token: string?, body: unknown?): Response
     local headers: {[string]: string} = {["Content-Type"] = "application/json"}
     if token then headers.Authorization = "Bearer " .. token end
-    local options: {[string]: any} = {headers = headers}
+    local options: {[string]: unknown} = {headers = headers}
     if body ~= nil then
         local encoded, encode_err = json.encode(body)
         if encode_err then error("request body: " .. tostring(encode_err)) end
@@ -98,7 +98,7 @@ function M.admin(): User
 end
 
 -- Calls a function under the actor and scope of the user's session token.
-function M.call(user: User, function_id: string, ...): (any, any)
+function M.call(user: User, function_id: string, ...): (unknown, error?)
     local store = security.token_store(TOKEN_STORE)
     local actor, scope, err = store:validate(user.token)
     store:close()
@@ -108,7 +108,7 @@ end
 
 -- Sends an HTTP request through app:gateway to a path under the app:api
 -- router, bearing the user's session token; a nil user sends none.
-function M.request(user: User?, method: string, path: string, body: any?): Response
+function M.request(user: User?, method: string, path: string, body: unknown?): Response
     local prefix = tostring(data_of("app:api").prefix or "")
     return send(method, base_url() .. prefix .. path, user and user.token or nil, body)
 end

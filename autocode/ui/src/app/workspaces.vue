@@ -82,10 +82,10 @@ watch(workspaces, value => emit('count', value.length))
 
 <template>
   <div class="ac-stack">
-    <p class="ac-hint">READ mounts a workspace read-only; WRITE allows changes.</p>
+    <p class="ac-hint">Tasks use shared workspaces with the access you grant.</p>
     <p v-if="error && !adding" class="kx-err" role="alert">{{ error }} <button type="button" class="ac-link kx-focus-outline" @click="refresh">Retry</button></p>
     <div v-if="!loaded && !error" class="kx-loading">Loading workspaces…</div>
-    <div class="ac-chips"><span class="ac-muted">Allowed roots</span><span v-for="r in roots" :key="r" class="ac-hint-chip ac-mono">{{ r }}</span></div>
+    <div v-if="roots.length" class="ac-chips"><span class="ac-muted">Allowed roots</span><span v-for="r in roots" :key="r" class="ac-hint-chip ac-mono">{{ r }}</span></div>
     <div v-if="loaded && !workspaces.length" class="kx-empty"><div class="kx-empty-ico"><Icon icon="tabler:folder" /></div><div class="kx-empty-title">No workspaces yet</div><div class="kx-empty-sub">Add a host directory, or let tasks use a scratch directory.</div><button class="ac-btn primary kx-focus-halo" @click="adding = true">Add workspace</button></div>
     <div v-else-if="loaded && !filtered.length" class="kx-empty"><div class="kx-empty-title">No matches</div><div class="kx-empty-sub">Try another workspace name or path.</div></div>
     <ul class="ac-list ac-resource-list">
@@ -95,15 +95,15 @@ watch(workspaces, value => emit('count', value.length))
         <div class="ac-row-actions"><button v-if="w.deletable" type="button" class="ac-icon-btn kx-focus-outline" title="Delete workspace" aria-label="Delete workspace" @click="remove(w)"><Icon icon="tabler:trash" /></button></div>
       </li>
     </ul>
-    <AppDialog v-if="adding" title="Add workspace" @close="adding = false">
-      <div class="ac-form">
+    <AppDialog v-if="adding" title="Add workspace" :busy="saving" @close="adding = false">
+      <fieldset class="ac-form" :disabled="saving">
         <p v-if="!roots.length" class="ac-muted">The host administrator configures allowed workspace roots.</p>
         <div v-else class="ac-field"><span>Allowed roots</span><div class="ac-chips"><button v-for="r in roots" :key="r" type="button" class="ac-chip ac-mono kx-focus-halo" title="Start from this root" @click="hostPath = rootPath(r)">{{ r }}</button></div></div>
         <label class="ac-field"><span>Name</span><input v-model="name" @input="nameEdited = true" autofocus class="kx-focus-halo" placeholder="e.g. Kickside checkout" /></label>
         <label class="ac-field"><span>Host directory</span><input v-model="hostPath" class="ac-mono kx-focus-halo" :placeholder="(roots[0] ?? '/srv/work') + '/project'" /><small class="ac-hint">An existing directory, mounted at <code>/workspace</code>.</small></label>
         <p v-if="error" class="kx-err" role="alert">{{ error }}</p>
-        <footer class="ac-dialog-foot"><button class="ac-btn kx-focus-halo" @click="adding = false">Cancel</button><button type="button" class="ac-btn primary kx-focus-halo" :disabled="saving || !name || !hostPath" @click="save"><Icon icon="tabler:folder-plus" />{{ saving ? 'Saving…' : 'Add workspace' }}</button></footer>
-      </div>
+        <footer class="ac-dialog-foot"><button type="button" class="ac-btn kx-focus-halo" :disabled="saving" @click="adding = false">Cancel</button><button type="button" class="ac-btn primary kx-focus-halo" :disabled="saving || !name.trim() || !hostPath.trim()" @click="save"><Icon icon="tabler:folder-plus" />{{ saving ? 'Saving…' : 'Add workspace' }}</button></footer>
+      </fieldset>
     </AppDialog>
   </div>
 </template>

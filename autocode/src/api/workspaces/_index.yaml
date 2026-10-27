@@ -1,0 +1,58 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: chestor.autocode.api
+
+entries:
+  - name: workspaces_list
+    kind: function.lua
+    meta:
+      comment: "GET /autocode/workspaces - Workspaces the caller can see, with the mount mode its grant gives."
+    source: file://../workspace_routes.lua
+    method: list
+    imports:
+      web: chestor.autocode.api:web
+      workspaces: chestor.autocode.service:workspace_management
+
+  - name: workspaces_list.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "GET /autocode/workspaces"
+    method: GET
+    func: workspaces_list
+    path: /autocode/workspaces
+
+  - name: workspaces_create
+    kind: function.lua
+    meta:
+      comment: "POST /autocode/workspaces - Register a host directory under the workspace roots as a workspace."
+    source: file://../workspace_routes.lua
+    method: create
+    imports:
+      web: chestor.autocode.api:web
+      workspaces: chestor.autocode.service:workspace_management
+
+  - name: workspaces_create.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "POST /autocode/workspaces"
+    method: POST
+    func: workspaces_create
+    path: /autocode/workspaces
+
+  - name: workspaces_delete
+    kind: function.lua
+    meta:
+      comment: "DELETE /autocode/workspaces/{id} - Delete a workspace; its host directory stays."
+    source: file://../workspace_routes.lua
+    method: delete
+    imports:
+      web: chestor.autocode.api:web
+      workspaces: chestor.autocode.service:workspace_management
+
+  - name: workspaces_delete.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "DELETE /autocode/workspaces/{id}"
+    method: DELETE
+    func: workspaces_delete
+    path: /autocode/workspaces/{id}

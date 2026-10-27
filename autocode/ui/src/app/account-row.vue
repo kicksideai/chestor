@@ -9,7 +9,7 @@ import { relativeTime, useRunClock } from './presentation.ts'
 const props = defineProps<{ account: Account; kindLabel: string; ownerLabel: string }>()
 const emit = defineEmits<{ toggle: []; rename: [label: string]; remove: [] }>()
 
-const STATE_LABEL = { ready: 'ready', cooling: 'cooling down', disabled: 'disabled' } as const
+const STATE_LABEL = { ready: 'ready', cooling: 'cooling down', disabled: 'disabled', unavailable: 'unavailable' } as const
 const now = useRunClock()
 const state = computed(() => accountState(props.account, now.value))
 
@@ -51,13 +51,13 @@ function finishRename() {
       <div v-if="!account.usable" class="ac-muted ac-strong"><Icon icon="tabler:lock" /> {{ account.unavailable_reason || 'Account unavailable for tasks' }}</div>
       <div v-else-if="account.subscription" class="ac-muted">Subscription login: personal use only</div>
       <div v-if="account.endpoint" class="ac-muted ac-mono">{{ account.endpoint.protocol }} · {{ account.endpoint.base_url }}{{ account.endpoint.model ? ' · ' + account.endpoint.model : '' }}</div>
-      <div v-if="state === 'cooling'" class="ac-muted">Back in rotation at {{ shortTime(account.cooldown_until) }}</div>
+      <div v-if="state === 'cooling'" class="ac-muted">Available at {{ shortTime(account.cooldown_until) }}</div>
       <div v-if="account.last_error" class="kx-err ac-small">{{ account.last_error }}</div>
 
     </div>
     <div class="ac-row-actions">
-      <label v-if="account.writable" class="ac-switch" :title="account.enabled ? 'Takes tasks' : 'Out of rotation'">
-        <input type="checkbox" :checked="account.enabled" :aria-label="account.enabled ? 'Take out of rotation' : 'Put in rotation'" @change="emit('toggle')" />
+      <label v-if="account.writable" class="ac-switch" :title="account.enabled ? 'Disable account' : 'Enable account'">
+        <input type="checkbox" :checked="account.enabled" :aria-label="account.enabled ? 'Disable account' : 'Enable account'" @change="emit('toggle')" />
         <span />
       </label>
       <button v-if="account.writable" type="button" class="ac-icon-btn kx-focus-outline" title="Rename" aria-label="Rename account" @click="startRename"><Icon icon="tabler:pencil" /></button>

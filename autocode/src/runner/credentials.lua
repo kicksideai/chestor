@@ -30,9 +30,6 @@ function M.kinds(driver: drivers.Driver): {Kind}
     return result
 end
 
--- check returns why a secret cannot be the credential `kind` holds: a login
--- file the driver reads as JSON must be a JSON object, and a key or token is
--- one line.
 function M.format(kind: Kind): string
     if kind.variable then return "single_line" end
     if kind.file and kind.file.content_format == "json" then return "json_object" end

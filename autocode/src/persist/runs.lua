@@ -53,12 +53,6 @@ local function run(row: Columns): Run
         started_at = text(row, "started_at"), finished_at = text(row, "finished_at")}
 end
 
-function repo.runs(owner_id: string, limit: integer): ({Run}?, error?)
-    local rows, err = query("SELECT " .. RUN_COLUMNS .. [[ FROM chestor_autocode_runs
-        WHERE owner_id = $1 ORDER BY created_at DESC, id DESC LIMIT $2]], {owner_id, limit})
-    return decode(rows, err, run)
-end
-
 type RunSummary = {id: string, agent: string, account_id: string, image_id: string, workspace_id: string?,
     status: RunStatus, workflow: boolean, cancel_requested: boolean, created_at: string, started_at: string, finished_at: string,
     prompt_summary: string}

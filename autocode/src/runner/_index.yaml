@@ -3,14 +3,12 @@ version: "1.0"
 namespace: chestor.autocode.runner
 
 entries:
-  # chestor.autocode.runner:quote
   - name: quote
     kind: library.lua
     meta:
       comment: POSIX quoting for argv rendered as one command line.
     source: file://quote.lua
 
-  # chestor.autocode.runner:live
   - name: live
     kind: library.lua
     meta:
@@ -21,7 +19,6 @@ entries:
     modules:
       - contract
 
-  # chestor.autocode.runner:settings
   - name: settings
     kind: library.lua
     meta:
@@ -32,7 +29,6 @@ entries:
     modules:
       - contract
 
-  # chestor.autocode.runner:credentials
   - name: credentials
     kind: library.lua
     meta:
@@ -43,7 +39,6 @@ entries:
     imports:
       drivers: bee.drivers:drivers
 
-  # chestor.autocode.runner:container
   - name: container
     kind: library.lua
     meta:
@@ -54,7 +49,6 @@ entries:
       credentials: chestor.autocode.runner:credentials
       quote: chestor.autocode.runner:quote
 
-  # chestor.autocode.runner:redact
   - name: redact
     kind: library.lua
     meta:
@@ -63,7 +57,6 @@ entries:
     modules:
       - json
 
-  # chestor.autocode.runner:records
   - name: records
     kind: library.lua
     meta:
@@ -72,7 +65,6 @@ entries:
     imports:
       drivers: bee.drivers:drivers
 
-  # chestor.autocode.runner:docker
   - name: docker
     kind: library.lua
     meta:
@@ -85,7 +77,6 @@ entries:
     imports:
       quote: chestor.autocode.runner:quote
 
-  # chestor.autocode.runner:workspaces
   - name: workspaces
     kind: library.lua
     meta:
@@ -94,7 +85,6 @@ entries:
     modules:
       - registry
 
-  # chestor.autocode.runner:deferred
   - name: deferred
     kind: library.lua
     meta:
@@ -145,7 +135,6 @@ entries:
       settings: chestor.autocode.runner:settings
       transport: chestor.autocode.runner:transport
 
-  # chestor.autocode.runner:prepare
   - name: prepare
     kind: function.lua
     meta:
@@ -162,7 +151,6 @@ entries:
       drivers: bee.drivers:drivers
       resources: chestor.autocode.components:resources
 
-  # chestor.autocode.runner:keep_credential
   - name: keep_credential
     kind: function.lua
     meta:
@@ -179,7 +167,6 @@ entries:
       drivers: bee.drivers:drivers
       resources: chestor.autocode.components:resources
 
-  # chestor.autocode.runner:image_recipe
   - name: image_recipe
     kind: function.lua
     meta:
@@ -195,93 +182,6 @@ entries:
       credentials: chestor.autocode.runner:credentials
       drivers: bee.drivers:drivers
       resources: chestor.autocode.components:resources
-
-  # chestor.autocode.runner:run
-  - name: run
-    kind: process.lua
-    meta:
-      comment: Job of one run - streams the agent CLI in its container, records events and settles the run.
-    source: file://run.lua
-    method: main
-    modules:
-      - logger
-    imports:
-      repo: chestor.autocode.persist:repo
-      runs: chestor.autocode.runner:runs
-      container: chestor.autocode.runner:container
-      records: chestor.autocode.runner:records
-      redact: chestor.autocode.runner:redact
-      docker: chestor.autocode.runner:docker
-      live: chestor.autocode.runner:live
-      run_io: chestor.autocode.runner:run_io
-      execution_identity: kickside.execution:execution_identity
-      deferred: chestor.autocode.runner:deferred
-      transport: chestor.autocode.runner:transport
-      job_outcome: chestor.autocode.runner:job_outcome
-    security:
-      actor:
-        id: system:chestor.autocode.runner
-      policies:
-        - chestor.autocode.security:worker_runtime
-        - chestor.autocode.security:worker_calls
-        - chestor.autocode.security:service_calls
-        - chestor.autocode.security:store
-        - chestor.autocode.security:deferred_runs
-        - chestor.autocode.security:deferred_actor
-        - bee.drivers.security:host_access
-        - chestor.autocode.security:docker_commands
-        - chestor.autocode.security:run_notify
-
-  # chestor.autocode.runner:image
-  - name: image
-    kind: process.lua
-    meta:
-      comment: Job of one image build - builds or pulls the image, probes the agent CLIs it contains and settles its status.
-    source: file://image.lua
-    method: main
-    imports:
-      repo: chestor.autocode.persist:repo
-      drivers: bee.drivers:drivers
-      docker: chestor.autocode.runner:docker
-      execution_identity: kickside.execution:execution_identity
-      transport: chestor.autocode.runner:transport
-      job_outcome: chestor.autocode.runner:job_outcome
-      component: kickside.component:component
-    security:
-      actor:
-        id: system:chestor.autocode.images
-      policies:
-        - chestor.autocode.security:worker_runtime
-        - chestor.autocode.security:worker_calls
-        - chestor.autocode.security:service_calls
-        - chestor.autocode.security:store
-        - chestor.autocode.security:deferred_images
-        - chestor.autocode.security:deferred_actor
-        - bee.drivers.security:host_access
-        - chestor.autocode.security:docker_commands
-        - chestor.autocode.security:image_status
-
-  # chestor.autocode.runner:retention
-  - name: retention
-    kind: function.lua
-    meta:
-      type: kickside.retention.owner
-      comment: Deletes runs that settled longer ago than the run_retention setting, with their event logs, on the Core retention tick.
-    source: file://retention.lua
-    method: run
-    modules:
-      - time
-    imports:
-      repo: chestor.autocode.persist:repo
-      settings: chestor.autocode.runner:settings
-    security:
-      actor:
-        id: system:chestor.autocode.retention
-      policies:
-        - chestor.autocode.security:worker_runtime
-        - chestor.autocode.security:worker_calls
-        - chestor.autocode.security:service_calls
-        - chestor.autocode.security:store
 
   - name: transport
     kind: library.lua

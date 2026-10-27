@@ -1,12 +1,12 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
 import Dialog from 'primevue/dialog'
-defineProps<{ title: string; wide?: boolean }>()
+defineProps<{ title: string; wide?: boolean; busy?: boolean }>()
 defineEmits<{ close: [] }>()
 </script>
 
 <template>
-  <Dialog :visible="true" modal block-scroll dismissable-mask :draggable="false" :header="title" :class="['ac-dialog', { 'ac-dialog-wide': wide }]" @update:visible="!$event && $emit('close')">
+  <Dialog :visible="true" modal block-scroll :dismissable-mask="!busy" :closable="!busy" :close-on-escape="!busy" :draggable="false" :header="title" :class="['ac-dialog', { 'ac-dialog-wide': wide }]" @update:visible="!$event && !busy && $emit('close')">
     <slot />
     <template v-if="$slots.footer" #footer><slot name="footer" /></template>
   </Dialog>

@@ -11,7 +11,7 @@ end
 local function list()
     local ctx = web.open()
     if not ctx then return end
-    local limit = ctx.req:query("limit")
+    local limit = web.number_query(ctx, "limit")
     reply(ctx, "list_runs", {limit = limit, cursor = ctx.req:query("cursor")}, web.STATUS.OK)
 end
 local function get()
@@ -19,8 +19,8 @@ local function get()
     if not ctx then return end
     local id = web.param(ctx, "id")
     if not id then return end
-    local after = ctx.req:query("after")
-    local limit = ctx.req:query("limit")
+    local after = web.number_query(ctx, "after_seq")
+    local limit = web.number_query(ctx, "limit")
     reply(ctx, "get_run", {run_id = id, after_seq = after,
         limit = limit}, web.STATUS.OK)
 end

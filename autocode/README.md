@@ -3,7 +3,8 @@
 
 Run coding agent CLIs in Docker with shared agent accounts, prepared images,
 host workspaces, durable jobs, and streamed output. Includes a member page,
-a System management tab, a driver account card, and a workflow task Block.
+a System management tab, a driver account card, a workflow task Block, and
+an agent capability with two asynchronous tools.
 
 Sharing an API-key account shares its key with the grantees, and subscription logins run only for their owner.
 
@@ -92,7 +93,7 @@ No copy of the UI kit is vendored. Publishing is handled by Release Please.
 
 [KickSide Community License 1.0](LICENSE). Dependencies retain their own licenses.
 
-## Internal service
+## Task and account contracts
 
 Open `chestor.autocode:tasks` with its default binding. Methods return
 `(Result?, error?)` under the caller's execution frame: `list_agents`,
@@ -111,12 +112,42 @@ Block forwards the framework's durable key and keeps its callback outside the
 task DTO. Runs and event pages belong only to the submitting caller. Run lists
 return summaries and a stable `created_at`/`id` cursor; events return `next_seq`
 and `more`. Native errors carry `kind`, `retryable`, and `details.code`; HTTP
-adds its success envelope and maps those errors to statuses.
+adds its success envelope and maps invalid, missing, conflicting, refused,
+unavailable, timed-out and rate-limited requests to 400, 404, 409, 403, 503,
+504 and 429 respectively. Numeric contract fields require numbers. HTTP
+query parameters decode numbers at the transport boundary; event paging uses
+`after_seq`, `limit`, `next_seq` and `more` throughout.
 
 The default image recipe is a curated preset with its supported CLIs named in
 its label. It does not promise to install every activated driver. Driver-owned
 binding metadata supplies icons when available; a missing icon uses a generic
-terminal. Catalog resource defaults come from the same decoder as image writes.
+terminal. Driver icon metadata belongs in `bee/drivers`; Autocode keeps no
+driver-to-icon map. Catalog resource defaults come from the same decoder as image writes.
+
+## Agent capability
+
+`chestor.autocode.traits:coding_tasks` is the public **Coding tasks** capability.
+It exposes exactly two tools through `chestor.autocode:tasks`:
+
+| Tool | Registry entry | Contract method |
+| --- | --- | --- |
+| `SubmitCodingTask` | `chestor.autocode.traits:submit_coding_task` | `submit_task` |
+| `ReadCodingRun` | `chestor.autocode.traits:read_coding_run` | `get_run` |
+
+Both tools embed the contract's input and output DTO schemas directly. They
+return the contract result or its typed error, without an extra envelope.
+They take identity from the agent's execution frame and accept no owner or
+credential fields. Submission returns `{run_id}`; reading returns
+`{run, events, more, next_seq}`. Reuse an idempotency key for submission retries,
+and use `next_seq` as `after_seq` to continue event pages. Read again when an
+unfinished task's result is needed; the tools add no wait loop or scheduler.
+
+Assign `chestor.autocode.security:tool_access` (`intent: tool_access`) alongside
+module access to the intended groups, then select the capability on the agent.
+Ordinary module membership alone does not enable the tools. Resource grants
+and run ownership still apply. The harness covers refused callers, exact schema
+reuse and a tool submission completed by the real Docker runner against its
+mock Anthropic endpoint.
 
 ## Docker host configuration
 

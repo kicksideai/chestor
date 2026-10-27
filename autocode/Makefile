@@ -24,7 +24,7 @@ test:
 	awk '/No tests found/ { empty=1 } /^[[:space:]]*FAILED([[:space:]]|$$)/ { failed=1 } /^[[:space:]]*PASSED([[:space:]]|$$)/ { passed=1 } END { exit(empty || failed || !passed) }'
 # A dedicated database per run keeps tests independent of other applications.
 test-pg:
-	@cd test; wippy install $(WIPPY_INSTALL_ARGS); mkdir -p .wippy; \
+	@cd test; wippy install $(WIPPY_INSTALL_ARGS) $(RUNTIME_ARGS); mkdir -p .wippy; \
 	db=chestor_autocode_test_$$(date +%s%N); \
 	psql "$(PG_URL)" -qc "CREATE DATABASE $$db"; \
 	trap 'psql "$(PG_URL)" -qc "DROP DATABASE $$db WITH (FORCE)"' EXIT; \

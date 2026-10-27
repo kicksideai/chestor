@@ -9,7 +9,7 @@ import { autocode, errorText, type ImageDetail, type ImageRunSettings, type Imag
 // home and run settings of the image in `edit`. capabilities: what agents may
 // be allowed in a container, from the activated drivers; null while loading.
 const props = defineProps<{ edit: ImageDetail | null; capabilities: string[] | null }>()
-const emit = defineEmits<{ saved: [warning?: string]; cancel: [] }>()
+const emit = defineEmits<{ saved: [warning?: string]; cancel: []; busy: [value: boolean] }>()
 const catalog = useRequiredCatalog()
 
 type Form = ImageSettings & { ref: string; mode: 'build' | 'pull'; dockerfile: string; extra: string }
@@ -59,9 +59,10 @@ function settings(): ImageSettings {
 }
 
 async function save() {
-  if (!form.value) return
+  if (!form.value || saving.value) return
   error.value = ''
   saving.value = true
+  emit('busy', true)
   try {
     let warning: string | undefined
     if (props.edit) {
@@ -77,13 +78,14 @@ async function save() {
     error.value = errorText(e, 'Could not save the image.')
   } finally {
     saving.value = false
+    emit('busy', false)
   }
 }
 </script>
 
 <template>
   <p v-if="!form" class="kx-err" role="alert">{{ edit ? 'Image settings are unavailable.' : 'Image defaults are unavailable.' }} Ask an administrator to update the image configuration.</p>
-  <section v-else class="ac-form">
+  <fieldset v-else class="ac-form" :disabled="saving">
     <div class="ac-card-head">
       <span class="ac-muted">{{ edit ? 'Container settings' : 'Use an image reference or the default agent recipe.' }}</span>
       <button v-if="!edit" type="button" class="ac-btn kx-focus-halo" @click="useDefault"><Icon icon="tabler:sparkles" /> Default agent image</button>
@@ -140,5 +142,5 @@ async function save() {
     </button>
     </footer>
     <p v-if="error" class="kx-err">{{ error }}</p>
-  </section>
+  </fieldset>
 </template>

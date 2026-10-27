@@ -16,6 +16,7 @@ const props = defineProps<{ query: string }>()
 const emit = defineEmits<{ goto: [agent?: string]; agentChanged: [agent: string]; count: [value: number] }>()
 const catalog = useRequiredCatalog()
 const composing = ref(false)
+const starting = ref(false)
 defineExpose({ open: () => { composing.value = true } })
 
 const accounts = ref<Account[]>([])
@@ -78,10 +79,10 @@ function changed() { void refreshAll() }
 
 const usable = computed(() => accounts.value.some(a => a.usable && a.enabled))
 const filtered = computed(() => runs.value.filter(r => [r.prompt_summary, r.status, r.agent, agentTitle(r.agent), accountLabel(r.account_id)].join(' ').toLowerCase().includes(props.query.trim().toLowerCase())))
-watch(runs, value => emit('count', value.length))
+watch(() => runs.value.length, value => emit('count', value))
 function agentTitle(id: string) { return catalog.value.agents.find(a => a.id === id)?.title ?? id }
 function imageLabel(id: string) { return images.value.find(i => i.id === id)?.label ?? 'Unlisted image' }
-function accountLabel(id: string) { return accounts.value.find((a) => a.id === id)?.label ?? 'unlisted account' }
+function accountLabel(id: string) { return accounts.value.find((a) => a.id === id)?.label ?? 'Unlisted account' }
 </script>
 
 <template>
@@ -98,7 +99,6 @@ function accountLabel(id: string) { return accounts.value.find((a) => a.id === i
       <Button :label="usable ? 'New task' : 'Add account'" @click="usable ? composing = true : emit('goto')"><template #icon><Icon icon="tabler:plus" /></template></Button>
     </div>
     <div v-else-if="!filtered.length" class="kx-empty"><div class="kx-empty-title">No matches</div><div class="kx-empty-sub">Try another task, agent or account.</div></div>
-    <p v-if="runs.length" class="ac-muted">Search filters the loaded tasks.</p>
     <ul v-if="filtered.length" class="ac-run-list">
       <li v-for="r in filtered" :key="r.id" class="ac-run">
         <button type="button" class="ac-run-main kx-focus-halo" @click="selected = r.id">
@@ -110,9 +110,9 @@ function accountLabel(id: string) { return accounts.value.find((a) => a.id === i
         </button>
       </li>
     </ul>
-    <Button v-if="nextCursor" label="Load more tasks" :loading="loadingMore" :disabled="refreshing" @click="more" />
-    <AppDialog v-if="composing" title="New task" wide @close="composing = false">
-      <TaskForm :accounts="accounts" :images="images" :workspaces="workspaces" :drivers="drivers" @started="started" @cancel="composing = false" @agent-changed="emit('agentChanged', $event)" @goto="(_tab, agent) => emit('goto', agent)" />
+    <div v-if="nextCursor" class="ac-load-more"><Button label="Load more" :loading="loadingMore" :disabled="refreshing" @click="more" /></div>
+    <AppDialog v-if="composing" title="New task" :busy="starting" wide @close="composing = false">
+      <TaskForm @busy="starting = $event" :accounts="accounts" :images="images" :workspaces="workspaces" :drivers="drivers" @started="started" @cancel="composing = false" @agent-changed="emit('agentChanged', $event)" @goto="(_tab, agent) => emit('goto', agent)" />
     </AppDialog>
     <AppDialog v-if="selected" title="Task details" wide @close="selected = null">
       <RunDetail :key="selected" :run-id="selected" :accounts="accounts" :images="images" :workspaces="workspaces" @changed="changed" />

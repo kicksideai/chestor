@@ -27,10 +27,16 @@ M.KINDS = {
 
 local PAGE = 200
 
-local function service(): (any, error?)
+type Service = {
+    get_access_context: (self: Service, Object) -> (component_types.AccessContextResult?, error?),
+    register: (self: Service, Object) -> (Object?, error?),
+    delete: (self: Service, Object) -> (component_types.ServiceEnvelope?, error?),
+}
+
+local function service(): (Service?, error?)
     local svc, err = component.get_service()
     if err or not svc then return nil, envelope.call_error(err, "component_service") end
-    return svc, nil
+    return svc :: Service, nil
 end
 
 local function object(value: unknown): Object
@@ -42,7 +48,7 @@ local function object(value: unknown): Object
     return result
 end
 
-local function resource(kind: Kind, row: any): Resource
+local function resource(kind: Kind, row: component_types.ComponentRow): Resource
     local meta = object(row.meta)
     local owner = meta.owner
     return {id = tostring(row.component_id), kind = kind, meta = meta, access = math.floor(tonumber(row.access_level) or 0),
@@ -127,12 +133,6 @@ function M.register(kind: Kind, meta: Object, private: Object): (string?, error?
     local result_err = envelope.error_of(result :: component_types.ServiceEnvelope, "register_component")
     if result_err then return nil, result_err end
     return tostring(result.component_id), nil
-end
-
--- set_meta changes public fields of a resource the caller may write.
-function M.set_meta(id: string, fields: Object): error?
-    local _, err = component.set_meta(id, fields)
-    return err
 end
 
 -- patch_context merges keys into the private context; with a revision the
