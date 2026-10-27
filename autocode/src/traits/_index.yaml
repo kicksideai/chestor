@@ -13,7 +13,8 @@ entries:
       tags: [coding, tasks]
     prompt: >-
       Delegate a bounded coding task asynchronously with SubmitCodingTask.
-      Use caller-visible agent, image, account and workspace IDs. Submission
+      Discover caller-visible IDs with ListCodingAgents, ListCodingAccounts,
+      ListCodingImages and ListCodingWorkspaces. CancelCodingRun cancels an owned task. Submission
       returns a run ID; use ReadCodingRun to read its status, result and events.
       Reuse an idempotency key when retrying the same submission. A queued or
       running task is unfinished: check again when its result is needed, without
@@ -22,11 +23,17 @@ entries:
     tools:
       - chestor.autocode.traits:submit_coding_task
       - chestor.autocode.traits:read_coding_run
+      - chestor.autocode.traits:list_coding_agents
+      - chestor.autocode.traits:list_coding_accounts
+      - chestor.autocode.traits:list_coding_images
+      - chestor.autocode.traits:list_coding_workspaces
+      - chestor.autocode.traits:cancel_coding_run
 
   - name: submit_coding_task
     kind: function.lua
     meta:
       type: tool
+      public: true
       title: Submit coding task
       llm_alias: SubmitCodingTask
       llm_description: Submit a bounded coding task asynchronously and return its run ID. Reuse an idempotency key to retry the same submission.
@@ -45,6 +52,7 @@ entries:
     kind: function.lua
     meta:
       type: tool
+      public: true
       title: Read coding run
       llm_alias: ReadCodingRun
       llm_description: Read an owned coding run's status, result and a bounded event page. Use next_seq as after_seq while more is true.
@@ -54,6 +62,101 @@ entries:
       output_schema: file://../contracts/get_run.output.schema.json
     source: file://tasks.lua
     method: read
+    modules: [security]
+    imports:
+      client: chestor.autocode.service:client
+      boundary: chestor.autocode.service:boundary
+
+  - name: list_coding_agents
+    kind: function.lua
+    meta:
+      type: tool
+      public: true
+      title: List coding agents
+      llm_alias: ListCodingAgents
+      llm_description: List coding agents using the caller's resource grants.
+      mcp:
+        required_scopes: [state.read]
+      input_schema: file://../contracts/list_agents.input.schema.json
+      output_schema: file://../contracts/list_agents.output.schema.json
+    source: file://tasks.lua
+    method: agents
+    modules: [security]
+    imports:
+      client: chestor.autocode.service:client
+      boundary: chestor.autocode.service:boundary
+
+  - name: list_coding_accounts
+    kind: function.lua
+    meta:
+      type: tool
+      public: true
+      title: List coding accounts
+      llm_alias: ListCodingAccounts
+      llm_description: List coding accounts using the caller's resource grants.
+      mcp:
+        required_scopes: [state.read]
+      input_schema: file://../contracts/list_accounts.input.schema.json
+      output_schema: file://../contracts/list_accounts.output.schema.json
+    source: file://tasks.lua
+    method: accounts
+    modules: [security]
+    imports:
+      client: chestor.autocode.service:client
+      boundary: chestor.autocode.service:boundary
+
+  - name: list_coding_images
+    kind: function.lua
+    meta:
+      type: tool
+      public: true
+      title: List coding images
+      llm_alias: ListCodingImages
+      llm_description: List coding images using the caller's resource grants.
+      mcp:
+        required_scopes: [state.read]
+      input_schema: file://../contracts/list_images.input.schema.json
+      output_schema: file://../contracts/list_images.output.schema.json
+    source: file://tasks.lua
+    method: images
+    modules: [security]
+    imports:
+      client: chestor.autocode.service:client
+      boundary: chestor.autocode.service:boundary
+
+  - name: list_coding_workspaces
+    kind: function.lua
+    meta:
+      type: tool
+      public: true
+      title: List coding workspaces
+      llm_alias: ListCodingWorkspaces
+      llm_description: List coding workspaces using the caller's resource grants.
+      mcp:
+        required_scopes: [state.read]
+      input_schema: file://../contracts/list_workspaces.input.schema.json
+      output_schema: file://../contracts/list_workspaces.output.schema.json
+    source: file://tasks.lua
+    method: workspaces
+    modules: [security]
+    imports:
+      client: chestor.autocode.service:client
+      boundary: chestor.autocode.service:boundary
+
+  - name: cancel_coding_run
+    kind: function.lua
+    meta:
+      type: tool
+      public: true
+      title: Cancel coding run
+      llm_alias: CancelCodingRun
+      llm_description: Cancel coding run using the caller's resource grants.
+      mcp:
+        required_scopes: [state.read, state.write]
+      input_schema: file://../contracts/cancel_run.input.schema.json
+      output_schema: file://../contracts/cancel_run.output.schema.json
+    source: file://tasks.lua
+    method: cancel
     modules: [security]
     imports:
       client: chestor.autocode.service:client

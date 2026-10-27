@@ -23,6 +23,8 @@ entries:
         - chestor.autocode.api:*
         - chestor.autocode.blocks:*
         - chestor.autocode.components:*
+        - chestor.autocode.domain:*
+        - chestor.autocode.infrastructure:*
         - chestor.autocode.drivers:*
         - chestor.autocode.migrations:*
         - chestor.autocode.persist:*
@@ -41,7 +43,6 @@ entries:
     policy:
       resources:
         - chestor.autocode.api:catalog
-        - chestor.autocode.api:drivers_list
         - chestor.autocode.api:accounts_list
         - chestor.autocode.api:accounts_create
         - chestor.autocode.api:accounts_update
@@ -55,6 +56,7 @@ entries:
         - chestor.autocode.api:runs_cancel
         - chestor.autocode.components:status
         - chestor.autocode.blocks:arm_task
+        - chestor.autocode.persist:project_account
         - chestor.autocode.service:list_agents
         - chestor.autocode.service:list_accounts
         - chestor.autocode.service:list_images
@@ -122,7 +124,6 @@ entries:
     policy:
       resources:
         - chestor.autocode.api:catalog.user.endpoint
-        - chestor.autocode.api:drivers_list.user.endpoint
         - chestor.autocode.api:accounts_list.user.endpoint
         - chestor.autocode.api:accounts_create.user.endpoint
         - chestor.autocode.api:accounts_update.user.endpoint
@@ -224,5 +225,10 @@ entries:
         - chestor.autocode.traits:coding_tasks
         - chestor.autocode.traits:submit_coding_task
         - chestor.autocode.traits:read_coding_run
+        - chestor.autocode.traits:list_coding_agents
+        - chestor.autocode.traits:list_coding_accounts
+        - chestor.autocode.traits:list_coding_images
+        - chestor.autocode.traits:list_coding_workspaces
+        - chestor.autocode.traits:cancel_coding_run
       actions: [access, registry.get, registry.find, funcs.call]
       effect: allow

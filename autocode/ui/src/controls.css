@@ -11,7 +11,7 @@ select {
   background-position: calc(100% - 15px) center, calc(100% - 10px) center;
 }
 textarea { resize: vertical; line-height: 1.6; }
-input[type="checkbox"] { accent-color: var(--p-primary-color); width: auto; }
+input[type="checkbox"]:not([role="switch"]) { accent-color: var(--p-primary-color); width: auto; }
 .ac-tabs, .ac-seg { display: inline-flex; gap: 4px; padding: 3px; border-radius: var(--kx-radius-8); background: var(--kx-overlay-subtle); }
 .ac-tab, .ac-seg button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; font: inherit; cursor: pointer; padding: 6px 12px; border-radius: var(--kx-radius-6); border: none; background: transparent; color: var(--p-text-muted-color); }
 .ac-seg button { flex: 1; }

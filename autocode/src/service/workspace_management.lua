@@ -1,12 +1,14 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 local values = require("values")
+local resource_dto = require("resource_dto")
 local resources = require("resources")
 local workspaces = require("workspaces")
 local security = require("security")
 local client = require("client")
 local boundary = require("boundary")
 type Object = {[string]: unknown}
-local function list()
+type WorkspaceList = {workspaces: {resource_dto.Workspace}, roots: {string}?}
+local function list(): (WorkspaceList?, error?)
     local result, err = client.call("chestor.autocode:tasks", "list_workspaces", {})
     if not result then return nil, boundary.native(err) end
     if security.can("access", "chestor.autocode.api:workspaces_create.endpoint") == true then
@@ -14,10 +16,10 @@ local function list()
         if not roots then return nil, boundary.native(roots_err) end
         result.roots = roots
     end
-    return result, nil
+    return result :: WorkspaceList, nil
 end
 
-local function create(body: Object)
+local function create(body: Object): ({id: string}?, error?)
     local name = values.text(body.name, 120)
     if not name or name == "" then return nil, boundary.error(errors.INVALID, "autocode.invalid_workspace", "name is required") end
     local path = values.text(body.host_path, 1000)
@@ -31,7 +33,7 @@ local function create(body: Object)
     return {id = id}, nil
 end
 
-local function delete(args: Object)
+local function delete(args: Object): ({}?, error?)
     local id = values.text(args.id, 64)
     if not id or id == "" then return nil, boundary.error(errors.INVALID, "autocode.invalid_request", "workspace id is required") end
     local workspace, find_err = resources.get("workspace", id, resources.ACCESS.DELETE)

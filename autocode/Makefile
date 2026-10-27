@@ -2,15 +2,16 @@
 MODULE := autocode
 TYPE   := plugin
 VIS    := public
-EMBED  := --embed ui_fs
+EMBED  := --embed chestor.autocode:ui_fs
+VERSION ?= $(shell node -p "require('../.release-please-manifest.json')['autocode']")
+TEST_TARGET ?= test
 SHELL := bash
 .SHELLFLAGS := -o pipefail -ec
 PG_URL ?= postgresql://kickside:kickside@127.0.0.1:5433/postgres
 
-.PHONY: build dev lint test test-pg typecheck lockrefresh ui-kit publish
+.PHONY: check build dev lint test test-pg typecheck lockrefresh ui-kit ui-test verify release-check publish
 build: ui-kit
-	cd ui && npm install && npm run build
-	$(MAKE) lint
+	cd ui && npm run build
 dev: ui-kit
 	cd ui && npm run dev
 lint:
@@ -41,10 +42,23 @@ lockrefresh:
 ui-kit:
 	@set -e; \
 	(cd build-inputs && wippy install $(WIPPY_INSTALL_ARGS)); \
-	wapp=$$(ls build-inputs/.wippy/vendor/kickside/ui-kit-*.wapp 2>/dev/null | grep -v sha256 | sort | tail -1); \
-	test -n "$$wapp" || { echo 'No kickside/ui-kit artifact found' >&2; exit 1; }; \
+	version=$$(awk '$$1 == "-" && $$2 == "name:" { selected = $$3 == "kickside/ui-kit" } selected && $$1 == "version:" { print $$2; exit }' build-inputs/wippy.lock); \
+	wapp=build-inputs/.wippy/vendor/kickside/ui-kit-$$version.wapp; \
+	test -n "$$version" && test -f "$$wapp" || { echo 'No kickside/ui-kit artifact found' >&2; exit 1; }; \
 	wippy artifacts materialize "$$wapp" kickside.ui_kit:package_fs --root ui/.wippy; \
-	cd ui && npm install --no-audit --no-fund
+	cd ui && npm ci --no-audit --no-fund
+ui-test: ui-kit
+	cd ui && npm test
+check:
+	node scripts/check-module.mjs
+verify:
+	$(MAKE) lint
+	$(MAKE) lint WIPPY_LINT_ARGS=--strict-any
+	$(MAKE) typecheck build check ui-test
+	$(MAKE) $(TEST_TARGET)
+release-check: verify
+	wippy auth status
+	wippy publish --version "$(VERSION)" --dry-run --create --module-visibility $(VIS) --module-type $(TYPE) $(EMBED)
 publish: build
-	@echo "Releases use GitHub Release Please (.github/workflows/release.yml)." >&2
+	@echo "Release Please creates GitHub releases; Hub publication is manual (see README.md)." >&2
 	@exit 1

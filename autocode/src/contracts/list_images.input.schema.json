@@ -9,7 +9,8 @@
     },
     "ready_only": {
       "type": "boolean",
-      "default": true
+      "default": true,
+      "description": "Only images with a runnable approved generation, including during refresh or after a failed refresh."
     }
   },
   "required": []

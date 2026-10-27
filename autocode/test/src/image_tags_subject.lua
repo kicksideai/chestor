@@ -1,0 +1,1 @@
+../../src/infrastructure/image_tags.lua

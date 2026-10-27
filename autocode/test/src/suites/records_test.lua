@@ -15,6 +15,53 @@ end
 
 local function cases()
     test.describe("autocode run records", function()
+        test.it("redacts JSON escapes in both stored events and the final result", function()
+            for _, value in ipairs({
+                {secret = 'credential-quote"-0123456789', encoded = 'credential-quote\\"-0123456789'},
+                {secret = 'credential-backslash\\-0123456789', encoded = 'credential-backslash\\\\-0123456789'},
+                {secret = 'credential-unicode-0123456789', encoded = '\\u0063redential-unicode-0123456789'},
+            }) do
+                for _, key in ipairs({"message", "api_key"}) do
+                    local payload = '{"' .. key .. '":"' .. value.encoded .. '"}'
+                    local redactor = redact.new(value.secret)
+                    local folder = records.new(function(v) return redact.apply(redactor, v) end)
+                    text(folder, "answer", "complete", payload)
+                    local events = records.terminal(folder, nil)
+                    test.eq(events[1].text, '{"' .. key .. '":"' .. redact.MARK .. '"}')
+                    test.eq(records.result(folder, nil), events[1].text)
+                end
+            end
+            test.eq(redact.apply(redact.new(""), '{"api_key":"unknown-\\"secret-0123456789","keep":"ok"}'),
+                '{"api_key":"' .. redact.MARK .. '","keep":"ok"}')
+        end)
+        test.it("bounds retained completed parts across a large message", function()
+            local folder = records.new(identity)
+            local observations = {}
+            local part = string.rep("x", 20000)
+            for i = 1, 100 do observations[i] = {data = {type = "text", segment_id = tostring(i), operation = "complete", text = part, channel = "answer"}} end
+            records.step(folder, {problems = {}, observations = observations})
+            records.terminal(folder, nil)
+            local function bytes(value)
+                if type(value) == "string" then return #value end
+                if type(value) ~= "table" then return 0 end
+                local total = 0
+                for _, item in pairs(value) do total = total + bytes(item) end
+                return total
+            end
+            local retained = bytes(folder)
+            test.is_true(retained <= records.MAX_RESULT_BYTES + 65536, tostring(retained))
+            test.eq(records.result(folder, nil), (part .. "\n"):rep(100):sub(1, records.MAX_RESULT_BYTES) .. " [truncated " .. tostring(2000099 - records.MAX_RESULT_BYTES) .. " bytes]")
+        end)
+        test.it("replaces the last completed part without retaining its previous text", function()
+            local folder = records.new(identity)
+            records.step(folder, {problems = {}, observations = {
+                {data = {type = "text", segment_id = "first", operation = "complete", text = "first", channel = "answer"}},
+                {data = {type = "text", segment_id = "last", operation = "complete", text = "old", channel = "answer"}},
+                {data = {type = "text", segment_id = "last", operation = "replace", text = "new", channel = "answer"}},
+                {data = {type = "text", segment_id = "last", operation = "complete", text = "", channel = "answer"}},
+            }})
+            test.eq(records.result(folder, nil), "first\nnew")
+        end)
         test.it("keeps a final answer streamed past the terminal and log bounds", function()
             local folder = records.new(identity)
             local delta = string.rep("answer ", 100)

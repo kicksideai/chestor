@@ -1,5 +1,13 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+local canonical_json = require("canonical_json")
 local M = {}
+
+function M.json(value: unknown, max_bytes: integer): (string?, error?)
+    local encoded, err = canonical_json.encode(value)
+    if not encoded then return nil, err end
+    if #encoded > max_bytes then return nil, errors.new({kind = errors.INVALID, message = "input exceeds " .. tostring(max_bytes) .. " JSON bytes"}) end
+    return encoded, nil
+end
 
 function M.text(value: unknown, max: integer): string?
     if type(value) ~= "string" then return nil end
@@ -24,7 +32,7 @@ end
 
 function M.object(value: unknown): {[string]: unknown}?
     if type(value) ~= "table" then return nil end
-    local result: {[string]: unknown} = table.create(0, 1)
+    local result: {[string]: unknown} = (canonical_json.object({}) :: {[string]: unknown})
     for key, item in pairs(value) do
         if type(key) ~= "string" then return nil end
         result[key] = item

@@ -6,6 +6,29 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 64
+    },
+    "health_error": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "message",
+        "kind"
+      ]
     }
   },
   "required": [

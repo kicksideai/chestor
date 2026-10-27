@@ -1,10 +1,13 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRequiredCatalog } from './catalog.ts'
 import { Icon } from '@iconify/vue'
 import { host } from '@wippy-fe/proxy'
-import { autocode, errorText } from './api.ts'
+import { autocode } from './api.ts'
+import { errorText } from './presentation.ts'
 
+const catalog = useRequiredCatalog()
 const pruning = ref(false)
 const output = ref('')
 const error = ref('')
@@ -12,7 +15,7 @@ const error = ref('')
 async function prune() {
   const ok = await host.confirm({
     header: 'Clean up Docker',
-    message: 'Prune stopped Autocode containers and unused images and build cache across this Docker host? Other modules may use the shared image cache.',
+    message: `Prune stopped Autocode containers, unused images and build cache older than ${catalog.value.build_cache_retention} across this Docker host? Other modules may use the shared image cache.`,
     icon: 'tabler:trash-x',
     acceptLabel: 'Clean up',
     rejectLabel: 'Cancel',

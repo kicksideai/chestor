@@ -26,6 +26,8 @@ entries:
     kind: library.lua
     source: file://database.lua
     modules: [sql, json, registry, time]
+    imports:
+      recipe: chestor.autocode.domain:recipe
 
   - name: accounts
     kind: library.lua
@@ -37,16 +39,23 @@ entries:
   - name: builds
     kind: library.lua
     source: file://builds.lua
-    modules: [sql, json]
+    modules: [sql, json, time]
     imports:
+      trace: kickside.execution:trace
       database: chestor.autocode.persist:database
+      jobs: kickside.core.jobs:jobs
+      recipe: chestor.autocode.domain:recipe
+      settings: chestor.autocode.domain:settings
 
   - name: runs
     kind: library.lua
     source: file://runs.lua
     modules: [sql, uuid]
     imports:
+      trace: kickside.execution:trace
       database: chestor.autocode.persist:database
+      jobs: kickside.core.jobs:jobs
+      slot_purge: kickside.core.jobs.persist:slot_purge
 
   - name: events
     kind: library.lua
@@ -54,3 +63,19 @@ entries:
     modules: []
     imports:
       database: chestor.autocode.persist:database
+
+  - name: project_account
+    kind: function.lua
+    source: file://account_state.lua
+    method: project
+    imports:
+      repo: chestor.autocode.persist:repo
+      component: kickside.component:component
+    security:
+      actor: {id: system:chestor.autocode.accounts}
+      policies:
+        - chestor.autocode.security:worker_runtime
+        - chestor.autocode.security:worker_calls
+        - chestor.autocode.security:service_calls
+        - chestor.autocode.security:store
+        - chestor.autocode.security:account_status

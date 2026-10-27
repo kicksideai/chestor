@@ -58,7 +58,8 @@
             "type": "boolean"
           },
           "usable": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Eligible for tasks apart from cooldown_until."
           },
           "unavailable_reason": {
             "type": "string"

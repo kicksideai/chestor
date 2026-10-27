@@ -1,0 +1,256 @@
+// SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+import { mocks, render, respond, normal, image, settings, catalog } from './fixtures.ts'
+import { describe, expect, it } from 'vitest'
+import { flushPromises } from '@vue/test-utils'
+import { nextTick } from 'vue'
+import ImageForm from '../../ui/src/app/image-form.vue'
+import Images from '../../ui/src/app/images.vue'
+
+describe('images', () => {
+  it('mounts the shared grants widget only with ADMIN for images', async () => {
+    const item = image
+    normal()
+    mocks.get.mockImplementation(async url => ({ data: { success: true, ...(url.endsWith('/images') ? { images: [{ ...item, shareable: true }] } : respond(url)) } }))
+    const w = render(Images, { query: '' })
+    await flushPromises()
+    await w.get('[aria-label="Share"]').trigger('click')
+    await flushPromises()
+    const share = w.get('kickside-share')
+    expect(JSON.parse(share.attributes('config') ?? '{}')).toMatchObject({ resource_id: item.id, access_url: `/api/v1/component-access/grants/${item.id}`, share_url: `/api/v1/component-access/share/${item.id}` })
+    share.element.dispatchEvent(new Event('close'))
+    await nextTick()
+    expect(w.find('kickside-share').exists()).toBe(false)
+    mocks.get.mockImplementation(async url => ({ data: { success: true, ...(url.endsWith('/images') ? { images: [{ ...item, shareable: false }] } : respond(url)) } }))
+    const denied = render(Images, { query: '' })
+    await flushPromises()
+    expect(denied.find('[aria-label="Share"]').exists()).toBe(false)
+  })
+  it('shows image loading until the initial list resolves', () => {
+    mocks.get.mockReturnValue(new Promise(() => {}))
+    const w = render(Images, { query: '' })
+    expect(w.text()).toContain('Loading')
+    expect(w.text()).not.toContain('yet')
+  })
+  it('does not reopen a closed build log after a delayed read', async () => {
+    normal()
+    let complete: (data: unknown) => void = () => {}
+    const w = render(Images, { query: '' })
+    await flushPromises()
+    mocks.get.mockImplementation(path => path.endsWith('/images/i') ? new Promise(resolve => { complete = resolve }) : Promise.resolve({ data: { success: true, ...respond(path) } }))
+    await w.get('[aria-label="Build log"]').trigger('click')
+    await nextTick()
+    // The dialog closes while its detail loads.
+    const dialog = w.findComponent({ name: 'AppDialog' })
+    expect(dialog.exists()).toBe(true)
+    dialog.vm.$emit('close')
+    complete({ data: { success: true, image, build_log: 'Late log' } })
+    await flushPromises()
+    expect(w.text()).not.toContain('Late log')
+  })
+  it('uses the image settings provided by the catalog', () => {
+    const w = render(ImageForm, { edit: null, capabilities: ['new-capability'] })
+    const inputs = w.findAll('input')
+    expect(inputs.some(i => i.element.value === '8g')).toBe(true)
+    expect(inputs.some(i => i.element.value === '3')).toBe(true)
+    expect(inputs.some(i => i.element.value === '512')).toBe(true)
+    expect(inputs.some(i => i.element.value === 'none')).toBe(true)
+  })
+  it('submits the default image with its catalog label', async () => {
+    normal()
+    const w = render(ImageForm, { edit: null, capabilities: [] })
+    await w.findAll('button').find(b => b.text().includes('Default'))!.trigger('click')
+    await flushPromises()
+    await w.get('button.primary').trigger('click')
+    await flushPromises()
+    expect(mocks.post).toHaveBeenCalledWith(expect.stringContaining('/images'), expect.objectContaining({ ref: catalog.default_image.ref, label: catalog.default_image.label }))
+  })
+  it('hides image delete for a WRITE-only grant', async () => {
+    normal()
+    const w = render(Images, { query: '' })
+    await flushPromises()
+    expect(w.find('[aria-label="Delete image"]').exists()).toBe(false)
+    expect(w.find('[aria-label="Edit settings"]').exists()).toBe(true)
+  })
+  it('shows image delete for a DELETE-only grant', async () => {
+    normal()
+    mocks.get.mockImplementation(async path => ({ data: { success: true, ...respond(path), ...(path.endsWith('/images') ? { images: [{ ...image, writable: false, deletable: true }] } : {}) } }))
+    const w = render(Images, { query: '' })
+    await flushPromises()
+    expect(w.find('[aria-label="Delete image"]').exists()).toBe(true)
+    expect(w.find('[aria-label="Edit settings"]').exists()).toBe(false)
+  })
+  it('does not replace missing editable-image settings with catalog defaults', () => {
+    const w = render(ImageForm, { edit: { image, build_log: '' }, capabilities: [] })
+    expect(w.find('input').exists()).toBe(false)
+    expect(w.text()).toContain('settings are unavailable')
+  })
+  it('reports saved settings whose preparation fails and offers Prepare to retry', async () => {
+    normal()
+    mocks.put.mockResolvedValue({ data: { success: true, id: 'i', build_error: { message: 'Build queue unavailable', kind: 'Unavailable' } } })
+    mocks.get.mockImplementation(async path => ({ data: { success: true, ...(path.endsWith('/images/i')
+      ? { image, build_log: '', settings }
+      : { ...respond(path), ...(path.endsWith('/images') ? { images: [{ ...image, status: 'unprepared' }] } : {}) }) } }))
+    const w = render(Images, { query: '' })
+    await flushPromises()
+    await w.get('[aria-label="Edit settings"]').trigger('click')
+    await flushPromises()
+    await w.findComponent(ImageForm).get('button.primary').trigger('click')
+    await flushPromises()
+    expect(w.text()).toContain('Settings saved')
+    expect(w.text()).toContain('Build queue unavailable')
+    expect(w.text()).toContain('Prepare image to retry')
+    await w.get('[aria-label="Prepare image"]').trigger('click')
+    await flushPromises()
+    expect(mocks.post).toHaveBeenCalledWith(expect.stringContaining('/images/i/prepare'), undefined)
+  })
+  it('reports an already-created image whose build admission fails', async () => {
+    normal()
+    mocks.post.mockResolvedValue({ data: { success: true, id: 'created', build_error: { message: 'Build queue unavailable', kind: 'Unavailable', retryable: true, details: { code: 'queue_unavailable' } } } })
+    const w = render(ImageForm, { edit: null, capabilities: [] })
+    const reference = w.findAll('input').find(input => input.attributes('placeholder')?.includes('name:tag'))
+    expect(reference).toBeDefined()
+    await reference!.setValue('agent:test')
+    const save = w.findAll('button').find(button => button.text().includes('Add image'))
+    await save!.trigger('click')
+    await flushPromises()
+    expect(w.emitted('saved')?.[0]?.[0]).toContain('Build queue unavailable')
+  })
+  it('receives completion while principal resolution is delayed', async () => {
+    normal()
+    let ready = false
+    let finishLabels: (value: unknown) => void = () => {}
+    mocks.post.mockImplementation(() => new Promise(resolve => { finishLabels = resolve }))
+    mocks.get.mockImplementation(async path => ({ data: { success: true, ...respond(path), ...(path.endsWith('/images') ? { images: [{ ...image, status: ready ? 'ready' : 'preparing' }] } : {}) } }))
+    const w = render(Images, { query: '' })
+    await flushPromises()
+    expect(mocks.callbacks.has('component.i')).toBe(true)
+    expect(mocks.get.mock.calls.filter(([path]) => path.endsWith('/images')).length).toBeGreaterThanOrEqual(2)
+    ready = true
+    mocks.callbacks.get('component.i')?.()
+    await flushPromises()
+    expect(w.find('.ac-tone.ready').exists()).toBe(true)
+    expect(w.get('[aria-label="Prepare image"]').attributes('disabled')).toBeUndefined()
+    finishLabels({ data: { success: true, principals: [{ id: 'u', label: 'Owner' }] } })
+    await flushPromises()
+    expect(w.find('.ac-tone.ready').exists()).toBe(true)
+    expect(w.text()).toContain('Owner: Owner')
+  })
+  it('shows saved settings that require preparation', async () => {
+    normal()
+    mocks.get.mockImplementation(async path => ({ data: { success: true, ...respond(path), ...(path.endsWith('/images') ? { images: [{ ...image, status: 'unprepared' }] } : {}) } }))
+    const w = render(Images, { query: '' })
+    await flushPromises()
+    expect(w.text()).toContain('Needs preparation')
+    expect(w.get('[aria-label="Prepare image"]').attributes('disabled')).toBeUndefined()
+  })
+  it('shows a usable generation during refresh and its failure afterwards', async () => {
+    normal()
+    let status = 'preparing'
+    mocks.get.mockImplementation(async path => ({ data: { success: true, ...respond(path), ...(path.endsWith('/images') ? { images: [{ ...image, status, usable: true, last_error: status === 'failed' ? 'pull failed' : '' }] } : {}) } }))
+    const w = render(Images, { query: '' })
+    await flushPromises()
+    expect(w.text()).toContain('Preparing')
+    expect(w.text()).toContain('Usable')
+    status = 'failed'
+    mocks.callbacks.get('component.i')?.()
+    await flushPromises()
+    expect(w.text()).toContain('Failed')
+    expect(w.text()).toContain('Usable')
+    expect(w.text()).toContain('pull failed')
+  })
+  it('keeps Prepare disabled for a live build', async () => {
+    normal()
+    mocks.get.mockImplementation(async path => ({ data: { success: true, ...respond(path), ...(path.endsWith('/images') ? { images: [{ ...image, status: 'preparing' }] } : {}) } }))
+    const w = render(Images, { query: '' })
+    await flushPromises()
+    expect(w.get('[aria-label="Prepare image"]').attributes('disabled')).toBeDefined()
+  })
+  it('keeps the newest edit selection when an earlier read completes last', async () => {
+    normal()
+    let finishFirst: (value: unknown) => void = () => {}
+    mocks.get.mockImplementation(path => {
+      if (path.endsWith('/images')) return Promise.resolve({ data: { success: true, images: [image, { ...image, id: 'b', label: 'Second' }] } })
+      if (path.endsWith('/images/i')) return new Promise(resolve => { finishFirst = resolve })
+      if (path.endsWith('/images/b')) return Promise.resolve({ data: { success: true, image: { ...image, id: 'b', label: 'Second' }, build_log: '', settings } })
+      return Promise.resolve({ data: { success: true, ...respond(path) } })
+    })
+    const w = render(Images, { query: '' })
+    await flushPromises()
+    const buttons = w.findAll('[aria-label="Edit settings"]')
+    await buttons[0]!.trigger('click')
+    await buttons[1]!.trigger('click')
+    await flushPromises()
+    finishFirst({ data: { success: true, image, build_log: '', settings } })
+    await flushPromises()
+    expect(w.findComponent(ImageForm).props('edit')?.image.id).toBe('b')
+  })
+  it('invalidates a pending edit when Add selects a new image', async () => {
+    normal()
+    let finish: (value: unknown) => void = () => {}
+    mocks.get.mockImplementation(path => path.endsWith('/images/i') ? new Promise(resolve => { finish = resolve }) : Promise.resolve({ data: { success: true, ...respond(path) } }))
+    const w = render(Images, { query: '' })
+    await flushPromises()
+    await w.get('[aria-label="Edit settings"]').trigger('click')
+    ;(w.vm as unknown as { open: () => void }).open()
+    finish({ data: { success: true, image, build_log: '', settings } })
+    await flushPromises()
+    expect(w.findComponent(ImageForm).props('edit')).toBe(null)
+  })
+  it('invalidates pending edits when the dialog closes', async () => {
+    normal()
+    let finish: (value: unknown) => void = () => {}
+    let delayed = false
+    mocks.get.mockImplementation(path => {
+      if (path.endsWith('/images/i')) return delayed ? new Promise(resolve => { finish = resolve }) : Promise.resolve({ data: { success: true, image, build_log: '', settings } })
+      return Promise.resolve({ data: { success: true, ...respond(path) } })
+    })
+    const w = render(Images, { query: '' })
+    await flushPromises()
+    await w.get('[aria-label="Edit settings"]').trigger('click')
+    await flushPromises()
+    delayed = true
+    await w.get('[aria-label="Edit settings"]').trigger('click')
+    w.findComponent({ name: 'AppDialog' }).vm.$emit('close')
+    finish({ data: { success: true, image, build_log: '', settings } })
+    await flushPromises()
+    expect(w.findComponent(ImageForm).exists()).toBe(false)
+  })
+  it('refreshes deleted images and warns when Docker cleanup fails', async () => {
+  normal()
+  let deleted = false
+  mocks.get.mockImplementation(async path => ({ data: { success: true, ...respond(path), ...(path.endsWith('/images') ? { images: deleted ? [] : [{ ...image, deletable: true }] } : {}) } }))
+  mocks.confirm.mockResolvedValue(true)
+  mocks.delete.mockImplementation(async () => {
+    deleted = true
+    return { data: { success: true, docker_error: { message: 'Docker unavailable', kind: 'Unavailable', retryable: false, details: { code: 'daemon_down' } } } }
+  })
+  const w = render(Images, { query: '' })
+  await flushPromises()
+  await w.get('[aria-label="Delete image"]').trigger('click')
+  await flushPromises()
+  expect(w.find('[aria-label="Delete image"]').exists()).toBe(false)
+  expect(w.text()).toContain('Image deleted')
+  expect(w.text()).toContain('Docker unavailable')
+  expect(w.text()).toContain('prune')
+})
+})
+
+
+it('edits the image reference and existing Dockerfile and explains automatic preparation', async () => {
+  mocks.put.mockResolvedValue({ data: { success: true, id: 'i' } })
+  const w = render(ImageForm, { edit: { image, build_log: '', settings, dockerfile: 'FROM old' }, capabilities: [] })
+  const reference = w.get<HTMLInputElement>('input[placeholder="registry/name:tag"]')
+  expect(reference.element.value).toBe(image.ref)
+  expect(w.get<HTMLTextAreaElement>('textarea[rows="9"]').element.value).toBe('FROM old')
+  expect(w.text()).toContain('automatically')
+  expect(w.text()).not.toContain('need Prepare image')
+  await reference.setValue('new:tag')
+  await w.get('textarea[rows="9"]').setValue('FROM new')
+  await w.get('button.primary').trigger('click')
+  await flushPromises()
+  expect(mocks.put).toHaveBeenLastCalledWith(expect.stringContaining('/images/i'), expect.objectContaining({ ref: 'new:tag', dockerfile: 'FROM new' }))
+  await w.findAll('button').find(b => b.text() === 'Use or pull existing')!.trigger('click')
+  await w.get('button.primary').trigger('click')
+  await flushPromises()
+  expect(mocks.put).toHaveBeenLastCalledWith(expect.stringContaining('/images/i'), expect.objectContaining({ dockerfile: '' }))
+})

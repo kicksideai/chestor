@@ -35,7 +35,8 @@ entries:
             unattended: { type: boolean, title: Unattended }
             options: { type: object, title: Driver options, additionalProperties: true }
             repo_url: { type: string, maxLength: 2000, title: Git repository }
-            timeout: { type: string, maxLength: 64, title: Timeout, description: A duration of at least one minute; empty uses the configured run timeout. }
+            repo_ref: { type: string, maxLength: 200, title: Repository branch or tag }
+            run_timeout: { type: string, maxLength: 64, title: Run timeout, description: A duration of at least one minute; empty uses the configured run timeout. }
         output: &task_output
           type: object
           additionalProperties: false
@@ -85,6 +86,7 @@ entries:
     method: arm
     modules: [json, security]
     imports:
+      trace: kickside.execution:trace
       client: chestor.autocode.service:client
       boundary: chestor.autocode.service:boundary
       dataflow_repo: userspace.dataflow.persist:dataflow_repo
@@ -96,9 +98,8 @@ entries:
       comment: Job that continues the workflow node a run started, with the stored run's result as the node's output.
     source: file://resume.lua
     method: run
-    modules: [funcs, security]
     imports:
-      repo: chestor.autocode.persist:repo
+      workflow_resume: chestor.autocode.service:workflow_resume
     security:
       actor:
         id: system:chestor.autocode.resume

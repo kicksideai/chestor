@@ -13,6 +13,11 @@ function M.messages()
     local request = http.request()
     local response = http.response()
     local body = json.decode(request:body())
+    if request:header("x-api-key") ~= "sk-ant-harness-" .. string.rep("r", 32) then
+        response:set_status(401)
+        response:write_json({error = {type = "authentication_error", message = "rotated credential required"}})
+        return
+    end
     if not body or body.stream ~= true then
         response:set_status(400)
         response:write_json({error = {type = "invalid_request_error", message = "stream is required"}})

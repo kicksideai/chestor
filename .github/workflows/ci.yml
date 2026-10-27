@@ -52,75 +52,19 @@ jobs:
         - module: autocode
           wippy_version: 0.3.51a
           engine: sqlite
-          commands: "set -euo pipefail\nsource_root=\"$PWD\"\nexport TMPDIR=\"$source_root/.scratch\"\
-            \nmkdir -p \"$TMPDIR\"\nmake -C autocode ui-kit\nnpm --prefix autocode/ui ci\nnpm --prefix autocode/ui\
-            \ run typecheck\nnpm --prefix autocode/ui run build\ncd autocode/test\n\
-            wippy update\nwippy lint --ns chestor.autocode --ns 'chestor.autocode.*'\
-            \ \nwippy test  2>&1 | tee .wippy-test.log\nsed -E 's/\\x1B\\[[0-?]*[\
-            \ -/]*[@-~]//g' .wippy-test.log > .wippy-test.clean.log\nawk '/No tests\
-            \ found/ { empty=1 } /^[[:space:]]*FAILED([[:space:]]|$)/ { failed=1 }\
-            \ /^[[:space:]]*PASSED([[:space:]]|$)/ { passed=1 } END { exit(empty ||\
-            \ failed || !passed) }' .wippy-test.clean.log\ncd \"$source_root\"\nversion=$(jq\
-            \ -er --arg path autocode '.[$path]' .release-please-manifest.json)\nwippy\
-            \ publish --config autocode --version \"$version\" --dry-run --create --module-visibility\
-            \ public --module-type plugin --embed chestor.autocode:ui_fs\n"
+          commands: |
+            set -euo pipefail
+            export TMPDIR="$PWD/.scratch"
+            mkdir -p "$TMPDIR"
+            make -C autocode release-check
         - module: autocode
           wippy_version: 0.3.51a
           engine: postgres
-          commands: 'set -euo pipefail
-
-            source_root="$PWD"
-
-            export TMPDIR="$source_root/.scratch"
-
+          commands: |
+            set -euo pipefail
+            export TMPDIR="$PWD/.scratch"
             mkdir -p "$TMPDIR"
-
-            make -C autocode ui-kit
-
-            npm --prefix autocode/ui ci
-
-            npm --prefix autocode/ui run typecheck
-
-            npm --prefix autocode/ui run build
-
-            cd autocode/test
-
-            wippy update
-
-            databases=()
-
-            cleanup_databases() { for database in "${databases[@]}"; do dropdb "$database";
-            done; }
-
-            trap cleanup_databases EXIT
-
-            database="ci_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}_0"
-
-            createdb "$database"
-
-            databases+=("$database")
-
-            wippy lint --ns chestor.autocode --ns ''chestor.autocode.*'' --profile postgres
-            --set "vars.pg_database=${databases[0]}" --set vars.pg_host=127.0.0.1
-            --set vars.pg_port=5433
-
-            wippy test --profile postgres --set "vars.pg_database=${databases[0]}"
-            --set vars.pg_host=127.0.0.1 --set vars.pg_port=5433 2>&1 | tee .wippy-test.log
-
-            sed -E ''s/\x1B\[[0-?]*[ -/]*[@-~]//g'' .wippy-test.log > .wippy-test.clean.log
-
-            awk ''/No tests found/ { empty=1 } /^[[:space:]]*FAILED([[:space:]]|$)/
-            { failed=1 } /^[[:space:]]*PASSED([[:space:]]|$)/ { passed=1 } END { exit(empty
-            || failed || !passed) }'' .wippy-test.clean.log
-
-            cd "$source_root"
-
-            version=$(jq -er --arg path autocode ''.[$path]'' .release-please-manifest.json)
-
-            wippy publish --config autocode --version "$version" --dry-run --create
-            --module-visibility public --module-type plugin --embed chestor.autocode:ui_fs
-
-            '
+            make -C autocode release-check TEST_TARGET=test-pg
         - module: db-schema
           engine: sqlite
           commands: "set -euo pipefail\nsource_root=\"$PWD\"\nexport TMPDIR=\"$source_root/.scratch\"\

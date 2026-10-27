@@ -14,6 +14,8 @@ entries:
       - security
     imports:
       boundary: chestor.autocode.service:boundary
+      http_errors: kickside.contract:http_errors
+      client: chestor.autocode.service:client
 
   - name: catalog
     kind: function.lua
@@ -33,24 +35,6 @@ entries:
     func: catalog
     path: /autocode/catalog
 
-  - name: drivers_list
-    kind: function.lua
-    meta:
-      comment: "GET /autocode/drivers - The activated bee/drivers with their options, capabilities and credentials."
-    source: file://drivers.lua
-    method: list
-    imports:
-      web: chestor.autocode.api:web
-      client: chestor.autocode.service:client
-
-  - name: drivers_list.user.endpoint
-    kind: http.endpoint
-    meta:
-      comment: "GET /autocode/drivers"
-    method: GET
-    func: drivers_list
-    path: /autocode/drivers
-
   - name: accounts_list
     kind: function.lua
     meta:
@@ -59,7 +43,6 @@ entries:
     method: list
     imports:
       web: chestor.autocode.api:web
-      client: chestor.autocode.service:client
 
   - name: accounts_list.user.endpoint
     kind: http.endpoint
@@ -77,7 +60,6 @@ entries:
     method: create
     imports:
       web: chestor.autocode.api:web
-      client: chestor.autocode.service:client
 
   - name: accounts_create.user.endpoint
     kind: http.endpoint
@@ -95,7 +77,6 @@ entries:
     method: update
     imports:
       web: chestor.autocode.api:web
-      client: chestor.autocode.service:client
 
   - name: accounts_update.user.endpoint
     kind: http.endpoint
@@ -113,7 +94,6 @@ entries:
     method: delete
     imports:
       web: chestor.autocode.api:web
-      client: chestor.autocode.service:client
 
   - name: accounts_delete.user.endpoint
     kind: http.endpoint
@@ -131,7 +111,6 @@ entries:
     method: list
     imports:
       web: chestor.autocode.api:web
-      client: chestor.autocode.service:client
 
   - name: runs_list.user.endpoint
     kind: http.endpoint
@@ -149,7 +128,6 @@ entries:
     method: create
     imports:
       web: chestor.autocode.api:web
-      client: chestor.autocode.service:client
 
   - name: runs_create.user.endpoint
     kind: http.endpoint
@@ -167,7 +145,6 @@ entries:
     method: get
     imports:
       web: chestor.autocode.api:web
-      client: chestor.autocode.service:client
 
   - name: runs_get.user.endpoint
     kind: http.endpoint
@@ -185,7 +162,6 @@ entries:
     method: cancel
     imports:
       web: chestor.autocode.api:web
-      client: chestor.autocode.service:client
 
     security:
       policies:

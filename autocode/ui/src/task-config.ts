@@ -10,7 +10,7 @@ import stylesText from './task-config.css?inline'
 // `config-changed` it emits.
 const PROPS_SCHEMA = {
   type: 'object',
-  properties: { config: { type: 'object', description: 'Coding agent task Block instance configuration.' } },
+  properties: { config: { type: 'object', default: {}, description: 'Coding agent task Block instance configuration.' } },
 } satisfies WippyPropsSchema
 
 class TaskConfigElement extends WippyVueElement<{ config?: TaskConfigValue }, { 'config-changed': TaskConfigValue }> {

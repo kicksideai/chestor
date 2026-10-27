@@ -14,6 +14,8 @@ entries:
 - name: values
   kind: library.lua
   source: file://values.lua
+  imports:
+    canonical_json: kickside.contract:canonical_json
 
 - name: client
   kind: library.lua
@@ -23,9 +25,9 @@ entries:
   imports:
     boundary: chestor.autocode.service:boundary
 
-- name: projections
+- name: resource_dto
   kind: library.lua
-  source: file://projections.lua
+  source: file://resource_dto.lua
   imports:
     repo: chestor.autocode.persist:repo
     resources: chestor.autocode.components:resources
@@ -35,29 +37,31 @@ entries:
   source: file://accounts.lua
   modules:
   - security
-  - logger
   imports:
     boundary: chestor.autocode.service:boundary
     values: chestor.autocode.service:values
     repo: chestor.autocode.persist:repo
     resources: chestor.autocode.components:resources
     drivers: bee.drivers:drivers
-    credentials: chestor.autocode.runner:credentials
-    runs: chestor.autocode.runner:runs
-    live: chestor.autocode.runner:live
+    credentials: chestor.autocode.domain:credentials
+    runs: chestor.autocode.service:runs
+    live: chestor.autocode.domain:live
 
 - name: images
   kind: library.lua
   source: file://images.lua
   modules:
-  - security
+  - ctx
   - uuid
   - logger
   imports:
+    trace: kickside.execution:trace
     values: chestor.autocode.service:values
+    recipe: chestor.autocode.domain:recipe
     repo: chestor.autocode.persist:repo
     drivers: bee.drivers:drivers
-    deferred: chestor.autocode.runner:deferred
+    deferred: chestor.autocode.service:deferred
+    jobs: kickside.core.jobs:jobs
 
 - name: catalog
   kind: library.lua
@@ -69,6 +73,7 @@ entries:
     client: chestor.autocode.service:client
     images: chestor.autocode.service:images
     accounts: chestor.autocode.service:accounts
+    maintenance: chestor.autocode.service:maintenance
     boundary: chestor.autocode.service:boundary
 
 - name: add_account
@@ -102,10 +107,10 @@ entries:
     repo: chestor.autocode.persist:repo
     resources: chestor.autocode.components:resources
     images: chestor.autocode.service:images
-    projections: chestor.autocode.service:projections
+    resource_dto: chestor.autocode.service:resource_dto
     values: chestor.autocode.service:values
     boundary: chestor.autocode.service:boundary
-    docker: chestor.autocode.runner:docker
+    docker_image: chestor.autocode.infrastructure:docker_image
 
 - name: workspace_management
   kind: library.lua
@@ -113,14 +118,122 @@ entries:
   modules:
   - security
   imports:
+    resource_dto: chestor.autocode.service:resource_dto
     values: chestor.autocode.service:values
     resources: chestor.autocode.components:resources
-    workspaces: chestor.autocode.runner:workspaces
+    workspaces: chestor.autocode.infrastructure:workspaces
     client: chestor.autocode.service:client
     boundary: chestor.autocode.service:boundary
 
 - name: maintenance
   kind: library.lua
   source: file://maintenance.lua
+  modules: [time]
   imports:
-    docker: chestor.autocode.runner:docker
+    settings: chestor.autocode.domain:settings
+    maintenance: chestor.autocode.service:docker_maintenance
+
+- name: deferred
+  kind: library.lua
+  meta:
+    comment: Checks the shared jobs database, captures execution identity and wakes the jobs pool after commit.
+  source: file://deferred.lua
+  imports:
+    repo: chestor.autocode.persist:repo
+    job_outcome: chestor.autocode.domain:job_outcome
+    jobs_config: kickside.core.jobs:config
+    jobs_wake: kickside.core.jobs.persist:wake
+    execution_identity: kickside.execution:execution_identity
+
+- name: admission
+  kind: library.lua
+  source: file://admission.lua
+  modules: [security, time]
+  imports:
+    recipe: chestor.autocode.domain:recipe
+    repo: chestor.autocode.persist:repo
+    resources: chestor.autocode.components:resources
+    drivers: bee.drivers:drivers
+    credentials: chestor.autocode.domain:credentials
+    workspaces: chestor.autocode.infrastructure:workspaces
+    settings: chestor.autocode.domain:settings
+
+- name: runs
+  kind: library.lua
+  source: file://runs.lua
+  modules: [security, logger, ctx]
+  imports:
+    trace: kickside.execution:trace
+    canonical_json: kickside.contract:canonical_json
+    admission: chestor.autocode.service:admission
+    repo: chestor.autocode.persist:repo
+    deferred: chestor.autocode.service:deferred
+    live: chestor.autocode.domain:live
+
+- name: docker_maintenance
+  kind: library.lua
+  source: file://docker_maintenance.lua
+  imports:
+    repo: chestor.autocode.persist:repo
+    docker: chestor.autocode.infrastructure:docker
+
+- name: prepare
+  kind: function.lua
+  meta:
+    comment: Runs under the run owner - admits the recorded run again with the owner's current grants and reads the account credential.
+  source: file://owner.lua
+  method: prepare
+  modules: &owner_modules
+    - security
+  imports: &owner_imports
+    repo: chestor.autocode.persist:repo
+    runs: chestor.autocode.service:runs
+    transport: chestor.autocode.service:transport
+    credentials: chestor.autocode.domain:credentials
+    drivers: bee.drivers:drivers
+    resources: chestor.autocode.components:resources
+
+- name: keep_credential
+  kind: function.lua
+  meta:
+    comment: Runs under the run owner - stores a login file the CLI refreshed while the account still holds the revision the run read.
+  source: file://owner.lua
+  method: keep_credential
+  modules: *owner_modules
+  imports: *owner_imports
+
+- name: image_recipe
+  kind: function.lua
+  meta:
+    comment: Runs under the build requester - reads the reference and Dockerfile of an image the requester may change.
+  source: file://owner.lua
+  method: image_recipe
+  modules: *owner_modules
+  imports: *owner_imports
+
+- name: image_ready
+  kind: function.lua
+  meta:
+    comment: Publishes ready under the build requester only while the recipe context revision still matches.
+  source: file://owner.lua
+  method: image_ready
+  modules: *owner_modules
+  imports: *owner_imports
+
+- name: transport
+  kind: library.lua
+  source: file://transport.lua
+  imports:
+    recipe: chestor.autocode.domain:recipe
+    repo: chestor.autocode.persist:repo
+    admission: chestor.autocode.service:admission
+    drivers: bee.drivers:drivers
+    credentials: chestor.autocode.domain:credentials
+
+- name: workflow_resume
+  kind: library.lua
+  source: file://workflow_resume.lua
+  modules: [funcs, security]
+  imports:
+    repo: chestor.autocode.persist:repo
+    canonical_json: kickside.contract:canonical_json

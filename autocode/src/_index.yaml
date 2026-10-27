@@ -70,11 +70,6 @@ entries:
     meta:
       comment: Holds the workspace roots; the workspace_roots requirement rewrites meta.workspace_roots.
 
-  - name: docker
-    kind: exec.native
-    meta:
-      comment: Host executor for the docker CLI. Commands are argv lines; secrets travel only in the per-command environment.
-
   - name: ui_fs
     kind: fs.directory
     meta:
@@ -106,7 +101,13 @@ entries:
       entry_point: index.js
       icon: tabler:robot
       description: Starts agent tasks across your agent accounts and streams their output. Subscription logins are for personal use only; use API keys or your own endpoints for production or multiple users.
-      props: {}
+      props:
+        type: object
+        properties:
+          route:
+            type: string
+            default: ""
+            description: Path relative to /autocode; runs/<run_id> opens a run.
 
   - name: driver_account_view
     kind: registry.entry
@@ -120,7 +121,9 @@ entries:
       entry_point: driver-account.js
       description: Credential card of one agent driver - drop or paste a login file or key, an optional own endpoint for API keys, and the personal-use notice for subscription logins.
       props:
-        config: {type: object}
+        type: object
+        properties:
+          config: {type: object, default: {}, description: Host-provided component configuration.}
 
   - name: task_config_view
     kind: registry.entry
@@ -134,7 +137,9 @@ entries:
       entry_point: task-config.js
       description: Config editor of the coding agent task Block - agent, account or balancing, image, workspace, task and the driver's own options.
       props:
-        config: {type: object}
+        type: object
+        properties:
+          config: {type: object, default: {}, description: Host-provided component configuration.}
 
   - name: settings_tab_view
     kind: registry.entry

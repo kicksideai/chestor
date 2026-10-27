@@ -1,0 +1,48 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: chestor.autocode.domain
+
+entries:
+  - name: recipe
+    kind: library.lua
+    source: file://recipe.lua
+
+  - name: credentials
+    kind: library.lua
+    meta:
+      comment: The credential choices a driver offers an account - its login files and key variables.
+    source: file://credentials.lua
+    modules:
+      - json
+    imports:
+      drivers: bee.drivers:drivers
+
+  - name: live
+    kind: library.lua
+    meta:
+      comment: Live run updates for the run owner's open autocode views over kickside.contract:realtime.
+    source: file://live.lua
+    imports:
+      component: kickside.component:component
+    modules:
+      - contract
+      - funcs
+
+  - name: settings
+    kind: library.lua
+    meta:
+      comment: Reads the autocode duration settings through kickside.settings:settings.
+    source: file://settings.lua
+    imports:
+      job_outcome: chestor.autocode.domain:job_outcome
+    modules:
+      - contract
+
+
+
+  - name: job_outcome
+    kind: library.lua
+    source: file://job_outcome.lua
+    imports:
+      job_types: kickside.core.jobs:types
+

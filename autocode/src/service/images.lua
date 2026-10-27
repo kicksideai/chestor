@@ -1,25 +1,25 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 -- The default agent image recipe, the decoder of image run settings, and the
 -- build request every image change goes through.
+local recipe = require("recipe")
 local values = require("values")
 local logger = require("logger")
 local repo = require("repo")
 local drivers = require("drivers")
 local deferred = require("deferred")
-local security = require("security")
+local jobs = require("jobs")
 local uuid = require("uuid")
+local ctx = require("ctx")
+local trace = require("trace")
 
-local BUILD_JOB = "chestor.autocode.runner:image"
-
-type Settings = {memory: string, cpus: string, pids_limit: integer, gpus: string, network: string, extra_args: {string},
-    allows: {string}}
+type Settings = recipe.Settings
 type Decoded = {label: string, home: string, settings: Settings}
 
 local M = {}
 
 local PRESET = {
     ref = "chestor-autocode-agent:latest",
-    label = "Curated preset: Claude Code, Codex, Antigravity, Muse",
+    label = "Curated preset: Claude Code, Codex, Pi, Antigravity, Muse",
     home = "/opt/agent",
     -- Antigravity installs with its own checksum-verifying installer; Muse
     -- installs its launcher, which fetches the Muse binary for the account's
@@ -28,7 +28,7 @@ local PRESET = {
         "FROM node:22-bookworm-slim",
         "RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates curl ripgrep \\",
         "    && rm -rf /var/lib/apt/lists/*",
-        "RUN npm install -g @anthropic-ai/claude-code @openai/codex && npm cache clean --force",
+        "RUN npm install -g @anthropic-ai/claude-code @openai/codex @mariozechner/pi-coding-agent && npm cache clean --force",
         "RUN curl -fsSL https://antigravity.google/cli/install.sh | bash -s -- --dir /usr/local/bin && rm -rf /root/.cache/antigravity",
         "RUN curl -fsSL https://api.meta.ai/muse-launcher.sh -o /usr/local/bin/muse && chmod 0755 /usr/local/bin/muse",
         "RUN mkdir -p /opt/agent/.claude /opt/agent/.codex /opt/agent/.gemini /opt/agent/.config/muse /opt/agent/work \\",
@@ -83,7 +83,8 @@ function M.decode(body: {[string]: unknown}): (Decoded?, error?)
     if not label or not home or not memory or not cpus or not gpus or not network then
         return nil, refuse("label, home, memory, cpus, gpus, and network must be short strings")
     end
-    if home:sub(1, 1) ~= "/" then return nil, refuse("home must be an absolute path inside the image") end
+    home = recipe.home(home)
+    if not home then return nil, refuse("home must be an absolute path outside root and /workspace") end
     local pids = body.pids_limit or RUN_DEFAULTS.pids_limit
     if type(pids) ~= "number" or pids < 0 or pids ~= math.floor(pids) then return nil, refuse("pids_limit must be a non-negative integer") end
     local extra_args = values.strings(body.extra_args or RUN_DEFAULTS.extra_args, 64, 1024)
@@ -104,18 +105,38 @@ function M.decode(body: {[string]: unknown}): (Decoded?, error?)
         network = network, extra_args = extra_args, allows = allows}}, nil
 end
 
--- request_build records a build of the image under the caller's identity
--- and enqueues its job; the image shows as preparing until the job settles
--- it. "initial" uses a local copy of a registry reference; "refresh" pulls it.
+-- admit_build answers whether the image can start a new build generation:
+-- the generation it replaces, or a conflict while its current build is live.
+function M.admit_build(image_id: string): (string?, error?)
+    local current, read_err = repo.image_build(image_id)
+    if read_err then return nil, read_err end
+    if not current or (current.finished_at ~= "" and current.projected) then return nil, nil end
+    if current.job_id == "" then
+        return nil, errors.new({kind = errors.CONFLICT, message = "image build has no recorded job ID; termination is unconfirmed"})
+    end
+    local job, job_err = jobs.get_job(current.job_id)
+    if job_err then return nil, job_err end
+    if job and (job.status == "pending" or job.status == "running") then
+        return nil, errors.new({kind = errors.CONFLICT, message = "image already has an active build"})
+    end
+    return current.build_id, nil
+end
+
+-- request_build records and enqueues a generation under the caller's identity.
+-- An approved generation remains usable while its replacement settles.
+-- "initial" uses an existing local image; "refresh" pulls references with
+-- registry provenance and re-probes local-only images without pulling.
 function M.request_build(image_id: string, mode: repo.BuildMode): error?
     local database_err = deferred.check()
     if database_err then return database_err end
     local row, capture_err = deferred.capture()
     if not row then return capture_err end
-    local actor = security.actor()
+    local replaces, admit_err = M.admit_build(image_id)
+    if admit_err then return admit_err end
     local build_id = uuid.v7()
-    local err = repo.request_image_build(image_id, row, mode, deferred.enqueue({scope = image_id, key = "build:" .. build_id,
-        owner_id = actor and actor:id() or "", job_type = BUILD_JOB, max_attempts = 3, payload = {image_id = image_id, build_id = build_id}}), build_id)
+    local trace_context, trace_err = trace.normalize(ctx.get("trace_context"))
+    if trace_err then return trace_err end
+    local err = repo.request_image_build(image_id, row, mode, build_id, replaces, trace_context)
     if err then return err end
     local wake_err = deferred.nudge()
     if wake_err then logger:warn("autocode committed image build awaits jobs reconciliation", {image_id = image_id, build_id = build_id, error = tostring(wake_err)}) end

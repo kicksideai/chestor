@@ -10,7 +10,7 @@
     "credential_kind": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 64
+      "maxLength": 200
     },
     "label": {
       "type": "string",

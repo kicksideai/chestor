@@ -14,4 +14,4 @@ entries:
   - name: ui_kit
     kind: ns.dependency
     component: kickside/ui-kit
-    version: "^1.0.0"
+    version: ">=1.0.0"

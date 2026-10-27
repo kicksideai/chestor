@@ -10,7 +10,7 @@ local security = require("security")
 local ctx = require("ctx")
 local registry = require("registry")
 local accounts = require("accounts")
-local projections = require("projections")
+local resource_dto = require("resource_dto")
 
 type Object = {[string]: unknown}
 local M = {}
@@ -25,7 +25,7 @@ function M.list_agents(args: unknown): (Object?, error?)
     if not request then return nil, err end
     local all, list_err = drivers.list()
     if not all then return nil, boundary.native(list_err) end
-    local declarations, declaration_err = registry.find({["meta.type"] = "harness.driver"})
+    local declarations, declaration_err = registry.find({[".kind"] = "contract.binding", ["meta.type"] = "harness.driver"})
     if not declarations then return nil, boundary.native(declaration_err) end
     local icons: {[string]: string} = {}
     for _, declaration in ipairs(declarations) do
@@ -40,8 +40,17 @@ function M.list_agents(args: unknown): (Object?, error?)
             choices[#choices + 1] = {id = kind.id, label = kind.label, hint = kind.hint,
                 file = kind.file and kind.file.path or nil, subscription = kind.subscription, format = credentials.format(kind)}
         end
+        local options: {Object} = table.create(1, 0)
+        for _, option in ipairs(driver.options) do
+            local projected = values.object(option) or {}
+            if option.schema ~= nil then projected.schema = values.object(option.schema) end
+            if type(option.schema) == "table" and option.schema.type == "object" and type(option.default) == "table" then
+                projected.default = values.object(option.default)
+            end
+            options[#options + 1] = projected
+        end
         agents[#agents + 1] = {id = driver.id, title = driver.title, icon = icons[driver.id] or "tabler:terminal-2", credentials = choices,
-            endpoints = values.array(driver.endpoints), capabilities = values.array(driver.capabilities), unattended = driver.unattended, options = values.array(driver.options)}
+            endpoints = values.array(driver.endpoints), capabilities = values.array(driver.capabilities), unattended = driver.unattended and values.object(driver.unattended), options = options}
     end
     return {agents = agents}, nil
 end
@@ -55,15 +64,14 @@ function M.list_images(args: unknown): (Object?, error?)
     if not request then return nil, err end
     local all, list_err = resources.list("image")
     if not all then return nil, boundary.native(list_err) end
-    local result: {projections.Image} = table.create(1, 0)
+    local result: {resource_dto.Image} = table.create(1, 0)
     for _, image in ipairs(all) do
         local build, build_err = repo.image_build(image.id)
         if build_err then return nil, boundary.native(build_err) end
-        local projected = projections.image(image, build)
-        local ready = image.meta.status == "ready" and not (build and (build.finished_at == "" or not build.projected))
+        local projected = resource_dto.image(image, build)
         local supports = request.agent == nil
         for _, agent in ipairs(projected.agents) do if agent == request.agent then supports = true end end
-        if supports and (request.ready_only == false or ready) then result[#result + 1] = projected end
+        if supports and (request.ready_only == false or projected.usable) then result[#result + 1] = projected end
     end
     return {images = result}, nil
 end
@@ -72,9 +80,9 @@ function M.list_workspaces(args: unknown): (Object?, error?)
     if not request then return nil, err end
     local all, list_err = resources.list("workspace")
     if not all then return nil, boundary.native(list_err) end
-    local result: {projections.Workspace} = table.create(1, 0)
+    local result: {resource_dto.Workspace} = table.create(1, 0)
     for _, workspace in ipairs(all) do
-        local projected = projections.workspace(workspace)
+        local projected = resource_dto.workspace(workspace)
         if projected.shareable then
             local context, context_err = resources.context("workspace", workspace.id, resources.ACCESS.ADMIN)
             if not context then return nil, boundary.native(context_err) end
@@ -91,6 +99,18 @@ local function task(request: Object): (runs.Request?, error?)
     local account = values.text(request.account_id or "", 64)
     local workspace = values.text(request.workspace_id or "", 64)
     local repository = values.text(request.repo_url or "", 2000)
+    local repo_ref = values.text(request.repo_ref or "", 200)
+    if not repo_ref or repo_ref:sub(1, 1) == "-" or repo_ref:find("[%s%c]") then return nil, invalid("repo_ref must be a branch or tag of at most 200 bytes") end
+    for _, forbidden in ipairs({"..", "~", "^", ":", "?", "*", "[", "\\", "@{"}) do
+        if repo_ref:find(forbidden, 1, true) then return nil, invalid("repo_ref must be a branch or tag") end
+    end
+    if repo_ref ~= "" and repository == "" then return nil, invalid("repo_ref requires repo_url") end
+    local node_input: string? = nil
+    if request.input ~= nil then
+        local encoded, input_err = values.json(request.input, 65536)
+        if not encoded then return nil, boundary.native(input_err) end
+        node_input = encoded
+    end
     if not agent or agent == "" then return nil, invalid("select an agent") end
     if not image or image == "" then return nil, invalid("select an image") end
     if not prompt or prompt == "" then return nil, invalid("prompt is required and must fit the task limit") end
@@ -104,7 +124,7 @@ local function task(request: Object): (runs.Request?, error?)
     local key = type(request.idempotency_key) == "string" and request.idempotency_key or ""
     if #key > 200 then return nil, invalid("idempotency key exceeds 200 bytes") end
     return {agent = agent, image_id = image, account_id = account ~= "" and account or nil,
-        workspace_id = workspace ~= "" and workspace or nil, prompt = prompt, repo_url = repository, options = options,
+        workspace_id = workspace ~= "" and workspace or nil, prompt = prompt, input = node_input, repo_url = repository, repo_ref = repo_ref, options = options,
         unattended = unattended, timeout = timeout ~= "" and timeout or nil,
         idempotency_key = request.idempotency_key ~= nil and key or nil}, nil
 end
@@ -123,14 +143,15 @@ function M.submit_task(args: unknown): (Object?, error?)
         flow = {dataflow_id = callback.dataflow_id, signal_id = callback.signal_id}
     end
     local id, submit_err = runs.submit(decoded, flow, decoded.idempotency_key)
-    if not id then return nil, boundary.native(submit_err) end
+    if submit_err then return nil, boundary.native(submit_err) end
+    if not id then return nil, invalid("run submission returns no ID") end
     return {run_id = id}, nil
 end
 local function run_view(run: repo.Run): Object
     return {id = run.id, agent = run.agent, account_id = run.account_id, image_id = run.image_id, workspace_id = run.workspace_id,
-        options = run.options, unattended = run.unattended, repo_url = run.repo_url, prompt = run.prompt,
+        options = values.object(run.options), unattended = run.unattended, repo_url = run.repo_url, prompt = run.prompt,
         timeout_ms = run.timeout_ms, workflow = run.flow ~= nil, status = run.status, result = run.result, error = run.error,
-        usage = run.usage, cancel_requested = run.cancel_requested, created_at = run.created_at, started_at = run.started_at, finished_at = run.finished_at}
+        usage = values.object(run.usage), cancel_requested = run.cancel_requested, created_at = run.created_at, started_at = run.started_at, finished_at = run.finished_at}
 end
 function M.get_run(args: unknown): (Object?, error?)
     local request, err = input("get_run", args)
@@ -143,10 +164,16 @@ function M.get_run(args: unknown): (Object?, error?)
     if not run then return nil, boundary.error(errors.NOT_FOUND, "autocode.run_not_found", "run not found") end
     local after = type(request.after_seq) == "number" and math.floor(request.after_seq) or 0
     local limit = type(request.limit) == "number" and math.floor(request.limit) or repo.EVENTS_PAGE
-    local events, events_err = repo.events(id, after, limit + 1)
+    local before = type(request.before_seq) == "number" and math.floor(request.before_seq) or nil
+    local events, events_err = repo.events(id, after, limit + 1, before)
     if not events then return nil, boundary.native(events_err) end
     local more = #events > limit
     if more then table.remove(events) end
+    if before ~= nil then
+        for i = 1, math.floor(#events / 2) do
+            events[i], events[#events - i + 1] = events[#events - i + 1], events[i]
+        end
+    end
     return {run = run_view(run), events = values.array(events), more = more, next_seq = #events > 0 and events[#events].seq or after}, nil
 end
 function M.list_runs(args: unknown): (Object?, error?)

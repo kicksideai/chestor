@@ -103,11 +103,40 @@ local function cases()
             test.eq(catalog.json.can_prune, false)
         end)
 
+        test.it("keeps all management handlers in the single declared management capability", function()
+            local workspace_only = track(identity.user({identity.SIGNED_IN, identity.MEMBERS, "app:workspace_managers"}))
+            for _, resource in ipairs({"chestor.autocode.api:workspaces_create", "chestor.autocode.api:maintenance_prune"}) do
+                local seen, err = identity.call(workspace_only, "app:session_probe", resource, "funcs.call")
+                test.is_nil(err)
+                test.eq(seen.access, false, resource)
+            end
+            local manager = track(identity.user({identity.SIGNED_IN, "app:autocode_managers"}))
+            for _, resource in ipairs({"chestor.autocode.api:images_create.endpoint", "chestor.autocode.api:workspaces_create.endpoint",
+                "chestor.autocode.api:maintenance_prune.endpoint", "chestor.autocode:settings_tab_view"}) do
+                local seen, err = identity.call(manager, "app:session_probe", resource)
+                test.is_nil(err)
+                test.eq(seen.access, true, resource)
+            end
+        end)
+
+        test.it("rechecks image management even when the requester still owns the image", function()
+            local member = track(identity.member())
+            local id, register_err = identity.call(member, "app:fixture_register", "image", {ref = "owned:latest", home = "/opt/agent"}, {dockerfile = "FROM scratch"})
+            test.is_nil(register_err)
+            local recipe, err = identity.call(member, "app:image_recipe_probe", {image_id = id})
+            test.is_nil(recipe)
+            test.is_true(errors.is(err, errors.PERMISSION_DENIED), tostring(err))
+            local admin = track(identity.admin())
+            local own = identity.call(admin, "app:fixture_register", "image", {ref = "allowed:latest", home = "/opt/agent"}, {dockerfile = "FROM scratch"})
+            local allowed, allowed_err = identity.call(admin, "app:image_recipe_probe", {image_id = own})
+            test.is_nil(allowed_err)
+            test.eq(allowed.dockerfile, "FROM scratch")
+        end)
         test.it("gives members no direct cleanup or credential worker calls", function()
             local member = track(identity.member())
             for _, resource in ipairs({"chestor.autocode.components:delete_account", "chestor.autocode.components:delete_image",
-                "chestor.autocode.components:delete_workspace", "chestor.autocode.runner:prepare",
-                "chestor.autocode.runner:keep_credential"}) do
+                "chestor.autocode.components:delete_workspace", "chestor.autocode.service:prepare",
+                "chestor.autocode.service:keep_credential"}) do
                 local seen, err = identity.call(member, "app:session_probe", resource, "funcs.call")
                 test.is_nil(err)
                 test.eq(seen.access, false, resource)

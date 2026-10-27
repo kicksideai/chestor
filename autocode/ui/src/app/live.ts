@@ -1,10 +1,34 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 import { onUnmounted, watch } from 'vue'
-import { live } from './api.ts'
+import { on } from '@wippy-fe/proxy'
 
-// useComponentTopics keeps one subscription per component id the view lists:
-// ids that join subscribe, ids that leave unsubscribe, and unmounting drops
-// them all. Each message calls handler, which refetches the list.
+// Topics announce changes for views to refetch.
+export const live = {
+  runs: (handler: () => void) => on('chestor.autocode.runs', handler),
+  run: (id: string, handler: () => void) => on(`chestor.autocode.run.${id}`, handler),
+  component: (id: string, handler: () => void) => on(`component.${id}`, handler),
+}
+
+// Concurrent refresh requests queue one follow-up pass.
+export function serial(task: () => Promise<void>, active: () => boolean = () => true): () => Promise<void> {
+  let current: Promise<void> | null = null
+  let again = false
+  const run = async () => {
+    try {
+      do { again = false; await task() } while (again && active())
+    } finally {
+      current = null
+    }
+  }
+  return () => {
+    if (!active()) return Promise.resolve()
+    if (current) { again = true; return current }
+    current = run()
+    return current
+  }
+}
+
+// Component subscriptions follow the listed ids and end on unmount.
 export function useComponentTopics(ids: () => string[], handler: () => void) {
   const subscribed = new Map<string, () => void>()
   watch(ids, (next) => {
@@ -20,4 +44,11 @@ export function useComponentTopics(ids: () => string[], handler: () => void) {
     for (const off of subscribed.values()) off()
     subscribed.clear()
   })
+}
+
+// Pending responses and queued reads belong to the mounted component.
+export function useAlive() {
+  let alive = true
+  onUnmounted(() => { alive = false })
+  return () => alive
 }

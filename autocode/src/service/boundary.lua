@@ -15,6 +15,11 @@ function M.native(err: error?): error?
     if type(details.code) ~= "string" then details.code = "autocode." .. err:kind() end
     return errors.new({kind = err:kind(), message = err:message(), retryable = err:retryable() == true, details = details})
 end
+type Failure = {message: string, kind: string, retryable: boolean?, details: Object?}
+function M.partial(err: error): Failure
+    local failure = M.native(err) or err
+    return {message = failure:message(), kind = failure:kind(), retryable = failure:retryable(), details = failure:details()}
+end
 function M.input(contract_id: string, method: string, value: unknown): (Object?, error?)
     if not security.actor() or security.can("access", "chestor.autocode:tasks") ~= true then
         return nil, M.error(errors.PERMISSION_DENIED, "autocode.access_denied", "autocode access required")

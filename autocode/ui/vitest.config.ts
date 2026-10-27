@@ -13,6 +13,7 @@ export default defineConfig({
     vitest: dependency('vitest/dist/index.js'),
     vue: dependency('vue/dist/vue.runtime.esm-bundler.js'),
     '@vue/test-utils': dependency('@vue/test-utils/dist/vue-test-utils.esm-bundler.mjs'),
+    ajv: dependency('ajv/dist/ajv.js'),
   } },
   test: { environment: 'happy-dom', include: ['../test/ui/**/*.test.ts'], clearMocks: true },
 })

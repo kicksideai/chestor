@@ -67,3 +67,29 @@ entries:
     meta: {type: kickside.security.group_composition}
     group_id: app:coding_tools
     policies: [chestor.autocode.security:tool_access]
+
+  - name: user.realtime_contract
+    kind: security.policy
+    meta: {comment: The harness supplies the realtime contract access the host composes from Realtime's published module policy.}
+    groups: [app.security:user]
+    policy:
+      resources: [kickside.contract:realtime, kickside.realtime:realtime_binding, kickside.realtime:notify]
+      actions: [contract.get, contract.open, funcs.call]
+      effect: allow
+
+  - name: user.flow_probe
+    kind: security.policy
+    groups: [app.security:user]
+    policy:
+      resources: [app:flow_probe, app:flow_resume]
+      actions: funcs.call
+      effect: allow
+
+  - name: user.flow_runtime
+    kind: security.policy
+    meta: {comment: Host execution capabilities for real Dataflow processes; grants no realtime authority.}
+    groups: [app.security:user]
+    policy:
+      resources: '*'
+      actions: [process.*, security.actor.create, security.policy.get, security.scope.create, env.get]
+      effect: allow

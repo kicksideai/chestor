@@ -9,7 +9,8 @@ export const taskConfigSchema = z.object({
   include_input: z.boolean().optional(),
   unattended: z.boolean().optional(),
   options: z.record(z.unknown()).optional(),
-  timeout: z.string().max(64).optional(),
+  run_timeout: z.string().max(64).optional(),
   repo_url: z.string().optional(),
+  repo_ref: z.string().optional(),
 }).strict()
 export type TaskConfig = z.infer<typeof taskConfigSchema>

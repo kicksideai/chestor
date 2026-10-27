@@ -3,11 +3,11 @@
 import { useRequiredCatalog } from './catalog.ts'
 import { ref, watch } from 'vue'
 import { Icon } from '@iconify/vue'
-import { autocode, errorText, type ImageDetail, type ImageRunSettings, type ImageSettings } from './api.ts'
+import { autocode, type ImageDetail, type ImageRunSettings, type ImageSettings } from './api.ts'
+import { errorText } from './presentation.ts'
 
-// Creates an image from a reference or a Dockerfile, or changes the label,
-// home and run settings of the image in `edit`. capabilities: what agents may
-// be allowed in a container, from the activated drivers; null while loading.
+// Creates or edits an image reference, Dockerfile, home and run settings.
+// capabilities lists what the activated drivers allow; null while loading.
 const props = defineProps<{ edit: ImageDetail | null; capabilities: string[] | null }>()
 const emit = defineEmits<{ saved: [warning?: string]; cancel: []; busy: [value: boolean] }>()
 const catalog = useRequiredCatalog()
@@ -35,7 +35,7 @@ watch(() => props.edit, (detail) => {
   if (!detail.settings) { form.value = null; return }
   const s = detail.settings
   form.value = {
-    ...s, ref: detail.image.ref, label: detail.image.label, home: detail.image.home, mode: 'pull', dockerfile: detail.dockerfile ?? '',
+    ...s, ref: detail.image.ref, label: detail.image.label, home: detail.image.home, mode: detail.dockerfile ? 'build' : 'pull', dockerfile: detail.dockerfile ?? '',
     extra: s.extra_args.join('\n'), allows: [...s.allows],
   }
 }, { immediate: true })
@@ -43,7 +43,7 @@ watch(() => props.edit, (detail) => {
 
 function useDefault() {
   const d = catalog.value.default_image
-  labelEdited.value = false
+  labelEdited.value = true
   const initial = blank()
   form.value = initial ? { ...initial, ref: d.ref, label: d.label, home: d.home, mode: 'build', dockerfile: d.dockerfile } : null
 }
@@ -66,7 +66,8 @@ async function save() {
   try {
     let warning: string | undefined
     if (props.edit) {
-      await autocode.updateImage(props.edit.image.id, settings())
+      const updated = await autocode.updateImage(props.edit.image.id, { ...settings(), ref: form.value.ref, dockerfile: form.value.mode === 'build' ? form.value.dockerfile : '' })
+      if (updated.build_error) warning = `Settings saved. Build preparation has not started: ${updated.build_error.message}. Use Prepare image to retry.`
     } else {
       const f = form.value
       const created = await autocode.createImage({ ...settings(), ref: f.ref, dockerfile: f.mode === 'build' ? f.dockerfile : '' })
@@ -91,22 +92,20 @@ async function save() {
       <button v-if="!edit" type="button" class="ac-btn kx-focus-halo" @click="useDefault"><Icon icon="tabler:sparkles" /> Default agent image</button>
 
     </div>
-    <template v-if="!edit">
-      <label class="ac-field">
-        <span>Image reference</span>
-        <input v-model="form.ref" class="ac-mono kx-focus-halo" placeholder="registry/name:tag" />
-      </label>
-      <div class="ac-seg">
-        <button type="button" class="kx-focus-outline" :class="{ active: form.mode === 'pull' }" @click="form.mode = 'pull'">Use or pull existing</button>
-        <button type="button" class="kx-focus-outline" :class="{ active: form.mode === 'build' }" @click="form.mode = 'build'">Build from Dockerfile</button>
-      </div>
-      <label v-if="form.mode === 'build'" class="ac-field">
-        <span>Dockerfile</span>
-        <textarea v-model="form.dockerfile" rows="9" class="ac-mono kx-focus-halo" />
-        <small class="ac-hint">Include <code>sh</code>, <code>git</code>, <code>mkdir</code>, <code>dirname</code>, a <code>timeout</code> that supports <code>-k</code>, and the agent CLIs. The image user needs writable home and work directories.</small>
-      </label>
-    </template>
-    <p v-else class="ac-muted ac-mono">{{ edit.image.ref }}</p>
+    <label class="ac-field">
+      <span>Image reference</span>
+      <input v-model="form.ref" class="ac-mono kx-focus-halo" placeholder="registry/name:tag" />
+    </label>
+    <div class="ac-seg">
+      <button type="button" class="kx-focus-outline" :class="{ active: form.mode === 'pull' }" @click="form.mode = 'pull'">Use or pull existing</button>
+      <button type="button" class="kx-focus-outline" :class="{ active: form.mode === 'build' }" @click="form.mode = 'build'">Build from Dockerfile</button>
+    </div>
+    <label v-if="form.mode === 'build'" class="ac-field">
+      <span>Dockerfile</span>
+      <textarea v-model="form.dockerfile" rows="9" class="ac-mono kx-focus-halo" />
+      <small class="ac-hint">Include <code>sh</code>, <code>git</code>, <code>mkdir</code>, <code>dirname</code>, a <code>timeout</code> that supports <code>-k</code>, and the agent CLIs. The image user needs writable home and work directories.</small>
+    </label>
+    <p v-if="edit" class="ac-muted">Saving container settings prepares the image automatically.</p>
     <label class="ac-field">
       <span>Label</span>
       <input v-model="form.label" class="kx-focus-halo" @input="labelEdited = true" />
@@ -137,7 +136,7 @@ async function save() {
       <textarea v-model="form.extra" rows="3" class="ac-mono kx-focus-halo" placeholder="One argument per line, e.g.&#10;--device=/dev/dri&#10;--shm-size=2g" />
     </label>
     <footer class="ac-dialog-foot"><button type="button" class="ac-btn kx-focus-halo" @click="emit('cancel')">Cancel</button>
-    <button type="button" class="ac-btn primary kx-focus-halo" :disabled="saving || !capabilities || (!edit && !form.ref)" @click="save">
+    <button type="button" class="ac-btn primary kx-focus-halo" :disabled="saving || !capabilities || !form.ref" @click="save">
       <Icon icon="tabler:box" /> {{ saving ? 'Saving…' : edit ? 'Save settings' : form.mode === 'build' ? 'Build image' : 'Add image' }}
     </button>
     </footer>

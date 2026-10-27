@@ -1,0 +1,25 @@
+-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+local test = require("test")
+local subject = require("subject")
+local stubs = require("stubs")
+local function cases()
+    test.describe("autocode account query bounds", function()
+        test.it("bounds both account unions and daily aggregates by the requested ids", function()
+            local state = stubs.reset()
+            test.not_nil(subject.account_states({"one", "two"}))
+            local _, filters = state.account_query:gsub("account_id IN", "")
+            test.eq(filters, 3)
+            test.eq(state.account_params[2], "one")
+            test.eq(state.account_params[3], "two")
+        end)
+        test.it("rejects a malformed account id before inserting a state", function()
+            local state = stubs.reset()
+            state.account_rows = {{account_id = false, reservation_order = 0, last_used_at = "", cooldown_until = "", last_error = "", runs_day = 0, failures_day = 0}}
+            local states, err = subject.account_states({"one"})
+            test.is_nil(states)
+            test.is_true(errors.is(err, errors.INTERNAL))
+        end)
+    end)
+end
+local run_cases = test.run_cases(cases)
+return {run = function(options) return run_cases(options) end}

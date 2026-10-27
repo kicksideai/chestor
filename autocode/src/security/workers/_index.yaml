@@ -6,6 +6,7 @@ entries:
   - name: store
     kind: security.policy
     meta:
+      private: true
       comment: Trusted workers open the autocode database and read the module's host bindings.
     policy:
       resources: []
@@ -15,6 +16,7 @@ entries:
   - name: worker_runtime
     kind: security.policy
     meta:
+      private: true
       comment: Trusted workers discover autocode and its platform dependencies.
     policy:
       resources:
@@ -22,6 +24,8 @@ entries:
         - chestor.autocode.api:*
         - chestor.autocode.blocks:*
         - chestor.autocode.components:*
+        - chestor.autocode.domain:*
+        - chestor.autocode.infrastructure:*
         - chestor.autocode.drivers:*
         - chestor.autocode.migrations:*
         - chestor.autocode.persist:*
@@ -42,13 +46,16 @@ entries:
   - name: worker_calls
     kind: security.policy
     meta:
+      private: true
       comment: Owner-bound steps, live identity resolution, settings reads, and job wake calls.
     policy:
       resources:
         - kickside.component:notify_access
-        - chestor.autocode.runner:prepare
-        - chestor.autocode.runner:keep_credential
-        - chestor.autocode.runner:image_recipe
+        - chestor.autocode.persist:project_account
+        - chestor.autocode.service:prepare
+        - chestor.autocode.service:keep_credential
+        - chestor.autocode.service:image_recipe
+        - chestor.autocode.service:image_ready
         - kickside.contract:scope_resolver
         - kickside.users:scope_resolver_binding
         - kickside.component:component_service
@@ -66,6 +73,7 @@ entries:
   - name: deferred_runs
     kind: security.policy
     meta:
+      private: true
       comment: The runner resolves a run owner's stored execution identity.
     policy:
       resources: chestor.autocode:runs
@@ -75,6 +83,7 @@ entries:
   - name: deferred_images
     kind: security.policy
     meta:
+      private: true
       comment: The image builder resolves the stored execution identity of the administrator who requested a build.
     policy:
       resources: chestor.autocode:images
@@ -84,6 +93,7 @@ entries:
   - name: deferred_actor
     kind: security.policy
     meta:
+      private: true
       comment: Workers construct the live principal actor after Users resolution.
     policy:
       resources: "*"
@@ -93,6 +103,7 @@ entries:
   - name: docker_commands
     kind: security.policy
     meta:
+      private: true
       comment: The only command line the module runs - the docker CLI behind its stderr-merging shell wrapper on the module's executor.
     policy:
       resources:
@@ -103,6 +114,7 @@ entries:
   - name: run_notify
     kind: security.policy
     meta:
+      private: true
       comment: The runner tells a run owner's open views that the run changed.
     policy:
       resources: [kickside.contract:realtime, kickside.realtime:realtime_binding, kickside.realtime:notify, notify]
@@ -112,6 +124,7 @@ entries:
   - name: image_status
     kind: security.policy
     meta:
+      private: true
       comment: The image builder settles the public status of image components through the trusted runtime meta write.
     policy:
       resources: "*"
@@ -125,6 +138,7 @@ entries:
   - name: flow_resume
     kind: security.policy
     meta:
+      private: true
       comment: The resume job continues the workflow node a run started - the Blocks resume call and a Workflow run's resume handler.
     policy:
       actions: [funcs.call, funcs.security, kickside.execution.defer]
@@ -134,6 +148,7 @@ entries:
   - name: flow_identity
     kind: security.policy
     meta:
+      private: true
       comment: Blocks resume rebuilds the Flow's stored identity, as the Inbox review resume does.
     policy:
       actions: [security.actor.create, security.policy_group.get]
@@ -155,3 +170,15 @@ entries:
       resources: context
       actions: contract.context
       effect: allow
+
+  - name: account_status
+    kind: security.policy
+    meta: {private: true, comment: The account state owner publishes its render snapshot.}
+    policy:
+      resources: "*"
+      actions: component.runtime_meta.write
+      effect: allow
+      conditions:
+        - field: meta.impl_id
+          operator: eq
+          value: chestor.autocode.components:account

@@ -26,11 +26,7 @@ entries:
     meta:
       comment: Creates member, outsider and administrator users with real sessions; calls functions and HTTP endpoints as them.
     source: file://../identity.lua
-    modules: [security, funcs, http_client, json, registry, uuid]
-    imports:
-      user_repo: kickside.users.persist:user_repo
-      user_groups_repo: kickside.users.persist:user_groups_repo
-      user_lifecycle_repo: kickside.users.persist:user_lifecycle_repo
+    modules: [security, funcs, http_client, json, registry, uuid, contract]
 
   - name: session_probe
     kind: function.lua
@@ -47,8 +43,9 @@ entries:
     source: file://../fixture.lua
     method: register
     imports:
+      images: chestor.autocode.service:images
       resources: chestor.autocode.components:resources
-      runs: chestor.autocode.runner:runs
+      runs: chestor.autocode.service:runs
       repo: chestor.autocode.persist:repo
 
   - name: fixture_cleanup
@@ -66,8 +63,9 @@ entries:
     source: file://../fixture.lua
     method: admit
     imports:
+      images: chestor.autocode.service:images
       resources: chestor.autocode.components:resources
-      runs: chestor.autocode.runner:runs
+      runs: chestor.autocode.service:runs
       repo: chestor.autocode.persist:repo
 
   - name: fixture_prune
@@ -77,8 +75,9 @@ entries:
     source: file://../fixture.lua
     method: prune
     imports:
+      images: chestor.autocode.service:images
       resources: chestor.autocode.components:resources
-      runs: chestor.autocode.runner:runs
+      runs: chestor.autocode.service:runs
       repo: chestor.autocode.persist:repo
 
   - name: task_probe
@@ -100,6 +99,7 @@ entries:
     source: file://../build_fixture.lua
     modules: [uuid]
     imports:
+      images: chestor.autocode.service:images
       repo: chestor.autocode.persist:repo
 
   - name: contract_fixture
@@ -110,3 +110,57 @@ entries:
       test: wippy.test:test
       identity: app:identity
       build_fixture: app:build_fixture
+
+  - name: image_recipe_probe
+    kind: function.lua
+    source: file://../owner_subject.lua
+    method: image_recipe
+    modules: [security]
+    imports:
+      repo: chestor.autocode.persist:repo
+      runs: chestor.autocode.service:runs
+      resources: chestor.autocode.components:resources
+      transport: chestor.autocode.service:transport
+      credentials: chestor.autocode.domain:credentials
+      drivers: bee.drivers:drivers
+  - name: fixture_image_revision
+    kind: function.lua
+    meta:
+      comment: Reads an image context revision under its owner.
+    source: file://../fixture.lua
+    method: image_revision
+    imports:
+      images: chestor.autocode.service:images
+      resources: chestor.autocode.components:resources
+      runs: chestor.autocode.service:runs
+      repo: chestor.autocode.persist:repo
+
+  - name: flow_probe
+    kind: function.lua
+    source: file://../flow_probe.lua
+    method: start
+    modules: [uuid]
+    imports:
+      client: userspace.dataflow:client
+      consts: userspace.dataflow:consts
+      blocks: kickside.blocks:blocks
+
+  - name: realtime_migration
+    kind: function.lua
+    meta: {type: migration, timestamp: '2026-10-27T00:00:00Z', target_db: 'app:db'}
+    source: file://../realtime_migration.lua
+    modules: [sql]
+    imports:
+      migration: wippy.migration:migration
+    method: migrate
+
+  - name: flow_resume
+    kind: function.lua
+    source: file://../flow_probe.lua
+    method: resume
+    imports:
+      resume: kickside.blocks:resume
+      client: userspace.dataflow:client
+      consts: userspace.dataflow:consts
+      blocks: kickside.blocks:blocks
+    modules: [uuid]

@@ -1,1 +1,1 @@
-../../src/runner/owner.lua
+../../src/service/owner.lua

@@ -4,12 +4,7 @@
   "specification": "wippy-component-1.0",
   "title": "Autocode",
   "description": "Autocode page web component for the chestor/autocode module.",
-  "browser": "dist/index.js",
-  "files": [
-    "dist/",
-    "src/",
-    "package.json"
-  ],
+  "private": true,
   "type": "module",
   "dependencies": {
     "@wippy-fe/theme": "~0.0.56",
@@ -41,10 +36,12 @@
   "wippy": {
     "tagName": "chestor-autocode",
     "type": "component",
-    "description": "Starts coding agent tasks in containers across the member's agent accounts, manages those accounts, and streams run output inside KickSide. Accepts no props and loads data through the authenticated Wippy proxy.",
+    "description": "Starts coding agent tasks in containers across the member's agent accounts, manages those accounts, and streams run output inside KickSide. Accepts the host route for run deep links and loads data through the authenticated Wippy proxy.",
     "props": {
       "type": "object",
-      "properties": {}
+      "properties": {
+        "route": { "type": "string", "default": "", "description": "Path relative to /autocode; runs/<run_id> opens a run." }
+      }
     },
     "scripts": {
       "build": "build"

@@ -1,12 +1,17 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { Icon } from '@iconify/vue'
 import { host } from '@wippy-fe/proxy'
 import { useHostVisibilityRefresh } from '@wippy-fe/webcomponent-vue'
-import { autocode, errorText, serial, type Workspace } from './api.ts'
+import { autocode, type Workspace } from './api.ts'
+import { serial, useAlive, useComponentTopics } from './live.ts'
+import { errorText } from './presentation.ts'
+import ShareControl from './share-control.vue'
 import AppDialog from './app-dialog.vue'
 
+const alive = useAlive()
+const topicIds = ref<string[]>([])
 const props = defineProps<{ query: string }>()
 const emit = defineEmits<{ count: [value: number] }>()
 const adding = ref(false)
@@ -30,15 +35,24 @@ watch(hostPath, path => {
 
 const refresh = serial(async () => {
   try {
-    const data = await autocode.workspaces()
+    let data = await autocode.workspaces()
+    while (alive() && data.workspaces.some(w => !topicIds.value.includes(w.id))) {
+      topicIds.value = data.workspaces.map(w => w.id)
+      await nextTick()
+      if (!alive()) return
+      data = await autocode.workspaces()
+    }
+    if (!alive()) return
+    topicIds.value = data.workspaces.map(w => w.id)
     workspaces.value = data.workspaces
     roots.value = data.roots ?? []
     loaded.value = true
     error.value = ''
   } catch (e) {
-    error.value = errorText(e, 'Could not load workspaces.')
+    if (alive()) error.value = errorText(e, 'Could not load workspaces.')
   }
-})
+}, alive)
+useComponentTopics(() => topicIds.value, () => { void refresh() })
 useHostVisibilityRefresh(refresh)
 
 async function save() {
@@ -46,15 +60,16 @@ async function save() {
   saving.value = true
   try {
     await autocode.createWorkspace({ name: name.value, host_path: hostPath.value })
+    if (!alive()) return
     nameEdited.value = false
     name.value = ''
     hostPath.value = ''
     adding.value = false
     await refresh()
   } catch (e) {
-    error.value = errorText(e, 'Could not save the workspace.')
+    if (alive()) error.value = errorText(e, 'Could not save the workspace.')
   } finally {
-    saving.value = false
+    if (alive()) saving.value = false
   }
 }
 
@@ -67,13 +82,13 @@ async function remove(w: Workspace) {
     rejectLabel: 'Cancel',
     acceptClass: 'p-button-danger',
   })
-  if (!ok) return
+  if (!alive() || !ok) return
   error.value = ''
   try {
     await autocode.deleteWorkspace(w.id)
     await refresh()
   } catch (e) {
-    error.value = errorText(e, 'Could not delete the workspace.')
+    if (alive()) error.value = errorText(e, 'Could not delete the workspace.')
   }
 }
 const filtered = computed(() => workspaces.value.filter(w => [w.name, w.host_path].join(' ').toLowerCase().includes(props.query.toLowerCase())))
@@ -92,7 +107,7 @@ watch(workspaces, value => emit('count', value.length))
       <li v-for="w in filtered" :key="w.id" class="ac-row ac-resource">
         <span class="ac-resource-icon"><Icon icon="tabler:folder" /></span>
         <div class="ac-account-main"><div class="ac-row-title">{{ w.name }}<span class="kx-tag-sm ac-tone">{{ w.writable ? 'read-write' : 'read-only' }}</span></div><div v-if="w.host_path" class="ac-muted ac-mono">{{ w.host_path }}</div></div>
-        <div class="ac-row-actions"><button v-if="w.deletable" type="button" class="ac-icon-btn kx-focus-outline" title="Delete workspace" aria-label="Delete workspace" @click="remove(w)"><Icon icon="tabler:trash" /></button></div>
+        <div class="ac-row-actions"><ShareControl v-if="w.shareable" :id="w.id" :title="w.name" /><button v-if="w.deletable" type="button" class="ac-icon-btn kx-focus-outline" title="Delete workspace" aria-label="Delete workspace" @click="remove(w)"><Icon icon="tabler:trash" /></button></div>
       </li>
     </ul>
     <AppDialog v-if="adding" title="Add workspace" :busy="saving" @close="adding = false">

@@ -1,6 +1,23 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
-import type { AgentInfo, Run } from './api.ts'
+import type { Account, AgentInfo, Run } from './dto.ts'
 import { onUnmounted, readonly, ref } from 'vue'
+
+export type AccountState = 'ready' | 'cooling' | 'disabled' | 'unavailable'
+export function accountState(a: Account, now = Date.now()): AccountState {
+  if (!a.enabled) return 'disabled'
+  if (a.cooldown_until && Date.parse(a.cooldown_until) > now) return 'cooling'
+  return a.usable ? 'ready' : 'unavailable'
+}
+
+export function shortTime(value: string): string {
+  if (!value) return ''
+  const at = new Date(value)
+  return Number.isNaN(at.getTime()) ? value : at.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })
+}
+
+export function errorText(e: unknown, fallback: string): string {
+  return e instanceof Error && e.message ? e.message : fallback
+}
 
 const clock = ref(Date.now())
 let clockUsers = 0
