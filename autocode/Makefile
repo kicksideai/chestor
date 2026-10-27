@@ -37,7 +37,7 @@ typecheck: ui-kit
 lockrefresh:
 	cd build-inputs && wippy update $(WIPPY_UPDATE_ARGS)
 	cd test && wippy update $(WIPPY_UPDATE_ARGS)
-# Published build input; npm resolves the materialized package as a workspace.
+# Published build input; Vite resolves the materialized stylesheets by alias.
 ui-kit:
 	@set -e; \
 	(cd build-inputs && wippy install $(WIPPY_INSTALL_ARGS)); \

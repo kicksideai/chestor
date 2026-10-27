@@ -12,7 +12,6 @@
   ],
   "type": "module",
   "dependencies": {
-    "@kickside/ui-kit": "*",
     "@wippy-fe/theme": "~0.0.56",
     "@wippy-fe/webcomponent-core": "~0.0.56",
     "@wippy-fe/webcomponent-vue": "~0.0.56",
@@ -56,8 +55,5 @@
     "dev": "vite build --watch --mode development --outDir ../static --emptyOutDir",
     "typecheck": "vue-tsc --noEmit -p tsconfig.json && vue-tsc --noEmit -p tsconfig.test.json && tsc --noEmit -p tsconfig.node.json",
     "test": "vitest run --config vitest.config.ts"
-  },
-  "workspaces": [
-    "./.wippy/npm/@*/*"
-  ]
+  }
 }

@@ -86,12 +86,6 @@ Lockfiles: `autocode/ui/package-lock.json`, `db-schema/ui/package-lock.json`, `g
 
 LICENSE: [License text](#license-text-769d154fbde32a915af110b1123650bc79f4cbe675acc66e005265bf069c6c6c)
 
-### npm: @kickside/ui-kit@1.5.7
-
-License: LicenseRef-KickSide-Community-1.0
-
-Lockfiles: `autocode/ui/package-lock.json`
-
 ### npm: @nodelib/fs.scandir@2.1.5
 
 License: MIT
@@ -245,6 +239,22 @@ Lockfiles: `autocode/ui/package-lock.json`
 License: UNLICENSED
 
 Lockfiles: `db-schema/ui/package-lock.json`, `graph/ui/package-lock.json`, `journal/ui/package-lock.json`, `roadmap/ui/package-lock.json`, `workspace/ui/package-lock.json`
+
+### npm: ajv@8.20.0
+
+License: MIT
+
+Lockfiles: `autocode/ui/package-lock.json`
+
+LICENSE: [License text](#license-text-a05350a88e318e4f5f2c2a1ff1e2e88daa4dd38e6e78b71cccae422bdc762cc3)
+
+### npm: ajv-formats@3.0.1
+
+License: MIT
+
+Lockfiles: `autocode/ui/package-lock.json`
+
+LICENSE: [License text](#license-text-9df3bb69929a3b650ed73b3bfa1756725aaff0ac296461605753547004eafeaf)
 
 ### npm: any-promise@1.3.0
 
@@ -436,6 +446,14 @@ Lockfiles: `autocode/ui/package-lock.json`, `db-schema/ui/package-lock.json`, `g
 
 LICENSE: [License text](#license-text-5e325595b4ea8cfec3802f545b1def5d7b73e4a5b8e9ba63e32a320f67732292)
 
+### npm: fast-deep-equal@3.1.3
+
+License: MIT
+
+Lockfiles: `autocode/ui/package-lock.json`
+
+LICENSE: [License text](#license-text-7bf9b2de73a6b356761c948d0e9eeb4be6c1270bd04c79cd489c1e400ffdfc1a)
+
 ### npm: fast-glob@3.3.3
 
 License: MIT
@@ -443,6 +461,14 @@ License: MIT
 Lockfiles: `autocode/ui/package-lock.json`, `db-schema/ui/package-lock.json`, `graph/ui/package-lock.json`, `journal/ui/package-lock.json`, `roadmap/ui/package-lock.json`, `workspace/ui/package-lock.json`
 
 LICENSE: [License text](#license-text-9363d160bf41d46d83901a5d24fc3fe2094c2afc17b4a2378914b273977ee2de)
+
+### npm: fast-uri@3.1.9
+
+License: BSD-3-Clause
+
+Lockfiles: `autocode/ui/package-lock.json`
+
+LICENSE: [License text](#license-text-b010b0dfdfdb23d7396e03b82cd4621fc9bb8f95d6b0aea70b9c24e12074c786)
 
 ### npm: fastq@1.20.1
 
@@ -555,6 +581,14 @@ License: MIT
 Lockfiles: `autocode/ui/package-lock.json`, `db-schema/ui/package-lock.json`, `graph/ui/package-lock.json`, `journal/ui/package-lock.json`, `roadmap/ui/package-lock.json`, `workspace/ui/package-lock.json`
 
 LICENSE: [License text](#license-text-35bdd8a44339719441900fb50fbefc5e2dca1ca662cbaed7a687de842c8b70f2)
+
+### npm: json-schema-traverse@1.0.0
+
+License: MIT
+
+Lockfiles: `autocode/ui/package-lock.json`
+
+LICENSE: [License text](#license-text-7bf9b2de73a6b356761c948d0e9eeb4be6c1270bd04c79cd489c1e400ffdfc1a)
 
 ### npm: lilconfig@3.1.3
 
@@ -764,6 +798,14 @@ Lockfiles: `autocode/ui/package-lock.json`, `db-schema/ui/package-lock.json`, `g
 
 LICENSE: [License text](#license-text-dffec71d93f273d2af7b54c6c7e7e70b3289c632ec0d7253210ec21ac336d5ac)
 
+### npm: require-from-string@2.0.2
+
+License: MIT
+
+Lockfiles: `autocode/ui/package-lock.json`
+
+license: [License text](#license-text-6ee0feb1f6ef996ff5a68600f8cf98909cf412d39ef3cdceaefd87d636fa1b7f)
+
 ### npm: resolve@1.22.12
 
 License: MIT
@@ -883,6 +925,14 @@ License: MIT
 Lockfiles: `autocode/ui/package-lock.json`, `db-schema/ui/package-lock.json`, `graph/ui/package-lock.json`
 
 LICENSE: [License text](#license-text-25b0ff5a880f9304341ba3ea38842972351256f5fe1dded3395ba1b464a8ca4e)
+
+### npm: zod@3.25.76
+
+License: MIT
+
+Lockfiles: `autocode/ui/package-lock.json`
+
+LICENSE: [License text](#license-text-3f1189b28e3866e0d979968d466b78f813f76827cfdca1fbb124cc0a5c8841f8)
 
 ## License text 0154425673db15cdfa80ecba2c9b1f1a867f7197a006764712849bfc3a93cbb7
 
@@ -1250,6 +1300,32 @@ OTHER DEALINGS IN THE SOFTWARE.
 ```text
 Copyright (c) 2019-2024 webkid GmbH
 Copyright (c) 2021-2024 Burak Cakmakoglu
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+## License text 3f1189b28e3866e0d979968d466b78f813f76827cfdca1fbb124cc0a5c8841f8
+
+```text
+MIT License
+
+Copyright (c) 2025 Colin McDonnell
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -1683,6 +1759,32 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 ```
 
+## License text 6ee0feb1f6ef996ff5a68600f8cf98909cf412d39ef3cdceaefd87d636fa1b7f
+
+```text
+The MIT License (MIT)
+
+Copyright (c) Vsevolod Strukchinsky <floatdrop@gmail.com> (github.com/floatdrop)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+```
+
 ## License text 6fb9754611c20f6649f68805e8c990e83261f29316e29de9e6cedae607b8634c
 
 ```text
@@ -1782,6 +1884,32 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
+```
+
+## License text 7bf9b2de73a6b356761c948d0e9eeb4be6c1270bd04c79cd489c1e400ffdfc1a
+
+```text
+MIT License
+
+Copyright (c) 2017 Evgeny Poberezkin
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ```
 
 ## License text 7cef50a4477dcd1f0ea036d3c7031430851ea21228e65658c6c84a57754e1b65
@@ -1996,6 +2124,59 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
+## License text 9df3bb69929a3b650ed73b3bfa1756725aaff0ac296461605753547004eafeaf
+
+```text
+MIT License
+
+Copyright (c) 2020 Evgeny Poberezkin
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+## License text a05350a88e318e4f5f2c2a1ff1e2e88daa4dd38e6e78b71cccae422bdc762cc3
+
+```text
+The MIT License (MIT)
+
+Copyright (c) 2015-2021 Evgeny Poberezkin
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+```
+
 ## License text acf17aff719bfab70f6bec3a93f1ba82ce9fe27ab74f83c0f2e1efb1273fa220
 
 ```text
@@ -2047,6 +2228,41 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+```
+
+## License text b010b0dfdfdb23d7396e03b82cd4621fc9bb8f95d6b0aea70b9c24e12074c786
+
+```text
+Copyright (c) 2011-2021, Gary Court until https://github.com/garycourt/uri-js/commit/a1acf730b4bba3f1097c9f52e7d9d3aba8cdcaae
+Copyright (c) 2021-present The Fastify team <https://github.com/fastify/fastify#team>
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    * The names of any contributors may not be used to endorse or promote
+      products derived from this software without specific prior written
+      permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS AND CONTRIBUTORS BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+                                  *   *   *
+
+The complete list of contributors can be found at:
+- https://github.com/garycourt/uri-js/graphs/contributors
 ```
 
 ## License text b2590e53ea6e050512c3993bfc746c394bbba9242fd6909245201bdc1dc6862a

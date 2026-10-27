@@ -40,6 +40,9 @@ const customElement = (tag: string) => tag.startsWith('wc-') || tag.startsWith('
 
 export default defineConfig(({ mode }) => ({
   plugins: [vue({ template: { compilerOptions: { isCustomElement: customElement } } }), wippyComponentPlugin()],
+  // The kickside/ui-kit stylesheets are a build input `make ui-kit` materializes
+  // from the Hub; they are bundled, never installed as an npm dependency.
+  resolve: { alias: { '@kickside/ui-kit': resolve(moduleRoot, '.wippy/npm/@kickside/ui-kit') } },
   // Lib builds don't auto-replace process.env; provide it so deps that read
   // NODE_ENV don't throw "process is not defined" in the browser/shadow DOM.
   define: {
