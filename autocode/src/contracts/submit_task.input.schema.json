@@ -1,0 +1,55 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "agent": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "account_id": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "image_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "workspace_id": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "prompt": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 16384,
+      "pattern": "\\S"
+    },
+    "repo_url": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "options": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "unattended": {
+      "type": "boolean"
+    },
+    "timeout": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    }
+  },
+  "required": [
+    "agent",
+    "image_id",
+    "prompt"
+  ]
+}

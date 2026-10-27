@@ -1,0 +1,177 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: chestor.autocode
+
+entries:
+  - name: definition
+    kind: ns.definition
+    meta:
+      title: Autocode
+      description: Run coding agent CLIs in Docker images across accounts, as a page and as a workflow Block, with streamed task output.
+
+  - name: dep.bee.drivers
+    version: "*"
+    kind: ns.dependency
+    meta:
+      comment: Declarative agent CLI drivers and the drivers library; the host binds activation to chestor.autocode.drivers:activation and supplies its own environment storages.
+    component: bee/drivers
+
+  - name: dep.kickside.contract
+    version: "*"
+    kind: ns.dependency
+    meta:
+      comment: Kickside contracts; runs notify their owner through kickside.contract:realtime.
+    component: kickside/contract
+
+  - name: dep.kickside.component
+    version: "*"
+    kind: ns.dependency
+    meta:
+      comment: Component service - accounts, images and workspaces are component kinds with grants and teardown.
+    component: kickside/component
+
+  - name: dep.kickside.jobs
+    version: "*"
+    kind: ns.dependency
+    meta:
+      comment: Durable jobs - each run, image build and workflow resume is a job committed with its rows.
+    component: kickside/jobs
+
+  - name: dep.kickside.execution
+    version: "*"
+    kind: ns.dependency
+    meta:
+      comment: Execution identity - a run and an image build record who started them; the workers resolve it live.
+    component: kickside/execution
+
+  - name: dep.kickside.settings
+    version: "*"
+    kind: ns.dependency
+    meta:
+      comment: Admin settings for the run timeout, the account cooldown and run retention.
+    component: kickside/settings
+
+  - name: dep.kickside.blocks
+    version: "*"
+    kind: ns.dependency
+    meta:
+      comment: Typed Block composition, durable parking and Signal resume for the coding agent task Block.
+    component: kickside/blocks
+
+  - name: dep.wippy.migration
+    version: "*"
+    kind: ns.dependency
+    meta:
+      comment: Migration framework for the account state, image build, run, and run event tables.
+    component: wippy/migration
+
+  - name: runtime_config
+    kind: registry.entry
+    meta:
+      comment: Holds the workspace roots; the workspace_roots requirement rewrites meta.workspace_roots.
+
+  - name: docker
+    kind: exec.native
+    meta:
+      comment: Host executor for the docker CLI. Commands are argv lines; secrets travel only in the per-command environment.
+
+  - name: ui_fs
+    kind: fs.directory
+    meta:
+      comment: Built autocode web component bundle (from ui/).
+    directory: ./static
+    auto_init: true
+
+  - name: ui_static
+    kind: http.static
+    meta:
+      comment: Serves the autocode web component bundle at /chestor-autocode.
+    path: /chestor-autocode
+    fs: chestor.autocode:ui_fs
+    options:
+      mime_types:
+        .js: application/javascript
+        .css: text/css
+        .map: application/json
+
+  - name: autocode_view
+    kind: registry.entry
+    meta:
+      type: view.component
+      title: Autocode
+      announced: true
+      auto_register: true
+      tag_name: chestor-autocode
+      base_path: chestor-autocode
+      entry_point: index.js
+      icon: tabler:robot
+      description: Starts agent tasks across your agent accounts and streams their output. Subscription logins are for personal use only; use API keys or your own endpoints for production or multiple users.
+      props: {}
+
+  - name: driver_account_view
+    kind: registry.entry
+    meta:
+      type: view.component
+      title: Agent driver account
+      announced: true
+      auto_register: false
+      tag_name: chestor-autocode-driver-account
+      base_path: chestor-autocode
+      entry_point: driver-account.js
+      description: Credential card of one agent driver - drop or paste a login file or key, an optional own endpoint for API keys, and the personal-use notice for subscription logins.
+      props:
+        config: {type: object}
+
+  - name: task_config_view
+    kind: registry.entry
+    meta:
+      type: view.component
+      title: Coding agent task config
+      announced: true
+      auto_register: false
+      tag_name: chestor-autocode-task-config
+      base_path: chestor-autocode
+      entry_point: task-config.js
+      description: Config editor of the coding agent task Block - agent, account or balancing, image, workspace, task and the driver's own options.
+      props:
+        config: {type: object}
+
+  - name: settings_tab_view
+    kind: registry.entry
+    meta:
+      type: view.component
+      title: Autocode management
+      announced: true
+      auto_register: true
+      tag_name: chestor-autocode-admin
+      base_path: chestor-autocode
+      entry_point: admin.js
+      description: Agent images, host workspaces and Docker maintenance for autocode, and who may use each.
+      props: {}
+
+  - name: settings_tab
+    kind: registry.entry
+    meta:
+      type: ui.settings_tab
+      comment: Autocode images, workspaces and Docker maintenance.
+    access: chestor.autocode.api:images_create.endpoint
+    key: autocode
+    label: Autocode
+    icon: tabler:robot
+    order: 80
+    render: component
+    component_tag: chestor-autocode-admin
+
+  - name: nav_item
+    kind: registry.entry
+    meta:
+      type: ui.nav_item
+      section: ""
+      path: /autocode
+      route_name: autocode
+      title: Autocode
+      comment: Run coding agents in Docker.
+      icon: tabler:robot
+      order: 80
+      render: component
+      component_tag: chestor-autocode

@@ -1,0 +1,147 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "agents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "title": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "credentials": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "hint": {
+                  "type": "string"
+                },
+                "file": {
+                  "type": "string"
+                },
+                "subscription": {
+                  "type": "boolean"
+                },
+                "format": {
+                  "type": "string",
+                  "enum": [
+                    "json_object",
+                    "single_line",
+                    "text"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "label",
+                "hint",
+                "subscription",
+                "format"
+              ]
+            }
+          },
+          "endpoints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "unattended": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "section": {
+                  "type": "string"
+                },
+                "group": {
+                  "type": "string"
+                },
+                "order": {
+                  "type": "number"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "values": {
+                  "type": "array",
+                  "items": {}
+                },
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                },
+                "default": {},
+                "profiles": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "label",
+                "description",
+                "section",
+                "group",
+                "order",
+                "type"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "icon",
+          "credentials",
+          "endpoints",
+          "capabilities",
+          "options"
+        ]
+      }
+    }
+  },
+  "required": [
+    "agents"
+  ]
+}

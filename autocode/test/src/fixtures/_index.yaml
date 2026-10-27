@@ -1,0 +1,112 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: app
+
+entries:
+  - name: anthropic
+    kind: library.lua
+    source: file://../anthropic.lua
+    modules: [http, json]
+
+  - name: anthropic_messages
+    kind: http.endpoint
+    meta: { router: mock }
+    method: POST
+    path: /v1/messages
+    func: anthropic_messages_handler
+
+  - name: anthropic_messages_handler
+    kind: function.lua
+    source: file://../anthropic.lua
+    method: messages
+    modules: [http, json]
+
+  - name: identity
+    kind: library.lua
+    meta:
+      comment: Creates member, outsider and administrator users with real sessions; calls functions and HTTP endpoints as them.
+    source: file://../identity.lua
+    modules: [security, funcs, http_client, json, registry, uuid]
+    imports:
+      user_repo: kickside.users.persist:user_repo
+      user_groups_repo: kickside.users.persist:user_groups_repo
+      user_lifecycle_repo: kickside.users.persist:user_lifecycle_repo
+
+  - name: session_probe
+    kind: function.lua
+    meta:
+      comment: Reports the actor id and whether the call's scope grants access to an endpoint.
+    source: file://../session_probe.lua
+    method: run
+    modules: [security]
+
+  - name: fixture_register
+    kind: function.lua
+    meta:
+      comment: Registers an autocode component as the calling user.
+    source: file://../fixture.lua
+    method: register
+    imports:
+      resources: chestor.autocode.components:resources
+      runs: chestor.autocode.runner:runs
+      repo: chestor.autocode.persist:repo
+
+  - name: fixture_cleanup
+    kind: function.lua
+    source: file://../boundary_probe.lua
+    method: cleanup
+    modules: [contract]
+    imports:
+      resources: chestor.autocode.components:resources
+
+  - name: fixture_admit
+    kind: function.lua
+    meta:
+      comment: Admits a run request as the calling user and reports what admission chose.
+    source: file://../fixture.lua
+    method: admit
+    imports:
+      resources: chestor.autocode.components:resources
+      runs: chestor.autocode.runner:runs
+      repo: chestor.autocode.persist:repo
+
+  - name: fixture_prune
+    kind: function.lua
+    meta:
+      comment: Prunes runs that settled before a moment.
+    source: file://../fixture.lua
+    method: prune
+    imports:
+      resources: chestor.autocode.components:resources
+      runs: chestor.autocode.runner:runs
+      repo: chestor.autocode.persist:repo
+
+  - name: task_probe
+    kind: function.lua
+    source: file://../task_probe.lua
+    method: call
+    modules: [contract, funcs]
+
+  - name: resume_dispatch
+    kind: function.lua
+    source: file://../task_probe.lua
+    method: resume_dispatch
+    modules: [contract, funcs]
+    security:
+      policies: [app:resume_dispatch_authority]
+
+  - name: build_fixture
+    kind: library.lua
+    source: file://../build_fixture.lua
+    modules: [uuid]
+    imports:
+      repo: chestor.autocode.persist:repo
+
+  - name: contract_fixture
+    kind: library.lua
+    source: file://../contract_fixture.lua
+    modules: [registry, json, sql, uuid]
+    imports:
+      test: wippy.test:test
+      identity: app:identity
+      build_fixture: app:build_fixture

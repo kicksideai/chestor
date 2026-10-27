@@ -1,0 +1,112 @@
+-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+local test = require("test")
+local repo = require("repo")
+local sql = require("sql")
+local uuid = require("uuid")
+
+local function spec(account)
+    return {agent = "claude", account_id = account, image_id = "image", options = {}, unattended = true,
+        repo_url = "", prompt = "task", timeout_ms = 60000}
+end
+local function work(id)
+    return function(tx)
+        local _, err = tx:execute("INSERT INTO chestor_autocode_run_events (run_id, seq, kind, text, created_at) VALUES ($1, 1, 'system', 'enqueued', $2)", {id, repo.now()})
+        return err
+    end
+end
+local identity = {actor_id = "test:actor", actor_context = "{}"}
+local function cases()
+    test.describe("autocode persistence", function()
+        test.it("replays a caller key without another run or transactional side effect", function()
+            local key = uuid.v7()
+            local owner = uuid.v7()
+            local first, err = repo.create_run(owner, identity, spec("a"), work, {key = key, canonical = "request"})
+            test.is_nil(err)
+            local second, replay_err = repo.create_run(owner, identity, spec("a"), work, {key = key, canonical = "request"})
+            test.is_nil(replay_err)
+            test.eq(first, second)
+            local events = repo.events(first, 0)
+            test.eq(#events, 1)
+            local changed, conflict = repo.create_run(owner, identity, spec("a"), work, {key = key, canonical = "changed"})
+            test.is_nil(changed)
+            test.is_true(errors.is(conflict, errors.CONFLICT))
+            local separate = repo.create_run(uuid.v7(), identity, spec("a"), work, {key = key, canonical = "request"})
+            test.is_true(separate ~= first)
+        end)
+
+        test.it("reserves the least recently submitted account inside the run transaction", function()
+            local a, b = uuid.v7(), uuid.v7()
+            local request = spec(a)
+            local first, err = repo.create_run(uuid.v7(), identity, request, work, nil, {b, a})
+            test.is_nil(err)
+            local second, next_err = repo.create_run(uuid.v7(), identity, spec(a), work, nil, {b, a})
+            test.is_nil(next_err)
+            local one, two = repo.stored_run(first), repo.stored_run(second)
+            test.is_true(one.account_id ~= two.account_id)
+        end)
+
+        test.it("uses reservation order when account timestamps tie", function()
+            local a, b = uuid.v7(), uuid.v7()
+            local first = repo.create_run(uuid.v7(), identity, spec(a), work, nil, {a, b})
+            local one = repo.stored_run(first)
+            local db = sql.get("app:db")
+            local _, err = db:execute("UPDATE chestor_autocode_account_state SET last_used_at = '2000-01-01T00:00:00Z' WHERE account_id IN ($1, $2)", {a, b})
+            db:release()
+            test.is_nil(err)
+            local second = repo.create_run(uuid.v7(), identity, spec(a), work, nil, {a, b})
+            test.is_true(repo.stored_run(second).account_id ~= one.account_id)
+        end)
+
+        test.it("preserves a newer refusal when an older run succeeds", function()
+            local account = uuid.v7()
+            test.is_nil(repo.settle_account(account, "rate limited", "2999-01-01T00:00:00Z"))
+            test.is_nil(repo.settle_account(account, "", "", "2000-01-01T00:00:00Z"))
+            local states = repo.account_states({account})
+            test.eq(states[account].last_error, "rate limited")
+        end)
+
+        test.it("retains settled workflow runs until delivery is acknowledged", function()
+            local request = spec(uuid.v7())
+            request.flow = {dataflow_id = "flow", signal_id = "signal"}
+            local id, err = repo.create_run(uuid.v7(), identity, request, work)
+            test.is_nil(err)
+            test.is_true(repo.finish_run(id, "succeeded", "answer", "", {}))
+            test.is_nil(repo.append_event(id, 2, "system", "finished"))
+            local _, prune_err = repo.prune_runs("2999-01-01T00:00:00Z", 1000)
+            test.is_nil(prune_err)
+            test.not_nil(repo.stored_run(id))
+            test.is_nil(repo.acknowledge_delivery(id))
+            repo.prune_runs("2999-01-01T00:00:00Z", 1000)
+            test.is_nil(repo.stored_run(id))
+        end)
+
+        test.it("replays an image generation without enqueueing another build", function()
+            local image, generation = uuid.v7(), uuid.v7()
+            local enqueued = 0
+            local enqueue = function() enqueued = enqueued + 1; return nil end
+            test.is_nil(repo.request_image_build(image, identity, "initial", enqueue, generation))
+            test.is_nil(repo.request_image_build(image, identity, "initial", enqueue, generation))
+            test.eq(enqueued, 1)
+        end)
+
+        test.it("atomically claims a build generation and fences stale completion", function()
+            local image, generation = uuid.v7(), uuid.v7()
+            local noop = function() return nil end
+            test.is_nil(repo.request_image_build(image, identity, "initial", noop, generation))
+            local err = repo.request_image_build(image, identity, "refresh", noop, uuid.v7())
+            test.is_true(errors.is(err, errors.CONFLICT))
+            test.is_nil(repo.finish_image_build(image, "done", generation, "ready", {"claude"}, ""))
+            local build = repo.image_build(image)
+            test.eq(build.build_id, generation)
+            test.eq(build.status, "ready")
+            test.eq(build.agents[1], "claude")
+            test.is_nil(repo.project_image_build(image, generation, function() return nil end))
+            local next_generation = uuid.v7()
+            test.is_nil(repo.request_image_build(image, identity, "refresh", noop, next_generation))
+            test.not_nil(repo.finish_image_build(image, "stale", generation, "failed", {}, "old"))
+            test.eq(repo.image_build(image).build_id, next_generation)
+        end)
+    end)
+end
+local run_cases = test.run_cases(cases)
+return {run = function(options) return run_cases(options) end}

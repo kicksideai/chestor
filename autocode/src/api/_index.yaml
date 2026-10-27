@@ -1,0 +1,221 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: chestor.autocode.api
+
+entries:
+  - name: web
+    kind: library.lua
+    meta:
+      comment: Endpoint plumbing - authenticated caller, typed request fields, JSON replies and error statuses.
+    source: file://web.lua
+    modules:
+      - http
+      - json
+      - security
+    imports:
+      boundary: chestor.autocode.service:boundary
+
+  - name: catalog
+    kind: function.lua
+    meta:
+      comment: "GET /autocode/catalog - Activated agent drivers with their credentials, the default image recipe, and whether the caller manages images and workspaces."
+    source: file://catalog.lua
+    method: handler
+    imports:
+      web: chestor.autocode.api:web
+      catalog: chestor.autocode.service:catalog
+
+  - name: catalog.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "GET /autocode/catalog"
+    method: GET
+    func: catalog
+    path: /autocode/catalog
+
+  - name: drivers_list
+    kind: function.lua
+    meta:
+      comment: "GET /autocode/drivers - The activated bee/drivers with their options, capabilities and credentials."
+    source: file://drivers.lua
+    method: list
+    imports:
+      web: chestor.autocode.api:web
+      client: chestor.autocode.service:client
+
+  - name: drivers_list.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "GET /autocode/drivers"
+    method: GET
+    func: drivers_list
+    path: /autocode/drivers
+
+  - name: accounts_list
+    kind: function.lua
+    meta:
+      comment: "GET /autocode/accounts - Agent accounts the caller can see, with their balancing state and without credentials."
+    source: file://accounts.lua
+    method: list
+    imports:
+      web: chestor.autocode.api:web
+      client: chestor.autocode.service:client
+
+  - name: accounts_list.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "GET /autocode/accounts"
+    method: GET
+    func: accounts_list
+    path: /autocode/accounts
+
+  - name: accounts_create
+    kind: function.lua
+    meta:
+      comment: "POST /autocode/accounts - Add an agent account the caller owns; the credential goes to its private context."
+    source: file://accounts.lua
+    method: create
+    imports:
+      web: chestor.autocode.api:web
+      client: chestor.autocode.service:client
+
+  - name: accounts_create.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "POST /autocode/accounts"
+    method: POST
+    func: accounts_create
+    path: /autocode/accounts
+
+  - name: accounts_update
+    kind: function.lua
+    meta:
+      comment: "PUT /autocode/accounts/{id} - Rename an account or take it in or out of balancing."
+    source: file://accounts.lua
+    method: update
+    imports:
+      web: chestor.autocode.api:web
+      client: chestor.autocode.service:client
+
+  - name: accounts_update.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "PUT /autocode/accounts/{id}"
+    method: PUT
+    func: accounts_update
+    path: /autocode/accounts/{id}
+
+  - name: accounts_delete
+    kind: function.lua
+    meta:
+      comment: "DELETE /autocode/accounts/{id} - Delete an account through component teardown."
+    source: file://accounts.lua
+    method: delete
+    imports:
+      web: chestor.autocode.api:web
+      client: chestor.autocode.service:client
+
+  - name: accounts_delete.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "DELETE /autocode/accounts/{id}"
+    method: DELETE
+    func: accounts_delete
+    path: /autocode/accounts/{id}
+
+  - name: runs_list
+    kind: function.lua
+    meta:
+      comment: "GET /autocode/runs - The caller's runs, newest first."
+    source: file://runs.lua
+    method: list
+    imports:
+      web: chestor.autocode.api:web
+      client: chestor.autocode.service:client
+
+  - name: runs_list.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "GET /autocode/runs"
+    method: GET
+    func: runs_list
+    path: /autocode/runs
+
+  - name: runs_create
+    kind: function.lua
+    meta:
+      comment: "POST /autocode/runs - Admit a task under the caller's grants and submit its run."
+    source: file://runs.lua
+    method: create
+    imports:
+      web: chestor.autocode.api:web
+      client: chestor.autocode.service:client
+
+  - name: runs_create.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "POST /autocode/runs"
+    method: POST
+    func: runs_create
+    path: /autocode/runs
+
+  - name: runs_get
+    kind: function.lua
+    meta:
+      comment: "GET /autocode/runs/{id} - One of the caller's runs with a page of its event log."
+    source: file://runs.lua
+    method: get
+    imports:
+      web: chestor.autocode.api:web
+      client: chestor.autocode.service:client
+
+  - name: runs_get.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "GET /autocode/runs/{id}"
+    method: GET
+    func: runs_get
+    path: /autocode/runs/{id}
+
+  - name: runs_cancel
+    kind: function.lua
+    meta:
+      comment: "POST /autocode/runs/{id}/cancel - Cancel one of the caller's runs and stop its container."
+    source: file://runs.lua
+    method: cancel
+    imports:
+      web: chestor.autocode.api:web
+      client: chestor.autocode.service:client
+
+    security:
+      policies:
+        - chestor.autocode.security:docker_commands
+
+  - name: runs_cancel.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "POST /autocode/runs/{id}/cancel"
+    method: POST
+    func: runs_cancel
+    path: /autocode/runs/{id}/cancel
+
+  - name: maintenance_prune
+    kind: function.lua
+    meta:
+      comment: "POST /autocode/maintenance/prune - Reclaim Docker space: stopped autocode containers, dangling layers, old build cache."
+    source: file://maintenance.lua
+    method: prune
+    imports:
+      web: chestor.autocode.api:web
+      maintenance: chestor.autocode.service:maintenance
+    security:
+      policies:
+        - chestor.autocode.security:docker_commands
+
+  - name: maintenance_prune.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "POST /autocode/maintenance/prune"
+    method: POST
+    func: maintenance_prune
+    path: /autocode/maintenance/prune

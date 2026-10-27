@@ -1,0 +1,47 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "label": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "secret": {
+      "type": "string",
+      "maxLength": 65536
+    },
+    "endpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "base_url": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "model": {
+          "type": "string",
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "base_url"
+      ]
+    }
+  },
+  "required": [
+    "id"
+  ]
+}

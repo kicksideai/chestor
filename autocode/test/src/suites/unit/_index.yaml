@@ -1,0 +1,134 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: app
+
+entries:
+  - name: redaction_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: autocode_redaction
+      group: Autocode
+      comment: The run redactor removes a supplied secret and the forms it declares.
+    source: file://../../suites/redaction_test.lua
+    method: run
+    modules: [json]
+    imports:
+      test: wippy.test:test
+      redact: chestor.autocode.runner:redact
+
+  - name: records_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: autocode_records
+      group: Autocode
+      comment: Run records retain the final streamed answer separately from clipped log events.
+    source: file://../../suites/records_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      records: chestor.autocode.runner:records
+      redact: chestor.autocode.runner:redact
+
+  - name: runner_faults_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_runner_faults, group: Autocode}
+    source: file://../../suites/runner_faults_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      stubs: app:runner_stubs
+      resume_subject: app:resume_subject
+      image_subject: app:image_subject
+      run_subject: app:run_subject
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: docker_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_docker, group: Autocode}
+    source: file://../../suites/docker_test.lua
+    modules: [registry]
+    method: run
+    imports:
+      test: wippy.test:test
+      docker_subject: app:docker_subject
+      stubs: app:runner_stubs
+
+  - name: workspaces_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_workspace_roots, group: Autocode}
+    source: file://../../suites/workspaces_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      subject: app:workspaces_subject
+      stubs: app:runner_stubs
+
+  - name: credential_refresh_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_credential_refresh, group: Autocode}
+    source: file://../../suites/credential_refresh_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      subject: app:owner_subject
+      stubs: app:runner_stubs
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: retention_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_retention, group: Autocode}
+    source: file://../../suites/retention_test.lua
+    modules: [time]
+    method: run
+    imports:
+      test: wippy.test:test
+      subject: app:retention_subject
+      stubs: app:runner_stubs
+
+  - name: image_requests_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_image_requests, group: Autocode}
+    source: file://../../suites/image_requests_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      subject: app:image_requests_subject
+      stubs: app:runner_stubs
+
+  - name: image_management_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_image_management, group: Autocode}
+    source: file://../../suites/image_management_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      subject: app:image_management_subject
+      stubs: app:runner_stubs
+
+  - name: task_replay_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_task_replay, group: Autocode}
+    source: file://../../suites/task_replay_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      subject: app:tasks_subject
+      stubs: app:runner_stubs
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: http_errors_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_http_errors, group: Autocode}
+    source: file://../http_errors_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      web: chestor.autocode.api:web

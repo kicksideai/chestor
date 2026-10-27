@@ -1,0 +1,139 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: '1.0'
+namespace: chestor.autocode
+entries:
+- name: tasks
+  kind: contract.definition
+  meta:
+    title: Autocode tasks
+  methods:
+  - name: list_agents
+    description: List activated coding agents and their driver metadata. Returns (Result?, error?). Native
+      errors carry kind, retryable and details.code.
+    input_schemas:
+    - format: application/schema+json
+      definition: file://list_agents.input.schema.json
+    output_schemas:
+    - format: application/schema+json
+      definition: file://list_agents.output.schema.json
+  - name: list_accounts
+    description: List caller-readable accounts using task admission eligibility; unavailable accounts
+      require an explicit request. Returns (Result?, error?). Native errors carry kind, retryable and
+      details.code.
+    input_schemas:
+    - format: application/schema+json
+      definition: file://list_accounts.input.schema.json
+    output_schemas:
+    - format: application/schema+json
+      definition: file://list_accounts.output.schema.json
+  - name: list_images
+    description: List caller-readable images with committed build readiness and agent support. Returns
+      (Result?, error?). Native errors carry kind, retryable and details.code.
+    input_schemas:
+    - format: application/schema+json
+      definition: file://list_images.input.schema.json
+    output_schemas:
+    - format: application/schema+json
+      definition: file://list_images.output.schema.json
+  - name: list_workspaces
+    description: List caller-readable workspaces. Returns (Result?, error?). Native errors carry kind,
+      retryable and details.code.
+    input_schemas:
+    - format: application/schema+json
+      definition: file://list_workspaces.input.schema.json
+    output_schemas:
+    - format: application/schema+json
+      definition: file://list_workspaces.output.schema.json
+  - name: submit_task
+    description: Submit asynchronously under the execution frame. An optional caller-scoped idempotency
+      key replays the original submission; a changed request conflicts. No identity or callback is accepted
+      in the request. Returns (Result?, error?). Native errors carry kind, retryable and details.code.
+    input_schemas:
+    - format: application/schema+json
+      definition: file://submit_task.input.schema.json
+    output_schemas:
+    - format: application/schema+json
+      definition: file://submit_task.output.schema.json
+  - name: get_run
+    description: Get an owned run and a bounded page of events after the supplied sequence. Returns (Result?,
+      error?). Native errors carry kind, retryable and details.code.
+    input_schemas:
+    - format: application/schema+json
+      definition: file://get_run.input.schema.json
+    output_schemas:
+    - format: application/schema+json
+      definition: file://get_run.output.schema.json
+  - name: list_runs
+    description: List caller-owned summaries newest first with a stable created_at/id cursor. Returns
+      (Result?, error?). Native errors carry kind, retryable and details.code.
+    input_schemas:
+    - format: application/schema+json
+      definition: file://list_runs.input.schema.json
+    output_schemas:
+    - format: application/schema+json
+      definition: file://list_runs.output.schema.json
+  - name: cancel_run
+    description: Request cancellation of an owned active run. Returns (Result?, error?). Native errors
+      carry kind, retryable and details.code.
+    input_schemas:
+    - format: application/schema+json
+      definition: file://cancel_run.input.schema.json
+    output_schemas:
+    - format: application/schema+json
+      definition: file://cancel_run.output.schema.json
+- name: tasks_binding
+  kind: contract.binding
+  contracts:
+  - contract: chestor.autocode:tasks
+    default: true
+    methods:
+      list_agents: chestor.autocode.service:list_agents
+      list_accounts: chestor.autocode.service:list_accounts
+      list_images: chestor.autocode.service:list_images
+      list_workspaces: chestor.autocode.service:list_workspaces
+      submit_task: chestor.autocode.service:submit_task
+      get_run: chestor.autocode.service:get_run
+      list_runs: chestor.autocode.service:list_runs
+      cancel_run: chestor.autocode.service:cancel_run
+- name: accounts
+  kind: contract.definition
+  meta:
+    title: Autocode accounts
+  methods:
+  - name: add_account
+    description: Add an owned account. Credentials are omitted from every read DTO. Returns (Result?,
+      error?). Native errors carry kind, retryable and details.code.
+    input_schemas:
+    - format: application/schema+json
+      definition: file://add_account.input.schema.json
+    output_schemas:
+    - format: application/schema+json
+      definition: file://add_account.output.schema.json
+  - name: update_account
+    description: Update a WRITE-authorized account in place; secret replaces its credential and an empty
+      endpoint base_url clears its custom endpoint. Returns (Result?, error?). Native errors carry kind,
+      retryable and details.code.
+    input_schemas:
+    - format: application/schema+json
+      definition: file://update_account.input.schema.json
+    output_schemas:
+    - format: application/schema+json
+      definition: file://update_account.output.schema.json
+  - name: remove_account
+    description: Remove a DELETE-authorized account through component teardown. Returns (Result?, error?).
+      Native errors carry kind, retryable and details.code.
+    input_schemas:
+    - format: application/schema+json
+      definition: file://remove_account.input.schema.json
+    output_schemas:
+    - format: application/schema+json
+      definition: file://remove_account.output.schema.json
+- name: accounts_binding
+  kind: contract.binding
+  contracts:
+  - contract: chestor.autocode:accounts
+    default: true
+    methods:
+      add_account: chestor.autocode.service:add_account
+      update_account: chestor.autocode.service:update_account
+      remove_account: chestor.autocode.service:remove_account

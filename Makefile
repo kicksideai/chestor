@@ -1,7 +1,7 @@
 # chestor monorepo — Workspace tree, semantic graph, journal, roadmap, and
-# db-schema components, co-located in one repo.
+# db-schema and autocode components, co-located in one repo.
 
-MODULES := db-schema graph journal roadmap workspace
+MODULES := autocode db-schema graph journal roadmap workspace
 
 .PHONY: list build lint test $(MODULES)
 

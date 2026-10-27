@@ -1,0 +1,88 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: chestor.autocode.runner
+
+entries:
+  - name: run
+    kind: process.lua
+    meta:
+      comment: Job of one run - streams the agent CLI in its container, records events and settles the run.
+    source: file://../run.lua
+    method: main
+    modules:
+      - logger
+    imports:
+      repo: chestor.autocode.persist:repo
+      runs: chestor.autocode.runner:runs
+      container: chestor.autocode.runner:container
+      records: chestor.autocode.runner:records
+      redact: chestor.autocode.runner:redact
+      docker: chestor.autocode.runner:docker
+      live: chestor.autocode.runner:live
+      run_io: chestor.autocode.runner:run_io
+      execution_identity: kickside.execution:execution_identity
+      deferred: chestor.autocode.runner:deferred
+      transport: chestor.autocode.runner:transport
+      job_outcome: chestor.autocode.runner:job_outcome
+    security:
+      actor:
+        id: system:chestor.autocode.runner
+      policies:
+        - chestor.autocode.security:worker_runtime
+        - chestor.autocode.security:worker_calls
+        - chestor.autocode.security:service_calls
+        - chestor.autocode.security:store
+        - chestor.autocode.security:deferred_runs
+        - chestor.autocode.security:deferred_actor
+        - bee.drivers.security:host_access
+        - chestor.autocode.security:docker_commands
+        - chestor.autocode.security:run_notify
+
+  - name: image
+    kind: process.lua
+    meta:
+      comment: Job of one image build - builds or pulls the image, probes the agent CLIs it contains and settles its status.
+    source: file://../image.lua
+    method: main
+    imports:
+      repo: chestor.autocode.persist:repo
+      drivers: bee.drivers:drivers
+      docker: chestor.autocode.runner:docker
+      execution_identity: kickside.execution:execution_identity
+      transport: chestor.autocode.runner:transport
+      job_outcome: chestor.autocode.runner:job_outcome
+      component: kickside.component:component
+    security:
+      actor:
+        id: system:chestor.autocode.images
+      policies:
+        - chestor.autocode.security:worker_runtime
+        - chestor.autocode.security:worker_calls
+        - chestor.autocode.security:service_calls
+        - chestor.autocode.security:store
+        - chestor.autocode.security:deferred_images
+        - chestor.autocode.security:deferred_actor
+        - bee.drivers.security:host_access
+        - chestor.autocode.security:docker_commands
+        - chestor.autocode.security:image_status
+
+  - name: retention
+    kind: function.lua
+    meta:
+      type: kickside.retention.owner
+      comment: Deletes runs that settled longer ago than the run_retention setting, with their event logs, on the Core retention tick.
+    source: file://../retention.lua
+    method: run
+    modules:
+      - time
+    imports:
+      repo: chestor.autocode.persist:repo
+      settings: chestor.autocode.runner:settings
+    security:
+      actor:
+        id: system:chestor.autocode.retention
+      policies:
+        - chestor.autocode.security:worker_runtime
+        - chestor.autocode.security:worker_calls
+        - chestor.autocode.security:service_calls
+        - chestor.autocode.security:store

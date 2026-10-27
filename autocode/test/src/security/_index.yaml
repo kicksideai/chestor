@@ -1,0 +1,69 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: app
+
+entries:
+  - name: test_runtime
+    kind: security.policy
+    meta:
+      comment: Authority of the suite runner, which creates users, reads app:db and the registry, and validates session tokens.
+    policy: { resources: "*", actions: "*", effect: allow }
+
+  - name: admin
+    namespace: app.security
+    kind: security.policy
+    meta:
+      comment: Administrators hold every action, as the host administrator group does.
+    groups: [app.security:admin]
+    policy: { resources: "*", actions: "*", effect: allow }
+
+  - name: autocode_managers
+    kind: registry.entry
+    meta: {type: kickside.security.group_composition}
+    group_id: app:autocode_managers
+    policies: [chestor.autocode.security:module_management]
+
+  - name: workspace_management
+    kind: security.policy
+    groups: [app:workspace_managers]
+    policy:
+      resources: [chestor.autocode.api:workspaces_create.endpoint, chestor.autocode.api:workspaces_delete.endpoint]
+      actions: access
+      effect: allow
+
+  - name: user.runtime_data_access
+    namespace: app.security
+    kind: security.policy
+    meta:
+      comment: Signed-in users open the application database behind module endpoints, as the Kickside host grants app.security:user.
+    groups: [app.security:user]
+    policy: { resources: app:db, actions: db.get, effect: allow }
+
+  - name: user.runtime_contracts
+    namespace: app.security
+    kind: security.policy
+    meta:
+      comment: Signed-in users keep their actor and scope through contract and function calls, as the Kickside host grants app.security:user.
+    groups: [app.security:user]
+    policy: { resources: security, actions: [contract.security, funcs.security], effect: allow }
+
+  - name: user.unrestricted_runtime_actions
+    namespace: app.security
+    kind: security.policy
+    meta:
+      comment: Signed-in users call contract methods; the contract opens and the component service gate the call, as the Kickside host grants app.security:user.
+    groups: [app.security:user]
+    policy: { resources: "*", actions: contract.call, effect: allow }
+
+  - name: resume_dispatch_authority
+    kind: security.policy
+    policy:
+      resources: chestor.autocode.blocks:resume
+      actions: funcs.call
+      effect: allow
+
+  - name: coding_tools
+    kind: registry.entry
+    meta: {type: kickside.security.group_composition}
+    group_id: app:coding_tools
+    policies: [chestor.autocode.security:tool_access]

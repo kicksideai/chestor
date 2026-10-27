@@ -1,0 +1,60 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: chestor.autocode.traits
+entries:
+  - name: coding_tasks
+    kind: registry.entry
+    meta:
+      type: agent.trait
+      title: Coding tasks
+      public: true
+      icon: tabler:code
+      comment: Delegate bounded coding tasks and read their results.
+      tags: [coding, tasks]
+    prompt: >-
+      Delegate a bounded coding task asynchronously with SubmitCodingTask.
+      Use caller-visible agent, image, account and workspace IDs. Submission
+      returns a run ID; use ReadCodingRun to read its status, result and events.
+      Reuse an idempotency key when retrying the same submission. A queued or
+      running task is unfinished: check again when its result is needed, without
+      a tight polling loop. Follow more and next_seq to read further event pages.
+      Caller grants govern resources; tools retain your execution identity.
+    tools:
+      - chestor.autocode.traits:submit_coding_task
+      - chestor.autocode.traits:read_coding_run
+
+  - name: submit_coding_task
+    kind: function.lua
+    meta:
+      type: tool
+      title: Submit coding task
+      llm_alias: SubmitCodingTask
+      llm_description: Submit a bounded coding task asynchronously and return its run ID. Reuse an idempotency key to retry the same submission.
+      mcp:
+        required_scopes: [state.read, state.write]
+      input_schema: file://../contracts/submit_task.input.schema.json
+      output_schema: file://../contracts/submit_task.output.schema.json
+    source: file://tasks.lua
+    method: submit
+    modules: [security]
+    imports:
+      client: chestor.autocode.service:client
+      boundary: chestor.autocode.service:boundary
+
+  - name: read_coding_run
+    kind: function.lua
+    meta:
+      type: tool
+      title: Read coding run
+      llm_alias: ReadCodingRun
+      llm_description: Read an owned coding run's status, result and a bounded event page. Use next_seq as after_seq while more is true.
+      mcp:
+        required_scopes: [state.read]
+      input_schema: file://../contracts/get_run.input.schema.json
+      output_schema: file://../contracts/get_run.output.schema.json
+    source: file://tasks.lua
+    method: read
+    modules: [security]
+    imports:
+      client: chestor.autocode.service:client
+      boundary: chestor.autocode.service:boundary

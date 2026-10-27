@@ -1,0 +1,228 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: chestor.autocode.security
+
+entries:
+  - name: module_access
+    kind: security.policy
+    meta:
+      title: Autocode
+      surface: chestor.autocode
+      intent: module_access
+      includes:
+        - chestor.autocode.security:module_runtime
+        - chestor.autocode.security:member_endpoints
+        - chestor.autocode.security:ui_access
+        - chestor.autocode.security:driver_activation
+        - chestor.autocode.security:service_calls
+        - chestor.autocode.security:task_calls
+    groups: []
+    policy:
+      resources:
+        - chestor.autocode:*
+        - chestor.autocode.api:*
+        - chestor.autocode.blocks:*
+        - chestor.autocode.components:*
+        - chestor.autocode.drivers:*
+        - chestor.autocode.migrations:*
+        - chestor.autocode.persist:*
+        - chestor.autocode.runner:*
+        - chestor.autocode.security:*
+        - chestor.autocode.service:*
+      actions: [registry.get, registry.find]
+      effect: allow
+
+  - name: module_runtime
+    kind: security.policy
+    meta:
+      private: true
+      comment: Member HTTP handlers, component status, and the task arm under the recovered Flow identity.
+    groups: []
+    policy:
+      resources:
+        - chestor.autocode.api:catalog
+        - chestor.autocode.api:drivers_list
+        - chestor.autocode.api:accounts_list
+        - chestor.autocode.api:accounts_create
+        - chestor.autocode.api:accounts_update
+        - chestor.autocode.api:accounts_delete
+        - chestor.autocode.api:images_list
+        - chestor.autocode.api:images_get
+        - chestor.autocode.api:workspaces_list
+        - chestor.autocode.api:runs_list
+        - chestor.autocode.api:runs_create
+        - chestor.autocode.api:runs_get
+        - chestor.autocode.api:runs_cancel
+        - chestor.autocode.components:status
+        - chestor.autocode.blocks:arm_task
+        - chestor.autocode.service:list_agents
+        - chestor.autocode.service:list_accounts
+        - chestor.autocode.service:list_images
+        - chestor.autocode.service:list_workspaces
+        - chestor.autocode.service:submit_task
+        - chestor.autocode.service:get_run
+        - chestor.autocode.service:list_runs
+        - chestor.autocode.service:cancel_run
+        - chestor.autocode.service:add_account
+        - chestor.autocode.service:update_account
+        - chestor.autocode.service:remove_account
+      actions: [funcs.call]
+      effect: allow
+
+  - name: component_teardown
+    kind: security.policy
+    meta:
+      private: true
+      comment: Only the component delete path opens the cleanup contracts.
+    policy:
+      resources:
+        - chestor.autocode.components:account
+        - chestor.autocode.components:image
+        - chestor.autocode.components:workspace
+        - kickside.contract:deletable
+        - kickside.core:threads
+        - kickside.core.threads:threads_binding
+        - purge
+      actions: [contract.get, contract.open, contract.call]
+      effect: allow
+
+  - name: teardown_security
+    kind: ns.requirement
+    default: chestor.autocode.security:component_teardown
+    meta:
+      value_kind: security.policy
+      comment: The component service carries the exact cleanup binding grant after its DELETE check.
+    targets:
+      - entry: kickside.component.binding:delete_component_func
+        path: .security.policies +=
+
+  - name: service_calls
+    kind: security.policy
+    meta:
+      private: true
+      comment: The component service and settings methods autocode calls under the caller - each one checks the caller's grants itself.
+    groups: []
+    policy:
+      resources:
+        - register
+        - query
+        - get_access_context
+        - set_meta
+        - update
+        - delete
+        - get
+      actions: contract.call
+      effect: allow
+
+  - name: member_endpoints
+    kind: security.policy
+    meta:
+      private: true
+    groups: []
+    policy:
+      resources:
+        - chestor.autocode.api:catalog.user.endpoint
+        - chestor.autocode.api:drivers_list.user.endpoint
+        - chestor.autocode.api:accounts_list.user.endpoint
+        - chestor.autocode.api:accounts_create.user.endpoint
+        - chestor.autocode.api:accounts_update.user.endpoint
+        - chestor.autocode.api:accounts_delete.user.endpoint
+        - chestor.autocode.api:images_list.user.endpoint
+        - chestor.autocode.api:images_get.user.endpoint
+        - chestor.autocode.api:workspaces_list.user.endpoint
+        - chestor.autocode.api:runs_list.user.endpoint
+        - chestor.autocode.api:runs_create.user.endpoint
+        - chestor.autocode.api:runs_get.user.endpoint
+        - chestor.autocode.api:runs_cancel.user.endpoint
+      actions: access
+      effect: allow
+
+  - name: ui_access
+    kind: security.policy
+    meta:
+      private: true
+      comment: Members load the autocode page, the driver account card, the task config editor and their static bundle.
+    groups: []
+    policy:
+      resources:
+        - chestor.autocode:autocode_view
+        - chestor.autocode:driver_account_view
+        - chestor.autocode:task_config_view
+        - chestor.autocode:ui_static
+      actions: access
+      effect: allow
+
+  - name: driver_activation
+    kind: security.policy
+    meta:
+      private: true
+      comment: Reads the driver activation autocode declares; bee/drivers grants the rest through its access_scope requirement.
+    groups: []
+    policy:
+      resources:
+        - chestor.autocode.drivers:activation
+      actions:
+        - registry.get
+      effect: allow
+
+  - name: user_security_scope
+    kind: ns.requirement
+    default: kickside.security.groups:members
+    meta:
+      value_kind: security.scope
+      comment: Application security group that receives the autocode member policies.
+      description: Application security group that receives the autocode member policies.
+    targets:
+      - entry: chestor.autocode.security:module_access
+        path: ".groups +="
+      - entry: chestor.autocode.security:module_runtime
+        path: ".groups +="
+      - entry: chestor.autocode.security:member_endpoints
+        path: ".groups +="
+      - entry: chestor.autocode.security:ui_access
+        path: ".groups +="
+      - entry: chestor.autocode.security:driver_activation
+        path: ".groups +="
+      - entry: chestor.autocode.security:service_calls
+        path: ".groups +="
+      - entry: chestor.autocode.security:task_calls
+        path: ".groups +="
+
+  - name: task_calls
+    kind: security.policy
+    meta: {private: true, comment: Task and account contracts run under the caller's execution frame.}
+    groups: []
+    policy:
+      resources:
+        - chestor.autocode:tasks
+        - chestor.autocode:tasks_binding
+        - chestor.autocode:accounts
+        - chestor.autocode:accounts_binding
+        - list_agents
+        - list_accounts
+        - list_images
+        - list_workspaces
+        - submit_task
+        - get_run
+        - list_runs
+        - cancel_run
+        - add_account
+        - update_account
+        - remove_account
+      actions: [access, contract.get, contract.open, contract.call]
+      effect: allow
+
+  - name: tool_access
+    kind: security.policy
+    meta:
+      title: Autocode tools
+      surface: chestor.autocode
+      intent: tool_access
+    groups: []
+    policy:
+      resources:
+        - chestor.autocode.traits:coding_tasks
+        - chestor.autocode.traits:submit_coding_task
+        - chestor.autocode.traits:read_coding_run
+      actions: [access, registry.get, registry.find, funcs.call]
+      effect: allow

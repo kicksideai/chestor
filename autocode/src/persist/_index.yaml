@@ -1,0 +1,56 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: chestor.autocode.persist
+
+entries:
+  # chestor.autocode.persist:db_config
+  - name: db_config
+    kind: registry.entry
+    meta:
+      comment: Holds the database resource ID; the target_db requirement rewrites meta.db_id.
+
+  # chestor.autocode.persist:repo
+  - name: repo
+    kind: library.lua
+    meta:
+      comment: Typed account state, image build, run and run event records, decoded at the storage boundary.
+    source: file://repo.lua
+    imports:
+      database: chestor.autocode.persist:database
+      accounts: chestor.autocode.persist:accounts
+      builds: chestor.autocode.persist:builds
+      runs: chestor.autocode.persist:runs
+      events: chestor.autocode.persist:events
+
+  - name: database
+    kind: library.lua
+    source: file://database.lua
+    modules: [sql, json, registry, time]
+
+  - name: accounts
+    kind: library.lua
+    source: file://accounts.lua
+    modules: [time]
+    imports:
+      database: chestor.autocode.persist:database
+
+  - name: builds
+    kind: library.lua
+    source: file://builds.lua
+    modules: [sql, json]
+    imports:
+      database: chestor.autocode.persist:database
+
+  - name: runs
+    kind: library.lua
+    source: file://runs.lua
+    modules: [sql, uuid]
+    imports:
+      database: chestor.autocode.persist:database
+
+  - name: events
+    kind: library.lua
+    source: file://events.lua
+    modules: []
+    imports:
+      database: chestor.autocode.persist:database

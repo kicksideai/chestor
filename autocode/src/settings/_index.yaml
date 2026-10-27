@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: chestor.autocode
+
+entries:
+  - name: setting.run_timeout
+    kind: registry.entry
+    meta:
+      type: kickside.settings:definition
+      comment: How long a run's agent CLI may work before the run stops as failed.
+    namespace: chestor.autocode
+    key: run_timeout
+    value_type: duration
+    default: 2h
+    title: Run timeout
+    category: Runs
+    order: 10
+    description: "How long an agent task may run (a duration such as `30m` or `2h`); the CLI is stopped and the run fails after it."
+    scope: global
+    editable: true
+    visible: true
+
+  - name: setting.account_cooldown
+    kind: registry.entry
+    meta:
+      type: kickside.settings:definition
+      comment: How long a retryable provider refusal keeps an account out of balancing.
+    namespace: chestor.autocode
+    key: account_cooldown
+    value_type: duration
+    default: 30m
+    title: Account cooldown
+    category: Runs
+    order: 20
+    description: "How long an account rests after the provider refuses a run with a retryable fault such as a rate limit (a duration such as `30m`)."
+    scope: global
+    editable: true
+    visible: true
+
+  - name: setting.run_retention
+    kind: registry.entry
+    meta:
+      type: kickside.settings:definition
+      comment: How long settled runs and their event logs are kept.
+    namespace: chestor.autocode
+    key: run_retention
+    value_type: duration
+    default: 720h
+    title: Run retention
+    category: Runs
+    order: 30
+    description: "How long a settled run and its event log are kept before retention deletes them (a duration such as `720h`)."
+    scope: global
+    editable: true
+    visible: true

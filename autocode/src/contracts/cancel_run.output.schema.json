@@ -1,0 +1,29 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "running",
+        "succeeded",
+        "failed",
+        "cancelled"
+      ]
+    },
+    "cancel_requested": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "run_id",
+    "status",
+    "cancel_requested"
+  ]
+}

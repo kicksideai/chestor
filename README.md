@@ -5,10 +5,11 @@
 
 # Chestor
 
-Five workspace modules for KickSide. Each module owns its data, contracts, web component, and Lua unit tests.
+Six component modules for KickSide. Each module owns its data, contracts, web component, and Lua unit tests.
 
 | Directory | Package | Behavior |
 | --- | --- | --- |
+| [autocode](autocode) | `chestor/autocode` | Runs coding agents in Docker with managed accounts, images, workspaces, and workflow tasks. |
 | [workspace](workspace) | `chestor/workspace` | Organizes typed entries in a shared workspace tree. |
 | [graph](graph) | `chestor/graph` | Edits nested semantic graphs with nodes, edges, materials, and layouts. |
 | [journal](journal) | `chestor/journal` | Presents agent work, events, decisions, findings, and recall. |

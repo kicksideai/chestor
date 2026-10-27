@@ -1,0 +1,146 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: app
+
+entries:
+  - name: wiring_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: autocode_wiring
+      group: Autocode
+      comment: autocode migrations are applied and every endpoint of its module access policy is registered.
+    source: file://../../suites/wiring_test.lua
+    method: run
+    modules: [registry, sql]
+    imports:
+      test: wippy.test:test
+    security:
+      actor: { id: app:test_runner }
+      policies: [app:test_runtime]
+
+  - name: access_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: autocode_access
+      group: Autocode
+      comment: The endpoint firewall admits members, refuses outsiders, and keeps management endpoints to administrators.
+    source: file://../../suites/access_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      identity: app:identity
+    security:
+      actor: { id: app:test_runner }
+      policies: [app:test_runtime]
+
+  - name: components_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: autocode_components
+      group: Autocode
+      comment: Accounts are components - private credentials, owner and group grants, personal subscription logins.
+    source: file://../../suites/components_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      identity: app:identity
+    security:
+      actor: { id: app:test_runner }
+      policies: [app:test_runtime]
+
+  - name: admission_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: autocode_admission
+      group: Autocode
+      comment: Run admission follows the caller's grants on accounts, images and workspaces, and balances across usable accounts.
+    source: file://../../suites/admission_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      identity: app:identity
+      build_fixture: app:build_fixture
+    security:
+      actor: { id: app:test_runner }
+      policies: [app:test_runtime]
+
+  - name: runs_test
+    kind: function.lua
+    meta:
+      type: test
+      suite: autocode_runs
+      group: Autocode
+      comment: Submitted runs keep complete streamed answers, settle under the owner, stay the owner's, and retention prunes them.
+    source: file://../../suites/runs_test.lua
+    method: run
+    modules: [time, funcs]
+    imports:
+      test: wippy.test:test
+      identity: app:identity
+      build_fixture: app:build_fixture
+      anthropic: app:anthropic
+      docker: chestor.autocode.runner:docker
+      repo: chestor.autocode.persist:repo
+    security:
+      actor: { id: app:test_runner }
+      policies: [app:test_runtime]
+
+  - name: persistence_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_persistence, group: Autocode}
+    source: file://../../suites/persistence_test.lua
+    method: run
+    modules: [sql, uuid]
+    imports:
+      test: wippy.test:test
+      repo: chestor.autocode.persist:repo
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: tasks_contract_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_tasks_contract, group: Autocode}
+    source: file://../../suites/tasks_contract_test.lua
+    method: run
+    modules: [registry, uuid, json, sql]
+    imports:
+      test: wippy.test:test
+      identity: app:identity
+      contract_fixture: app:contract_fixture
+      repo: chestor.autocode.persist:repo
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: agent_tools_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_agent_tools, group: Autocode}
+    source: file://../../suites/agent_tools_test.lua
+    method: run
+    modules: [registry, json]
+    imports:
+      test: wippy.test:test
+      identity: app:identity
+      repo: chestor.autocode.persist:repo
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: accounts_contract_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_accounts_contract, group: Autocode}
+    source: file://../accounts_contract_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      identity: app:identity
+      contract_fixture: app:contract_fixture
+      repo: chestor.autocode.persist:repo
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]

@@ -1,0 +1,122 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: chestor.autocode.api
+
+entries:
+  - name: images_list
+    kind: function.lua
+    meta:
+      comment: "GET /autocode/images - Agent images the caller can see."
+    source: file://../image_routes.lua
+    method: list
+    imports:
+      web: chestor.autocode.api:web
+      client: chestor.autocode.service:client
+      images: chestor.autocode.service:image_management
+
+  - name: images_list.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "GET /autocode/images"
+    method: GET
+    func: images_list
+    path: /autocode/images
+
+  - name: images_get
+    kind: function.lua
+    meta:
+      comment: "GET /autocode/images/{id} - An image with its last build log; its recipe for callers who may change it."
+    source: file://../image_routes.lua
+    method: get
+    imports:
+      web: chestor.autocode.api:web
+      client: chestor.autocode.service:client
+      images: chestor.autocode.service:image_management
+
+  - name: images_get.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "GET /autocode/images/{id}"
+    method: GET
+    func: images_get
+    path: /autocode/images/{id}
+
+  - name: images_create
+    kind: function.lua
+    meta:
+      comment: "POST /autocode/images - Register an image and request its first build."
+    source: file://../image_routes.lua
+    method: create
+    imports:
+      web: chestor.autocode.api:web
+      client: chestor.autocode.service:client
+      images: chestor.autocode.service:image_management
+
+  - name: images_create.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "POST /autocode/images"
+    method: POST
+    func: images_create
+    path: /autocode/images
+
+  - name: images_update
+    kind: function.lua
+    meta:
+      comment: "PUT /autocode/images/{id} - Change an image's label, home and container run settings."
+    source: file://../image_routes.lua
+    method: update
+    imports:
+      web: chestor.autocode.api:web
+      client: chestor.autocode.service:client
+      images: chestor.autocode.service:image_management
+
+  - name: images_update.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "PUT /autocode/images/{id}"
+    method: PUT
+    func: images_update
+    path: /autocode/images/{id}
+
+  - name: images_delete
+    kind: function.lua
+    meta:
+      comment: "DELETE /autocode/images/{id} - Delete an image, optionally removing the Docker image from the host first."
+    source: file://../image_routes.lua
+    method: delete
+    imports:
+      web: chestor.autocode.api:web
+      client: chestor.autocode.service:client
+      images: chestor.autocode.service:image_management
+
+    security:
+      policies:
+        - chestor.autocode.security:docker_commands
+
+  - name: images_delete.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "DELETE /autocode/images/{id}"
+    method: DELETE
+    func: images_delete
+    path: /autocode/images/{id}
+
+  - name: images_prepare
+    kind: function.lua
+    meta:
+      comment: "POST /autocode/images/{id}/prepare - Rebuild an image or pull its reference again."
+    source: file://../image_routes.lua
+    method: prepare
+    imports:
+      web: chestor.autocode.api:web
+      client: chestor.autocode.service:client
+      images: chestor.autocode.service:image_management
+
+  - name: images_prepare.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "POST /autocode/images/{id}/prepare"
+    method: POST
+    func: images_prepare
+    path: /autocode/images/{id}/prepare
