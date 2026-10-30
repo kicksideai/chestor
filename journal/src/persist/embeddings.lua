@@ -292,6 +292,16 @@ function M.upsert(db: any, journal_id: string, source: any, vector: any, model: 
         model, dimensions, model_version, provider_version)
 end
 
+local function document_distance(db_type: string): string
+    local metric = db_type == "sqlite" and "vec_distance_cosine(v.embedding, ?)"
+        or "(v.embedding <=> CAST(? AS vector))"
+    -- Each document owns one vector for its model version. A scalar lookup
+    -- preserves that cardinality before lifecycle filtering and chunk ranking.
+    return "(SELECT " .. metric .. [[ FROM chestor_journal_embedding_vectors v
+        WHERE v.journal_id = d.journal_id AND v.document_id = d.document_id
+          AND v.model = d.model AND v.model_version = d.model_version)]]
+end
+
 local function native_search(db: any, journal_id: string, query_vector: any, limit: number,
     model: string, model_version: string, opts: any?): (any?, error?)
     local literal, literal_err = vector_literal(query_vector)
@@ -306,8 +316,7 @@ local function native_search(db: any, journal_id: string, query_vector: any, lim
     local state_clause, state_params = retrieval_state.filter(state_expr, validity)
     local successor_expr = retrieval_state.successor_expression("e")
     local offset = math.max(0, math.floor(tonumber(opts and opts.offset) or 0))
-    local distance = db_type == "sqlite" and "vec_distance_cosine(v.embedding, ?)"
-        or "(v.embedding <=> CAST(? AS vector))"
+    local distance = document_distance(db_type)
     local params: { any } = { literal, journal_id, model, model_version,
         from_time, from_time, to_time, to_time }
     for _, value in ipairs(state_params) do params[#params + 1] = value end
@@ -318,19 +327,16 @@ local function native_search(db: any, journal_id: string, query_vector: any, lim
             SELECT e.*, ]] .. distance .. [[ AS distance,
                    ]] .. state_expr .. [[ AS effective_state,
                    ]] .. successor_expr .. [[ AS superseded_by_event_id
-              FROM chestor_journal_embedding_vectors v
-              JOIN chestor_journal_embedding_documents d
-                ON d.journal_id = v.journal_id AND d.document_id = v.document_id
-               AND d.model = v.model AND d.model_version = v.model_version
+              FROM chestor_journal_embedding_documents d
               JOIN chestor_journal_events e
                 ON e.journal_id = d.journal_id AND e.id = d.source_id
-             WHERE v.journal_id = ? AND v.model = ? AND v.model_version = ?
+             WHERE d.journal_id = ? AND d.model = ? AND d.model_version = ?
                AND d.status = 'embedded' AND d.source_type = 'event'
                AND (? = 0 OR e.ts >= ?) AND (? = 0 OR e.ts <= ?)
                ]] .. state_clause .. [[
         ), ranked AS (
             SELECT distances.*, ROW_NUMBER() OVER (PARTITION BY id ORDER BY distance) AS source_rank
-              FROM distances
+              FROM distances WHERE distance IS NOT NULL
         )
         SELECT * FROM ranked WHERE source_rank = 1
          ORDER BY distance ASC, id ASC LIMIT ? OFFSET ?
@@ -362,8 +368,7 @@ function M.search_nodes(db: any, journal_id: string, graph_id: string, query_vec
     local state_clause, state_params = retrieval_state.filter(state_expr, validity)
     local successor_expr = retrieval_state.successor_expression("source")
     local offset = math.max(0, math.floor(tonumber(opts and opts.offset) or 0))
-    local distance = db_type == "sqlite" and "vec_distance_cosine(v.embedding, ?)"
-        or "(v.embedding <=> CAST(? AS vector))"
+    local distance = document_distance(db_type)
     local params: { any } = { literal, journal_id, model, model_version, graph_id,
         from_time, from_time, to_time, to_time, node_kind, node_kind, status, status }
     for _, value in ipairs(state_params) do params[#params + 1] = value end
@@ -375,15 +380,12 @@ function M.search_nodes(db: any, journal_id: string, graph_id: string, query_vec
                    d.chunk_index AS matched_chunk_index, d.content AS matched_content,
                    ]] .. state_expr .. [[ AS effective_state,
                    ]] .. successor_expr .. [[ AS superseded_by_event_id
-              FROM chestor_journal_embedding_vectors v
-              JOIN chestor_journal_embedding_documents d
-                ON d.journal_id = v.journal_id AND d.document_id = v.document_id
-               AND d.model = v.model AND d.model_version = v.model_version
+              FROM chestor_journal_embedding_documents d
               JOIN chestor_journal_graph_nodes n
                 ON n.journal_id = d.journal_id AND n.graph_id = d.graph_id AND n.id = d.node_id
               LEFT JOIN chestor_journal_events source
                 ON source.journal_id = n.journal_id AND source.id = n.ref_id
-             WHERE v.journal_id = ? AND v.model = ? AND v.model_version = ?
+             WHERE d.journal_id = ? AND d.model = ? AND d.model_version = ?
                AND d.status = 'embedded' AND d.source_type = 'node' AND d.graph_id = ?
                AND (? = 0 OR n.updated_at >= ?) AND (? = 0 OR n.updated_at <= ?)
                AND (? = '' OR n.node_kind = ?)
@@ -391,7 +393,7 @@ function M.search_nodes(db: any, journal_id: string, graph_id: string, query_vec
                ]] .. state_clause .. [[
         ), ranked AS (
             SELECT distances.*, ROW_NUMBER() OVER (PARTITION BY id ORDER BY distance, matched_chunk_index) AS source_rank
-              FROM distances
+              FROM distances WHERE distance IS NOT NULL
         )
         SELECT * FROM ranked WHERE source_rank = 1
          ORDER BY distance ASC, id ASC LIMIT ? OFFSET ?
