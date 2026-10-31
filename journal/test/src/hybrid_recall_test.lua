@@ -14,6 +14,50 @@ local embeddings = require("embeddings")
 
 local run_cases = test.run_cases(function()
     test.describe("Journal hybrid recall during embedding", function()
+        for _, source_type in ipairs({ "event", "node" }) do
+            test.it("visits SQLite vectors once for " .. source_type .. " recall", function()
+                local db, open_err = sql.get(types.db_id())
+                test.is_nil(open_err)
+                local checked = false
+                local handle = {
+                    type = function() return db:type() end,
+                    query = function(_, statement, params)
+                        local dialect, dialect_err = db:type()
+                        if dialect_err then return nil, dialect_err end
+                        if dialect == "sqlite" then
+                            local plan, plan_err = db:query("EXPLAIN QUERY PLAN " .. statement, params)
+                            if plan_err then return nil, plan_err end
+                            local vector_visits = 0
+                            for _, row in ipairs(plan) do
+                                if tostring(row.detail):find("v VIRTUAL TABLE", 1, true) then
+                                    vector_visits = vector_visits + 1
+                                end
+                            end
+                            test.eq(vector_visits, 1, "recall repeats the vector-table scan per document")
+                        end
+                        checked = true
+                        return db:query(statement, params)
+                    end,
+                }
+                local ok, failure = pcall(function()
+                    local vector: { number } = {}
+                    for index = 1, types.EMBEDDING_DIMENSIONS do vector[index] = index == 1 and 1 or 0 end
+                    local matches, query_err
+                    if source_type == "event" then
+                        matches, query_err = embeddings.search(handle, "vector-plan-event", vector, 10)
+                    else
+                        matches, query_err = embeddings.search_nodes(handle, "vector-plan-node", "map", vector,
+                            10, types.EMBEDDING_MODEL, types.EMBEDDING_MODEL_VERSION, {})
+                    end
+                    test.is_nil(query_err, tostring(query_err))
+                    test.is_true(checked, "the production recall query must execute")
+                    test.eq(#matches, 0)
+                end)
+                db:release()
+                if not ok then error(failure) end
+            end)
+        end
+
         test.it("returns exact nodes promptly while a newly projected graph is partially embedded", function()
             local journal_id = "hybrid-partial-embedding"
             local events: { any } = {}
