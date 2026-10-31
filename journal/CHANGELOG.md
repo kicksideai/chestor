@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.2](https://github.com/kicksideai/chestor/compare/journal-v0.3.1...journal-v0.3.2) (2026-10-31)
+
+
+### Bug Fixes
+
+* **journal:** avoid vector fanout during semantic recall ([#13](https://github.com/kicksideai/chestor/issues/13)) ([09380a4](https://github.com/kicksideai/chestor/commit/09380a49c22e64322e0832d249d927590bfcb6ee))
+* **journal:** run the harness against published dependencies ([#14](https://github.com/kicksideai/chestor/issues/14)) ([aa577bf](https://github.com/kicksideai/chestor/commit/aa577bfc8c08ac5e5069c67c98abd3b9fe498010))
+
 ## 0.3.1 (2026-10-17)
 
 - Track state event sequences and preserve existing journal records during upgrades.
