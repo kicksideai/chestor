@@ -26,6 +26,26 @@ local function cases()
             test.is_true(errors.is(err, errors.INVALID))
             test.is_nil(state.patched)
         end)
+        test.it("keeps whitespace-prefixed JSON bytes with the original revision", function()
+            local state, args = setup()
+            args.credential = ' \t\r\n {"token":"refreshed"}\n'
+            args.revision = 7
+            local kept, err = subject.keep_credential(args)
+            test.is_nil(err)
+            test.is_true(kept)
+            test.eq(state.patched_values.credential, args.credential)
+            test.eq(state.patched_revision, 7)
+            state.patch_conflict = true
+            test.eq(subject.keep_credential(args), false)
+        end)
+        test.it("rejects whitespace-prefixed JSON arrays", function()
+            local state, args = setup()
+            args.credential = ' \t\r\n []'
+            local kept, err = subject.keep_credential(args)
+            test.is_nil(kept)
+            test.is_true(errors.is(err, errors.INVALID))
+            test.is_nil(state.patched)
+        end)
         test.it("rejects an account whose driver changes during the run", function()
             local state, args = setup()
             state.account.meta.agent = "other"
@@ -44,6 +64,24 @@ local function cases()
             local replayed, conflict = subject.keep_credential(args)
             test.eq(replayed, false)
             test.is_nil(conflict)
+        end)
+        test.it("reads recipe metadata after the context revision snapshot", function()
+            local state = stubs.reset()
+            state.change_on_context = true
+            local recipe, err = subject.image_recipe({image_id = "image"})
+            test.is_nil(err)
+            test.eq(recipe.home, "/new-home")
+        end)
+        test.it("does not publish ready over a recipe revision invalidation", function()
+            local state = stubs.reset()
+            state.build.recipe = {revision = 7}
+            state.build.status, state.build.finished_at = "ready", "finished"
+            state.replace_conflict = true
+            local result, err = subject.image_ready({image_id = "image", build_id = "generation"})
+            test.is_nil(result)
+            test.is_true(errors.is(err, errors.CONFLICT))
+            test.is_nil(state.public)
+            test.eq(state.replaced.revision, 7)
         end)
     end)
 end

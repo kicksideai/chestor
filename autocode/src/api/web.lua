@@ -1,4 +1,6 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+local http_errors = require("http_errors")
+local client = require("client")
 local boundary = require("boundary")
 local http = require("http")
 local json = require("json")
@@ -12,29 +14,33 @@ local M = {}
 
 M.STATUS = http.STATUS
 
-function M.reply(res: http.Response, status: number, body: {[string]: unknown})
+function M.reply(res: http.Response, status: number, body: {[string]: unknown}): ()
     res:set_status(status)
     res:write_json(body)
 end
 
-function M.fail(res: http.Response, status: number, message: string)
+function M.fail(res: http.Response, status: number, message: string): ()
     local kind = status == M.STATUS.UNAUTHORIZED and errors.PERMISSION_DENIED or errors.INVALID
     local err = boundary.error(kind, "autocode.invalid_request", message)
     M.reply(res, status, {success = false, error = message, kind = err:kind(), retryable = false, details = err:details()})
 end
 
-function M.fail_with(res: http.Response, err: error?)
-    local status = M.STATUS.INTERNAL_ERROR
-    if errors.is(err, errors.INVALID) then status = M.STATUS.BAD_REQUEST
-    elseif errors.is(err, errors.NOT_FOUND) then status = M.STATUS.NOT_FOUND
-    elseif errors.is(err, errors.CONFLICT) then status = M.STATUS.CONFLICT
-    elseif errors.is(err, errors.PERMISSION_DENIED) then status = M.STATUS.FORBIDDEN
-    elseif errors.is(err, errors.UNAVAILABLE) then status = M.STATUS.SERVICE_UNAVAILABLE
-    elseif errors.is(err, errors.TIMEOUT) then status = M.STATUS.GATEWAY_TIMEOUT
-    elseif errors.is(err, errors.RATE_LIMITED) then status = M.STATUS.TOO_MANY_REQUESTS end
+function M.fail_with(res: http.Response, err: error?): ()
+    local status = http_errors.classify(err)
     local native = boundary.native(err) or boundary.error(errors.INTERNAL, "autocode.internal", "request failed")
     M.reply(res, status, {success = false, error = native:message(), kind = native:kind(),
         retryable = native:retryable(), details = native:details()})
+end
+
+function M.respond(res: http.Response, result: Body?, err: error?, status: number): ()
+    if err or not result then return M.fail_with(res, err) end
+    result.success = true
+    M.reply(res, status, result)
+end
+
+function M.dispatch(ctx: Context, contract_id: string, method: string, input: Body, status: number): ()
+    local result, err = client.call(contract_id, method, input)
+    M.respond(ctx.res, result, err, status)
 end
 
 function M.open(): Context?

@@ -2,15 +2,16 @@
 -- Folds reader messages into events and a final answer. Consecutive
 -- completion pieces share segment state across reader steps. Retained text
 -- passes the filter before the log and result limits apply.
+local credentials = require("credentials")
 local drivers = require("drivers")
 
 type Kind = "assistant" | "reasoning" | "tool" | "tool_result" | "tool_error" | "system" | "error"
 type Event = {kind: Kind, text: string}
 type Text = {text: string, dropped: integer}
-type Segment = {channel: string, text: string, dropped: integer, answer: Text?, done: boolean, ordinal: integer, message: integer}
+type Segment = {channel: string, text: string, dropped: integer, answer: Text?, done: boolean, ordinal: integer, message: integer,
+    answer_message: integer?, answer_start: integer?, answer_dropped: integer?}
 type Folder = {segments: {[string]: Segment}, order: {string}, filter: (string) -> string,
-    answer: Text?, answer_ordinal: integer, partial: Text?, partial_ordinal: integer, ordinal: integer, step: integer, message: integer,
-    answer_parts: {[string]: Text}, answer_order: {string}}
+    answer: Text?, answer_ordinal: integer, partial: Text?, partial_ordinal: integer, ordinal: integer, step: integer, message: integer}
 
 local M = {}
 
@@ -18,7 +19,7 @@ M.MAX_RESULT_BYTES = 1024 * 1024
 local MAX_TEXT = 8000
 -- Account import and credential refresh enforce this bound. Retaining this
 -- overlap lets the filter see a whole credential crossing either boundary.
-local CREDENTIAL_BOUND = 65536
+local CREDENTIAL_BOUND = credentials.MAX_BYTES
 local MAX_OPEN_SEGMENTS = 64
 
 local function clipped(text: string, limit: integer, dropped: integer): string
@@ -34,7 +35,7 @@ end
 
 function M.new(filter: (string) -> string): Folder
     return {segments = {}, order = {}, filter = filter, ordinal = 0, answer_ordinal = 0, partial_ordinal = 0,
-        step = 0, message = 0, answer_parts = {}, answer_order = {}}
+        step = 0, message = 0}
 end
 
 local function shown(folder: Folder, text: string): string
@@ -53,34 +54,29 @@ local function grow(segment: Text, text: string, limit: integer)
     segment.dropped = segment.dropped + math.max(#text - math.max(room, 0), 0)
 end
 
-local function combine(folder: Folder): Text
-    local combined: Text = {text = "", dropped = 0}
-    for _, part_id in ipairs(folder.answer_order) do
-        local part = folder.answer_parts[part_id]
-        if part and part.text ~= "" then
-            if combined.text ~= "" then grow(combined, "\n", M.MAX_RESULT_BYTES) end
-            grow(combined, part.text, M.MAX_RESULT_BYTES)
-            combined.dropped = combined.dropped + part.dropped
-        end
-    end
-    return combined
-end
-
-local function remember(folder: Folder, segment: Segment, id: string)
+local function remember(folder: Folder, segment: Segment)
     local answer = segment.answer
     if not answer or answer.text == "" then return end
-    local copy: Text = {text = answer.text, dropped = answer.dropped}
     if segment.done then
         if segment.message < folder.answer_ordinal then return end
         if segment.message > folder.answer_ordinal then
-            folder.answer_parts, folder.answer_order = {}, {}
+            folder.answer = {text = "", dropped = 0}
             folder.answer_ordinal = segment.message
         end
-        if not folder.answer_parts[id] then folder.answer_order[#folder.answer_order + 1] = id end
-        folder.answer_parts[id] = copy
-        folder.answer = combine(folder)
+        local combined: Text = folder.answer or {text = "", dropped = 0}
+        if segment.answer_message ~= segment.message then
+            if combined.text ~= "" then grow(combined, "\n", M.MAX_RESULT_BYTES) end
+            segment.answer_message = segment.message
+            segment.answer_start, segment.answer_dropped = #combined.text, combined.dropped
+        end
+        combined.text = combined.text:sub(1, segment.answer_start or 0)
+        combined.dropped = segment.answer_dropped or 0
+        grow(combined, answer.text, M.MAX_RESULT_BYTES)
+        combined.dropped = combined.dropped + answer.dropped
+        folder.answer = combined
     elseif segment.ordinal >= folder.partial_ordinal then
-        folder.partial, folder.partial_ordinal = copy, segment.ordinal
+        folder.partial = {text = answer.text, dropped = answer.dropped}
+        folder.partial_ordinal = segment.ordinal
     end
 end
 
@@ -92,7 +88,7 @@ end
 local function forget(folder: Folder, id: string, out: {Event})
     local segment: Segment? = folder.segments[id]
     if segment then
-        remember(folder, segment, id)
+        remember(folder, segment)
         if segment.text ~= "" then out[#out + 1] = event_of(folder, segment) end
     end
     folder.segments[id] = nil
@@ -138,10 +134,9 @@ local function text_observation(folder: Folder, data: {segment_id: string, opera
             segment.answer = answer
         end
         if folder.partial_ordinal == segment.ordinal then folder.partial = nil end
-        if folder.answer_parts[id] then
-            local empty: Text = {text = "", dropped = 0}
-            folder.answer_parts[id] = empty
-            folder.answer = combine(folder)
+        if folder.answer and segment.answer_message == folder.answer_ordinal then
+            folder.answer.text = folder.answer.text:sub(1, segment.answer_start or 0)
+            folder.answer.dropped = segment.answer_dropped or 0
         end
     end
     grow(segment, data.text, MAX_TEXT)
@@ -151,7 +146,7 @@ local function text_observation(folder: Folder, data: {segment_id: string, opera
         segment.message = folder.message
     end
     segment.done = data.operation == "complete"
-    remember(folder, segment, id)
+    remember(folder, segment)
 end
 
 function M.result(folder: Folder, terminal: drivers.Terminal?): string

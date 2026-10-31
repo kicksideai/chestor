@@ -8,12 +8,11 @@ local credentials = require("credentials")
 local runs = require("runs")
 local security = require("security")
 local live = require("live")
-local logger = require("logger")
 
 type Object = {[string]: unknown}
 type Endpoint = {protocol: string, base_url: string, model: string?}
 local M = {}
-M.LIMITS = {label_bytes = 200, secret_bytes = 65536, endpoint_url_bytes = 512, endpoint_model_bytes = 200}
+M.LIMITS = {label_bytes = 200, secret_bytes = credentials.MAX_BYTES, endpoint_url_bytes = 512, endpoint_model_bytes = 200}
 local text = resources.text
 local function invalid(message: string): error
     return boundary.error(errors.INVALID, "autocode.invalid_account", message)
@@ -50,10 +49,6 @@ function M.list(request: Object): (Object?, error?)
     if not actor then return nil, boundary.error(errors.PERMISSION_DENIED, "autocode.access_denied", "authentication required") end
     local all, err = resources.list("account")
     if not all then return nil, boundary.native(err) end
-    local ids: {string} = {}
-    for _, account in ipairs(all) do ids[#ids + 1] = account.id end
-    local states, state_err = repo.account_states(ids)
-    if not states then return nil, boundary.native(state_err) end
     local views: {Object} = table.create(1, 0)
     for _, account in ipairs(all) do
         local meta = account.meta
@@ -62,9 +57,10 @@ function M.list(request: Object): (Object?, error?)
             local driver, driver_err = drivers.get(agent)
             if driver_err and not errors.is(driver_err, errors.NOT_FOUND) then return nil, boundary.native(driver_err) end
             local admitted, reason = nil, "select an agent"
-            if driver then admitted, reason = runs.usable(driver, account, actor:id()) end
-            local state = states[account.id]
-            if admitted and state.cooldown_until > repo.now() then admitted, reason = nil, "account is cooling down" end
+            if driver then admitted, reason = runs.usable(driver, account) end
+            local state = {last_used_at = text(meta.last_used_at), cooldown_until = text(meta.cooldown_until),
+                last_error = text(meta.last_error), runs_day = math.floor(tonumber(meta.runs_day) or 0),
+                failures_day = math.floor(tonumber(meta.failures_day) or 0)}
             local base_url = text(meta.endpoint_base_url)
             local model = text(meta.endpoint_model)
             local reach: Endpoint? = nil
@@ -108,8 +104,9 @@ function M.update_account(args: unknown): (Object?, error?)
     local body, input_err = boundary.input("chestor.autocode:accounts", "update_account", args)
     if not body then return nil, input_err end
     local id = values.text(body.id, 64) or ""
-    local account, find_err = resources.get("account", id, resources.ACCESS.WRITE)
-    if not account then return nil, boundary.native(find_err) end
+    local snapshot, snapshot_err = resources.snapshot("account", id, resources.ACCESS.WRITE)
+    if not snapshot then return nil, boundary.native(snapshot_err) end
+    local account, context = snapshot.resource, snapshot.context
     local fields: Object = {}
     if body.label ~= nil then
         local label = values.text(body.label, M.LIMITS.label_bytes)
@@ -138,15 +135,17 @@ function M.update_account(args: unknown): (Object?, error?)
     end
     if next(fields) == nil and not credential then return nil, invalid("nothing to change") end
     -- Metadata and credential replacement share the component revision CAS.
-    local context, context_err = resources.context("account", id, resources.ACCESS.WRITE)
-    if not context then return nil, boundary.native(context_err) end
     local err = resources.replace(id, fields, credential and {credential = credential} or nil, context.revision)
     if err then return nil, boundary.native(err) end
-    if credential or fields.enabled == true then
+    if credential or fields.enabled == true or body.endpoint ~= nil then
         local clear_err = repo.clear_cooldown(id)
-        if clear_err then return nil, boundary.native(clear_err) end
+        if clear_err then
+            return {id = id, health_error = boundary.partial(clear_err)}, nil
+        end
+    end
+    if credential or fields.enabled == true or body.endpoint ~= nil then
         local notify_err = live.account(id)
-        if notify_err then logger:warn("autocode account notification failed", {account_id = id, error = tostring(notify_err)}) end
+        if notify_err then return {id = id, health_error = boundary.partial(notify_err)}, nil end
     end
     return {id = id}, nil
 end

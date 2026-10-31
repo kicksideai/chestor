@@ -19,4 +19,9 @@ local function read(input: Object): (Object?, error?)
     return call("read_coding_run", "get_run", input)
 end
 
-return {submit = submit, read = read}
+local function agents(input: Object): (Object?, error?) return call("list_coding_agents", "list_agents", input) end
+local function accounts(input: Object): (Object?, error?) return call("list_coding_accounts", "list_accounts", input) end
+local function images(input: Object): (Object?, error?) return call("list_coding_images", "list_images", input) end
+local function workspaces(input: Object): (Object?, error?) return call("list_coding_workspaces", "list_workspaces", input) end
+local function cancel(input: Object): (Object?, error?) return call("cancel_coding_run", "cancel_run", input) end
+return {submit = submit, read = read, agents = agents, accounts = accounts, images = images, workspaces = workspaces, cancel = cancel}

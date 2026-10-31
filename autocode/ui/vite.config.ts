@@ -7,24 +7,11 @@ import { defineConfig } from 'vite'
 
 const moduleRoot = fileURLToPath(new URL('.', import.meta.url))
 
-// The KickSide shell serves these packages through its import map; they must
-// stay external so the bundle never ships its own copy (a bundled copy both
-// bloats the artifact and breaks on `process.env` references in library code).
-const shellProvided = [
-  'vue',
-  'pinia',
-  'vue-router',
-  'axios',
-  'nanoevents',
-  'luxon',
-  '@iconify/vue',
-  'iconify-icon',
-  '@tanstack/vue-query',
-  'sanitize-html',
-  'markdown-it',
-  'markdown-it-async',
-  '@wippy-fe/proxy',
-  '@wippy-fe/markdown-iframe',
+// Both the web host and the shell import maps provide these packages.
+// Every other dependency, including PrimeVue, belongs to the bundle.
+const hostProvided = [
+  'vue', 'pinia', 'vue-router', 'axios', 'nanoevents', 'luxon',
+  '@iconify/vue', '@wippy-fe/proxy',
 ]
 
 // One bundle per registered element: the page, the System settings tab, the
@@ -58,7 +45,7 @@ export default defineConfig(({ mode }) => ({
     },
     rollupOptions: {
       input: entries,
-      external: [...shellProvided, /^primevue\//],
+      external: hostProvided,
       output: {
         entryFileNames: '[name].js',
         chunkFileNames: '[name]-[hash].js',

@@ -34,7 +34,7 @@ local function new()
         for _, agent in ipairs(list.agents) do if agent.id == "claude" then allows = agent.capabilities end end
         local image, err = identity.call(admin, "app:fixture_register", "image", {title = "fixture", ref = "chestor-autocode-harness:missing", home = "/opt/agent", agents = {"claude"}, status = "ready"}, {settings = {network = "none", allows = allows}})
         test.is_nil(err)
-        build_fixture.ready(image, admin.id, "chestor-autocode-harness:missing", "/opt/agent", {network = "none", allows = allows})
+        build_fixture.ready(image, admin.id, "/opt/agent", {network = "none", allows = allows}, identity.call(admin, "app:fixture_image_revision", image))
         local shared = identity.request(admin, "POST", "/component-access/share/" .. image, {subject_id = user.id, subject_type = "user", access_mask = 1})
         test.eq(shared.status, 200, shared.body)
         return image

@@ -14,7 +14,7 @@ entries:
     kind: contract.binding
     meta:
       title: Agent account
-      comment: A credential one agent CLI runs with - an API key, optionally for an own endpoint, or a personal subscription login. READ lets a run use an API-key account; a subscription account runs only for its owner.
+      comment: A credential one agent CLI runs with - an API key, optionally for an own endpoint, or a personal subscription login. READ grants let a run use either credential kind.
       icon: tabler:key
       class: [chestor.autocode.account]
       placement:
@@ -80,6 +80,7 @@ entries:
       component: kickside.component:component
       envelope: kickside.component:envelope
       component_types: kickside.component:types
+      recipe: chestor.autocode.domain:recipe
 
   # chestor.autocode.components:status
   - name: status
@@ -102,6 +103,7 @@ entries:
     modules: [ctx]
     imports:
       repo: chestor.autocode.persist:repo
+      image_tags: chestor.autocode.infrastructure:image_tags
     security:
       policies: [chestor.autocode.security:store]
 
@@ -109,14 +111,15 @@ entries:
   - name: delete_image
     kind: function.lua
     meta:
-      comment: Image teardown - removes its build log. The Docker image stays on the host unless the administrator removes it.
+      comment: Image teardown - drains its build and releases its generation tags; the user reference stays unless the administrator removes it.
     source: file://teardown.lua
     method: delete_image
     modules: [ctx]
     imports:
       repo: chestor.autocode.persist:repo
+      image_tags: chestor.autocode.infrastructure:image_tags
     security:
-      policies: [chestor.autocode.security:store]
+      policies: [chestor.autocode.security:store, chestor.autocode.security:docker_commands]
 
   # chestor.autocode.components:delete_workspace
   - name: delete_workspace
@@ -128,5 +131,6 @@ entries:
     modules: [ctx]
     imports:
       repo: chestor.autocode.persist:repo
+      image_tags: chestor.autocode.infrastructure:image_tags
     security:
       policies: [chestor.autocode.security:store]

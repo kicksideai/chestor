@@ -11,7 +11,6 @@ entries:
     method: list
     imports:
       web: chestor.autocode.api:web
-      client: chestor.autocode.service:client
       images: chestor.autocode.service:image_management
 
   - name: images_list.user.endpoint
@@ -30,7 +29,6 @@ entries:
     method: get
     imports:
       web: chestor.autocode.api:web
-      client: chestor.autocode.service:client
       images: chestor.autocode.service:image_management
 
   - name: images_get.user.endpoint
@@ -49,7 +47,6 @@ entries:
     method: create
     imports:
       web: chestor.autocode.api:web
-      client: chestor.autocode.service:client
       images: chestor.autocode.service:image_management
 
   - name: images_create.endpoint
@@ -63,12 +60,11 @@ entries:
   - name: images_update
     kind: function.lua
     meta:
-      comment: "PUT /autocode/images/{id} - Change an image's label, home and container run settings."
+      comment: "PUT /autocode/images/{id} - Change an image's label, home and run settings; prepare changed settings under the saving manager."
     source: file://../image_routes.lua
     method: update
     imports:
       web: chestor.autocode.api:web
-      client: chestor.autocode.service:client
       images: chestor.autocode.service:image_management
 
   - name: images_update.endpoint
@@ -82,12 +78,11 @@ entries:
   - name: images_delete
     kind: function.lua
     meta:
-      comment: "DELETE /autocode/images/{id} - Delete an image, optionally removing the Docker image from the host first."
+      comment: "DELETE /autocode/images/{id} - Drain the build and delete the component, then optionally remove the Docker image; return docker_error if host removal fails after deletion."
     source: file://../image_routes.lua
     method: delete
     imports:
       web: chestor.autocode.api:web
-      client: chestor.autocode.service:client
       images: chestor.autocode.service:image_management
 
     security:
@@ -105,12 +100,11 @@ entries:
   - name: images_prepare
     kind: function.lua
     meta:
-      comment: "POST /autocode/images/{id}/prepare - Rebuild an image or pull its reference again."
+      comment: "POST /autocode/images/{id}/prepare - Rebuild a Dockerfile, pull a registry reference or re-probe a local-only image without pulling."
     source: file://../image_routes.lua
     method: prepare
     imports:
       web: chestor.autocode.api:web
-      client: chestor.autocode.service:client
       images: chestor.autocode.service:image_management
 
   - name: images_prepare.endpoint

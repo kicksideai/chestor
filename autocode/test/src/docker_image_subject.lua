@@ -1,0 +1,1 @@
+../../src/infrastructure/docker_image.lua

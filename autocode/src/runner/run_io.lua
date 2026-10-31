@@ -1,15 +1,14 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+local credentials = require("credentials")
 local runs = require("runs")
-local repo = require("repo")
 local records = require("records")
 local drivers = require("drivers")
 local redact = require("redact")
 local docker = require("docker")
-local settings = require("settings")
 local time = require("time")
 local transport = require("transport")
-local MAX_CREDENTIAL_BYTES = 65536
-local KEEP_CREDENTIAL = "chestor.autocode.runner:keep_credential"
+local MAX_CREDENTIAL_BYTES = credentials.MAX_BYTES
+local KEEP_CREDENTIAL = "chestor.autocode.service:keep_credential"
 type Container = {name: string, create: {string}, env: {[string]: string}, stdin: string?}
 type Caller = {call: (self: Caller, string, {[string]: unknown}) -> (unknown, error?)}
 type Prepared = transport.Prepared
@@ -19,7 +18,7 @@ type Streamed = {folder: records.Folder, terminal: drivers.Terminal?, stream_err
 
 -- Image run settings: limits, GPU access, network, then the administrator's
 -- docker run arguments, all placed before the image reference.
-local function settings_args(image: runs.Image): {string}
+local function settings_args(image: transport.Image): {string}
     local args: {string} = {}
     local function add(flag: string, value: string)
         if value ~= "" then
@@ -36,15 +35,15 @@ local function settings_args(image: runs.Image): {string}
     return args
 end
 
-local function build(run_id: string, admitted: runs.Admitted, env: {[string]: string}): Container
+local function build(run_id: string, prepared: Prepared, env: {[string]: string}): Container
     local name = runs.container_name(run_id)
-    local args: {string} = {"create", "-i", "--name", name, "--label", "chestor.autocode.run=" .. run_id}
-    local workspace = admitted.workspace
+    local args: {string} = {"create", "--pull=never", "-i", "--name", name, "--label", "chestor.autocode.run=" .. run_id}
+    local workspace = prepared.workspace
     if workspace then
         args[#args + 1] = "--mount"
-        args[#args + 1] = "type=bind,source=" .. workspace.host_path .. ",target=" .. admitted.workdir .. (workspace.writable and "" or ",readonly")
+        args[#args + 1] = "type=bind,source=" .. workspace.host_path .. ",target=" .. prepared.workdir .. (workspace.writable and "" or ",readonly")
     end
-    for _, arg in ipairs(settings_args(admitted.image)) do args[#args + 1] = arg end
+    for _, arg in ipairs(settings_args(prepared.image)) do args[#args + 1] = arg end
     local names: {string} = {}
     for variable in pairs(env) do names[#names + 1] = variable end
     table.sort(names)
@@ -52,13 +51,13 @@ local function build(run_id: string, admitted: runs.Admitted, env: {[string]: st
         args[#args + 1] = "-e"
         args[#args + 1] = variable
     end
-    for _, arg in ipairs({"--entrypoint", "sh", admitted.image.ref, "-c", 'eval "$AUTOCODE_SCRIPT"'}) do args[#args + 1] = arg end
-    return {name = name, create = args, env = env, stdin = admitted.launch.stdin}
+    for _, arg in ipairs({"--entrypoint", "sh", prepared.image.ref, "-c", 'eval "$AUTOCODE_SCRIPT"'}) do args[#args + 1] = arg end
+    return {name = name, create = args, env = env, stdin = prepared.launch.stdin}
 end
 
-local function stream(admitted: runs.Admitted, box: Container, redactor: redact.Redactor, emit: Emit,
-    cancelled: () -> (boolean?, error?), persist_error: () -> string?): (Streamed?, error?)
-    local reader, reader_err = drivers.reader(admitted.driver.id, false)
+local function stream(prepared: Prepared, box: Container, redactor: redact.Redactor, emit: Emit,
+    cancelled: () -> (boolean?, error?), persist_error: () -> string?, deadline: string?): (Streamed?, error?)
+    local reader, reader_err = drivers.reader(prepared.agent, false)
     if not reader then
         return nil, reader_err
     end
@@ -71,8 +70,9 @@ local function stream(admitted: runs.Admitted, box: Container, redactor: redact.
         local requested, read_err = cancelled()
         if read_err then stream_err = stream_err or ("cancellation read: " .. tostring(read_err)) end
         if requested then cancel_seen = true end
-        if requested or read_err or persist_error() then
-            local stop_err = docker.stop(box.name)
+        if not stopped and (requested or read_err or persist_error()) then
+            stopped = true
+            local stop_err = docker.stop(box.name, deadline)
             if stop_err then emit("system", "container stop: " .. tostring(stop_err)) end
         end
     end
@@ -84,11 +84,7 @@ local function stream(admitted: runs.Admitted, box: Container, redactor: redact.
         end
         for _, event in ipairs(records.step(folder, step)) do emit(event.kind, event.text) end
         if step.terminal then terminal = step.terminal end
-        if persist_error() and not stopped then
-            stopped = true
-            local stop_err = docker.stop(box.name)
-            if stop_err then emit("system", "container stop: " .. tostring(stop_err)) end
-        end
+
     end
     local watching = true
     local watch_done = channel.new(1)
@@ -100,9 +96,9 @@ local function stream(admitted: runs.Admitted, box: Container, redactor: redact.
         watch_done:send(true)
     end)
     local code, docker_err = docker.run({"start", "-a", "-i", box.name}, {
+        deadline = deadline,
         stdin = box.stdin,
         on_line = function(line: string)
-            check_cancel()
             if line:match("^%s*{") then
                 settle(reader:feed(line .. "\n"))
             elseif line ~= "" then
@@ -123,17 +119,17 @@ local function stream(admitted: runs.Admitted, box: Container, redactor: redact.
         code = code, last_log = last_log, cancel_seen = cancel_seen}, nil
 end
 
-local function keep_credential(run_id: string, owner: Caller, prepared: Prepared, box: Container, emit: Emit): string?
+local function keep_credential(run_id: string, owner: Caller, prepared: Prepared, box: Container, emit: Emit, deadline: string?): string?
     local refresh_error: string? = nil
-    local admitted, secret = prepared.admitted, prepared.secret
-    local file = admitted.account.kind.file
+    local secret = prepared.secret
+    local file = prepared.kind.file
     if file and file.write_back then
-        local content, copy_err = docker.copy_file(box.name, admitted.image.home .. "/" .. file.path, MAX_CREDENTIAL_BYTES)
+        local content, copy_err = docker.copy_file(box.name, prepared.image.home .. "/" .. file.path, MAX_CREDENTIAL_BYTES, deadline)
         if not content then
             refresh_error = "credential refresh cannot be saved; re-add the account login: " .. tostring(copy_err)
             emit("system", refresh_error)
         elseif content ~= secret then
-            local kept, keep_err = owner:call(KEEP_CREDENTIAL, {run_id = run_id, account_id = admitted.account.id, credential_kind = admitted.account.kind.id, credential = content, revision = prepared.revision})
+            local kept, keep_err = owner:call(KEEP_CREDENTIAL, {run_id = run_id, account_id = prepared.account_id, credential_kind = prepared.kind.id, credential = content, revision = prepared.revision})
             if keep_err then
                 refresh_error = "credential refresh cannot be saved; re-add the account login: " .. tostring(keep_err)
                 emit("system", refresh_error)
@@ -148,33 +144,4 @@ local function keep_credential(run_id: string, owner: Caller, prepared: Prepared
     return refresh_error
 end
 
-local function settle_account(run: repo.Run, terminal: drivers.Terminal?, refresh_error: string?, redactor: redact.Redactor, emit: Emit)
-    -- A success clears the account's last refusal; a retryable provider fault
-    -- cools it down. Other failures belong to the task, not the account.
-    local fault = terminal and terminal.error
-    local account_err: error? = nil
-    if terminal and terminal.outcome == "succeeded" then
-        account_err = repo.settle_account(run.account_id, "", "", run.started_at)
-    elseif fault and fault.retryable then
-        local cooldown, cooldown_err = settings.get("account_cooldown")
-        if not cooldown then
-            account_err = cooldown_err
-        else
-            local duration, duration_err = time.parse_duration(cooldown)
-            if not duration or duration:nanoseconds() <= 0 then
-                account_err = duration_err or errors.new({kind = errors.INVALID, message = "account cooldown must be a positive duration"})
-            else
-                account_err = repo.settle_account(run.account_id, redact.apply(redactor, fault.code .. ": " .. fault.message),
-                    time.now():add(duration):utc():format_rfc3339(), run.started_at)
-            end
-        end
-    end
-    if account_err then emit("system", "account status: " .. tostring(account_err)) end
-    if refresh_error then
-        local health_err = repo.record_account_error(run.account_id, redact.apply(redactor, refresh_error))
-        if health_err then emit("system", "account health write: " .. tostring(health_err)) end
-    end
-
-end
-
-return {build = build, stream = stream, keep_credential = keep_credential, settle_account = settle_account}
+return {build = build, stream = stream, keep_credential = keep_credential}

@@ -1,25 +1,24 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 -- POST /autocode/maintenance/prune — reclaim Docker space: stopped autocode
--- containers, dangling image layers, and build cache older than a day.
-local docker = require("docker")
+-- containers, dangling image layers, and expired build cache.
+local maintenance = require("maintenance")
+local settings = require("settings")
+local time = require("time")
 
-local STEPS = {
-    {"container", "prune", "--force", "--filter", "label=chestor.autocode.run"},
-    {"image", "prune", "--force"},
-    {"builder", "prune", "--force", "--filter", "until=24h"},
-}
-
-local function prune()
-    local output: {string} = {}
-    for _, args in ipairs(STEPS) do
-        output[#output + 1] = "$ docker " .. table.concat(args, " ")
-        local code, err = docker.run(args, {on_line = function(line: string) output[#output + 1] = line end})
-        if err then return nil, err end
-        if code ~= 0 then
-            return nil, errors.new({kind = errors.INTERNAL, message = "Docker cleanup failed", retryable = false, details = {code = "autocode.cleanup_failed", output = table.concat(output, "\n")}})
-        end
+local function cache_retention(): (string?, error?)
+    local value, err = settings.get("build_cache_retention")
+    if not value then return nil, err end
+    local duration, parse_err = time.parse_duration(value)
+    if not duration or duration:nanoseconds() <= 0 then
+        return nil, errors.new({kind = errors.INVALID, message = "build cache retention must be a positive duration"})
     end
-    return {output = table.concat(output, "\n")}, nil
+    return value:gsub("^%+", ""), nil
 end
 
-return { prune = prune }
+local function prune(): (maintenance.Result?, error?)
+    local retention, retention_err = cache_retention()
+    if not retention then return nil, retention_err end
+    return maintenance.prune(retention)
+end
+
+return {prune = prune, cache_retention = cache_retention}

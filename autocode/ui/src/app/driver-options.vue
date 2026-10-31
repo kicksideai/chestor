@@ -75,7 +75,12 @@ function commit(option: DriverOption, raw: string) {
     catch { markInvalid(option.name, 'Not valid JSON'); return }
     accept(option, value)
   } else if (option.type === 'ids') accept(option, trimmed.split(',').map(s => s.trim()).filter(Boolean))
-  else accept(option, trimmed)
+  else if ([option.type, option.schema?.type].some(type => type === 'number' || type === 'integer')) {
+    const value = Number(trimmed)
+    if (!Number.isFinite(value)) { markInvalid(option.name, 'Not a finite number'); return }
+    if ((option.type === 'integer' || option.schema?.type === 'integer') && !Number.isInteger(value)) { markInvalid(option.name, 'Not an integer'); return }
+    accept(option, value)
+  } else accept(option, trimmed)
 }
 function choose(option: DriverOption, event: Event) {
   if (!(event.target instanceof HTMLSelectElement)) return

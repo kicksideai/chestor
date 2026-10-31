@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: kickside.realtime
+entries:
+  - name: realtime_binding
+    kind: contract.binding
+    contracts:
+      - contract: kickside.contract:realtime
+        default: true
+        methods:
+          notify: kickside.realtime:notify
+          broadcast: kickside.realtime:notify
+  - name: notify
+    kind: function.lua
+    source: file://../realtime.lua
+    method: notify
+    modules: [security, sql, uuid, json]
+    imports:
+      policy: kickside.realtime.dispatch:policy
+    security:
+      policies: [kickside.realtime:hub_transport]
+  - name: hub_transport
+    kind: security.policy
+    policy:
+      resources: '*'
+      actions: [process.registry.lookup, process.send]
+      effect: allow

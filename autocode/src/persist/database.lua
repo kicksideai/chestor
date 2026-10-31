@@ -4,6 +4,7 @@
 -- database: JSON columns become lists and objects, integer flags become
 -- booleans. Runs are scoped by owner_id; account state and image builds are
 -- keyed by their component id.
+local recipe = require("recipe")
 local sql = require("sql")
 local json = require("json")
 local registry = require("registry")
@@ -27,15 +28,15 @@ type AccountState = {reservation_order: integer, last_used_at: string, cooldown_
 -- "refresh" pulls it again.
 type BuildMode = "initial" | "refresh"
 type ImageBuild = {identity: Identity, mode: BuildMode, log: string, requested_at: string, finished_at: string,
-    build_id: string, status: string, agents: {string}, last_error: string, projected: boolean, recipe: Object}
+    build_id: string, job_id: string, job_live: boolean?, status: string, agents: {string}, last_error: string, projected: boolean, recipe: recipe.Recipe?, approved_recipe: recipe.Recipe?, approved_agents: {string}}
 type Submission = {key: string, canonical: string}
 -- flow: the workflow Flow and signal a run started by an agent task Block resumes.
 type FlowSignal = {dataflow_id: string, signal_id: string}
-type RunSpec = {agent: string, account_id: string, image_id: string, workspace_id: string?, flow: FlowSignal?,
-    options: Object, unattended: boolean, repo_url: string, prompt: string, timeout_ms: integer}
-type Run = {id: string, owner_id: string, identity: Identity, agent: string, account_id: string, image_id: string,
+type RunSpec = {agent: string, account_id: string, account_pinned: boolean?, input: string?, repo_ref: string?, image_id: string, workspace_id: string?, flow: FlowSignal?,
+    options: Object, unattended: boolean, repo_url: string, prompt: string, timeout_ms: integer, trace_context: Object?}
+type Run = {account_pinned: boolean, input: string, repo_ref: string, id: string, owner_id: string, identity: Identity, agent: string, account_id: string, image_id: string,
     workspace_id: string?, flow: FlowSignal?, options: Object, unattended: boolean, repo_url: string, prompt: string,
-    timeout_ms: integer, status: RunStatus, result: string, error: string, usage: Object, cancel_requested: boolean,
+    timeout_ms: integer, status: RunStatus, pending_status: RunStatus?, job_id: string?, result: string, error: string, usage: Object, cancel_requested: boolean,
     created_at: string, started_at: string, finished_at: string}
 type RunEvent = {seq: integer, kind: string, text: string, created_at: string}
 -- Work a write commits together with its rows, such as enqueueing a job.
@@ -87,10 +88,10 @@ end
 
 -- Column decoders read one row; the first value that is not what the schema
 -- stores is recorded on the reader and fails the whole decode.
-type Columns = {row: Row, problem: string?}
+type Columns = {row: Row, problem: error?}
 
 local function mismatch(columns: Columns, column: string, expected: string)
-    if not columns.problem then columns.problem = "column " .. column .. " is not " .. expected end
+    if not columns.problem then columns.problem = fail("column " .. column .. " is not " .. expected) end
 end
 
 local function text(columns: Columns, column: string): string
@@ -139,7 +140,7 @@ local function decode<T>(rows: {Row}?, err: error?, decoder: (Columns) -> T): ({
     for _, row in ipairs(rows or {}) do
         local columns: Columns = {row = row, problem = nil}
         local record = decoder(columns)
-        if columns.problem then return nil, fail(columns.problem) end
+        if columns.problem then return nil, columns.problem end
         result[#result + 1] = record
     end
     return result, nil

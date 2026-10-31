@@ -3,52 +3,6 @@ version: "1.0"
 namespace: chestor.autocode.runner
 
 entries:
-  - name: quote
-    kind: library.lua
-    meta:
-      comment: POSIX quoting for argv rendered as one command line.
-    source: file://quote.lua
-
-  - name: live
-    kind: library.lua
-    meta:
-      comment: Live run updates for the run owner's open autocode views over kickside.contract:realtime.
-    source: file://live.lua
-    imports:
-      component: kickside.component:component
-    modules:
-      - contract
-
-  - name: settings
-    kind: library.lua
-    meta:
-      comment: Reads the autocode duration settings through kickside.settings:settings.
-    source: file://settings.lua
-    imports:
-      job_outcome: chestor.autocode.runner:job_outcome
-    modules:
-      - contract
-
-  - name: credentials
-    kind: library.lua
-    meta:
-      comment: The credential choices a driver offers an account - its login files and key variables.
-    source: file://credentials.lua
-    modules:
-      - json
-    imports:
-      drivers: bee.drivers:drivers
-
-  - name: container
-    kind: library.lua
-    meta:
-      comment: The script a run's container executes around a bee/drivers launch.
-    source: file://container.lua
-    imports:
-      drivers: bee.drivers:drivers
-      credentials: chestor.autocode.runner:credentials
-      quote: chestor.autocode.runner:quote
-
   - name: redact
     kind: library.lua
     meta:
@@ -63,137 +17,28 @@ entries:
       comment: Folds bee/drivers reader steps into clipped run events and a bounded final answer.
     source: file://records.lua
     imports:
+      credentials: chestor.autocode.domain:credentials
       drivers: bee.drivers:drivers
-
-  - name: docker
-    kind: library.lua
-    meta:
-      comment: Runs the docker CLI on the host executor with merged, line-streamed output, and copies files out of containers.
-    source: file://docker.lua
-    modules:
-      - registry
-      - exec
-      - stream
-    imports:
-      quote: chestor.autocode.runner:quote
-
-  - name: workspaces
-    kind: library.lua
-    meta:
-      comment: Admits workspace host paths that lie inside the operator's workspace roots.
-    source: file://workspaces.lua
-    modules:
-      - registry
-
-  - name: deferred
-    kind: library.lua
-    meta:
-      comment: Enqueues autocode jobs in the transaction that writes their rows, and wakes the jobs pool after commit.
-    source: file://deferred.lua
-    imports:
-      repo: chestor.autocode.persist:repo
-      job_outcome: chestor.autocode.runner:job_outcome
-      jobs: kickside.core.jobs:jobs
-      jobs_config: kickside.core.jobs:config
-      jobs_wake: kickside.core.jobs.persist:wake
-      execution_identity: kickside.execution:execution_identity
-
-  - name: admission
-    kind: library.lua
-    source: file://admission.lua
-    modules: [security, time]
-    imports:
-      repo: chestor.autocode.persist:repo
-      resources: chestor.autocode.components:resources
-      drivers: bee.drivers:drivers
-      credentials: chestor.autocode.runner:credentials
-      workspaces: chestor.autocode.runner:workspaces
-      settings: chestor.autocode.runner:settings
-
-  - name: runs
-    kind: library.lua
-    source: file://runs.lua
-    modules: [security, json, logger]
-    imports:
-      admission: chestor.autocode.runner:admission
-      repo: chestor.autocode.persist:repo
-      resources: chestor.autocode.components:resources
-      deferred: chestor.autocode.runner:deferred
-      docker: chestor.autocode.runner:docker
 
   - name: run_io
     kind: library.lua
     source: file://run_io.lua
     modules: [time]
     imports:
-      repo: chestor.autocode.persist:repo
-      runs: chestor.autocode.runner:runs
+      credentials: chestor.autocode.domain:credentials
+      runs: chestor.autocode.service:runs
       records: chestor.autocode.runner:records
       drivers: bee.drivers:drivers
       redact: chestor.autocode.runner:redact
-      docker: chestor.autocode.runner:docker
-      settings: chestor.autocode.runner:settings
-      transport: chestor.autocode.runner:transport
+      docker: chestor.autocode.infrastructure:docker
+      transport: chestor.autocode.service:transport
 
-  - name: prepare
-    kind: function.lua
-    meta:
-      comment: Runs under the run owner - admits the recorded run again with the owner's current grants and reads the account credential.
-    source: file://owner.lua
-    method: prepare
-    modules:
-      - security
-    imports:
-      repo: chestor.autocode.persist:repo
-      runs: chestor.autocode.runner:runs
-      transport: chestor.autocode.runner:transport
-      credentials: chestor.autocode.runner:credentials
-      drivers: bee.drivers:drivers
-      resources: chestor.autocode.components:resources
-
-  - name: keep_credential
-    kind: function.lua
-    meta:
-      comment: Runs under the run owner - stores a login file the CLI refreshed while the account still holds the revision the run read.
-    source: file://owner.lua
-    method: keep_credential
-    modules:
-      - security
-    imports:
-      repo: chestor.autocode.persist:repo
-      runs: chestor.autocode.runner:runs
-      transport: chestor.autocode.runner:transport
-      credentials: chestor.autocode.runner:credentials
-      drivers: bee.drivers:drivers
-      resources: chestor.autocode.components:resources
-
-  - name: image_recipe
-    kind: function.lua
-    meta:
-      comment: Runs under the build requester - reads the reference and Dockerfile of an image the requester may change.
-    source: file://owner.lua
-    method: image_recipe
-    modules:
-      - security
-    imports:
-      repo: chestor.autocode.persist:repo
-      runs: chestor.autocode.runner:runs
-      transport: chestor.autocode.runner:transport
-      credentials: chestor.autocode.runner:credentials
-      drivers: bee.drivers:drivers
-      resources: chestor.autocode.components:resources
-
-  - name: transport
+  - name: account_health
     kind: library.lua
-    source: file://transport.lua
+    source: file://account_health.lua
+    modules: [time]
     imports:
       repo: chestor.autocode.persist:repo
-      runs: chestor.autocode.runner:runs
       drivers: bee.drivers:drivers
-      credentials: chestor.autocode.runner:credentials
-
-  - name: job_outcome
-    kind: library.lua
-    source: file://job_outcome.lua
-    imports:
-      job_types: kickside.core.jobs:types
+      redact: chestor.autocode.runner:redact
+      settings: chestor.autocode.domain:settings

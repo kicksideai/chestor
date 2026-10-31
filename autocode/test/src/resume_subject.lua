@@ -1,1 +1,1 @@
-../../src/blocks/resume.lua
+../../src/service/workflow_resume.lua

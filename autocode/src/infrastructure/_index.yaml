@@ -1,0 +1,54 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: chestor.autocode.infrastructure
+
+entries:
+
+  - name: docker_image
+    kind: library.lua
+    source: file://docker_image.lua
+    imports:
+      docker: chestor.autocode.infrastructure:docker
+
+  - name: image_tags
+    kind: library.lua
+    source: file://image_tags.lua
+    imports:
+      docker: chestor.autocode.infrastructure:docker
+
+  - name: quote
+    kind: library.lua
+    meta:
+      comment: POSIX quoting for argv rendered as one command line.
+    source: file://quote.lua
+
+  - name: container
+    kind: library.lua
+    meta:
+      comment: The script a run's container executes around a bee/drivers launch.
+    source: file://container.lua
+    imports:
+      drivers: bee.drivers:drivers
+      credentials: chestor.autocode.domain:credentials
+      quote: chestor.autocode.infrastructure:quote
+
+  - name: docker
+    kind: library.lua
+    meta:
+      comment: Runs the docker CLI on the host executor with merged, line-streamed output, and copies files out of containers.
+    source: file://docker.lua
+    modules:
+      - registry
+      - exec
+      - stream
+      - time
+    imports:
+      quote: chestor.autocode.infrastructure:quote
+
+  - name: workspaces
+    kind: library.lua
+    meta:
+      comment: Admits workspace host paths that lie inside the operator's workspace roots.
+    source: file://workspaces.lua
+    modules:
+      - registry

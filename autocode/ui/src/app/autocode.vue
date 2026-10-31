@@ -1,11 +1,29 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
+import { useProps, useEvents } from '@wippy-fe/webcomponent-vue'
+import type { ComponentProps, ComponentEvents } from '../types.ts'
 import { Icon } from '@iconify/vue'
 import { useCatalog } from './catalog.ts'
 import PageHead from './page-head.vue'
 import TasksTab from './tasks.vue'
 import AccountsTab from './accounts.vue'
+
+const props = useProps<ComponentProps>()
+const emit = useEvents<ComponentEvents>()
+const localRoute = ref<string | null>(null)
+watch(() => props.value?.route, () => { localRoute.value = null })
+const route = computed(() => localRoute.value ?? props.value?.route ?? '')
+const runId = computed(() => {
+  const match = /^\/?runs\/([^/]+)\/?$/.exec(route.value)
+  try { return match ? decodeURIComponent(match[1]!) : '' } catch { return '' }
+})
+const missingRoute = computed(() => !!route.value && route.value !== '/' && !runId.value)
+function navigate(to: string) {
+  tab.value = 'tasks'
+  localRoute.value = to
+  emit('navigate', { path: to })
+}
 
 type Tab = 'tasks' | 'accounts'
 const tabs: { id: Tab; label: string; icon: string }[] = [
@@ -32,17 +50,18 @@ function create() { if (tab.value === 'tasks') tasks.value?.open(); else account
 
 <template>
   <div class="ac">
-    <PageHead title="Autocode" subtitle="Run coding agents with your accounts and workspaces." :count="`${count} ${tab === 'tasks' ? 'task' : 'account'}${count === 1 ? '' : 's'}`" :action="tab === 'tasks' ? 'New task' : 'Add account'" v-model:query="query" :placeholder="tab === 'tasks' ? 'Search tasks…' : 'Search accounts…'" @create="create" />
-    <div class="ac-bar"><nav class="ac-tabs" aria-label="Autocode views">
-      <button v-for="t in tabs" :key="t.id" type="button" class="ac-tab kx-focus-outline" :class="{ active: tab === t.id }" :aria-pressed="tab === t.id" @click="tab = t.id; query = ''; count = 0"><Icon :icon="t.icon" /> {{ t.label }}</button>
+    <PageHead v-if="!runId && !missingRoute" title="Autocode" subtitle="Run coding agents with your accounts and workspaces." :count="`${count} ${tab === 'tasks' ? 'task' : 'account'}${count === 1 ? '' : 's'}`" :action="tab === 'tasks' ? 'New task' : 'Add account'" v-model:query="query" :placeholder="tab === 'tasks' ? 'Search tasks…' : 'Search accounts…'" @create="create" />
+    <div v-if="!runId && !missingRoute" class="ac-bar"><nav class="ac-tabs" aria-label="Autocode views">
+      <button v-for="t in tabs" :key="t.id" type="button" class="ac-tab kx-focus-outline" :class="{ active: tab === t.id }" :aria-pressed="tab === t.id" @click="if (tab !== t.id) { tab = t.id; query = ''; count = 0 }"><Icon :icon="t.icon" /> {{ t.label }}</button>
     </nav></div>
 
     <p v-if="error && !catalog" class="kx-err">
       {{ error }} <button class="ac-link kx-focus-outline" type="button" @click="load">Retry</button>
     </p>
     <div v-else-if="!catalog" class="kx-loading"><Icon icon="tabler:loader-2" class="spin" /> Loading…</div>
-    <main v-else class="ac-body">
-      <TasksTab v-if="tab === 'tasks'" ref="tasks" :query="query" @count="count = $event" @agent-changed="selectedAgent = $event" @goto="addAccount" />
+    <main v-else class="ac-body" :class="{ 'ac-detail-page': runId || missingRoute }">
+      <div v-if="missingRoute" class="kx-empty"><h1>Run not found</h1><button type="button" class="ac-btn kx-focus-halo" @click="navigate('')">Back to tasks</button></div>
+      <TasksTab v-else-if="runId || tab === 'tasks'" ref="tasks" :query="query" :run-id="runId" @open="navigate('runs/' + encodeURIComponent($event))" @close="navigate('')" @count="count = $event" @agent-changed="selectedAgent = $event" @goto="addAccount" />
       <AccountsTab v-else ref="accounts" :query="query" :selected-agent="selectedAgent" @count="count = $event" />
     </main>
   </div>

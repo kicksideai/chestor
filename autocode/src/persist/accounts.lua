@@ -4,7 +4,6 @@ local time = require("time")
 
 type Columns = db.Columns
 type AccountState = db.AccountState
-local fail = db.fail
 local query = db.query
 local execute = db.execute
 local text = db.text
@@ -35,20 +34,23 @@ function repo.account_states(ids: {string}): ({[string]: AccountState}?, error?)
         result[id] = {reservation_order = 0, last_used_at = "", cooldown_until = "", last_error = "", runs_day = 0, failures_day = 0}
     end
     local list = table.concat(marks, ", ")
-    local rows, err = query([[SELECT ids.account_id, COALESCE(s.reservation_order, 0) AS reservation_order, COALESCE(s.last_used_at, '') AS last_used_at,
+    local rows, err = query([[WITH recent AS (
+        SELECT account_id, COUNT(*) AS runs_day, SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failures_day
+        FROM chestor_autocode_runs WHERE created_at >= $1 AND account_id IN (]] .. list .. [[) GROUP BY account_id)
+        SELECT ids.account_id, COALESCE(s.reservation_order, 0) AS reservation_order, COALESCE(s.last_used_at, '') AS last_used_at,
         COALESCE(s.cooldown_until, '') AS cooldown_until, COALESCE(s.last_error, '') AS last_error,
         COALESCE(r.runs_day, 0) AS runs_day, COALESCE(r.failures_day, 0) AS failures_day
-        FROM (SELECT account_id FROM chestor_autocode_account_state UNION SELECT account_id FROM chestor_autocode_runs) ids
+        FROM (SELECT account_id FROM chestor_autocode_account_state WHERE account_id IN (]] .. list .. [[)
+            UNION SELECT account_id FROM chestor_autocode_runs WHERE account_id IN (]] .. list .. [[)) ids
         LEFT JOIN chestor_autocode_account_state s ON s.account_id = ids.account_id
-        LEFT JOIN (SELECT account_id, COUNT(*) AS runs_day, SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failures_day
-            FROM chestor_autocode_runs WHERE created_at >= $1 GROUP BY account_id) r ON r.account_id = ids.account_id
-        WHERE ids.account_id IN (]] .. list .. ")", params)
+        LEFT JOIN recent r ON r.account_id = ids.account_id]], params)
     if err then return nil, err end
     for _, row in ipairs(rows or {}) do
         local columns: Columns = {row = row, problem = nil}
         local state = account_state(columns)
-        if columns.problem then return nil, fail(columns.problem) end
-        result[text(columns, "account_id")] = state
+        local account_id = text(columns, "account_id")
+        if columns.problem then return nil, columns.problem end
+        result[account_id] = state
     end
     return result, nil
 end
@@ -57,26 +59,22 @@ end
 -- clears the account's error; a cooldown keeps it out of balancing until then.
 function repo.settle_account(account_id: string, refusal: string, cooldown_until: string, started_at: string?): error?
     local now = db.now()
-    local _, err = execute([[INSERT INTO chestor_autocode_account_state
-        (account_id, last_used_at, cooldown_until, last_error, settled_at) VALUES ($1, '', $2, $3, $4)
-        ON CONFLICT (account_id) DO UPDATE SET cooldown_until = excluded.cooldown_until,
-        last_error = excluded.last_error, settled_at = excluded.settled_at
-        WHERE (chestor_autocode_account_state.settled_at <= $5 AND (excluded.last_error <> '' OR chestor_autocode_account_state.cooldown_until <= $4))
-        OR excluded.cooldown_until > chestor_autocode_account_state.cooldown_until]],
-        {account_id, cooldown_until, refusal, now, started_at or now})
+    local _, err = execute([[UPDATE chestor_autocode_account_state
+        SET cooldown_until = $1, last_error = $2, settled_at = $3
+        WHERE account_id = $4 AND ((settled_at <= $5 AND ($2 <> '' OR cooldown_until <= $3))
+        OR $1 > cooldown_until)]], {cooldown_until, refusal, now, account_id, started_at or now})
     return err
 end
 
 function repo.record_account_error(account_id: string, message: string): error?
-    local _, err = execute([[INSERT INTO chestor_autocode_account_state (account_id, last_error, settled_at) VALUES ($1, $2, $3)
-        ON CONFLICT (account_id) DO UPDATE SET last_error = excluded.last_error, settled_at = excluded.settled_at]],
-        {account_id, message, db.now()})
+    local _, err = execute([[UPDATE chestor_autocode_account_state SET last_error = $1, settled_at = $2
+        WHERE account_id = $3]], {message, db.now(), account_id})
     return err
 end
 
 -- clear_cooldown takes an account back into balancing.
 function repo.clear_cooldown(account_id: string): error?
-    local _, err = execute("UPDATE chestor_autocode_account_state SET cooldown_until = '' WHERE account_id = $1", {account_id})
+    local _, err = execute("UPDATE chestor_autocode_account_state SET cooldown_until = '', last_error = '' WHERE account_id = $1", {account_id})
     return err
 end
 

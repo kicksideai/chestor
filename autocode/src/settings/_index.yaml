@@ -3,6 +3,17 @@ version: "1.0"
 namespace: chestor.autocode
 
 entries:
+  - name: settings.block.autocode
+    kind: registry.entry
+    meta:
+      type: kickside.settings:block
+    key: autocode
+    title: Autocode
+    icon: tabler:robot
+    group: Application
+    order: 80
+    namespace: chestor.autocode
+
   - name: setting.run_timeout
     kind: registry.entry
     meta:
@@ -15,8 +26,9 @@ entries:
     title: Run timeout
     category: Runs
     order: 10
-    description: "How long an agent task may run (a duration such as `30m` or `2h`); the CLI is stopped and the run fails after it."
+    description: "How long an agent task may run (at least `1m`, at most 7 days / `168h`); the CLI is stopped and the run fails after it."
     scope: global
+    validate_func: chestor.autocode:validate_duration
     editable: true
     visible: true
 
@@ -34,6 +46,7 @@ entries:
     order: 20
     description: "How long an account rests after the provider refuses a run with a retryable fault such as a rate limit (a duration such as `30m`)."
     scope: global
+    validate_func: chestor.autocode:validate_duration
     editable: true
     visible: true
 
@@ -46,10 +59,55 @@ entries:
     key: run_retention
     value_type: duration
     default: 720h
-    title: Run retention
+    title: Run and log retention
     category: Runs
     order: 30
-    description: "How long a settled run and its event log are kept before retention deletes them (a duration such as `720h`)."
+    description: "Retention deletes settled runs and their event logs older than this duration (for example, `720h`)."
     scope: global
+    validate_func: chestor.autocode:validate_duration
     editable: true
     visible: true
+
+  - name: setting.build_cache_retention
+    kind: registry.entry
+    meta:
+      type: kickside.settings:definition
+      comment: How long unused Docker build cache is kept on the shared host.
+    namespace: chestor.autocode
+    key: build_cache_retention
+    value_type: duration
+    default: 24h
+    title: Build cache retention
+    category: Images and Docker
+    order: 50
+    description: "How long unused build cache stays on the shared Docker host before manual cleanup removes it (a duration such as `24h`)."
+    scope: global
+    validate_func: chestor.autocode:validate_duration
+    editable: true
+    visible: true
+
+  - name: setting.image_build_timeout
+    kind: registry.entry
+    meta:
+      type: kickside.settings:definition
+      comment: How long an image build and its probes may run.
+    namespace: chestor.autocode
+    key: image_build_timeout
+    value_type: duration
+    default: 30m
+    title: Image build timeout
+    category: Images and Docker
+    order: 40
+    description: "Image build and probe deadline (at least 1m, at most 168h)."
+    scope: global
+    validate_func: chestor.autocode:validate_duration
+    editable: true
+    visible: true
+
+  - name: validate_duration
+    kind: function.lua
+    source: file://validate.lua
+    method: validate
+    modules: [time]
+    imports:
+      settings: chestor.autocode.domain:settings

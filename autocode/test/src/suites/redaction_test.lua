@@ -5,11 +5,18 @@
 -- values.
 local test = require("test")
 local redact = require("redact")
+local json = require("json")
 
 local SECRET = "sk-autocode-harness-0123456789"
 
 local function cases()
     test.describe("autocode redaction", function()
+        test.it("removes bare JSON-escaped encodings of known credentials", function()
+            for _, secret in ipairs({'credential-quote"-0123456789', 'credential-backslash\\-0123456789'}) do
+                local encoded = json.encode(secret):sub(2, -2)
+                test.eq(redact.apply(redact.new(secret), encoded), redact.MARK)
+            end
+        end)
         test.it("removes every occurrence of the supplied secret", function()
             local text = redact.apply(redact.new(SECRET), "key=" .. SECRET .. " again " .. SECRET .. ".")
             test.eq(text, "key=" .. redact.MARK .. " again " .. redact.MARK .. ".")

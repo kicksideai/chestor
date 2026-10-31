@@ -2,12 +2,13 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
 import { Icon } from '@iconify/vue'
-import { accountState, shortTime, type Account } from './api.ts'
-import { relativeTime, useRunClock } from './presentation.ts'
+import ToggleSwitch from 'primevue/toggleswitch'
+import { type Account } from './api.ts'
+import { relativeTime, useRunClock, accountState, shortTime } from './presentation.ts'
 
 // One account in its agent's list, with ownership and editable actions.
 const props = defineProps<{ account: Account; kindLabel: string; ownerLabel: string }>()
-const emit = defineEmits<{ toggle: []; rename: [label: string]; remove: [] }>()
+const emit = defineEmits<{ toggle: []; rename: [label: string]; remove: []; edit: [] }>()
 
 const STATE_LABEL = { ready: 'ready', cooling: 'cooling down', disabled: 'disabled', unavailable: 'unavailable' } as const
 const now = useRunClock()
@@ -56,11 +57,10 @@ function finishRename() {
 
     </div>
     <div class="ac-row-actions">
-      <label v-if="account.writable" class="ac-switch" :title="account.enabled ? 'Disable account' : 'Enable account'">
-        <input type="checkbox" :checked="account.enabled" :aria-label="account.enabled ? 'Disable account' : 'Enable account'" @change="emit('toggle')" />
-        <span />
-      </label>
+      <ToggleSwitch v-if="account.writable" :model-value="account.enabled"
+        :aria-label="account.enabled ? 'Disable account' : 'Enable account'" @change="emit('toggle')" />
       <button v-if="account.writable" type="button" class="ac-icon-btn kx-focus-outline" title="Rename" aria-label="Rename account" @click="startRename"><Icon icon="tabler:pencil" /></button>
+      <button v-if="account.writable" type="button" class="ac-icon-btn kx-focus-outline" title="Edit credential and endpoint" aria-label="Edit account" @click="emit('edit')"><Icon icon="tabler:key" /></button>
       <button v-if="account.deletable" type="button" class="ac-icon-btn kx-focus-outline" title="Delete" aria-label="Delete account" @click="emit('remove')"><Icon icon="tabler:trash" /></button>
     </div>
   </li>

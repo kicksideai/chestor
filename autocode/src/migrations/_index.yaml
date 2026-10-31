@@ -15,27 +15,3 @@ entries:
     imports:
       migration: wippy.migration:migration
     method: migrate
-
-  - name: 02_delivery_and_generations
-    kind: function.lua
-    meta:
-      type: migration
-      comment: Fence image builds and keep workflow results until delivery.
-      timestamp: "2026-10-26T16:00:00Z"
-    source: file://02_delivery_and_generations.lua
-    modules: [sql]
-    imports:
-      migration: wippy.migration:migration
-    method: migrate
-
-  - name: 03_image_recipe
-    kind: function.lua
-    meta:
-      type: migration
-      comment: Store the trusted image recipe with its build generation.
-      timestamp: "2026-10-26T17:00:00Z"
-    source: file://03_image_recipe.lua
-    modules: [sql]
-    imports:
-      migration: wippy.migration:migration
-    method: migrate

@@ -45,6 +45,14 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 200
+    },
+    "input": {
+      "description": "Optional JSON input, encoded separately from prompt; at most 65,536 UTF-8 bytes after JSON serialization. The runner appends it after prompt as Input:."
+    },
+    "repo_ref": {
+      "type": "string",
+      "maxLength": 200,
+      "description": "Optional branch or tag for repo_url (at most 200 bytes); omitted or empty uses the remote default branch."
     }
   },
   "required": [

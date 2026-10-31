@@ -25,6 +25,9 @@
           "status": {
             "type": "string"
           },
+          "usable": {
+            "type": "boolean"
+          },
           "agents": {
             "type": "array",
             "items": {
@@ -53,6 +56,7 @@
           "label",
           "home",
           "status",
+          "usable",
           "agents",
           "last_error",
           "owner",

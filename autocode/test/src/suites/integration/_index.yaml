@@ -12,7 +12,7 @@ entries:
       comment: autocode migrations are applied and every endpoint of its module access policy is registered.
     source: file://../../suites/wiring_test.lua
     method: run
-    modules: [registry, sql]
+    modules: [registry, sql, json, funcs]
     imports:
       test: wippy.test:test
     security:
@@ -60,10 +60,12 @@ entries:
       comment: Run admission follows the caller's grants on accounts, images and workspaces, and balances across usable accounts.
     source: file://../../suites/admission_test.lua
     method: run
+    modules: [sql, json]
     imports:
       test: wippy.test:test
       identity: app:identity
       build_fixture: app:build_fixture
+      repo: chestor.autocode.persist:repo
     security:
       actor: { id: app:test_runner }
       policies: [app:test_runtime]
@@ -83,8 +85,9 @@ entries:
       identity: app:identity
       build_fixture: app:build_fixture
       anthropic: app:anthropic
-      docker: chestor.autocode.runner:docker
+      docker: chestor.autocode.infrastructure:docker
       repo: chestor.autocode.persist:repo
+      jobs: kickside.core.jobs:jobs
     security:
       actor: { id: app:test_runner }
       policies: [app:test_runtime]
@@ -94,10 +97,18 @@ entries:
     meta: {type: test, suite: autocode_persistence, group: Autocode}
     source: file://../../suites/persistence_test.lua
     method: run
-    modules: [sql, uuid]
+    modules: [json, sql, uuid, time]
     imports:
       test: wippy.test:test
       repo: chestor.autocode.persist:repo
+      stubs: app:runner_stubs
+      maintenance: app:maintenance_retention_subject
+      builds_subject: app:builds_subject
+      run_store_subject: app:run_store_subject
+      resource_dto: chestor.autocode.service:resource_dto
+      identity: app:identity
+      account_health: chestor.autocode.runner:account_health
+      redact: chestor.autocode.runner:redact
     security:
       actor: {id: app:test_runner}
       policies: [app:test_runtime]
@@ -107,11 +118,15 @@ entries:
     meta: {type: test, suite: autocode_tasks_contract, group: Autocode}
     source: file://../../suites/tasks_contract_test.lua
     method: run
-    modules: [registry, uuid, json, sql]
+    modules: [time, registry, uuid, json, sql]
     imports:
       test: wippy.test:test
       identity: app:identity
       contract_fixture: app:contract_fixture
+      run_store_subject: app:run_store_subject
+      stubs: app:runner_stubs
+      jobs: kickside.core.jobs:jobs
+      component: kickside.component:component
       repo: chestor.autocode.persist:repo
     security:
       actor: {id: app:test_runner}
@@ -122,11 +137,12 @@ entries:
     meta: {type: test, suite: autocode_agent_tools, group: Autocode}
     source: file://../../suites/agent_tools_test.lua
     method: run
-    modules: [registry, json]
+    modules: [registry, json, time]
     imports:
       test: wippy.test:test
       identity: app:identity
       repo: chestor.autocode.persist:repo
+      deferred: chestor.autocode.service:deferred
     security:
       actor: {id: app:test_runner}
       policies: [app:test_runtime]
@@ -140,7 +156,56 @@ entries:
       test: wippy.test:test
       identity: app:identity
       contract_fixture: app:contract_fixture
+      component: kickside.component:component
+      live: chestor.autocode.domain:live
       repo: chestor.autocode.persist:repo
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: durability_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_durability, group: Autocode}
+    source: file://../../suites/durability_test.lua
+    method: run
+    modules: [uuid, time, sql]
+    imports:
+      test: wippy.test:test
+      repo: app:delivery_repo
+      jobs: kickside.core.jobs:jobs
+      identity: app:identity
+      deferred: chestor.autocode.service:deferred
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: image_docker_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_image_docker, group: Autocode}
+    source: file://../../suites/image_docker_test.lua
+    method: run
+    modules: [uuid]
+    imports:
+      test: wippy.test:test
+      docker: chestor.autocode.infrastructure:docker
+      image: app:real_image_subject
+      container: chestor.autocode.infrastructure:container
+      maintenance: app:real_probe_maintenance_subject
+      stubs: app:runner_stubs
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: flow_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_flow, group: Autocode}
+    source: file://../../suites/flow_test.lua
+    method: run
+    modules: [sql, time, json]
+    imports:
+      test: wippy.test:test
+      identity: app:identity
+      contract_fixture: app:contract_fixture
     security:
       actor: {id: app:test_runner}
       policies: [app:test_runtime]

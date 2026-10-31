@@ -12,7 +12,7 @@ import type { DriverAccountConfig, DriverAccountEvents } from './driver-account-
 const PROPS_SCHEMA = {
   type: 'object',
   properties: {
-    config: { type: 'object', description: 'Driver credential card: { driver, busy, error, saved }' },
+    config: { type: 'object', default: {}, description: 'Driver credential card: { driver, busy, error, saved }' },
   },
 } satisfies WippyPropsSchema
 

@@ -9,10 +9,6 @@ entries:
       value_kind: db.sql
       comment: Database resource for the autocode tables; it is the jobs database, so rows and their jobs commit together.
     targets:
-      - entry: chestor.autocode.migrations:03_image_recipe
-        path: .meta.target_db
-      - entry: chestor.autocode.migrations:02_delivery_and_generations
-        path: .meta.target_db
       - entry: chestor.autocode.migrations:01_create_tables
         path: .meta.target_db
       - entry: chestor.autocode.persist:db_config
@@ -27,8 +23,6 @@ entries:
       comment: Authenticated HTTP router the autocode endpoints attach to.
     targets:
       - entry: chestor.autocode.api:catalog.user.endpoint
-        path: .meta.router
-      - entry: chestor.autocode.api:drivers_list.user.endpoint
         path: .meta.router
       - entry: chestor.autocode.api:accounts_list.user.endpoint
         path: .meta.router
@@ -85,18 +79,8 @@ entries:
       - entry: chestor.autocode:runtime_config
         path: .meta.workspace_roots
 
-  - name: docker_path
-    kind: ns.requirement
-    default: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-    meta:
-      comment: Host executable search path for the Docker executor; override when Docker is installed elsewhere.
-    targets:
-      - entry: chestor.autocode:docker
-        path: .default_env.PATH
-
   - name: docker_executor
     kind: ns.requirement
-    default: chestor.autocode:docker
     meta:
       value_kind: exec
       comment: Host-owned executor for the Docker CLI, on a host that can reach the selected daemon.

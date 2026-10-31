@@ -7,6 +7,7 @@ local component = require("component")
 local envelope = require("envelope")
 local json = require("json")
 local component_types = require("component_types")
+local recipe = require("recipe")
 
 type Object = {[string]: unknown}
 type Kind = "account" | "image" | "workspace"
@@ -99,13 +100,11 @@ end
 -- get returns the resource when the caller holds the required access; a
 -- resource the caller cannot reach is not found, never told apart.
 function M.get(kind: Kind, id: string, required: integer): (Resource?, error?)
-    local rows, err = component.query({component_ids = {id}, impl_ids = {M.KINDS[kind]}, include = {meta = true, access = true}, limit = 1})
+    local rows, err = component.query({component_ids = {id}, impl_ids = {M.KINDS[kind]}, access_mask = required, include = {meta = true, access = true}, limit = 1})
     if err then return nil, err end
     local row = rows and rows[1]
     if not row then return nil, errors.new({kind = errors.NOT_FOUND, message = kind .. " not found"}) end
-    local found = resource(kind, row)
-    if not M.has(found.access, required) then return nil, errors.new({kind = errors.NOT_FOUND, message = kind .. " not found"}) end
-    return found, nil
+    return resource(kind, row), nil
 end
 
 -- context returns the private context of a resource the caller holds the
@@ -121,6 +120,23 @@ function M.context(kind: Kind, id: string, required: integer): (Context?, error?
     if result_err then return nil, result_err end
     return {values = object(result.context), revision = math.floor(tonumber(result.context_revision) or 0),
         access = math.floor(tonumber(result.access_level) or 0)}, nil
+end
+
+-- A snapshot reads private context before metadata so its revision fences recipe writes.
+function M.snapshot(kind: Kind, id: string, required: integer): ({resource: Resource, context: Context}?, error?)
+    local context, context_err = M.context(kind, id, required)
+    if not context then return nil, context_err end
+    local found, find_err = M.get(kind, id, required)
+    if not found then return nil, find_err end
+    return {resource = found, context = context}, nil
+end
+
+function M.image_recipe(id: string, required: integer): (recipe.Recipe?, error?)
+    local snapshot, err = M.snapshot("image", id, required)
+    if not snapshot then return nil, err end
+    return recipe.decode({ref = snapshot.resource.meta.ref, home = snapshot.resource.meta.home,
+        dockerfile = M.text(snapshot.context.values.dockerfile), revision = snapshot.context.revision,
+        settings = snapshot.context.values.settings})
 end
 
 -- register creates a resource the caller owns.

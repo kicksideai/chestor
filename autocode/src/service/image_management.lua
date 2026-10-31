@@ -2,31 +2,33 @@
 local repo = require("repo")
 local resources = require("resources")
 local images = require("images")
-local projections = require("projections")
+local resource_dto = require("resource_dto")
 local values = require("values")
 local boundary = require("boundary")
-local docker = require("docker")
+local docker_image = require("docker_image")
 type Object = {[string]: unknown}
 local text = resources.text
-local view = projections.image
-local function get(args: Object)
+local view = resource_dto.image
+type Detail = {image: resource_dto.Image, build_log: string, dockerfile: string?, settings: images.Settings?}
+type Created = {id: string, build_error: boundary.Failure?}
+local function get(args: Object): (Detail?, error?)
     local id = values.text(args.id, 64)
     if not id or id == "" then return nil, boundary.error(errors.INVALID, "autocode.invalid_request", "image id is required") end
     local image, err = resources.get("image", id, resources.ACCESS.READ)
     if not image then return nil, boundary.native(err) end
     local build, build_err = repo.image_build(id)
     if build_err then return nil, boundary.native(build_err) end
-    local body: Object = {image = view(image, build), build_log = build and build.log or ""}
+    local body: Detail = {image = view(image, build), build_log = build and build.log or ""}
     if resources.has(image.access, resources.ACCESS.WRITE) then
-        local context, context_err = resources.context("image", id, resources.ACCESS.WRITE)
-        if not context then return nil, boundary.native(context_err) end
-        body.dockerfile = text(context.values.dockerfile)
-        body.settings = context.values.settings
+        local decoded, decode_err = resources.image_recipe(id, resources.ACCESS.WRITE)
+        if not decoded then return nil, decode_err end
+        body.dockerfile = decoded.dockerfile or ""
+        body.settings = (values.object(decoded.settings) :: images.Settings)
     end
     return body, nil
 end
 
-local function create(body: Object)
+local function create(body: Object): (Created?, error?)
     local ref = values.text(body.ref, 300)
     if not ref or ref == "" or ref:find("%s") then
         return nil, boundary.error(errors.INVALID, "autocode.invalid_image", "ref must be an image reference such as name:tag")
@@ -36,37 +38,75 @@ local function create(body: Object)
     local decoded, decode_err = images.decode(body)
     if not decoded then return nil, boundary.native(decode_err) end
     local id, err = resources.register("image", {title = decoded.label ~= "" and decoded.label or ref, ref = ref, home = decoded.home,
-        status = "unprepared", agents = {}, last_error = ""}, {dockerfile = dockerfile, settings = decoded.settings})
+        status = "preparing", agents = {}, last_error = ""}, {dockerfile = dockerfile, settings = decoded.settings})
     if not id then return nil, boundary.native(err) end
     local build_err = images.request_build(id, "initial")
     if build_err then
-        local failure = boundary.native(build_err) or build_err
-        return {id = id,
-            build_error = {message = failure:message(), kind = failure:kind(), retryable = failure:retryable(), details = failure:details()}}, nil
+        local context, context_err = resources.context("image", id, resources.ACCESS.WRITE)
+        local reset_err = context_err
+        if context then reset_err = resources.replace(id, {status = "unprepared", last_error = build_err:message()}, nil, context.revision) end
+        return {id = id, build_error = boundary.partial(reset_err or build_err)}, nil
     end
     return {id = id}, nil
 end
 
--- PUT /autocode/images/{id} — change the label, home and run settings; the
--- next management build records them for runs.
-local function update(body: Object)
+-- PUT /autocode/images/{id} saves the recipe and requests its build under the manager.
+local function update(body: Object): (Created?, error?)
     local id = values.text(body.id, 64)
     if not id or id == "" then return nil, boundary.error(errors.INVALID, "autocode.invalid_request", "image id is required") end
     local decoded, decode_err = images.decode(body)
     if not decoded then return nil, boundary.native(decode_err) end
-    local image, err = resources.get("image", id, resources.ACCESS.WRITE)
-    if not image then return nil, boundary.native(err) end
-    local context, context_err = resources.context("image", id, resources.ACCESS.WRITE)
-    if not context then return nil, boundary.native(context_err) end
-    local update_err = resources.replace(id, {title = decoded.label ~= "" and decoded.label or text(image.meta.ref), home = decoded.home},
-        {settings = decoded.settings}, context.revision)
+    local snapshot, snapshot_err = resources.snapshot("image", id, resources.ACCESS.WRITE)
+    if not snapshot then return nil, boundary.native(snapshot_err) end
+    local context, image = snapshot.context, snapshot.resource
+    local requested_ref = body.ref
+    if requested_ref == nil then requested_ref = image.meta.ref end
+    local ref = values.text(requested_ref, 300)
+    if not ref or ref == "" or ref:find("%s") then return nil, boundary.error(errors.INVALID, "autocode.invalid_image", "ref must be an image reference such as name:tag") end
+    local requested_dockerfile = body.dockerfile
+    if requested_dockerfile == nil then requested_dockerfile = context.values.dockerfile or "" end
+    local dockerfile = values.text(requested_dockerfile, 65536)
+    if not dockerfile then return nil, boundary.error(errors.INVALID, "autocode.invalid_image", "dockerfile is too large") end
+    local fields: Object = {title = decoded.label ~= "" and decoded.label or ref, home = decoded.home}
+    local previous = context.values.settings
+    local ref_changed = ref ~= text(image.meta.ref)
+    local dockerfile_changed = dockerfile ~= text(context.values.dockerfile)
+    local changed = ref_changed or dockerfile_changed or decoded.home ~= text(image.meta.home)
+    if ref_changed then fields.ref = ref end
+    if type(previous) ~= "table" then changed = true
+    else
+        for key, value in pairs(decoded.settings) do
+            local old = previous[key]
+            if type(value) == "table" then
+                if type(old) ~= "table" or #old ~= #value then changed = true
+                else for i, item in ipairs(value) do if old[i] ~= item then changed = true end end end
+            elseif old ~= value then changed = true end
+        end
+    end
+    -- An unprepared image has settings no build recorded yet, so a save that
+    -- repeats them still requests the preparation they need.
+    local prepares = changed or text(image.meta.status) == "unprepared"
+    if prepares then
+        local build, build_err = repo.image_build(id)
+        if build_err then return nil, boundary.native(build_err) end
+        if not build or not build.approved_recipe then fields.status = "unprepared" end
+        local _, admit_err = images.admit_build(id)
+        if admit_err then return nil, boundary.native(admit_err) end
+    end
+    local update_err = resources.replace(id, fields, changed and {settings = decoded.settings, dockerfile = dockerfile} or nil, context.revision)
     if update_err then return nil, boundary.native(update_err) end
-    return {}, nil
+    if prepares then
+        local build_err = images.request_build(id, (ref_changed or dockerfile_changed) and dockerfile == "" and "refresh" or "initial")
+        if build_err then
+            return {id = id, build_error = boundary.partial(build_err)}, nil
+        end
+    end
+    return {id = id}, nil
 end
 
 -- POST /autocode/images/{id}/prepare — rebuild from the stored Dockerfile,
--- or pull the reference again even when a local copy exists.
-local function prepare(args: Object)
+-- pull a registry reference, or re-probe a local-only image without pulling.
+local function prepare(args: Object): ({}?, error?)
     local id = values.text(args.id, 64)
     if not id or id == "" then return nil, boundary.error(errors.INVALID, "autocode.invalid_request", "image id is required") end
     local image, err = resources.get("image", id, resources.ACCESS.WRITE)
@@ -76,22 +116,20 @@ local function prepare(args: Object)
     return {}, nil
 end
 
--- ?remove=1 also removes the Docker image from the host first; the image
--- stays when Docker refuses, for example while a container still uses it.
-local function delete(args: Object)
+-- Component deletion drains the build before Docker reference removal.
+local function delete(args: Object): ({docker_error: boundary.Failure?}?, error?)
     local id = values.text(args.id, 64)
     if not id or id == "" then return nil, boundary.error(errors.INVALID, "autocode.invalid_request", "image id is required") end
     local image, find_err = resources.get("image", id, resources.ACCESS.DELETE)
     if not image then return nil, boundary.native(find_err) end
-    if args.remove == true then
-        local output: {string} = {}
-        local code, docker_err = docker.run({"image", "rm", text(image.meta.ref)}, {on_line = function(line: string) output[#output + 1] = line end})
-        if docker_err then return nil, boundary.native(docker_err) end
-        local result = table.concat(output, "\n")
-        if code ~= 0 and not result:find("No such image", 1, true) then return nil, errors.new({kind = errors.CONFLICT, message = "Docker cannot remove the image", retryable = false, details = {code = "autocode.image_in_use", output = result}}) end
-    end
     local err = resources.delete(id)
     if err then return nil, boundary.native(err) end
+    if args.remove == true then
+        local remove_err = docker_image.remove(text(image.meta.ref))
+        if remove_err then
+            return {docker_error = boundary.partial(remove_err)}, nil
+        end
+    end
     return {}, nil
 end
 

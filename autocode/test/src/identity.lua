@@ -9,9 +9,7 @@ local http_client = require("http_client")
 local json = require("json")
 local registry = require("registry")
 local uuid = require("uuid")
-local user_repo = require("user_repo")
-local user_groups_repo = require("user_groups_repo")
-local user_lifecycle_repo = require("user_lifecycle_repo")
+local contract = require("contract")
 
 type User = {id: string, email: string, groups: {string}, token: string}
 type Response = {status: integer, body: string, json: unknown}
@@ -66,19 +64,50 @@ local function sign_in(email: string): string
     return response.json.token
 end
 
--- Creates an active user in the given groups and signs it in.
+local bootstrap: {id: string, token: string}? = nil
+local active = 0
+local function administrator(): {id: string, token: string}
+    if bootstrap then return bootstrap end
+    local definition, definition_err = contract.get("kickside.users:user_provisioning")
+    if not definition then error(tostring(definition_err)) end
+    local provisioning, open_err = definition:open()
+    if not provisioning then error(tostring(open_err)) end
+    local created, create_err = provisioning:create_passwordless_user({email = uuid.v4() .. "@autocode.test.local"})
+    if not created or not created.ok then error("bootstrap creation: " .. tostring(create_err or (created and created.error))) end
+    local completed, complete_err = provisioning:complete_passwordless_user({identifier = created.user_id,
+        source = "autocode-harness", group_ids = {M.SIGNED_IN, M.ADMINS}})
+    if not completed or not completed.ok then error("bootstrap groups: " .. tostring(complete_err or (completed and completed.error))) end
+    local session, session_err = provisioning:mint_session({identifier = created.user_id})
+    if not session or not session.ok then error("bootstrap session: " .. tostring(session_err or (session and session.error))) end
+    if type(session.token) ~= "string" or session.token == "" then error("bootstrap session has no token") end
+    local store = security.token_store(TOKEN_STORE)
+    local actor, scope, token_err = store:validate(session.token)
+    store:close()
+    if not actor or not scope then error("bootstrap token validation: " .. tostring(token_err)) end
+    bootstrap = {id = created.user_id, token = session.token}
+    return bootstrap
+end
+local function manage(method: string, path: string, body: unknown?): Response
+    local admin = administrator()
+    local prefix = tostring(data_of("app:api").prefix or "")
+    return send(method, base_url() .. prefix .. path, admin.token, body)
+end
+-- Creates an account through HTTP, assigns groups through provisioning and signs in.
 function M.user(groups: {string}): User
     local id = uuid.v4()
     local email = id .. "@autocode.test.local"
-    local created, create_err = user_repo.create({user_id = id, email = email, password = PASSWORD,
-        full_name = "Autocode " .. id:sub(1, 8), status = "active"})
-    if not created then error("could not create user " .. id .. ": " .. tostring(create_err)) end
+    local response = manage("POST", "/users", {user_id = id, email = email, password = PASSWORD,
+        full_name = "Autocode " .. id:sub(1, 8), status = "active", groups = table.create(1, 0)})
+    if response.status ~= 201 then error("could not create user: " .. response.body) end
+    local definition, definition_err = contract.get("kickside.users:user_provisioning")
+    if not definition then error(tostring(definition_err)) end
+    local provisioning, open_err = definition:open()
+    if not provisioning then error(tostring(open_err)) end
     for _, group in ipairs(groups) do
-        local assigned, assign_err = user_groups_repo.assign_user_to_group(id, group)
-        if assign_err or not assigned then
-            error("could not assign " .. id .. " to " .. group .. ": " .. tostring(assign_err))
-        end
+        local assigned, assign_err = provisioning:assign_group({identifier = id, group_id = group})
+        if not assigned or not assigned.ok then error("could not assign group: " .. tostring(assign_err or (assigned and assigned.error))) end
     end
+    active = active + 1
     return {id = id, email = email, groups = groups, token = sign_in(email)}
 end
 
@@ -118,10 +147,16 @@ function M.container_url(): string
     return (base_url():gsub("127%.0%.0%.1", "host.docker.internal"))
 end
 
--- Deletes the user, which revokes its sessions.
+-- Queues user deletion through the Users admin API and revokes its sessions.
 function M.release(user: User)
-    local _, err = user_lifecycle_repo.delete(user.id)
-    if err then error("could not delete user " .. user.id .. ": " .. tostring(err)) end
+    local response = manage("DELETE", "/users/" .. user.id, nil)
+    if response.status ~= 202 then error("could not delete user " .. user.id .. ": " .. response.body) end
+    active = active - 1
+    if active == 0 and bootstrap then
+        local removed = manage("DELETE", "/users/" .. bootstrap.id, nil)
+        if removed.status ~= 202 then error("could not delete bootstrap: " .. removed.body) end
+        bootstrap = nil
+    end
 end
 
 return M

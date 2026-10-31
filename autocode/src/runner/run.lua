@@ -5,8 +5,8 @@
 -- output into run events, keeps a credential the CLI refreshed, removes the
 -- container and settles the run. A run a workflow node waits on enqueues the
 -- node's resume in the transaction that settles it. A later attempt of the
--- job finds the run its interrupted predecessor left: it removes the
--- container and settles the run as failed.
+-- job completes cleanup and applies the recorded outcome, or records an
+-- interruption when execution has no durable outcome.
 local repo = require("repo")
 local runs = require("runs")
 local container = require("container")
@@ -15,6 +15,7 @@ local redact = require("redact")
 local docker = require("docker")
 local live = require("live")
 local run_io = require("run_io")
+local account_health = require("account_health")
 local execution_identity = require("execution_identity")
 local deferred = require("deferred")
 local job_outcome = require("job_outcome")
@@ -24,14 +25,13 @@ local transport = require("transport")
 -- The resource whose kickside.execution.defer grant lets the runner resolve
 -- a run owner's stored identity.
 local DEFERRED_OWNER = "chestor.autocode:runs"
-local PREPARE = "chestor.autocode.runner:prepare"
-local RESUME_JOB = "chestor.autocode.blocks:resume"
+local PREPARE = "chestor.autocode.service:prepare"
 -- The exit code coreutils and busybox timeout report for a run past its limit.
 local TIMED_OUT = 124
 
 type Outcome = job_outcome.Outcome
--- What the run owner's admission returns: the admitted run, the account
--- credential and the context revision a refreshed credential expects.
+-- Preparation carries the launch, image, workspace, account credential
+-- and context revision for credential refresh.
 type Prepared = transport.Prepared
 
 local failure = job_outcome.failure
@@ -47,26 +47,28 @@ local function prepare(run: repo.Run): (Prepared?, Caller?, error?)
     end
     local result, prepare_err = owner:call(PREPARE, {run_id = run.id})
     if prepare_err then return nil, nil, job_outcome.native(prepare_err) end
+    if not run.account_pinned then
+        local current, read_err = repo.stored_run(run.id)
+        if not current then return nil, nil, read_err or errors.new({kind = errors.NOT_FOUND, message = "run not found"}) end
+        run.account_id = current.account_id
+    end
     local prepared, decode_err = transport.prepared(result, run)
     if not prepared then return nil, nil, decode_err end
     return prepared, owner :: Caller, nil
 end
 
-local function account_changed(account_id: string)
-    local err = live.account(account_id)
-    if err then logger:warn("autocode account notification failed", {account_id = account_id, error = tostring(err)}) end
-end
-
-local function execute(run: repo.Run, job: {[string]: unknown}): Outcome
+local function execute(run: repo.Run, job: {[string]: unknown}, trace_context: {[string]: unknown}?): Outcome
+    local deadline = type(job.deadline) == "string" and job.deadline or nil
     local run_id = run.id
     local seq_start, seq_err = repo.next_seq(run_id)
-    if not seq_start then return failure("run events: " .. tostring(seq_err), errors.UNAVAILABLE) end
+    if not seq_start then return failure("run events", errors.UNAVAILABLE, seq_err) end
     local seq = seq_start - 1
     local persist_err: string? = nil
     local redactor = redact.new("")
+    local notification_err: error? = nil
     local function changed(topic: string)
         local notify_err = live.notify(run.owner_id, topic)
-        if notify_err then logger:warn("autocode live update failed", {run_id = run_id, topic = topic, error = tostring(notify_err)}) end
+        if notify_err then notification_err = notification_err or errors.wrap(notify_err, "run notification") end
     end
     local function emit(kind: string, text: string)
         if persist_err then return end
@@ -78,23 +80,39 @@ local function execute(run: repo.Run, job: {[string]: unknown}): Outcome
         end
         changed(live.run_topic(run_id))
     end
+    local function cleanup(): Outcome?
+        local name = runs.container_name(run_id)
+        local remove_err = docker.ensure_removed(name, deadline)
+        if remove_err then
+            emit("system", "container cleanup: " .. tostring(remove_err))
+            return failure("container cleanup", errors.UNAVAILABLE, remove_err)
+        end
+        return nil
+    end
+
     local function finish(status: repo.RunStatus, answer: string, reason: string, usage: {[string]: unknown}): Outcome
         local shown_answer, shown_reason = redact.apply(redactor, answer), redact.apply(redactor, reason)
-        local resume: repo.Transactional? = nil
-        if run.flow then
-            resume = deferred.enqueue({scope = run_id, key = "resume", owner_id = run.owner_id, job_type = RESUME_JOB,
-                max_attempts = 5, payload = {run_id = run_id}})
+        if run.pending_status then
+            status, shown_answer, shown_reason, usage = run.pending_status, run.result, run.error, run.usage
+        else
+            local record_err = repo.record_run_outcome(run_id, status, shown_answer, shown_reason, usage)
+            if record_err then return failure("run outcome write", errors.UNAVAILABLE, record_err) end
+            run.pending_status, run.result, run.error, run.usage = status, shown_answer, shown_reason, usage
         end
-        local settled, err = repo.finish_run(run_id, status, shown_answer, shown_reason, usage, resume)
-        if err then return failure("run status write: " .. tostring(err), errors.UNAVAILABLE) end
+        local cleanup_failure = cleanup()
+        if cleanup_failure then return cleanup_failure end
+        local settled, err = repo.finish_run(run_id, status, shown_answer, shown_reason, usage, trace_context)
+        if err then return failure("run status write", errors.UNAVAILABLE, err) end
         if not settled then return {ok = true, output = {run_id = run_id, status = status}} end
         changed(live.run_topic(run_id))
         changed(live.RUNS_TOPIC)
-        account_changed(run.account_id)
+        local account_err = live.account(run.account_id)
+        notification_err = notification_err or account_err
         if run.flow then
             local nudge_err = deferred.nudge()
             if nudge_err then logger:warn("autocode workflow delivery awaits jobs reconciliation", {run_id = run_id, error = tostring(nudge_err)}) end
         end
+        if notification_err then return failure("committed run notification", errors.UNAVAILABLE, notification_err) end
         return {ok = true, output = {run_id = run_id, status = status}}
     end
     local function fail(reason: string): Outcome
@@ -104,63 +122,54 @@ local function execute(run: repo.Run, job: {[string]: unknown}): Outcome
 
     -- An attempt after the first finds the run its predecessor left behind.
     local attempt = tonumber(job.attempt_no) or 1
-    if attempt > 1 then
-        local remove_err = docker.remove(runs.container_name(run_id))
-        if remove_err then emit("system", "container cleanup: " .. tostring(remove_err)) end
-        return fail("the runner stopped before the run settled")
-    end
+    if run.pending_status then return finish(run.pending_status, run.result, run.error, run.usage) end
+    if attempt > 1 then return fail("the runner stopped before the run settled") end
 
     local prepared, owner, prepare_err = prepare(run)
     if not prepared or not owner then return fail(tostring(prepare_err)) end
-    local admitted = prepared.admitted
     local secret = prepared.secret
     redactor = redact.new(secret)
-    local script, script_err = container.script(admitted.account.kind, secret, admitted.image.home, admitted.workdir,
-        run.repo_url, admitted.launch, math.floor(run.timeout_ms / 1000))
+    local script, script_err = container.script(prepared.kind, secret, prepared.image.home, prepared.workdir,
+        run.repo_url, prepared.launch, math.floor(run.timeout_ms / 1000), run.repo_ref)
     if not script then return fail(tostring(script_err)) end
-    local box = run_io.build(run_id, admitted, script.env)
+    local box = run_io.build(run_id, prepared, script.env)
 
     local function cancelled(): (boolean?, error?)
-        local current, read_err = repo.stored_run(run_id)
-        if read_err then return nil, read_err end
-        if not current then return nil, errors.new({kind = errors.NOT_FOUND, message = "run disappeared during execution"}) end
-        return current.cancel_requested, nil
+        return repo.cancel_requested(run_id)
     end
     local initial_cancel, initial_err = cancelled()
     if initial_err then return fail("cancellation read: " .. tostring(initial_err)) end
     if initial_cancel then return finish("cancelled", "", "cancelled by user", {}) end
+    local inspected, inspect_err = docker.run({"image", "inspect", "--format", "{{.Id}}", prepared.image.ref}, {deadline = deadline})
+    if inspect_err then return fail("recorded image ID inspection failed: " .. tostring(inspect_err)) end
+    if inspected ~= 0 then return fail("recorded image ID is no longer available in Docker; prepare the image again: " .. prepared.image.ref) end
     local create_output: {string} = {}
-    local created, create_err = docker.run(box.create, {env = box.env, on_line = function(line: string) create_output[#create_output + 1] = line end})
+    local created, create_err = docker.run(box.create, {deadline = deadline, env = box.env, on_line = function(line: string) create_output[#create_output + 1] = line end})
     if create_err or created ~= 0 then
         return fail(create_err and tostring(create_err) or ("container create failed: " .. table.concat(create_output, "\n")))
     end
-    local function cleanup()
-        local remove_err = docker.remove(box.name)
-        if remove_err then emit("system", "container cleanup: " .. tostring(remove_err)) end
-    end
     local requested, cancel_err = cancelled()
-    if cancel_err then cleanup(); return fail("cancellation read: " .. tostring(cancel_err)) end
+    if cancel_err then return fail("cancellation read: " .. tostring(cancel_err)) end
     if requested then
-        cleanup()
         emit("system", "cancelled")
         return finish("cancelled", "", "cancelled by user", {})
     end
     local started, start_err = repo.start_run(run_id)
     if not started then
-        cleanup()
         local requested, read_err = cancelled()
         if read_err then return fail("cancellation read: " .. tostring(read_err)) end
         if requested then return finish("cancelled", "", "cancelled by user", {}) end
         return fail(start_err and ("run start write failed: " .. tostring(start_err)) or "run is no longer queued")
     end
-    account_changed(run.account_id)
+    local health_notify_err = live.account(run.account_id)
+    notification_err = notification_err or health_notify_err
     run.started_at = repo.now()
     changed(live.run_topic(run_id))
     changed(live.RUNS_TOPIC)
-    emit("system", "starting " .. admitted.driver.id .. " in " .. admitted.image.ref)
+    emit("system", "starting " .. prepared.agent .. " in " .. prepared.image.ref)
 
-    local streamed, stream_failure = run_io.stream(admitted, box, redactor, emit, cancelled, function(): string? return persist_err end)
-    if not streamed then cleanup(); return fail(tostring(stream_failure)) end
+    local streamed, stream_failure = run_io.stream(prepared, box, redactor, emit, cancelled, function(): string? return persist_err end, deadline)
+    if not streamed then return fail(tostring(stream_failure)) end
     local terminal, folder = streamed.terminal, streamed.folder
     local stream_err, docker_err, code = streamed.stream_error, streamed.docker_error, streamed.code
     local last_log = streamed.last_log
@@ -168,11 +177,10 @@ local function execute(run: repo.Run, job: {[string]: unknown}): Outcome
     local was_cancelled, final_read_err = cancelled()
     if final_read_err then stream_err = stream_err or ("cancellation read: " .. tostring(final_read_err)) end
     was_cancelled = was_cancelled or streamed.cancel_seen
-    local refresh_error = run_io.keep_credential(run_id, owner, prepared, box, emit)
-    cleanup()
-
-    run_io.settle_account(run, terminal, refresh_error, redactor, emit)
-    account_changed(run.account_id)
+    local refresh_error = run_io.keep_credential(run_id, owner, prepared, box, emit, deadline)
+    account_health.settle(run, terminal, refresh_error, redactor, emit)
+    local health_notify_err = live.account(run.account_id)
+    notification_err = notification_err or health_notify_err
     local fault = terminal and terminal.error
     local answer = records.result(folder, terminal)
     local usage = records.usage(terminal)
@@ -200,10 +208,14 @@ local function main(input: {[string]: unknown}): Outcome
     local job = type(input.job) == "table" and input.job or {}
     local run_id = type(payload.run_id) == "string" and payload.run_id or ""
     local run, run_err = repo.stored_run(run_id)
-    if run_err then return failure("run read: " .. tostring(run_err), errors.UNAVAILABLE) end
+    if run_err then return failure("run read", errors.UNAVAILABLE, run_err) end
     if not run then return failure("run " .. run_id .. " not found", errors.NOT_FOUND) end
-    if run.status ~= "queued" and run.status ~= "running" then return {ok = true, output = {run_id = run_id, status = run.status}} end
-    return execute(run, job)
+    if run.status ~= "queued" and run.status ~= "running" then
+        local notify_err = live.notify(run.owner_id, live.run_topic(run_id)) or live.notify(run.owner_id, live.RUNS_TOPIC) or live.account(run.account_id)
+        if notify_err then return failure("committed run notification", errors.UNAVAILABLE, notify_err) end
+        return {ok = true, output = {run_id = run_id, status = run.status}}
+    end
+    return execute(run, job, type(input.trace_context) == "table" and input.trace_context or nil)
 end
 
 return { main = main }

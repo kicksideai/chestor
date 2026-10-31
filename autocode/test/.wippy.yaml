@@ -5,6 +5,8 @@ workspace:
   replacements:
     chestor/autocode: ..
 override:
+  "kickside.core.jobs:policy:meta.slot_retry.retry_after_ms": 100
+  "kickside.core.jobs:policy:meta.slot_retry.max_delay_ms": 1000
   "app:db:file": "${sqlite_path}"
   "app:gateway:addr": ":${http_port}"
 vars:

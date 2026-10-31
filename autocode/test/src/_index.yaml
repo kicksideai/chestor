@@ -182,10 +182,11 @@ entries:
     version: "*"
     parameters:
       - { name: chestor.autocode:target_db, value: app:db }
+      - { name: chestor.autocode:docker_executor, value: app:docker }
       - { name: chestor.autocode:api_router, value: app:api }
       - { name: chestor.autocode:ui_server, value: app:gateway }
       - { name: chestor.autocode:workspace_roots, value: /srv/autocode-harness }
-      - { name: chestor.autocode:settings_path, value: "/settings?tab=autocode" }
+      - { name: chestor.autocode:settings_path, value: "/system/autocode" }
 
   - name: driver_host_environment
     kind: env.storage.file
@@ -206,3 +207,8 @@ entries:
     file_mode: 384
     lifecycle:
       auto_start: true
+
+  - name: docker
+    kind: exec.native
+    default_env:
+      PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin

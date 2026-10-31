@@ -33,7 +33,7 @@ function create() { if (tab.value === 'images') images.value?.open(); else works
     <PageHead title="Autocode" subtitle="Manage agent images, workspaces and Docker." :count="tab && tab !== 'docker' ? `${count} ${count === 1 ? tab.slice(0, -1) : tab}` : undefined" :action="tab === 'images' ? 'Add image' : tab === 'workspaces' ? 'Add workspace' : undefined" v-model:query="query" :placeholder="tab === 'docker' ? undefined : 'Search resources…'" @create="create" />
     <div class="ac-bar">
       <nav class="ac-tabs" aria-label="Autocode management">
-        <button v-for="t in allowedTabs" :key="t.id" type="button" class="ac-tab kx-focus-outline" :class="{ active: tab === t.id }" :aria-pressed="tab === t.id" @click="tab = t.id; query = ''; count = 0">
+        <button v-for="t in allowedTabs" :key="t.id" type="button" class="ac-tab kx-focus-outline" :class="{ active: tab === t.id }" :aria-pressed="tab === t.id" @click="if (tab !== t.id) { tab = t.id; query = ''; count = 0 }">
           <Icon :icon="t.icon" /> {{ t.label }}
         </button>
       </nav>

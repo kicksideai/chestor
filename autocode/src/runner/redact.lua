@@ -26,6 +26,13 @@ function M.new(secret: string): Redactor
     if #secret > 0 then needles[1] = secret end
     local decoded = json.decode(secret)
     if type(decoded) == "table" then collect(decoded, needles) end
+    for index = 1, #needles do
+        local encoded = json.encode(needles[index])
+        if encoded then
+            local escaped = encoded:sub(2, -2)
+            if escaped ~= needles[index] then needles[#needles + 1] = escaped end
+        end
+    end
     table.sort(needles, function(a: string, b: string): boolean return #a > #b end)
     return {needles = needles}
 end
@@ -41,10 +48,6 @@ local function secret_field(name: string): boolean
 end
 
 local function structured(text: string): string
-    text = text:gsub('("([%w_%-]+)"%s*:%s*")([^"]*)(")', function(prefix: string, name: string, value: string, suffix: string): string
-        if #value >= M.MIN_LENGTH and secret_field(name) then return prefix .. M.MARK .. suffix end
-        return prefix .. value .. suffix
-    end)
     text = text:gsub("(://)([^/%s@]+)@", function(scheme: string, userinfo: string): string
         return scheme .. M.MARK .. "@"
     end)
@@ -55,7 +58,7 @@ local function structured(text: string): string
     return text
 end
 
-function M.apply(redactor: Redactor, text: string): string
+local function literal(redactor: Redactor, text: string): string
     for _, needle in ipairs(redactor.needles) do
         local parts: {string} = {}
         local position = 1
@@ -71,7 +74,42 @@ function M.apply(redactor: Redactor, text: string): string
             text = table.concat(parts)
         end
     end
-    return structured(text)
+    return text
+end
+
+-- JSON strings end at an unescaped quote. Decode each string so all valid
+-- escape spellings of a known credential pass through the same filter.
+function M.apply(redactor: Redactor, text: string): string
+    local parts: {string} = {}
+    local position = 1
+    local previous: string? = nil
+    while position <= #text do
+        local first = text:find('"', position, true)
+        if not first then break end
+        local last = first + 1
+        while last <= #text do
+            local char = text:sub(last, last)
+            if char == "\\" then last = last + 2
+            elseif char == '"' then break
+            else last = last + 1 end
+        end
+        if last > #text then break end
+        local prefix = text:sub(position, first - 1)
+        local token = text:sub(first, last)
+        local value = json.decode(token)
+        if type(value) == "string" then
+            local filtered = literal(redactor, value)
+            if previous and secret_field(previous) and prefix:match("^%s*:%s*$") and #value >= M.MIN_LENGTH then
+                filtered = M.MARK
+            end
+            if filtered ~= value then token = json.encode(filtered) or token end
+            previous = value
+        else previous = nil end
+        parts[#parts + 1], parts[#parts + 2] = prefix, token
+        position = last + 1
+    end
+    parts[#parts + 1] = text:sub(position)
+    return structured(literal(redactor, table.concat(parts)))
 end
 
 return M

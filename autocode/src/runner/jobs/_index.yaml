@@ -13,17 +13,18 @@ entries:
       - logger
     imports:
       repo: chestor.autocode.persist:repo
-      runs: chestor.autocode.runner:runs
-      container: chestor.autocode.runner:container
+      runs: chestor.autocode.service:runs
+      container: chestor.autocode.infrastructure:container
       records: chestor.autocode.runner:records
       redact: chestor.autocode.runner:redact
-      docker: chestor.autocode.runner:docker
-      live: chestor.autocode.runner:live
+      docker: chestor.autocode.infrastructure:docker
+      live: chestor.autocode.domain:live
       run_io: chestor.autocode.runner:run_io
+      account_health: chestor.autocode.runner:account_health
       execution_identity: kickside.execution:execution_identity
-      deferred: chestor.autocode.runner:deferred
-      transport: chestor.autocode.runner:transport
-      job_outcome: chestor.autocode.runner:job_outcome
+      deferred: chestor.autocode.service:deferred
+      transport: chestor.autocode.service:transport
+      job_outcome: chestor.autocode.domain:job_outcome
     security:
       actor:
         id: system:chestor.autocode.runner
@@ -45,12 +46,13 @@ entries:
     source: file://../image.lua
     method: main
     imports:
+      image_tags: chestor.autocode.infrastructure:image_tags
       repo: chestor.autocode.persist:repo
       drivers: bee.drivers:drivers
-      docker: chestor.autocode.runner:docker
+      docker: chestor.autocode.infrastructure:docker
       execution_identity: kickside.execution:execution_identity
-      transport: chestor.autocode.runner:transport
-      job_outcome: chestor.autocode.runner:job_outcome
+      transport: chestor.autocode.service:transport
+      job_outcome: chestor.autocode.domain:job_outcome
       component: kickside.component:component
     security:
       actor:
@@ -77,7 +79,7 @@ entries:
       - time
     imports:
       repo: chestor.autocode.persist:repo
-      settings: chestor.autocode.runner:settings
+      settings: chestor.autocode.domain:settings
     security:
       actor:
         id: system:chestor.autocode.retention

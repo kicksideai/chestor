@@ -15,7 +15,7 @@ entries:
     modules: [json]
     imports:
       test: wippy.test:test
-      redact: chestor.autocode.runner:redact
+      redact: app:redact_subject
 
   - name: records_test
     kind: function.lua
@@ -28,20 +28,60 @@ entries:
     method: run
     imports:
       test: wippy.test:test
-      records: chestor.autocode.runner:records
-      redact: chestor.autocode.runner:redact
+      records: app:records_subject
+      redact: app:redact_subject
 
-  - name: runner_faults_test
+  - name: resume_faults_test
     kind: function.lua
-    meta: {type: test, suite: autocode_runner_faults, group: Autocode}
-    source: file://../../suites/runner_faults_test.lua
+    meta: {type: test, suite: autocode_resume_faults, group: Autocode}
+    source: file://../../suites/resume_faults_test.lua
     method: run
+    modules: [json]
     imports:
       test: wippy.test:test
       stubs: app:runner_stubs
       resume_subject: app:resume_subject
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: image_faults_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_image_faults, group: Autocode}
+    source: file://../../suites/image_faults_test.lua
+    method: run
+    modules: [json]
+    imports:
+      test: wippy.test:test
+      stubs: app:runner_stubs
       image_subject: app:image_subject
+      resource_dto: chestor.autocode.service:resource_dto
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: run_faults_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_run_faults, group: Autocode}
+    source: file://../../suites/run_faults_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      stubs: app:runner_stubs
       run_subject: app:run_subject
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: teardown_faults_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_teardown_faults, group: Autocode}
+    source: file://../../suites/teardown_faults_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      stubs: app:runner_stubs
+      teardown: app:teardown_subject
     security:
       actor: {id: app:test_runner}
       policies: [app:test_runtime]
@@ -50,7 +90,7 @@ entries:
     kind: function.lua
     meta: {type: test, suite: autocode_docker, group: Autocode}
     source: file://../../suites/docker_test.lua
-    modules: [registry]
+    modules: [registry, time]
     method: run
     imports:
       test: wippy.test:test
@@ -113,6 +153,7 @@ entries:
 
   - name: task_replay_test
     kind: function.lua
+    modules: [json]
     meta: {type: test, suite: autocode_task_replay, group: Autocode}
     source: file://../../suites/task_replay_test.lua
     method: run
@@ -132,3 +173,94 @@ entries:
     imports:
       test: wippy.test:test
       web: chestor.autocode.api:web
+
+  - name: maintenance_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_maintenance, group: Autocode}
+    source: file://../../suites/maintenance_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      subject: app:maintenance_subject
+      stubs: app:runner_stubs
+
+  - name: status_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_status, group: Autocode}
+    source: file://../../suites/status_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      subject: app:status_subject
+      stubs: app:runner_stubs
+
+  - name: transport_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_transport, group: Autocode}
+    source: file://../../suites/transport_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      transport: chestor.autocode.service:transport
+      container: chestor.autocode.infrastructure:container
+      stubs: app:runner_stubs
+
+  - name: job_outcome_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_job_outcome, group: Autocode}
+    source: file://../../suites/job_outcome_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      outcome: chestor.autocode.domain:job_outcome
+
+  - name: submission_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_submission, group: Autocode}
+    source: file://../../suites/submission_test.lua
+    method: run
+    modules: [json]
+    imports:
+      test: wippy.test:test
+      subject: app:submission_subject
+      stubs: app:runner_stubs
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: account_update_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_account_update, group: Autocode}
+    source: file://../../suites/account_update_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      subject: app:accounts_subject
+      stubs: app:runner_stubs
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: native_errors_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_native_errors, group: Autocode}
+    source: file://../../suites/native_errors_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      stubs: app:runner_stubs
+      arm: app:arm_subject
+      live: app:live_subject
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: account_query_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_account_query, group: Autocode}
+    source: file://../../suites/account_query_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      subject: app:account_store_subject
+      stubs: app:runner_stubs

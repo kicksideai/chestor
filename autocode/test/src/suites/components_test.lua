@@ -1,7 +1,6 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 -- Agent accounts are components: HTTP responses omit their credentials,
--- grants decide who sees an account, and a personal
--- subscription login stays its owner's to run on even when shared.
+-- grants decide who sees and runs on an account, including subscription logins.
 local test = require("test")
 local identity = require("identity")
 
@@ -62,6 +61,22 @@ local function cases()
             return nil, response.body
         end
 
+        test.it("rejects invalid durations before they replace effective settings", function()
+            local admin = track(identity.admin())
+            for _, pair in ipairs({{"run_timeout", "59s"}, {"run_retention", "0s"}, {"account_cooldown", "-1s"}, {"build_cache_retention", "0s"}, {"build_cache_retention", "-1h"}, {"build_cache_retention", "invalid"}}) do
+                local response = identity.request(admin, "PUT", "/settings", {namespace = "chestor.autocode", key = pair[1], value = pair[2]})
+                identity.request(admin, "PUT", "/settings", {namespace = "chestor.autocode", key = pair[1]})
+                test.eq(response.status, 400, response.body)
+            end
+        end)
+        test.it("bounds the run timeout setting at seven days", function()
+            local admin = track(identity.admin())
+            local accepted = identity.request(admin, "PUT", "/settings", {namespace = "chestor.autocode", key = "run_timeout", value = "168h"})
+            local rejected = identity.request(admin, "PUT", "/settings", {namespace = "chestor.autocode", key = "run_timeout", value = "168h1ms"})
+            identity.request(admin, "PUT", "/settings", {namespace = "chestor.autocode", key = "run_timeout"})
+            test.eq(accepted.status, 200, accepted.body)
+            test.eq(rejected.status, 400, rejected.body)
+        end)
         test.it("keeps the credential private and lists the account to its owner", function()
             local owner = track(identity.member())
             local key = kinds(owner)
@@ -98,7 +113,7 @@ local function cases()
             test.eq(identity.request(other, "PUT", "/autocode/accounts/" .. id, {label = "Taken"}).status, 404)
         end)
 
-        test.it("keeps a shared subscription login unusable for others", function()
+        test.it("makes a shared subscription login usable for grantees", function()
             local owner = track(identity.member())
             local other = track(identity.member())
             local _, subscription = kinds(owner)
@@ -112,7 +127,7 @@ local function cases()
             test.is_nil(share_err)
             local theirs = listed(other, created.json.id)
             test.not_nil(theirs)
-            test.eq(theirs.usable, false)
+            test.eq(theirs.usable, true)
         end)
 
         test.it("refuses an endpoint that carries credentials or a subscription login", function()
@@ -159,6 +174,22 @@ local function cases()
             test.eq(listed(other, id).writable, false)
             test.eq(listed(other, id).deletable, true)
             test.eq(identity.request(other, "DELETE", "/autocode/accounts/" .. id).status, 200)
+        end)
+
+        test.it("accepts WRITE-only and DELETE-only grants without requiring READ", function()
+            local owner = track(identity.member())
+            local other = track(identity.member())
+            local key = kinds(owner)
+            local created = create(owner, key, "Independent masks", "sk-ant-harness-" .. string.rep("i", 32))
+            test.eq(created.status, 201, created.body)
+            local id = created.json.id
+            test.is_nil(share(owner, id, 2))
+            test.is_nil(listed(other, id))
+            local updated = identity.request(other, "PUT", "/autocode/accounts/" .. id, {label = "Write only"})
+            test.eq(updated.status, 200, updated.body)
+            test.is_nil(share(owner, id, 4))
+            local removed = identity.request(other, "DELETE", "/autocode/accounts/" .. id)
+            test.eq(removed.status, 200, removed.body)
         end)
 
         for _, kind in ipairs({"image", "workspace"}) do

@@ -16,6 +16,8 @@ const decoded = computed(() => driverAccountConfig.safeParse(props.value.config)
 const config = computed<DriverAccountConfig | null>(() => decoded.value.success ? decoded.value.data : null)
 const configError = computed(() => props.value.config && !decoded.value.success ? 'Account form configuration is invalid.' : '')
 const driver = computed(() => config.value?.driver ?? null)
+const account = computed(() => config.value?.account)
+const needsSecret = computed(() => !account.value || kind.value !== account.value.credential_kind)
 
 const kind = ref('')
 const label = ref('')
@@ -49,10 +51,6 @@ const validation = computed(() => {
   }
   const url = baseUrl.value.trim()
   if (endpointable.value && url) {
-    try {
-      const parsed = new URL(url)
-      if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password || parsed.search || parsed.hash || /\s/.test(url)) errors.endpoint = 'Use an HTTP or HTTPS URL without credentials, query or fragment.'
-    } catch { errors.endpoint = 'Enter a valid HTTP or HTTPS URL.' }
     if (limits && byteLength(url) > limits.endpoint_url_bytes) errors.endpoint = `Endpoint URL exceeds ${limits.endpoint_url_bytes} bytes.`
     if (limits && byteLength(model.value.trim()) > limits.endpoint_model_bytes) errors.model = `Model exceeds ${limits.endpoint_model_bytes} bytes.`
   }
@@ -69,6 +67,11 @@ watch(() => driver.value?.id, () => {
 watch(kind, () => { protocol.value = driver.value?.endpoints[0] ?? ''; reset() }, { flush: 'sync' })
 watch(() => config.value?.busy, busy => { if (busy) generation++ }, { flush: 'sync' })
 
+watch(() => JSON.stringify(config.value?.account), () => {
+  kind.value = account.value?.credential_kind ?? driver.value?.credentials.find(c => !c.subscription && !c.file)?.id ?? driver.value?.credentials[0]?.id ?? ''
+  reset()
+}, { immediate: true })
+
 // The host bumps `saved` after it stores a submitted account.
 watch(() => config.value?.saved, (next, previous) => { if (next !== previous) reset() })
 
@@ -77,18 +80,20 @@ function reset(keepLabel = false) {
   dragging.value = false
   if (!keepLabel || !labelEdited.value) {
     labelEdited.value = false
-    label.value = defaultLabel()
+    label.value = account.value?.label ?? defaultLabel()
   }
   secret.value = ''
   dropped.value = ''
-  baseUrl.value = ''
-  model.value = ''
+  const endpoint = kind.value === account.value?.credential_kind ? account.value.endpoint : undefined
+  baseUrl.value = endpoint?.base_url ?? ''
+  model.value = endpoint?.model ?? ''
+  protocol.value = endpoint?.protocol ?? driver.value?.endpoints[0] ?? ''
   problem.value = ''
 }
 
 function defaultLabel() { return [driver.value?.title, choice.value?.label].filter(Boolean).join(' ') }
 watch(() => [driver.value?.title, choice.value?.label], () => {
-  if (!labelEdited.value) label.value = defaultLabel()
+  if (!labelEdited.value) label.value = account.value?.label ?? defaultLabel()
 })
 
 function basename(path: string) { return path.split('/').pop() ?? path }
@@ -122,7 +127,7 @@ function submit() {
   problem.value = ''
   const selectedDriver = driver.value
   const selectedKind = choice.value
-  if (!selectedDriver || !selectedKind || config.value?.busy || Object.keys(validation.value).length) return
+  if (!selectedDriver || !selectedKind || config.value?.busy || Object.keys(validation.value).length || !label.value.trim() || (needsSecret.value && !secret.value.trim())) return
   const endpoint = endpointable.value && baseUrl.value.trim()
     ? { protocol: protocol.value, base_url: baseUrl.value.trim(), model: model.value.trim() || undefined }
     : undefined
@@ -134,7 +139,7 @@ function submit() {
   <p v-if="configError" class="kx-err" role="alert">{{ configError }}</p>
   <section v-if="driver" class="da">
     <div class="kx-card-head">
-      <div class="kx-card-name">Add a {{ driver.title }} account</div>
+      <div class="kx-card-name">{{ account ? 'Edit' : 'Add a' }} {{ driver.title }} account</div>
     </div>
 
     <label class="da-field">
@@ -155,7 +160,7 @@ function submit() {
       <span v-else>Drop {{ choice?.file ? '~/' + choice.file : 'a file with the value' }} here, or paste below.</span>
     </div>
     <label v-if="!dropped" class="da-field">
-      <span class="da-lbl">{{ choice?.file ? 'Login file content' : 'Value' }}</span>
+      <span class="da-lbl">{{ choice?.file ? 'Login file content' : 'Value' }}<span v-if="account && !needsSecret" class="da-opt"> · leave empty to keep the credential</span></span>
       <textarea :disabled="config?.busy" v-model="secret" @input="editSecret" rows="4" class="da-input da-mono kx-focus-halo" :placeholder="choice?.hint" />
     </label>
 
@@ -190,7 +195,7 @@ function submit() {
 
     <div class="da-foot">
       <small class="da-hint">Checked against the credential's format, kept in the account's private context, never shown again.</small>
-      <button type="button" class="da-btn kx-focus-halo" :disabled="config?.busy || Object.keys(validation).length > 0 || !label.trim() || !secret.trim()" @click="submit">
+      <button type="button" class="da-btn kx-focus-halo" :disabled="config?.busy || Object.keys(validation).length > 0 || !choice || !label.trim() || (needsSecret && !secret.trim())" @click="submit">
         <Icon icon="tabler:key" /> {{ config?.busy ? 'Saving…' : 'Save account' }}
       </button>
     </div>
