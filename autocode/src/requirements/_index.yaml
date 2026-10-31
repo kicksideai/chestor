@@ -9,12 +9,6 @@ entries:
       value_kind: db.sql
       comment: Database resource for the autocode tables; it is the jobs database, so rows and their jobs commit together.
     targets:
-      - entry: chestor.autocode.migrations:04_durable_runs_and_approvals
-        path: .meta.target_db
-      - entry: chestor.autocode.migrations:03_image_recipe
-        path: .meta.target_db
-      - entry: chestor.autocode.migrations:02_delivery_and_generations
-        path: .meta.target_db
       - entry: chestor.autocode.migrations:01_create_tables
         path: .meta.target_db
       - entry: chestor.autocode.persist:db_config

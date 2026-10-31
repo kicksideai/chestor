@@ -29,12 +29,5 @@ profiles:
       "app:db:options.sslmode": disable
       "app:db:pool.max_open": 16
       "app:db:pool.max_idle": 8
-      "app:migration_upgrade_db:kind": db.sql.postgres
-      "app:migration_upgrade_db:host": "${pg_host}"
-      "app:migration_upgrade_db:port": "${pg_port}"
-      "app:migration_upgrade_db:database": "${pg_database}_migration"
-      "app:migration_upgrade_db:username": "${pg_username}"
-      "app:migration_upgrade_db:password": "${pg_password}"
-      "app:migration_upgrade_db:options.sslmode": disable
 registry:
   dispatch_internal_kinds: [registry.entry, ns.requirement, ns.dependency, ns.definition, security.scope]
