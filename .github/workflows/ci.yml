@@ -50,7 +50,7 @@ jobs:
       matrix:
         include:
         - module: autocode
-          wippy_version: 0.3.51a
+          wippy_version: 0.3.55a
           engine: sqlite
           commands: |
             set -euo pipefail
@@ -58,7 +58,7 @@ jobs:
             mkdir -p "$TMPDIR"
             make -C autocode release-check
         - module: autocode
-          wippy_version: 0.3.51a
+          wippy_version: 0.3.55a
           engine: postgres
           commands: |
             set -euo pipefail
@@ -427,7 +427,7 @@ jobs:
         node-version: '22'
     - uses: kicksideai/.github/actions/setup-wippy@5401fa65bed7d8648125957520e94206ed1ffd0b
       with:
-        version: ${{ matrix.wippy_version || '0.3.47a' }}
+        version: ${{ matrix.wippy_version || '0.3.55a' }}
         hub-url: https://hub.wippy.ai
     - name: Check out kickside module sources
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1

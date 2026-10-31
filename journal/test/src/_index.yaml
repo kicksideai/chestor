@@ -730,3 +730,20 @@ entries:
   - name: embedding_recall_fixture
     kind: library.lua
     source: file://embedding_recall_fixture.lua
+
+  - name: journal_hybrid_recall_test
+    kind: function.lua
+    meta: { type: test, suite: chestor_journal }
+    source: file://hybrid_recall_test.lua
+    method: run
+    modules: [sql, time]
+    imports:
+      test: wippy.test:test
+      types: chestor.journal:types
+      projector: chestor.journal.persist:projector
+      graph_projector: chestor.journal.graph:projector
+      graph: chestor.journal.graph:service
+      recall: chestor.journal.read:recall
+      reader: chestor.journal.persist:reader
+      thread_log: chestor.journal:thread_log
+      embeddings: chestor.journal.persist:embeddings
