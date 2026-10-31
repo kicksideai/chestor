@@ -28,7 +28,8 @@ test-pg:
 	@cd test; wippy install $(WIPPY_INSTALL_ARGS) $(RUNTIME_ARGS); mkdir -p .wippy; \
 	db=chestor_autocode_test_$$(date +%s%N); \
 	psql "$(PG_URL)" -qc "CREATE DATABASE $$db"; \
-	trap 'psql "$(PG_URL)" -qc "DROP DATABASE $$db WITH (FORCE)"' EXIT; \
+	trap 'psql "$(PG_URL)" -qc "DROP DATABASE IF EXISTS $${db}_migration WITH (FORCE)"; psql "$(PG_URL)" -qc "DROP DATABASE $$db WITH (FORCE)"' EXIT; \
+	psql "$(PG_URL)" -qc "CREATE DATABASE $${db}_migration"; \
 	wippy lint $(WIPPY_LINT_ARGS) --ns 'chestor.autocode' --ns 'chestor.autocode.*' --profile postgres --set vars.pg_database=$$db $(RUNTIME_ARGS); \
 	wippy test $(WIPPY_TEST_ARGS) --profile postgres --set vars.pg_database=$$db $(RUNTIME_ARGS) $(TEST_ARGS) 2>&1 | tee .wippy/last-test-pg-run.log; \
 	sed -E 's/\x1B\[[0-9;?]*[[:alpha:]]//g' .wippy/last-test-pg-run.log | \

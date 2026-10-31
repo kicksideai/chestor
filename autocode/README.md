@@ -26,9 +26,17 @@ and start tasks. Account grants allow grantees to run with the stored credential
 including subscription logins. Use official API keys or your own endpoints for
 production or multiple users.
 
+Upgrades retain the installed migration history and add the durable-run and
+image-approval columns through migration 04. Existing runs and account state
+remain intact. Prepare existing images again in management before starting
+new runs: an old mutable image reference does not establish an immutable
+approval. Finish in-flight builds before upgrading. An unfinished record
+without a recorded job ID stays fenced: preparation and deletion cannot
+confirm that its worker has stopped.
+
 ## Requirements
 
-Wippy 0.3.x; validated with 0.3.51a. The host needs Docker and an `exec.native`
+Wippy 0.3.x; validated with 0.3.55a. The host needs Docker and an `exec.native`
 entry whose `default_env.PATH` contains the Docker CLI. Frontend development uses Node.js 22, npm, and Make.
 
 - **`chestor.autocode:target_db`**: SQL database shared with `kickside/jobs`, so rows and jobs commit together.
@@ -93,7 +101,8 @@ make test
 make test-pg
 ```
 
-`test-pg` creates and drops a dedicated PostgreSQL database. Set `PG_URL` for
+`test-pg` creates and drops dedicated PostgreSQL databases for the application
+and the installed-schema migration regression. Set `PG_URL` for
 the maintenance connection and `RUNTIME_ARGS` for harness profile variables
 when using a different server. The default test server is local PostgreSQL
 on port 5433. Both engines run the same suites.

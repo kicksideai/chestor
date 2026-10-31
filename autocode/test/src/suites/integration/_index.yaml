@@ -3,6 +3,18 @@ version: "1.0"
 namespace: app
 
 entries:
+  - name: migration_upgrade_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_migration, group: Autocode}
+    source: file://../../suites/migration_upgrade_test.lua
+    method: run
+    modules: [sql, funcs]
+    imports:
+      test: wippy.test:test
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
   - name: wiring_test
     kind: function.lua
     meta:
