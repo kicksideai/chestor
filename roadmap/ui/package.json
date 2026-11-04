@@ -65,6 +65,7 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch",
+    "test": "vitest run",
     "typecheck": "vue-tsc --noEmit"
   }
 }
