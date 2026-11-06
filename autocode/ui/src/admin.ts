@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
-import { PrimeVuePlugin } from '@wippy-fe/theme/primevue-plugin'
-import { WippyVueElement, define } from '@wippy-fe/webcomponent-vue'
+import { WippyVueElement, define, useEvents } from '@wippy-fe/webcomponent-vue'
 import type { WippyElementConfig, WippyPropsSchema } from '@wippy-fe/webcomponent-vue'
 import type { ComponentProps } from './types.ts'
-import Admin from './app/admin.vue'
+import { lazyPage } from './lazy'
 import stylesText from './styles.css?inline'
 
 // chestor-autocode-admin - the Autocode tab of the System settings, built as its
@@ -16,7 +15,13 @@ class ChestorAutocodeAdminElement extends WippyVueElement<ComponentProps, Record
   }
 
   static get vueConfig() {
-    return { rootComponent: Admin, plugins: [PrimeVuePlugin] }
+    return {
+      lazyConfig: lazyPage(
+        () => import('./admin-mount').then((module) => module.mountConfig),
+        'Could not load Autocode settings. Reload the page to try again.',
+        useEvents,
+      ),
+    }
   }
 }
 

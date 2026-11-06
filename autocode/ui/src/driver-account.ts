@@ -1,9 +1,15 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
-import { WippyVueElement, define } from '@wippy-fe/webcomponent-vue'
+import { WippyVueElement, define, useEvents } from '@wippy-fe/webcomponent-vue'
 import type { WippyElementConfig, WippyPropsSchema } from '@wippy-fe/webcomponent-vue'
-import DriverAccount from './app/driver-account.vue'
+import { lazyControl } from './lazy'
 import stylesText from './driver-account.css?inline'
 import type { DriverAccountConfig, DriverAccountEvents } from './driver-account-types.ts'
+
+const DriverAccount = lazyControl(
+  () => import('./app/driver-account.vue'),
+  { loading: 'Loading the driver account card…', failed: 'Could not load the driver account card. Reload the page to try again.' },
+  useEvents,
+)
 
 // chestor-autocode-driver-account - the credential card of one agent driver, built as
 // its own bundle (driver-account.js) and registered as its own view.component
