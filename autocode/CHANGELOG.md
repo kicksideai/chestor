@@ -1,6 +1,14 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.2](https://github.com/kicksideai/chestor/compare/autocode-v0.1.1...autocode-v0.1.2) (2026-11-06)
+
+
+### Bug Fixes
+
+* preserve component deletion acceptance and worker authority ([f8f2566](https://github.com/kicksideai/chestor/commit/f8f2566036d63ae515507e1c0d31a62ecd5bab61))
+* preserve component deletion acceptance and worker authority ([eb8491a](https://github.com/kicksideai/chestor/commit/eb8491a5097dff80226e769e57594bae85d96dfc))
+
 ## [0.1.1](https://github.com/kicksideai/chestor/compare/autocode-v0.1.0...autocode-v0.1.1) (2026-10-31)
 
 
