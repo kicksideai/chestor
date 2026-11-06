@@ -45,6 +45,7 @@ entries:
     source: file://../../suites/components_test.lua
     method: run
     imports:
+      deletion_worker: app:deletion_test_worker
       test: wippy.test:test
       identity: app:identity
     security:
@@ -99,6 +100,7 @@ entries:
     method: run
     modules: [json, sql, uuid, time]
     imports:
+      deletion_worker: app:deletion_test_worker
       test: wippy.test:test
       repo: chestor.autocode.persist:repo
       stubs: app:runner_stubs

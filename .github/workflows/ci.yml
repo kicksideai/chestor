@@ -56,6 +56,7 @@ jobs:
             set -euo pipefail
             export TMPDIR="$PWD/.scratch"
             mkdir -p "$TMPDIR"
+            make -C autocode lockrefresh
             make -C autocode release-check
         - module: autocode
           wippy_version: 0.3.55a
@@ -64,6 +65,7 @@ jobs:
             set -euo pipefail
             export TMPDIR="$PWD/.scratch"
             mkdir -p "$TMPDIR"
+            make -C autocode lockrefresh
             make -C autocode release-check TEST_TARGET=test-pg
         - module: db-schema
           engine: sqlite

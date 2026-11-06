@@ -312,7 +312,7 @@ function resources.delete(id)
     if M.state.on_delete then M.state.on_delete() end
     if M.state.delete_error then return M.state.delete_error end
     M.state.deleted = id
-    return nil
+    return nil, M.state.delete_result or {id = id, success = true, deleted = false, in_progress = true, job_id = "delete-job"}
 end
 function component.set_meta() M.state.meta_written = true end
 function resources.replace(id, fields, patch, revision)

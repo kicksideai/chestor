@@ -9,7 +9,7 @@ local function handler()
     if err then return support.fail(res, err) end
     res:set_status(result.in_progress == true and http.STATUS.ACCEPTED or http.STATUS.OK)
     res:write_json({ success = true, deleted = result.deleted == true, in_progress = result.in_progress == true,
-        status = result.status, cleanup_pending = result.cleanup_pending, kind = result.kind,
+        status = result.status, job_id = result.job_id, cleanup_pending = result.cleanup_pending, kind = result.kind,
         retryable = result.retryable, details = result.details })
 end
 

@@ -116,21 +116,21 @@ local function prepare(args: Object): ({}?, error?)
     return {}, nil
 end
 
--- Component deletion drains the build before Docker reference removal.
-local function delete(args: Object): ({docker_error: boundary.Failure?}?, error?)
+local function delete(args: Object): (Object?, error?)
     local id = values.text(args.id, 64)
     if not id or id == "" then return nil, boundary.error(errors.INVALID, "autocode.invalid_request", "image id is required") end
     local image, find_err = resources.get("image", id, resources.ACCESS.DELETE)
     if not image then return nil, boundary.native(find_err) end
-    local err = resources.delete(id)
+    local err, result = resources.delete(id)
     if err then return nil, boundary.native(err) end
     if args.remove == true then
         local remove_err = docker_image.remove(text(image.meta.ref))
         if remove_err then
-            return {docker_error = boundary.partial(remove_err)}, nil
+            result.docker_error = boundary.partial(remove_err)
+            return result, nil
         end
     end
-    return {}, nil
+    return result, nil
 end
 
 return {get = get, create = create, update = update, prepare = prepare, delete = delete}

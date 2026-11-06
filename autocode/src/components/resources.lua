@@ -31,7 +31,7 @@ local PAGE = 200
 type Service = {
     get_access_context: (self: Service, Object) -> (component_types.AccessContextResult?, error?),
     register: (self: Service, Object) -> (Object?, error?),
-    delete: (self: Service, Object) -> (component_types.ServiceEnvelope?, error?),
+    delete: (self: Service, Object) -> (Object?, error?),
 }
 
 local function service(): (Service?, error?)
@@ -169,12 +169,18 @@ function M.replace(id: string, fields: Object, patch: Object?, revision: integer
 end
 
 -- delete removes a resource the caller may delete, running its teardown.
-function M.delete(id: string): error?
+function M.delete(id: string): (error?, Object?)
     local svc, svc_err = service()
     if not svc then return svc_err end
     local result, call_err = svc:delete({component_id = id})
     if call_err then return envelope.call_error(call_err, "delete_component") end
-    return envelope.error_of(result :: component_types.ServiceEnvelope, "delete_component")
+    local err = envelope.error_of(result :: component_types.ServiceEnvelope, "delete_component")
+    if err then return err, nil end
+    return nil, {id = id, component_id = result.component_id, success = result.success,
+        deleted = result.deleted, in_progress = result.in_progress, job_id = result.job_id,
+        status = result.status, cleanup_pending = result.cleanup_pending,
+        notification_error = result.notification_error, kind = result.kind,
+        retryable = result.retryable, details = result.details}
 end
 
 return M

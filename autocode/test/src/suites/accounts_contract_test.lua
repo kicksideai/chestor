@@ -33,6 +33,16 @@ local function cases()
                 if patch.endpoint then test.eq(found.endpoint.base_url, patch.endpoint.base_url) end
             end
         end)
+        test.it("returns deletion acceptance and its job through the account contract", function()
+            local user = member()
+            local contract = "chestor.autocode:accounts"
+            local added = call(user, "add_account", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "delete", secret = "key"}, contract)
+            local removed, err = call(user, "remove_account", {id = added.id}, contract)
+            test.is_nil(err, tostring(err))
+            test.is_true(removed.in_progress)
+            test.is_false(removed.deleted)
+            test.not_nil(removed.job_id)
+        end)
         test.it("manages accounts through a separate credential-bearing contract", function()
             local user, other = member(), member()
             local contract = "chestor.autocode:accounts"

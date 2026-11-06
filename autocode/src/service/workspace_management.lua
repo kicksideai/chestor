@@ -33,14 +33,14 @@ local function create(body: Object): ({id: string}?, error?)
     return {id = id}, nil
 end
 
-local function delete(args: Object): ({}?, error?)
+local function delete(args: Object): (Object?, error?)
     local id = values.text(args.id, 64)
     if not id or id == "" then return nil, boundary.error(errors.INVALID, "autocode.invalid_request", "workspace id is required") end
     local workspace, find_err = resources.get("workspace", id, resources.ACCESS.DELETE)
     if not workspace then return nil, boundary.native(find_err) end
-    local err = resources.delete(id)
+    local err, result = resources.delete(id)
     if err then return nil, boundary.native(err) end
-    return {}, nil
+    return result, nil
 end
 
 return {list = list, create = create, delete = delete}
