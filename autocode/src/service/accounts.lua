@@ -155,8 +155,8 @@ function M.remove_account(args: unknown): (Object?, error?)
     local id = values.text(body.id, 64) or ""
     local account, find_err = resources.get("account", id, resources.ACCESS.DELETE)
     if not account then return nil, boundary.native(find_err) end
-    local err = resources.delete(id)
+    local err, result = resources.delete(id)
     if err then return nil, boundary.native(err) end
-    return {id = id}, nil
+    return result, nil
 end
 return M

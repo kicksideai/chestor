@@ -2,6 +2,7 @@
 -- Agent accounts are components: HTTP responses omit their credentials,
 -- grants decide who sees and runs on an account, including subscription logins.
 local test = require("test")
+local deletion_worker = require("deletion_worker")
 local identity = require("identity")
 
 local READ = 1
@@ -154,6 +155,9 @@ local function cases()
             test.eq(identity.request(owner, "PUT", "/autocode/accounts/" .. id, {enabled = false}).status, 200)
             test.eq(listed(owner, id).enabled, false)
             test.eq(identity.request(owner, "DELETE", "/autocode/accounts/" .. id).status, 200)
+            local finished, finish_err = deletion_worker.await(id)
+            test.is_nil(finish_err, tostring(finish_err))
+            test.is_true(finished)
             test.is_nil(listed(owner, id))
         end)
 

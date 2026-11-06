@@ -1,0 +1,1 @@
+../../../test/deletion_test_worker.lua

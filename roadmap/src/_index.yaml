@@ -217,7 +217,7 @@ entries:
       name: roadmap
       comment: "Thread-backed roadmap API: append typed events, validate invariants, and read the normalized materialization."
     source: file://roadmap.lua
-    modules: [contract, crypto, registry, security]
+    modules: [contract, crypto, registry, security, ctx]
     imports:
       component: kickside.component:component
       types: chestor.roadmap:types

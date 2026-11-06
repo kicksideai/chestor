@@ -3,6 +3,7 @@
 -- projection materializes normalized roadmap tables for scalable reads.
 
 local component = require("component")
+local ctx = require("ctx")
 local contract = require("contract")
 local crypto = require("crypto")
 local registry = require("registry")
@@ -395,11 +396,18 @@ function M.query(entry_id: string, question: any, options: any): (any?, any?)
     return nil, errors.new({ message = "unknown question: " .. name .. " (needs, unlocks, critical, horizon, overloaded)", kind = errors.INVALID })
 end
 
--- Teardown is authorized by DELETE, not WRITE: the host gates the cascade on
--- DELETE and then invokes this deletable under that same actor, so a holder of
--- read and delete access must be able to finish the delete the host allowed.
+-- The component worker carries teardown authority after DELETE is authorized.
 function M.destroy(entry_id: string): (boolean?, any?)
-    local c, tid, err = open_roadmap(entry_id, ACCESS.DELETE)
+    local c, tid, err
+    if ctx.get("component_id") == entry_id and security.can("component.context.read_system", "kickside.component:context") then
+        if not util.is_non_empty_string(entry_id) then
+            return nil, errors.new({ message = "entry_id is required", kind = errors.INVALID })
+        end
+        c, err = threads()
+        tid = entry_id
+    else
+        c, tid, err = open_roadmap(entry_id, ACCESS.DELETE)
+    end
     if err or not c or not tid then return nil, err end
     local _, perr = c:purge({ component_id = entry_id })
     if perr then return nil, perr end

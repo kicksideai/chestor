@@ -32,3 +32,6 @@ profiles:
       app:db:options.sslmode: disable
       app:db:pool.max_open: 16
       app:db:pool.max_idle: 8
+
+override:
+  kickside.core.jobs.service:worker.service:lifecycle.auto_start: false

@@ -404,10 +404,6 @@ function M.delete(id)
     local pending: any = nil
     for _, cur in ipairs(order) do
         local res, derr = s:delete({ component_id = cur })
-        -- The component row is unregistered even when a kind's deletable cleanup
-        -- soft-fails (teardown of a minimally-configured component is idempotent), so a
-        -- result that removed the row is a successful delete; only a transport error or a
-        -- row that survived is a real failure.
         if derr then return nil, derr end
         if not res then
             return nil, errors.new({ kind = errors.INTERNAL, message = "delete failed for " .. tostring(cur) .. ": no result" })
@@ -417,15 +413,14 @@ function M.delete(id)
                 message = "delete failed for " .. tostring(cur) .. ": " .. tostring((res :: any).error or "no result"),
                 details = (res :: any).details })
         end
-        -- Bounded thread cleanup continues durably after the component is released;
-        -- the first pending outcome reports the accepted progress.
-        if (res :: any).in_progress == true and not pending then pending = res end
+        if (res :: any).in_progress == true then pending = res end
     end
     if not pending then return { id = id, deleted = true, in_progress = false } end
     return {
         id = id,
-        deleted = true,
+        deleted = false,
         in_progress = true,
+        job_id = pending.job_id,
         status = pending.status,
         cleanup_pending = pending.cleanup_pending,
         kind = pending.kind,

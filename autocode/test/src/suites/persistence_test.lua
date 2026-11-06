@@ -1,5 +1,6 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 local test = require("test")
+local deletion_worker = require("deletion_worker")
 local repo = require("repo")
 local sql = require("sql")
 local json = require("json")
@@ -184,6 +185,9 @@ local function cases()
                 test.is_true(repo.start_run(id))
                 local removed = identity_helper.request(user, "DELETE", "/autocode/accounts/" .. account)
                 test.eq(removed.status, 200, removed.body)
+                local finished, finish_err = deletion_worker.await(account)
+                test.is_nil(finish_err, tostring(finish_err))
+                test.is_true(finished)
                 local emitted = {}
                 account_health.settle(repo.stored_run(id), failed and {outcome = "failed", error = {
                     code = "rate_limit", message = "rate limited", retryable = true}} or {outcome = "succeeded"},
