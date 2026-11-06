@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.2](https://github.com/kicksideai/chestor/compare/roadmap-v0.2.1...roadmap-v0.2.2) (2026-11-06)
+
+
+### Bug Fixes
+
+* preserve component deletion acceptance and worker authority ([f8f2566](https://github.com/kicksideai/chestor/commit/f8f2566036d63ae515507e1c0d31a62ecd5bab61))
+* preserve component deletion acceptance and worker authority ([eb8491a](https://github.com/kicksideai/chestor/commit/eb8491a5097dff80226e769e57594bae85d96dfc))
+
 ## 0.2.1 (2026-10-17)
 
 - Align module requirements with registry entry bindings and refresh packaged documentation.
