@@ -9,6 +9,7 @@ local sql = require("sql")
 local PROBE = "app:workspace_probe"
 local DB = "app:db"
 local THREADS = "kickside.core:threads"
+local DELETE_TOOL = "chestor.workspace.traits:delete_entry_tool"
 
 local function uuid(): string
     local id, err = crypto.random.uuid()
@@ -199,6 +200,31 @@ local function define_tests()
             assert_component_purged(tostring(child_file.id))
             assert_component_purged(nested_id)
             assert_component_purged(tostring(nested_file.id))
+        end)
+
+        test.it("DeleteWorkspaceEntry answers the deletion receipt that tracks its job", function()
+            local user_id = "workspace-delete-tool-" .. uuid()
+            local entry = create_entry(user_id, "folder", "Tool deleted", nil)
+            local entry_id = tostring(entry.id)
+
+            local receipt, err = executor(user_id):call(DELETE_TOOL, { id = entry_id })
+            test.is_nil(err)
+            test.not_nil(receipt)
+            test.is_true(receipt.success)
+            test.is_false(receipt.deleted)
+            test.is_true(receipt.in_progress)
+            test.eq(receipt.status, "in_progress")
+            test.is_true(receipt.cleanup_pending)
+            test.not_nil(receipt.job_id)
+            local d = assert(sql.get(DB))
+            local jobs = assert(d:query("SELECT owner_id FROM kickside_job WHERE id=$1", { receipt.job_id }))
+            assert(d:release())
+            test.eq(jobs[1].owner_id, entry_id)
+
+            local final, worker_err = deletion_worker.run(entry_id)
+            test.is_nil(worker_err, tostring(worker_err))
+            test.is_true(final.deleted)
+            assert_component_purged(entry_id)
         end)
 
         test.it("refuses pinned move and delete with a typed permission denial", function()
