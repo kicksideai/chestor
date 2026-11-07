@@ -3,11 +3,14 @@
 @import "@kickside/ui-kit/kx-tokens.css";
 @import "@kickside/ui-kit/focus.css";
 @import "@kickside/ui-kit/kx-state.css";
+@import "@kickside/ui-kit/spin.css";
 @import "./driver-options.css";
 
 @import "./controls.css";
 
 :host { display: block; font-family: var(--kx-font-body); color: var(--p-text-color); }
+/* Reserved only while the implementation loads, so a loaded tag keeps its own size. */
+:host > div:empty, :host > div:has(> [role=status]) { min-height: 240px; }
 * { box-sizing: border-box; }
 
 .tc { display: flex; flex-direction: column; gap: 10px; }

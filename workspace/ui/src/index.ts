@@ -1,8 +1,8 @@
-import { WippyVueElement, define } from '@wippy-fe/webcomponent-vue'
+import { WippyVueElement, define, useEvents } from '@wippy-fe/webcomponent-vue'
 import type { WippyElementConfig, WippyPropsSchema } from '@wippy-fe/webcomponent-vue'
 import type { ComponentProps } from './types'
 import type { Events } from './constants'
-import Workspace from './app/Workspace.vue'
+import { lazyPage } from './lazy'
 import stylesText from './styles.css?inline'
 
 // chestor-workspace -- the canonical workspace shell. It owns navigation
@@ -18,7 +18,13 @@ class WorkspaceElement extends WippyVueElement<ComponentProps, Events> {
   }
 
   static get vueConfig() {
-    return { rootComponent: Workspace }
+    return {
+      lazyConfig: lazyPage(
+        () => import('./lazy-mount').then((module) => module.mountConfig),
+        'Could not load the workspace. Reload the page to try again.',
+        useEvents,
+      ),
+    }
   }
 }
 

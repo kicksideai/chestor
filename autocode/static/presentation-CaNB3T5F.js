@@ -1,7 +1,7 @@
 import { api as y, on as m } from "@wippy-fe/proxy";
-import { o as c, r as D, g as I, f as C, s, h as _, l as k, i as u, j as U, w as A, k as E, m as S, p as M, q as P, t as j } from "./dto-CcYNmUR0.js";
-import { watch as q, onUnmounted as h, nextTick as N, ref as F, readonly as L } from "vue";
-const W = "/api/v1/autocode", p = c({ kind: s().optional(), code: s().optional(), retryable: C().optional(), details: D(I()).optional() }), B = p.extend({ success: k(!1), error: _([s(), p.extend({ message: s() })]) });
+import { o as i, s, d as u, f as D, w as C, i as _, g as U, r as A, u as I, c as E, l as k, h as S, j as M, k as P, m as j } from "./dto-BfV5Hy-x.js";
+import { onUnmounted as h, watch as N, nextTick as q, readonly as F, ref as L } from "vue";
+const W = "/api/v1/autocode", p = i({ kind: s().optional(), code: s().optional(), retryable: E().optional(), details: A(I()).optional() }), B = p.extend({ success: k(!1), error: S([s(), p.extend({ message: s() })]) });
 class $ extends Error {
   kind;
   code;
@@ -17,7 +17,7 @@ function v(e) {
   const t = n.data;
   return typeof t.error == "string" ? new $(t.error, t) : new $(t.error.message, { ...t, ...t.error });
 }
-const l = c({ success: k(!0) });
+const l = i({ success: k(!0) });
 function O(e, n) {
   const t = v(e);
   if (t) throw t;
@@ -28,11 +28,11 @@ function O(e, n) {
 }
 async function R(e, n, t, r) {
   try {
-    const i = (e === "get" || e === "delete" ? await y[e](n) : await y[e](n, r)).data;
-    return O(i, t);
+    const c = (e === "get" || e === "delete" ? await y[e](n) : await y[e](n, r)).data;
+    return O(c, t);
   } catch (o) {
-    const i = c({ response: c({ data: I() }) }).safeParse(o);
-    throw i.success ? v(i.data.response.data) ?? new Error("Invalid API error response.") : o instanceof Error ? o : new Error("Request failed.");
+    const c = i({ response: i({ data: I() }) }).safeParse(o);
+    throw c.success ? v(c.data.response.data) ?? new Error("Invalid API error response.") : o instanceof Error ? o : new Error("Request failed.");
   }
 }
 function a(e, n, t, r) {
@@ -40,28 +40,28 @@ function a(e, n, t, r) {
 }
 async function Q(e) {
   if (!e.length) return {};
-  const n = await R("post", "/api/v1/principals/resolve", c({ principals: u(c({ id: s(), label: s() })) }), { refs: e.map((t) => ({ type: "user", id: t })) });
+  const n = await R("post", "/api/v1/principals/resolve", i({ principals: u(i({ id: s(), label: s() })) }), { refs: e.map((t) => ({ type: "user", id: t })) });
   return Object.fromEntries(n.principals.map((t) => [t.id, t.label]));
 }
-const f = c({ id: s() }), z = l.extend({ docker_error: p.extend({ message: s() }).optional() }), b = f.extend({ build_error: p.extend({ message: s() }).optional() }), V = {
+const f = i({ id: s() }), z = l.extend({ docker_error: p.extend({ message: s() }).optional() }), b = f.extend({ build_error: p.extend({ message: s() }).optional() }), V = {
   catalog: () => a("get", "/catalog", j),
-  accounts: () => a("get", "/accounts", c({ accounts: u(S) })).then((e) => e.accounts),
+  accounts: () => a("get", "/accounts", i({ accounts: u(U) })).then((e) => e.accounts),
   createAccount: (e) => a("post", "/accounts", f, e),
   updateAccount: (e, n) => a("put", `/accounts/${encodeURIComponent(e)}`, f.extend({ health_error: p.extend({ message: s() }).optional() }), n),
   deleteAccount: (e) => a("delete", `/accounts/${encodeURIComponent(e)}`, l),
-  images: () => a("get", "/images", c({ images: u(E) })).then((e) => e.images),
+  images: () => a("get", "/images", i({ images: u(_) })).then((e) => e.images),
   image: (e) => a("get", `/images/${encodeURIComponent(e)}`, P),
   createImage: (e) => a("post", "/images", b, e),
   updateImage: (e, n) => a("put", `/images/${encodeURIComponent(e)}`, b, n),
   deleteImage: (e, n) => a("delete", `/images/${encodeURIComponent(e)}${n ? "?remove=1" : ""}`, z),
   prepareImage: (e) => a("post", `/images/${encodeURIComponent(e)}/prepare`, l),
-  prune: () => a("post", "/maintenance/prune", c({ output: s() })).then((e) => e.output),
-  workspaces: () => a("get", "/workspaces", c({ workspaces: u(A), roots: u(s()).optional() })),
+  prune: () => a("post", "/maintenance/prune", i({ output: s() })).then((e) => e.output),
+  workspaces: () => a("get", "/workspaces", i({ workspaces: u(C), roots: u(s()).optional() })),
   createWorkspace: (e) => a("post", "/workspaces", f, e),
   deleteWorkspace: (e) => a("delete", `/workspaces/${encodeURIComponent(e)}`, l),
-  runs: (e) => a("get", `/runs${e ? "?cursor=" + encodeURIComponent(e) : ""}`, c({ runs: u(U), next_cursor: s().optional() })),
+  runs: (e) => a("get", `/runs${e ? "?cursor=" + encodeURIComponent(e) : ""}`, i({ runs: u(D), next_cursor: s().optional() })),
   run: (e, n, t) => a("get", `/runs/${encodeURIComponent(e)}?${t === void 0 ? `after_seq=${n ?? 0}` : `before_seq=${t}`}`, M),
-  startRun: (e) => a("post", "/runs", c({ run_id: s() }), e),
+  startRun: (e) => a("post", "/runs", i({ run_id: s() }), e),
   cancelRun: (e) => a("post", `/runs/${encodeURIComponent(e)}/cancel`, l)
 }, G = {
   runs: (e) => m("chestor.autocode.runs", e),
@@ -83,20 +83,20 @@ function X(e, n = () => !0) {
 }
 async function Y(e, n, t, r) {
   let o = await e();
-  for (; r() && n(o).some((i) => !t.value.includes(i)); ) {
-    if (t.value = n(o), await N(), !r()) return o;
+  for (; r() && n(o).some((c) => !t.value.includes(c)); ) {
+    if (t.value = n(o), await q(), !r()) return o;
     o = await e();
   }
   return r() && (t.value = n(o)), o;
 }
 function Z(e, n) {
   const t = /* @__PURE__ */ new Map();
-  q(e, (r) => {
+  N(e, (r) => {
     const o = new Set(r);
-    for (const [i, x] of t)
-      o.has(i) || (x(), t.delete(i));
-    for (const i of o)
-      t.has(i) || t.set(i, G.component(i, n));
+    for (const [c, x] of t)
+      o.has(c) || (x(), t.delete(c));
+    for (const c of o)
+      t.has(c) || t.set(c, G.component(c, n));
   }, { immediate: !0 }), h(() => {
     for (const r of t.values()) r();
     t.clear();
@@ -119,14 +119,14 @@ function ne(e) {
 function re(e, n) {
   return e instanceof Error && e.message ? e.message : n;
 }
-const g = F(Date.now());
+const g = L(Date.now());
 let w = 0, d;
 function oe() {
   return w++, d === void 0 && (g.value = Date.now(), d = setInterval(() => {
     g.value = Date.now();
   }, 1e3)), h(() => {
     w--, w || (clearInterval(d), d = void 0);
-  }), L(g);
+  }), F(g);
 }
 function ae(e, n) {
   return n.find((t) => t.id === e)?.icon || "tabler:terminal-2";
@@ -142,12 +142,12 @@ function T(e) {
   const t = Math.floor(n / 60);
   return t < 60 ? `${t}m ${String(n % 60).padStart(2, "0")}s` : `${Math.floor(t / 60)}h ${String(t % 60).padStart(2, "0")}m`;
 }
-function ie(e, n = Date.now()) {
+function ce(e, n = Date.now()) {
   if (!e.started_at) return "—";
   const r = e.status === "running" || e.status === "queued" ? n - Date.parse(e.started_at) : Date.parse(e.finished_at) - Date.parse(e.started_at);
   return T(r);
 }
-function ce(e) {
+function ie(e) {
   return `${T(e).replace(/ 00[ms]$/, "")} timeout`;
 }
 export {
@@ -160,11 +160,11 @@ export {
   ne as f,
   oe as g,
   se as h,
-  ie as i,
+  ce as i,
   G as l,
   Q as p,
   Y as r,
   X as s,
-  ce as t,
+  ie as t,
   Z as u
 };

@@ -4,15 +4,9 @@ import { fileURLToPath } from 'node:url'
 import vue from '@vitejs/plugin-vue'
 import { wippyComponentPlugin } from '@wippy-fe/vite-plugin'
 import { defineConfig } from 'vite'
+import { hostExternals, wcRuntimeChunk } from '../../wc-build'
 
 const moduleRoot = fileURLToPath(new URL('.', import.meta.url))
-
-// Both the web host and the shell import maps provide these packages.
-// Every other dependency, including PrimeVue, belongs to the bundle.
-const hostProvided = [
-  'vue', 'pinia', 'vue-router', 'axios', 'nanoevents', 'luxon',
-  '@iconify/vue', '@wippy-fe/proxy',
-]
 
 // One bundle per registered element: the page, the System settings tab, the
 // driver credential card and the task Block's config editor.
@@ -45,13 +39,14 @@ export default defineConfig(({ mode }) => ({
     },
     rollupOptions: {
       input: entries,
-      external: hostProvided,
+      external: hostExternals,
       output: {
+        manualChunks: wcRuntimeChunk,
         entryFileNames: '[name].js',
         chunkFileNames: '[name]-[hash].js',
         assetFileNames: '[name]-[hash][extname]',
       },
-      preserveEntrySignatures: false,
+      preserveEntrySignatures: 'strict',
     },
     sourcemap: false,
   },
