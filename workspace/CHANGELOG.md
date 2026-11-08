@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/kicksideai/chestor/compare/workspace-v0.2.3...workspace-v0.2.4) (2026-11-08)
+
+
+### Bug Fixes
+
+* **workspace:** track entry deletions in the workspace list ([#21](https://github.com/kicksideai/chestor/issues/21)) ([44bd87c](https://github.com/kicksideai/chestor/commit/44bd87c5b52d337f3ae984fbb5723d0369118276))
+
 ## [0.2.3](https://github.com/kicksideai/chestor/compare/workspace-v0.2.2...workspace-v0.2.3) (2026-11-07)
 
 
