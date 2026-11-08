@@ -77,6 +77,8 @@ local function entry_of(comp, km)
         access_level = comp.access_level,
         created_at = comp.created_at,
         updated_at = comp.updated_at,
+        deleting_at = comp.deleting_at,
+        deletion_job_id = comp.deletion_job_id,
     }
 end
 

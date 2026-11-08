@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: buildinputs
+
+# Shared frontend artifacts resolve here without becoming runtime dependencies
+# of the workspace module.
+entries:
+  - name: definition
+    kind: ns.definition
+    meta:
+      title: Workspace build inputs
+      comment: Build-time-only module inputs for the workspace frontend bundle.
+
+  - name: ui_kit
+    kind: ns.dependency
+    component: kickside/ui-kit
+    version: ">=1.7.0"

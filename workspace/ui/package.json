@@ -12,9 +12,11 @@
   ],
   "type": "module",
   "dependencies": {
+    "@kickside/ui-kit": "*",
     "@wippy-fe/theme": "*",
     "@wippy-fe/webcomponent-core": "*",
-    "@wippy-fe/webcomponent-vue": "*"
+    "@wippy-fe/webcomponent-vue": "*",
+    "primevue": "4.5.5"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.0",
@@ -48,7 +50,10 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch",
-    "test": "vitest run",
+    "test": "vitest run --environment happy-dom",
     "typecheck": "vue-tsc --noEmit"
-  }
+  },
+  "workspaces": [
+    "./.wippy/npm/@*/*"
+  ]
 }
