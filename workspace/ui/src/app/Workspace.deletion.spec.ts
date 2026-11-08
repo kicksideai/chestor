@@ -5,19 +5,11 @@ import { PrimeVuePlugin } from '@wippy-fe/theme/primevue-plugin'
 import { api, on } from '@wippy-fe/proxy'
 import Workspace from './Workspace.vue'
 
-vi.hoisted(() => {
-  Object.defineProperty(window, '__WIPPY_APP_API__', {
-    configurable: true,
-    value: {
-      api: { get: vi.fn(), delete: vi.fn() },
-      on: vi.fn(),
-      host: { handleError: vi.fn() },
-    },
-  })
-})
+const { emitNavigation } = vi.hoisted(() => ({ emitNavigation: vi.fn() }))
+vi.mock('@wippy-fe/proxy', () => ({ api: { get: vi.fn(), delete: vi.fn() }, on: vi.fn() }))
 vi.mock('@wippy-fe/webcomponent-vue', () => ({
   useProps: () => ({ value: { route: '' } }),
-  useEvents: () => vi.fn(),
+  useEvents: () => emitNavigation,
 }))
 vi.mock('@iconify/vue', () => ({ Icon: { template: '<span aria-hidden="true" />' } }))
 
@@ -97,4 +89,23 @@ it('shows the deletion progress of a row listed while it is deleting', async () 
   expect(status.text()).toContain('Deleting')
   expect(status.find('[aria-label="Deletion in progress"]').exists()).toBe(true)
   expect(api.get).toHaveBeenCalledWith('/api/v1/components/note-1')
+})
+
+it('uses Open for preview and menu actions and omits Copy ID', async () => {
+  receiveMessages()
+  serve(() => [{ id: 'note-1', type: 'note', name: 'Planning notes', status: 'active' }], {})
+  wrapper = mount(Workspace, { global: { plugins: [PrimeVuePlugin] } })
+  await flushPromises()
+  await rows(wrapper)[0].trigger('click')
+  const open = wrapper.find('.ws-preview-head button[aria-label="Open"]')
+  expect(open.exists()).toBe(true)
+  await open.trigger('click')
+  expect(emitNavigation).toHaveBeenLastCalledWith('navigate', 'note-1')
+  await rows(wrapper)[0].trigger('contextmenu', { clientX: 20, clientY: 20 })
+  const actions = wrapper.findAll('.ws-menu-item')
+  expect(actions.map(action => action.text())).not.toContain('Copy ID')
+  const menuOpen = actions.find(action => action.text() === 'Open')
+  expect(menuOpen).toBeDefined()
+  await menuOpen!.trigger('click')
+  expect(emitNavigation).toHaveBeenLastCalledWith('navigate', 'note-1')
 })
