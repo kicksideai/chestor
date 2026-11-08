@@ -2,7 +2,7 @@
   "autocode": "0.1.2",
   "db-schema": "0.2.1",
   "graph": "0.2.1",
-  "journal": "0.3.2",
+  "journal": "0.3.3",
   "roadmap": "0.2.2",
-  "workspace": "0.2.4"
+  "workspace": "0.2.5"
 }
