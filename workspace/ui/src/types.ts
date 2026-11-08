@@ -1,3 +1,5 @@
+import type { ComponentDeletionState } from '@kickside/ui-kit/useComponentDeletion'
+
 // Host-provided props for the workspace element. route is the shell's deep-link
 // sub-path under /workspace (fed by the surface host); its first segment is the
 // entry id whose full manage view is open ("" = the tree).
@@ -7,8 +9,9 @@ export interface ComponentProps {
 
 // The entry shape the API returns. An entry is a component: id is the component
 // id, the tree is parent_id + sort_order (lexorank), access_level is the actor's
-// mask on it. type/name/icon/status come from component meta.
-export interface Entry {
+// mask on it. type/name/icon/status come from component meta. deleting_at and
+// deletion_job_id mark an accepted deletion whose cleanup job is still running.
+export interface Entry extends ComponentDeletionState {
   id: string
   parent_id?: string | null
   type: string

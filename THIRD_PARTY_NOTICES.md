@@ -86,6 +86,12 @@ Lockfiles: `autocode/ui/package-lock.json`, `db-schema/ui/package-lock.json`, `g
 
 LICENSE: [License text](#license-text-769d154fbde32a915af110b1123650bc79f4cbe675acc66e005265bf069c6c6c)
 
+### npm: @kickside/ui-kit@1.7.0
+
+License: LicenseRef-KickSide-Community-1.0
+
+Lockfiles: `workspace/ui/package-lock.json`
+
 ### npm: @nodelib/fs.scandir@2.1.5
 
 License: MIT
@@ -109,6 +115,46 @@ License: MIT
 Lockfiles: `autocode/ui/package-lock.json`, `db-schema/ui/package-lock.json`, `graph/ui/package-lock.json`, `journal/ui/package-lock.json`, `roadmap/ui/package-lock.json`, `workspace/ui/package-lock.json`
 
 LICENSE: [License text](#license-text-9363d160bf41d46d83901a5d24fc3fe2094c2afc17b4a2378914b273977ee2de)
+
+### npm: @primeuix/styled@0.7.4
+
+License: MIT
+
+Lockfiles: `workspace/ui/package-lock.json`
+
+LICENSE: [License text](#license-text-c6e70ce414f6d95d44001ecb8b6d5b66bb4990db85829ea6be8b51549195ad31)
+
+### npm: @primeuix/styles@2.0.3
+
+License: MIT
+
+Lockfiles: `workspace/ui/package-lock.json`
+
+LICENSE: [License text](#license-text-c6e70ce414f6d95d44001ecb8b6d5b66bb4990db85829ea6be8b51549195ad31)
+
+### npm: @primeuix/utils@0.6.4
+
+License: MIT
+
+Lockfiles: `workspace/ui/package-lock.json`
+
+LICENSE: [License text](#license-text-c6e70ce414f6d95d44001ecb8b6d5b66bb4990db85829ea6be8b51549195ad31)
+
+### npm: @primevue/core@4.5.5
+
+License: MIT
+
+Lockfiles: `workspace/ui/package-lock.json`
+
+LICENSE.md: [License text](#license-text-39a2ce8d759cfcb59eccc49b0a417ad5c943f960c1bcdfba4720ca7547029af7)
+
+### npm: @primevue/icons@4.5.5
+
+License: MIT
+
+Lockfiles: `workspace/ui/package-lock.json`
+
+LICENSE.md: [License text](#license-text-39a2ce8d759cfcb59eccc49b0a417ad5c943f960c1bcdfba4720ca7547029af7)
 
 ### npm: @types/web-bluetooth@0.0.20
 
@@ -766,6 +812,14 @@ Lockfiles: `autocode/ui/package-lock.json`, `db-schema/ui/package-lock.json`, `g
 
 LICENSE: [License text](#license-text-3687447039151857a6ba378db062172c7f33d4aa70a615c87a43a9c50e990485)
 
+### npm: primevue@4.5.5
+
+License: MIT
+
+Lockfiles: `workspace/ui/package-lock.json`
+
+LICENSE.md: [License text](#license-text-39a2ce8d759cfcb59eccc49b0a417ad5c943f960c1bcdfba4720ca7547029af7)
+
 ### npm: queue-microtask@1.2.3
 
 License: MIT
@@ -1318,6 +1372,32 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+```
+
+## License text 39a2ce8d759cfcb59eccc49b0a417ad5c943f960c1bcdfba4720ca7547029af7
+
+```text
+The MIT License (MIT)
+
+Copyright (c) 2018-2025 PrimeTek
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 ```
 
 ## License text 3f1189b28e3866e0d979968d466b78f813f76827cfdca1fbb124cc0a5c8841f8
@@ -2707,6 +2787,32 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 The MIT License (MIT)
 
 Copyright (c) 2012-2018 various contributors (see AUTHORS)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+## License text c6e70ce414f6d95d44001ecb8b6d5b66bb4990db85829ea6be8b51549195ad31
+
+```text
+MIT License
+
+Copyright (c) 2025 PrimeTek
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

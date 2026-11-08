@@ -11,6 +11,8 @@ import EntryRenderer from './EntryRenderer.vue'
 import MenuLayer from './MenuLayer.vue'
 import ShareHost from './ShareHost.vue'
 import ComponentView from './ComponentView.vue'
+import ComponentDeletion from '@kickside/ui-kit/ComponentDeletion.vue'
+import { useComponentDeletion } from '@kickside/ui-kit/useComponentDeletion'
 
 // chestor-workspace -- the canonical shell. It OWNS navigation (breadcrumbs +
 // back), the entry tree (list/grid), create/upload/import, a resizable preview,
@@ -385,7 +387,6 @@ function onRowKey(ev: KeyboardEvent, e: Entry) {
 // Delete confirms through an in-app dialog: the native window.confirm is suppressed
 // in embedded/webview hosts, which silently aborted every delete (no popup, no-op).
 const confirmingDelete = ref<Entry | null>(null)
-const deleting = ref('')
 const deleteDescendantCount = ref<number | null>(null)
 async function remove(e: Entry) {
   closeMenu()
@@ -402,13 +403,18 @@ async function doDelete() {
   deleteDescendantCount.value = null
   if (!e) return
   try {
-    const outcome = await api.remove(e.id)
-    deleting.value = outcome.inProgress ? `Deleting "${e.name}": cleanup is in progress and continues in the background.` : ''
+    const receipt = await api.remove(e.id)
+    if (receipt.in_progress) acceptDeletion(e.id, receipt)
     if (selected.value?.id === e.id) selected.value = null
     if (managing.value?.id === e.id) closeManage()
     nav(currentParent.value)
   } catch (err) { error.value = err instanceof Error ? err.message : 'failed to delete' }
 }
+// An accepted deletion keeps its row, marked with the job's progress, until
+// component.deleted removes it; the folder then re-lists.
+const { acceptDeletion } = useComponentDeletion(entries, row => row.id,
+  id => { if (selected.value?.id === id) selected.value = null },
+  () => nav(currentParent.value))
 
 // ── Properties dialog ──
 const props = reactive<{ open: boolean; entry: Entry | null; name: string; icon: string; color: string }>(
@@ -515,7 +521,6 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
 
     <Notice v-if="error" tone="error" @dismiss="error = ''">{{ error }} <Button variant="ghost" small @click="nav(currentParent)">Retry</Button></Notice>
     <Notice v-if="flash" @dismiss="flash = ''">{{ flash }}</Notice>
-    <Notice v-if="deleting" @dismiss="deleting = ''">{{ deleting }}</Notice>
 
     <div class="ws-body">
       <div class="ws-list-pane" :class="{ 'ws-list-pane--aside': selected, 'ws-list-pane--drop': dragOver }"
@@ -540,6 +545,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
             <span class="ws-edge" />
             <Icon :icon="iconOf(e)" class="ws-row-ico" :style="{ color: colorOf(e) }" />
             <span class="ws-row-name">{{ e.name }}</span>
+            <ComponentDeletion :state="e" @retry="remove(e)" />
             <Pill tone="muted">{{ chip(e) }}</Pill>
             <span class="ws-age">{{ formatAge(e.updated_at) }}</span>
             <button class="ws-row-menu" title="Actions" :aria-label="`Actions for ${e.name}`" @click.stop="openMenu(e, $event)"><Icon icon="tabler:dots" /></button>
@@ -561,6 +567,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
             <button class="ws-row-menu ws-tile-menu" title="Actions" :aria-label="`Actions for ${e.name}`" @click.stop="openMenu(e, $event)"><Icon icon="tabler:dots" /></button>
             <Icon :icon="iconOf(e)" class="ws-tile-ico" :style="{ color: colorOf(e) }" />
             <span class="ws-tile-name" :title="e.name">{{ e.name }}</span>
+            <ComponentDeletion :state="e" @retry="remove(e)" />
           </div>
         </div>
 
