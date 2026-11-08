@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.3](https://github.com/kicksideai/chestor/compare/journal-v0.3.2...journal-v0.3.3) (2026-11-08)
+
+
+### Bug Fixes
+
+* **journal:** simplify status text and workspace actions ([#23](https://github.com/kicksideai/chestor/issues/23)) ([ac39560](https://github.com/kicksideai/chestor/commit/ac395602cbe2976470c1c4aae272e91cc9ff8f3f))
+
 ## [0.3.2](https://github.com/kicksideai/chestor/compare/journal-v0.3.1...journal-v0.3.2) (2026-10-31)
 
 
