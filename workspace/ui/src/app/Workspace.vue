@@ -325,11 +325,6 @@ function showFlash(msg: string) {
   clearTimeout(flashTimer)
   flashTimer = setTimeout(() => { flash.value = '' }, 1800)
 }
-async function copyId(e: Entry) {
-  closeMenu()
-  try { await navigator.clipboard.writeText(e.id); showFlash('ID copied') }
-  catch { error.value = 'clipboard unavailable' }
-}
 
 // ── Move dialog (the non-drag path to /move) ──
 const moveFor = ref<Entry | null>(null)
@@ -589,7 +584,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
             <Icon :icon="iconOf(selected)" :style="{ color: colorOf(selected) }" />
             <span class="ws-preview-title">{{ selected.name }}</span>
             <span class="ws-spacer" />
-            <IconButton v-if="selected.type !== 'folder'" icon="tabler:maximize" label="Open (full)" size="sm" @click="openManage(selected!)" />
+            <IconButton v-if="selected.type !== 'folder'" icon="tabler:maximize" label="Open" size="sm" @click="openManage(selected!)" />
             <IconButton v-if="can(selected, ACCESS.ADMIN)" icon="tabler:share-3" label="Share" size="sm" @click="shareFor = selected" />
             <IconButton icon="tabler:adjustments" label="Properties" size="sm" @click="openProps(selected!)" />
             <IconButton icon="tabler:x" label="Close" size="sm" @click="selected = null" />
@@ -605,13 +600,12 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
       <button v-if="isContainer(menu.entry)" class="ws-menu-item" @click="emitNav('navigate', menu.entry!.id); closeMenu()"><Icon icon="tabler:folder-open" /> Open</button>
       <template v-else>
         <button class="ws-menu-item" @click="open(menu.entry!); closeMenu()"><Icon icon="tabler:eye" /> Preview</button>
-        <button class="ws-menu-item" @click="openManage(menu.entry!)"><Icon icon="tabler:maximize" /> Open (manage)</button>
+        <button class="ws-menu-item" @click="openManage(menu.entry!)"><Icon icon="tabler:maximize" /> Open</button>
       </template>
       <button v-if="can(menu.entry, ACCESS.WRITE)" class="ws-menu-item" @click="openProps(menu.entry!)"><Icon icon="tabler:cursor-text" /> Rename…</button>
       <button v-if="can(menu.entry, ACCESS.WRITE)" class="ws-menu-item" @click="openMove(menu.entry!)"><Icon icon="tabler:folder-symlink" /> Move to…</button>
       <button v-if="can(menu.entry, ACCESS.ADMIN)" class="ws-menu-item" @click="shareFor = menu.entry; closeMenu()"><Icon icon="tabler:user-plus" /> Share…</button>
       <button class="ws-menu-item" @click="exportEntry(menu.entry!)"><Icon icon="tabler:package-export" /> Export</button>
-      <button class="ws-menu-item" @click="copyId(menu.entry!)"><Icon icon="tabler:copy" /> Copy ID</button>
       <div v-if="can(menu.entry, ACCESS.DELETE)" class="ws-menu-div" />
       <button v-if="can(menu.entry, ACCESS.DELETE)" class="ws-menu-item ws-menu-danger" @click="remove(menu.entry!)"><Icon icon="tabler:trash" /> Delete</button>
     </MenuLayer>

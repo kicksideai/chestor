@@ -96,15 +96,12 @@ function expiresIn(expiresAt: number): string {
       <span class="jr-lens-facts">
         <b class="jr-numeric">{{ openSpans.length }}</b> open span{{ openSpans.length === 1 ? '' : 's' }}
         <i aria-hidden="true"></i>
-        <b class="jr-numeric">{{ workControl.counts.active }}</b> active lease{{ workControl.counts.active === 1 ? '' : 's' }}
-        <i aria-hidden="true"></i>
         <b class="jr-numeric">{{ blocked.length }}</b> blocked
         <i aria-hidden="true"></i>
         <b class="jr-numeric">{{ dormant.length }}</b> dormant program{{ dormant.length === 1 ? '' : 's' }}
       </span>
-      <span v-if="taskBound.hasMore" class="jr-lens-bound" :title="`The journal task read returns one page; ${(taskBound.total - taskBound.loaded).toLocaleString()} more tasks exist and this view does not count them`">
-        <Icon icon="tabler:alert-circle" aria-hidden="true" />
-        counted over {{ taskBound.loaded.toLocaleString() }} of {{ taskBound.total.toLocaleString() }} tasks
+      <span v-if="taskBound.hasMore" class="jr-lens-bound">
+        {{ taskBound.loaded.toLocaleString() }} of {{ taskBound.total.toLocaleString() }} tasks
       </span>
       <button v-if="dormant.length" class="jr-lens-advice" title="Review the work nothing has touched for days" @click="emit('stale')">
         <Icon icon="tabler:archive" aria-hidden="true" />
@@ -113,14 +110,14 @@ function expiresIn(expiresAt: number): string {
     </div>
 
     <div class="jr-now-grid">
-      <section class="jr-now-block wide" aria-label="Mutation authority">
+      <section class="jr-now-block wide" aria-label="Who can edit">
         <h3>
           <Icon icon="tabler:key" aria-hidden="true" />
-          Authority
-          <em class="jr-numeric">{{ workControl.counts.active }} live · {{ workControl.counts.resumable }} resumable</em>
+          Who can edit
+          <em class="jr-numeric">{{ workControl.counts.active }} active · {{ workControl.counts.resumable }} ready to continue</em>
         </h3>
         <p v-if="!workControl.leases.length && !workControl.resumable.length" class="jr-empty-small">
-          No mutation lease is active and no started task is waiting to be resumed.
+          No active editing session or task waiting to continue.
         </p>
         <button
           v-for="lease in workControl.leases" :key="lease.lease_id"
@@ -128,11 +125,11 @@ function expiresIn(expiresAt: number): string {
           @click="emit('task', lease.task_id)"
         >
           <span :class="['jr-state-chip', lease.capability === 'WRITE' ? 'state-in_progress' : 'state-blocked']">
-            {{ lease.capability === 'WRITE' ? 'write' : 'planning' }}
+            {{ lease.capability === 'WRITE' ? 'editing' : 'planning' }}
           </span>
           <span class="jr-now-copy">
             <b>{{ lease.task_title || 'Untitled task' }}</b>
-            <small>{{ agentIdentity(lease.agent_id).label }} · {{ lease.task_status || 'unknown task state' }}</small>
+            <small>{{ agentIdentity(lease.agent_id).label }} · {{ lease.task_status?.replace(/_/g, ' ') || 'unknown task state' }}</small>
           </span>
           <time class="jr-numeric">expires in {{ expiresIn(lease.expires_at) }}</time>
         </button>
@@ -143,11 +140,10 @@ function expiresIn(expiresAt: number): string {
           <span class="jr-state-chip state-open">resume</span>
           <span class="jr-now-copy">
             <b>{{ task.task_title || 'Untitled task' }}</b>
-            <small>No live lease · open this branch to continue in place</small>
+            <small>No active editing session · open this task to continue</small>
           </span>
           <time v-if="task.task_updated_at" class="jr-numeric">{{ relativeAge(task.task_updated_at, now) }}</time>
         </button>
-        <p v-if="workControl.has_more" class="jr-empty-small">More authority rows exist beyond this bounded control view.</p>
       </section>
 
       <section class="jr-now-block" aria-label="Open work spans">

@@ -60,7 +60,6 @@ const hovered = ref('')
 const mutedFamily = ref<NodeFamily | ''>('')
 const showRegions = ref(true)
 const solving = ref(false)
-const solveMs = ref(0)
 const drawn = ref({ nodes: 0, edges: 0, labels: 0, territories: 0, territoriesHeld: 0 })
 const held = shallowRef(new Map<string, { px: number; py: number }>())
 const panState = ref<{ x: number; y: number; from: Transform } | null>(null)
@@ -194,7 +193,6 @@ async function solve(fresh = false, unpin = false) {
   // graph on screen that the projection has already moved past.
   if (!result) return
   solving.value = false
-  solveMs.value = result.ms
   placement.value = result
   scene.value = buildScene(result, nodes, edges, props.labels || new Map(), props.activity || new Map())
   if (!reader) fit()
@@ -487,7 +485,6 @@ watch(() => props.activity, () => {
         Drawing {{ drawn.nodes.toLocaleString() }} on screen at {{ detailLabel }}
         <template v-if="drawn.territories"> · {{ drawn.territories }} territories named</template>
         <template v-if="drawn.territoriesHeld"> of {{ (drawn.territories + drawn.territoriesHeld).toLocaleString() }}</template>
-        <template v-if="solveMs"> · laid out in {{ solveMs }}ms</template>
       </p>
     </div>
 
