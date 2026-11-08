@@ -84,9 +84,8 @@ function toggle(id: string) {
         <i aria-hidden="true"></i>
         <b class="jr-numeric">{{ totals.open }}</b> still open
       </span>
-      <span v-if="taskBound.hasMore" class="jr-lens-bound" :title="`The journal task read returns one page; ${(taskBound.total - taskBound.loaded).toLocaleString()} more tasks exist and this review does not see them`">
-        <Icon icon="tabler:alert-circle" aria-hidden="true" />
-        over {{ taskBound.loaded.toLocaleString() }} of {{ taskBound.total.toLocaleString() }} tasks
+      <span v-if="taskBound.hasMore" class="jr-lens-bound">
+        {{ taskBound.loaded.toLocaleString() }} of {{ taskBound.total.toLocaleString() }} tasks
       </span>
       <button class="jr-lens-advice" @click="emit('close')"><Icon icon="tabler:x" aria-hidden="true" /> Done</button>
     </div>
@@ -143,8 +142,7 @@ function toggle(id: string) {
     </ol>
 
     <p class="jr-stale-note">
-      This is a review surface. Settling work remains a guarded agent action with a live task lease,
-      evidence, and the transition-specific fields required by the work protocol.
+      Ask an agent to settle work after reviewing its history.
     </p>
   </section>
 </template>
