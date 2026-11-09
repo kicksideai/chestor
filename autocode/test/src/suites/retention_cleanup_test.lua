@@ -64,18 +64,55 @@ local function cases()
             end
             drain("2001-01-01T00:00:00Z", 500)
         end)
-        test.it("visits eligible runs beyond a full page of active Jobs", function()
+        test.it("does not rearm on a declined page and seeks past expired deadlines", function()
             local state = stubs.reset()
             local owner = uuid.v7()
-            seed(owner .. ":a:", 501, "1999-01-01T00:00:00Z")
+            seed(owner, 500, "1999-01-01T00:00:00Z")
+            seed(owner .. "future", 1, "2002-01-01T00:00:00Z")
+            local job_id = uuid.v7()
+            execute("UPDATE chestor_autocode_runs SET job_id = $1 WHERE owner_id = $2", {job_id, owner})
+            state.jobs = {[job_id] = {status = "running"}}
+            local deleted, err, progress = runs.prune_runs("2001-01-01T00:00:00Z", 500)
+            execute("DELETE FROM chestor_autocode_runs WHERE owner_id IN ($1, $2)", {owner, owner .. "future"})
+            test.is_nil(err, tostring(err))
+            test.eq(deleted, 0)
+            test.is_false(progress.needs_continue, "declined rows do not cause immediate continuation")
+            test.eq(progress.next_finished_at, "2002-01-01T00:00:00Z")
+        end)
+        test.it("bounds candidate visits and reaches later runs after the head jobs settle", function()
+            local state = stubs.reset()
+            local owner = uuid.v7()
+            seed(owner .. ":a:", 1001, "1999-01-01T00:00:00Z")
             seed(owner .. ":z:", 1, "2000-01-01T00:00:00Z")
             local job_id = uuid.v7()
             execute("UPDATE chestor_autocode_runs SET job_id = $1 WHERE owner_id = $2", {job_id, owner .. ":a:"})
             state.jobs = {[job_id] = {status = "running"}}
-            test.is_nil(select(2, runs.prune_runs("2001-01-01T00:00:00Z", 500)))
-            test.eq(count("chestor_autocode_runs", owner .. ":a:"), 501)
+            local visits = 0
+            state.on_get_job = function() visits = visits + 1 end
+            local deleted, err, progress = runs.prune_runs("2001-01-01T00:00:00Z", 500)
+            test.is_nil(err, tostring(err))
+            test.eq(visits, 500, "one callback examines at most one candidate page")
+            test.eq(state.cancel_calls, 500)
+            test.eq(deleted, 0)
+            test.is_false(progress.needs_continue)
+            test.is_true(progress.next_finished_at == nil or progress.next_finished_at >= "2001-01-01T00:00:00Z",
+                "held expired rows supply no deadline")
+            test.eq(count("chestor_autocode_runs", owner .. ":z:"), 1)
+            state.jobs[job_id].status = "cancelled"
+            local passes = 0
+            repeat
+                visits, state.cancel_calls = 0, 0
+                local removed, prune_err, more = runs.prune_runs("2001-01-01T00:00:00Z", 500)
+                test.is_nil(prune_err, tostring(prune_err))
+                test.is_true(visits <= 500)
+                test.eq(state.cancel_calls, visits)
+                test.eq(more.needs_continue, removed == 500)
+                passes = passes + 1
+                test.is_true(passes <= 4, "released head and tail drain within four bounded passes")
+                if not more.needs_continue then break end
+            until false
+            test.eq(count("chestor_autocode_runs", owner .. ":a:"), 0)
             test.eq(count("chestor_autocode_runs", owner .. ":z:"), 0)
-            execute("DELETE FROM chestor_autocode_runs WHERE owner_id = $1", {owner .. ":a:"})
         end)
         test.it("wakes Core after settlement and delivery and propagates wake errors", function()
             local state = stubs.reset()

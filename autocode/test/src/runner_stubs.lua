@@ -193,7 +193,11 @@ function jobs.enqueue_tx(_, _, job)
     if job.key == "run" or job.key == "resume" then return {id = M.state.job_id or uuid.v7()} end
     return {id = M.state.job_id or "build-job"}
 end
-function jobs.cancel(id) M.state.cancelled_job = id; return {canceled = true, job_id = id} end
+function jobs.cancel(id)
+    M.state.cancel_calls = (M.state.cancel_calls or 0) + 1
+    M.state.cancelled_job = id
+    return {canceled = true, job_id = id}
+end
 function runs.container_name() return "container" end
 function live.notify(owner, topic)
     M.state.notifications = M.state.notifications or {}
