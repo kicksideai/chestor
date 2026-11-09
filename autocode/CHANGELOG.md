@@ -1,6 +1,13 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.3](https://github.com/kicksideai/chestor/compare/autocode-v0.1.2...autocode-v0.1.3) (2026-11-09)
+
+
+### Bug Fixes
+
+* **autocode:** drain retained run history in bounded pages ([#25](https://github.com/kicksideai/chestor/issues/25)) ([22ee0d6](https://github.com/kicksideai/chestor/commit/22ee0d635757a6940567d5719f6623f115fb4c6d))
+
 ## [0.1.2](https://github.com/kicksideai/chestor/compare/autocode-v0.1.1...autocode-v0.1.2) (2026-11-06)
 
 
