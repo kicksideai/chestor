@@ -51,6 +51,28 @@ end
 
 local function cases()
     test.describe("autocode run history cleanup", function()
+        test.it("reverts the retention index without removing existing run history", function()
+            local owner = uuid.v7()
+            seed(owner, 3, "2000-01-01T00:00:00Z")
+            local result, err = funcs.call("chestor.autocode.migrations:02_run_retention_index",
+                {database_id = "app:db", direction = "down", id = "test:" .. uuid.v7()})
+            local db = assert(sql.get("app:db"))
+            local dbtype = db:type()
+            local indexes, index_err = db:query(dbtype == "postgres"
+                and "SELECT COUNT(*) AS n FROM pg_indexes WHERE schemaname=current_schema() AND indexname='chestor_autocode_runs_retention'"
+                or "SELECT COUNT(*) AS n FROM sqlite_master WHERE type='index' AND name='chestor_autocode_runs_retention'", {})
+            db:release()
+            local restored, restore_err = funcs.call("chestor.autocode.migrations:02_run_retention_index",
+                {database_id = "app:db", direction = "up", id = "test:" .. uuid.v7()})
+            test.is_nil(restore_err, tostring(restore_err))
+            test.eq(restored.status, "complete", tostring(restored.error))
+            test.is_nil(err, tostring(err))
+            test.eq(result.status, "complete", tostring(result.error))
+            test.is_nil(index_err, tostring(index_err))
+            test.eq(indexes[1].n, 0)
+            test.eq(count("chestor_autocode_runs", owner), 3)
+            drain("2001-01-01T00:00:00Z", 500)
+        end)
         test.it("adds its index idempotently without changing existing run history", function()
             local owner = uuid.v7()
             seed(owner, 3, "2000-01-01T00:00:00Z")

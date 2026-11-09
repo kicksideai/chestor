@@ -3,6 +3,19 @@ version: "1.0"
 namespace: app
 
 entries:
+  - name: cancel_before_start_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_cancel_before_start, group: Autocode}
+    source: file://../../suites/cancel_before_start_test.lua
+    method: run
+    modules: [uuid]
+    imports:
+      test: wippy.test:test
+      docker: chestor.autocode.infrastructure:docker
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
   - name: retention_cleanup_test
     kind: function.lua
     meta: {type: test, suite: autocode_retention_cleanup, group: Autocode}
