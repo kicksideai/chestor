@@ -183,6 +183,7 @@ function docker.remove(name, deadline)
     if M.state.remove_error then return errors.new({kind = errors.UNAVAILABLE, message = "Docker unavailable"}) end
 end
 function jobs.get_job(id)
+    if M.state.on_get_job then M.state.on_get_job(id) end
     M.state.checked_job = id
     if M.state.job_error then return nil, errors.new({kind = errors.UNAVAILABLE, message = "Jobs unavailable"}) end
     return M.state.jobs and M.state.jobs[id] or M.state.job
@@ -289,7 +290,7 @@ function resources.patch_context(_, values, revision)
     M.state.patched = true
     M.state.patched_values, M.state.patched_revision = values, revision
 end
-function repo.prune_runs(before) M.state.before = before; return 0 end
+function repo.prune_runs(before) M.state.before = before; return 0, nil, {needs_continue = false} end
 function resources.register(_, meta, private)
     M.state.registered = {meta = meta, private = private}
     return "created"

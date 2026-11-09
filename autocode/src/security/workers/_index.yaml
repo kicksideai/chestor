@@ -38,6 +38,7 @@ entries:
         - kickside.core.jobs:*
         - kickside.core.jobs.*
         - kickside.execution:*
+        - kickside.core.retention:*
         - kickside.component:*
         - kickside.component.*
       actions: [registry.get, registry.find]
@@ -63,6 +64,7 @@ entries:
         - kickside.settings:settings
         - kickside.settings:settings_binding
         - kickside.core.jobs.persist:pool_nudge
+        - kickside.core.retention:notify
         - kickside.mcp:credential_restriction
         - kickside.identity:link_get
         - resolve
