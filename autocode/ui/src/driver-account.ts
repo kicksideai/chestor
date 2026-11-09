@@ -7,7 +7,7 @@ import type { DriverAccountConfig, DriverAccountEvents } from './driver-account-
 
 const DriverAccount = lazyControl(
   () => import('./app/driver-account.vue'),
-  { loading: 'Loading the driver account card…', failed: 'Could not load the driver account card. Reload the page to try again.' },
+  { immediate: true, loading: 'Loading the driver account card…', failed: 'Could not load the driver account card. Reload the page to try again.' },
   useEvents,
 )
 

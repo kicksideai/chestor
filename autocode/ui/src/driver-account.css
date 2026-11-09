@@ -11,7 +11,7 @@
 :host { display: block; font-family: var(--kx-font-body); color: var(--p-text-color); }
 /* Reserved only while the implementation loads, so a loaded tag keeps its own size.
    This tag renders nothing without a driver, and that still matches :empty. */
-:host > div:has(> [role=status]) { min-height: 120px; }
+:host > div:has(> [data-lazy-state]) { min-height: 120px; }
 * { box-sizing: border-box; }
 
 .da {

@@ -1624,7 +1624,7 @@ wippy-loading ~ wippy-loading { display: none; }
 .ws-manage-body { flex: 1; min-height: 0; width: 100%; }
 .ws-iconfield { display: inline-block; }
 /* Icon-picker wrapper the shared IconField emits around <wc-icon-picker>. */
-.wc-iconfield { display: inline-block; }
+.wc-iconfield { display: inline-block; min-height: 32px; vertical-align: top; }
 
 /* workspace additions: filter, crumb drop targets, tile menu, move dialog */
 .ws-filter { width: min(240px, 30vw); }
@@ -1656,5 +1656,5 @@ input[type="checkbox"], input[type="range"] { accent-color: var(--p-primary-colo
 
 .ws-divider { touch-action: none; }
 
-/* Reserved only while the implementation loads, so a loaded tag keeps its own size. */
-:host(wc-entry-create) > div:empty, :host(wc-entry-create) > div:has(> [role=status]) { min-height: 179px; }
+/* The loaded height, reserved while the implementation loads or fails. Width is never reserved. */
+:host(wc-entry-create) > div:empty, :host(wc-entry-create) > div:has(> [data-lazy-state]) { min-height: 176px; }

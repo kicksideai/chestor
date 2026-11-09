@@ -9,11 +9,13 @@
 @import "./controls.css";
 
 :host { display: block; font-family: var(--kx-font-body); color: var(--p-text-color); }
-/* Reserved only while the implementation loads, so a loaded tag keeps its own size. */
-:host > div:empty, :host > div:has(> [role=status]) { min-height: 240px; }
+/* The loaded height, reserved while the implementation loads or fails. Width is never reserved. */
+:host > div:empty, :host > div:has(> [data-lazy-state]) { min-height: 533px; }
 * { box-sizing: border-box; }
 
 .tc { display: flex; flex-direction: column; gap: 10px; }
+/* Holds the form height while the agent catalog loads. */
+.tc:has(> .kx-loading) { min-height: 533px; }
 .tc-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
 .tc-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .tc-lbl { font-size: 12px; font-weight: 600; color: var(--p-text-muted-color); }

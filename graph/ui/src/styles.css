@@ -403,6 +403,8 @@ wippy-loading ~ wippy-loading { display: none; }
 .kg-url-go { flex-shrink: 0; color: var(--kg-muted); text-decoration: none; font-size: 13px; }
 .kg-url-go:hover { color: var(--kg-info); }
 .kg-component-picker { display: grid; gap: 6px; }
+/* Holds the picker height until the component picker is mounted. */
+.kg-component-picker > span[role="status"] { display: flex; align-items: center; min-height: 36px; }
 .kg-component-selected {
   display: flex; align-items: center; gap: 6px; min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;

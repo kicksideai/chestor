@@ -1,5 +1,5 @@
 import { W as o, u as r } from "./wc-runtime-CNDpK4lj.js";
-import { s, a as n } from "./styles-VL8uLHxK.js";
+import { s, a as n } from "./styles-yhRV3Hj2.js";
 import "@iconify/vue";
 import { define as i } from "@wippy-fe/proxy";
 class e extends o {
