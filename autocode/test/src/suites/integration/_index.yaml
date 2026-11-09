@@ -3,6 +3,23 @@ version: "1.0"
 namespace: app
 
 entries:
+  - name: retention_cleanup_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_retention_cleanup, group: Autocode}
+    source: file://../../suites/retention_cleanup_test.lua
+    method: run
+    modules: [sql, uuid, time, funcs, process, channel]
+    imports:
+      test: wippy.test:test
+      repo: chestor.autocode.persist:repo
+      retention: app:retention_cleanup_subject
+      stubs: app:runner_stubs
+      runs: app:run_store_subject
+      core_runner: kickside.core.retention.service:runner
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
   - name: wiring_test
     kind: function.lua
     meta:

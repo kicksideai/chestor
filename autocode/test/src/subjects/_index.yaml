@@ -175,6 +175,14 @@ entries:
       repo: app:stub_repo
       settings: app:stub_settings
 
+  - name: retention_cleanup_subject
+    kind: library.lua
+    source: file://../retention_subject.lua
+    modules: [time]
+    imports:
+      repo: chestor.autocode.persist:repo
+      settings: app:stub_settings
+
   - name: image_requests_subject
     kind: library.lua
     source: file://../image_requests_subject.lua
@@ -376,6 +384,7 @@ entries:
       database: chestor.autocode.persist:database
       jobs: app:delivery_jobs
       slot_purge: kickside.core.jobs.persist:slot_purge
+      retention_notifier: kickside.core.retention:notifier
 
   - name: delivery_repo
     kind: library.lua
@@ -519,6 +528,13 @@ entries:
       database: chestor.autocode.persist:database
       jobs: app:stub_jobs
       slot_purge: kickside.core.jobs.persist:slot_purge
+      retention_notifier: app:retention_notifier_stub
+
+  - name: retention_notifier_stub
+    kind: library.lua
+    source: file://../retention_notifier.lua
+    imports:
+      stubs: app:runner_stubs
 
   - name: account_query_stub
     kind: library.lua

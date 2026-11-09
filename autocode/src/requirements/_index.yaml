@@ -11,6 +11,8 @@ entries:
     targets:
       - entry: chestor.autocode.migrations:01_create_tables
         path: .meta.target_db
+      - entry: chestor.autocode.migrations:02_run_retention_index
+        path: .meta.target_db
       - entry: chestor.autocode.persist:db_config
         path: .meta.db_id
       - entry: chestor.autocode.security:store

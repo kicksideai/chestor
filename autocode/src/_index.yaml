@@ -37,6 +37,11 @@ entries:
       comment: Durable jobs - each run, image build and workflow resume is a job committed with its rows.
     component: kickside/jobs
 
+  - name: dep.kickside.core
+    version: "*"
+    kind: ns.dependency
+    component: kickside/core
+
   - name: dep.kickside.execution
     version: "*"
     kind: ns.dependency
