@@ -1,6 +1,13 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.4](https://github.com/kicksideai/chestor/compare/autocode-v0.1.3...autocode-v0.1.4) (2026-11-10)
+
+
+### Bug Fixes
+
+* **autocode:** stop cancelled containers before launch and reverse the retention index ([#27](https://github.com/kicksideai/chestor/issues/27)) ([f348d02](https://github.com/kicksideai/chestor/commit/f348d02aab4af3843fa05bcdd71f28d5b5689694))
+
 ## [0.1.3](https://github.com/kicksideai/chestor/compare/autocode-v0.1.2...autocode-v0.1.3) (2026-11-09)
 
 
