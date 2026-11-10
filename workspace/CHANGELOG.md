@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.6](https://github.com/kicksideai/chestor/compare/workspace-v0.2.5...workspace-v0.2.6) (2026-11-10)
+
+
+### Bug Fixes
+
+* rebuild packages without baked default bindings ([#29](https://github.com/kicksideai/chestor/issues/29)) ([c05c730](https://github.com/kicksideai/chestor/commit/c05c730ba5a0569a981839192da0fa41e644a48d))
+
 ## [0.2.5](https://github.com/kicksideai/chestor/compare/workspace-v0.2.4...workspace-v0.2.5) (2026-11-08)
 
 

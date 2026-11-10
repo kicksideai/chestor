@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/kicksideai/chestor/compare/graph-v0.2.1...graph-v0.2.2) (2026-11-10)
+
+
+### Bug Fixes
+
+* rebuild packages without baked default bindings ([#29](https://github.com/kicksideai/chestor/issues/29)) ([c05c730](https://github.com/kicksideai/chestor/commit/c05c730ba5a0569a981839192da0fa41e644a48d))
+
 ## 0.2.1 (2026-10-17)
 
 - Align module requirements with registry entry bindings and refresh packaged documentation.

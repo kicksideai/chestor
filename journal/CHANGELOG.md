@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.4](https://github.com/kicksideai/chestor/compare/journal-v0.3.3...journal-v0.3.4) (2026-11-10)
+
+
+### Bug Fixes
+
+* rebuild packages without baked default bindings ([#29](https://github.com/kicksideai/chestor/issues/29)) ([c05c730](https://github.com/kicksideai/chestor/commit/c05c730ba5a0569a981839192da0fa41e644a48d))
+
 ## [0.3.3](https://github.com/kicksideai/chestor/compare/journal-v0.3.2...journal-v0.3.3) (2026-11-08)
 
 
