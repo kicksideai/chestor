@@ -72,7 +72,7 @@ entries:
     kind: function.lua
     meta:
       type: kickside.retention.owner
-      comment: Deletes runs that settled longer ago than the run_retention setting, with their event logs, on the Core retention tick.
+      comment: Deletes expired settled run history in bounded pages and reports the next retention deadline to Core.
     source: file://../retention.lua
     method: run
     modules:

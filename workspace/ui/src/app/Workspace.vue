@@ -11,6 +11,8 @@ import EntryRenderer from './EntryRenderer.vue'
 import MenuLayer from './MenuLayer.vue'
 import ShareHost from './ShareHost.vue'
 import ComponentView from './ComponentView.vue'
+import ComponentDeletion from '@kickside/ui-kit/ComponentDeletion.vue'
+import { useComponentDeletion } from '@kickside/ui-kit/useComponentDeletion'
 
 // chestor-workspace -- the canonical shell. It OWNS navigation (breadcrumbs +
 // back), the entry tree (list/grid), create/upload/import, a resizable preview,
@@ -323,11 +325,6 @@ function showFlash(msg: string) {
   clearTimeout(flashTimer)
   flashTimer = setTimeout(() => { flash.value = '' }, 1800)
 }
-async function copyId(e: Entry) {
-  closeMenu()
-  try { await navigator.clipboard.writeText(e.id); showFlash('ID copied') }
-  catch { error.value = 'clipboard unavailable' }
-}
 
 // ── Move dialog (the non-drag path to /move) ──
 const moveFor = ref<Entry | null>(null)
@@ -385,7 +382,6 @@ function onRowKey(ev: KeyboardEvent, e: Entry) {
 // Delete confirms through an in-app dialog: the native window.confirm is suppressed
 // in embedded/webview hosts, which silently aborted every delete (no popup, no-op).
 const confirmingDelete = ref<Entry | null>(null)
-const deleting = ref('')
 const deleteDescendantCount = ref<number | null>(null)
 async function remove(e: Entry) {
   closeMenu()
@@ -402,13 +398,18 @@ async function doDelete() {
   deleteDescendantCount.value = null
   if (!e) return
   try {
-    const outcome = await api.remove(e.id)
-    deleting.value = outcome.inProgress ? `Deleting "${e.name}": cleanup is in progress and continues in the background.` : ''
+    const receipt = await api.remove(e.id)
+    if (receipt.in_progress) acceptDeletion(e.id, receipt)
     if (selected.value?.id === e.id) selected.value = null
     if (managing.value?.id === e.id) closeManage()
     nav(currentParent.value)
   } catch (err) { error.value = err instanceof Error ? err.message : 'failed to delete' }
 }
+// An accepted deletion keeps its row, marked with the job's progress, until
+// component.deleted removes it; the folder then re-lists.
+const { acceptDeletion } = useComponentDeletion(entries, row => row.id,
+  id => { if (selected.value?.id === id) selected.value = null },
+  () => nav(currentParent.value))
 
 // ── Properties dialog ──
 const props = reactive<{ open: boolean; entry: Entry | null; name: string; icon: string; color: string }>(
@@ -515,7 +516,6 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
 
     <Notice v-if="error" tone="error" @dismiss="error = ''">{{ error }} <Button variant="ghost" small @click="nav(currentParent)">Retry</Button></Notice>
     <Notice v-if="flash" @dismiss="flash = ''">{{ flash }}</Notice>
-    <Notice v-if="deleting" @dismiss="deleting = ''">{{ deleting }}</Notice>
 
     <div class="ws-body">
       <div class="ws-list-pane" :class="{ 'ws-list-pane--aside': selected, 'ws-list-pane--drop': dragOver }"
@@ -540,6 +540,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
             <span class="ws-edge" />
             <Icon :icon="iconOf(e)" class="ws-row-ico" :style="{ color: colorOf(e) }" />
             <span class="ws-row-name">{{ e.name }}</span>
+            <ComponentDeletion :state="e" @retry="remove(e)" />
             <Pill tone="muted">{{ chip(e) }}</Pill>
             <span class="ws-age">{{ formatAge(e.updated_at) }}</span>
             <button class="ws-row-menu" title="Actions" :aria-label="`Actions for ${e.name}`" @click.stop="openMenu(e, $event)"><Icon icon="tabler:dots" /></button>
@@ -561,6 +562,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
             <button class="ws-row-menu ws-tile-menu" title="Actions" :aria-label="`Actions for ${e.name}`" @click.stop="openMenu(e, $event)"><Icon icon="tabler:dots" /></button>
             <Icon :icon="iconOf(e)" class="ws-tile-ico" :style="{ color: colorOf(e) }" />
             <span class="ws-tile-name" :title="e.name">{{ e.name }}</span>
+            <ComponentDeletion :state="e" @retry="remove(e)" />
           </div>
         </div>
 
@@ -582,7 +584,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
             <Icon :icon="iconOf(selected)" :style="{ color: colorOf(selected) }" />
             <span class="ws-preview-title">{{ selected.name }}</span>
             <span class="ws-spacer" />
-            <IconButton v-if="selected.type !== 'folder'" icon="tabler:maximize" label="Open (full)" size="sm" @click="openManage(selected!)" />
+            <IconButton v-if="selected.type !== 'folder'" icon="tabler:maximize" label="Open" size="sm" @click="openManage(selected!)" />
             <IconButton v-if="can(selected, ACCESS.ADMIN)" icon="tabler:share-3" label="Share" size="sm" @click="shareFor = selected" />
             <IconButton icon="tabler:adjustments" label="Properties" size="sm" @click="openProps(selected!)" />
             <IconButton icon="tabler:x" label="Close" size="sm" @click="selected = null" />
@@ -598,13 +600,12 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
       <button v-if="isContainer(menu.entry)" class="ws-menu-item" @click="emitNav('navigate', menu.entry!.id); closeMenu()"><Icon icon="tabler:folder-open" /> Open</button>
       <template v-else>
         <button class="ws-menu-item" @click="open(menu.entry!); closeMenu()"><Icon icon="tabler:eye" /> Preview</button>
-        <button class="ws-menu-item" @click="openManage(menu.entry!)"><Icon icon="tabler:maximize" /> Open (manage)</button>
+        <button class="ws-menu-item" @click="openManage(menu.entry!)"><Icon icon="tabler:maximize" /> Open</button>
       </template>
       <button v-if="can(menu.entry, ACCESS.WRITE)" class="ws-menu-item" @click="openProps(menu.entry!)"><Icon icon="tabler:cursor-text" /> Rename…</button>
       <button v-if="can(menu.entry, ACCESS.WRITE)" class="ws-menu-item" @click="openMove(menu.entry!)"><Icon icon="tabler:folder-symlink" /> Move to…</button>
       <button v-if="can(menu.entry, ACCESS.ADMIN)" class="ws-menu-item" @click="shareFor = menu.entry; closeMenu()"><Icon icon="tabler:user-plus" /> Share…</button>
       <button class="ws-menu-item" @click="exportEntry(menu.entry!)"><Icon icon="tabler:package-export" /> Export</button>
-      <button class="ws-menu-item" @click="copyId(menu.entry!)"><Icon icon="tabler:copy" /> Copy ID</button>
       <div v-if="can(menu.entry, ACCESS.DELETE)" class="ws-menu-div" />
       <button v-if="can(menu.entry, ACCESS.DELETE)" class="ws-menu-item ws-menu-danger" @click="remove(menu.entry!)"><Icon icon="tabler:trash" /> Delete</button>
     </MenuLayer>

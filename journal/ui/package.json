@@ -66,6 +66,7 @@
   "scripts": {
     "build": "vite build --outDir ../static --emptyOutDir",
     "dev": "vite build --watch --outDir ../static --emptyOutDir",
-    "typecheck": "vue-tsc --noEmit"
+    "typecheck": "vue-tsc --noEmit",
+    "test": "vitest run --environment happy-dom"
   }
 }

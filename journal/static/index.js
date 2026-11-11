@@ -51,7 +51,7 @@ class i extends p {
   static get vueConfig() {
     return {
       lazyConfig: m(
-        () => import("./lazy-mount-CeaEMlz-.js").then((r) => r.mountConfig),
+        () => import("./lazy-mount-DATng9HN.js").then((r) => r.mountConfig),
         "Could not load the journal. Reload the page to try again.",
         s
       )

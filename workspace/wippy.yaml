@@ -23,6 +23,8 @@ exclude:
   - "app.env:**"
   - "ui/node_modules/**"
   - "ui/node_modules:**"
+  - "ui/.wippy/**"
+  - "build-inputs/**"
   - "test/**"
   - "tests/**"
   - "test-support/**"

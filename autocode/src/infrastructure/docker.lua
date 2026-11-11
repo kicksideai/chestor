@@ -233,11 +233,12 @@ function M.copy_file(container: string, path: string, limit: integer, deadline: 
     return content, nil
 end
 
--- Stop a run container if it exists, keeping it for the runner to read.
+-- Keep started containers readable; remove a created container so it cannot launch after cancellation.
 function M.stop(name: string, deadline: string?): error?
-    local listed, list_err = output({"ps", "-q", "--filter", "name=^" .. name .. "$"}, deadline)
+    local listed, list_err = output({"ps", "-a", "--format", "{{.State}}", "--filter", "name=^" .. name .. "$"}, deadline)
     if not listed then return list_err end
     if #listed == 0 or listed[1] == "" then return nil end
+    if listed[1] == "created" then return M.ensure_removed(name, deadline) end
     local _, stop_err = output({"stop", "-t", "5", name}, deadline)
     return stop_err
 end

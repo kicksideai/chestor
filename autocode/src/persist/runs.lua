@@ -5,6 +5,7 @@ local uuid = require("uuid")
 local jobs = require("jobs")
 local trace = require("trace")
 local slot_purge = require("slot_purge")
+local retention_notifier = require("retention_notifier")
 
 type Object = db.Object
 type Columns = db.Columns
@@ -205,7 +206,9 @@ end
 
 function repo.acknowledge_delivery(id: string): error?
     local _, err = execute("UPDATE chestor_autocode_runs SET workflow_delivered = 1 WHERE id = $1 AND status IN ('succeeded', 'failed', 'cancelled')", {id})
-    return err
+    if err then return err end
+    local _, notify_err = retention_notifier.notify({kind = "autocode_runs_changed"})
+    return notify_err
 end
 
 function repo.start_run(id: string): (boolean?, error?)
@@ -258,6 +261,8 @@ function repo.finish_run(id: string, status: RunStatus, result: string, error_te
         return nil
     end)
     if err then return nil, err end
+    local _, notify_err = retention_notifier.notify({kind = "autocode_runs_changed"})
+    if notify_err then return nil, notify_err end
     return settled, nil
 end
 
@@ -269,14 +274,19 @@ function repo.request_cancel(owner_id: string, id: string): (boolean?, error?)
     return changed == 1, nil
 end
 
--- prune_runs deletes up to `limit` runs that settled before `before`, with
--- their events, and reports how many runs it deleted.
-function repo.prune_runs(before: string, limit: integer): (integer?, error?)
-    local rows, err = query([[SELECT id, job_id FROM chestor_autocode_runs WHERE finished_at <> '' AND finished_at < $1 AND (flow_dataflow_id = '' OR workflow_delivered = 1)
-        ORDER BY finished_at LIMIT $2]], {before, limit})
-    if err then return nil, err end
+type PruneProgress = {needs_continue: boolean, next_finished_at: string?}
+
+-- Each run transaction removes at most one page from each child table. The
+-- run remains until both children drain; its row lock fences a refreshed cutoff.
+function repo.prune_runs(before: string, limit: integer): (integer?, error?, PruneProgress?)
     local deleted = 0
-    for _, row in ipairs(rows or {}) do
+    local needs_continue = false
+    local rows, err = query([[SELECT id, job_id FROM chestor_autocode_runs
+        WHERE finished_at > '' AND (flow_dataflow_id = '' OR workflow_delivered = 1)
+        AND finished_at < $1 ORDER BY finished_at, id LIMIT $2]], {before, limit})
+    if err then return nil, err end
+    rows = rows or {}
+    for _, row in ipairs(rows) do
         local active = false
         if type(row.job_id) == "string" and row.job_id ~= "" then
             local _, cancel_err = jobs.cancel(row.job_id)
@@ -292,6 +302,7 @@ function repo.prune_runs(before: string, limit: integer): (integer?, error?)
                 local _, purge_err = slot_purge.purge_slot({namespace = "chestor.autocode", scope = row.id, key = key})
                 if purge_err then
                     if errors.is(purge_err, errors.CONFLICT) and purge_err:details().cleanup_pending == true then
+                        needs_continue = needs_continue or purge_err:details().needs_continue == true
                         active = true
                         break
                     end
@@ -299,17 +310,52 @@ function repo.prune_runs(before: string, limit: integer): (integer?, error?)
                 end
             end
             if not active then
-                local prune_err = transaction({
-                    {statement = "DELETE FROM chestor_autocode_run_events WHERE run_id = $1", params = {row.id}},
-                    {statement = "DELETE FROM chestor_autocode_submissions WHERE run_id = $1", params = {row.id}},
-                    {statement = "DELETE FROM chestor_autocode_runs WHERE id = $1", params = {row.id}},
-                }, nil)
+                local prune_err = transaction({}, function(tx: sql.Transaction): error?
+                    local locked, lock_err = tx:execute([[UPDATE chestor_autocode_runs SET finished_at = finished_at
+                        WHERE id = $1 AND finished_at > '' AND finished_at < $2
+                        AND (flow_dataflow_id = '' OR workflow_delivered = 1)]], {row.id, before})
+                    if lock_err then return lock_err end
+                    if not locked or locked.rows_affected == 0 then return nil end
+                    local events, events_err = tx:execute([[DELETE FROM chestor_autocode_run_events
+                        WHERE run_id = $1 AND seq IN (SELECT seq FROM chestor_autocode_run_events
+                            WHERE run_id = $1 ORDER BY seq LIMIT $2)
+                        AND EXISTS (SELECT 1 FROM chestor_autocode_runs WHERE id = $1
+                            AND finished_at > '' AND finished_at < $3
+                            AND (flow_dataflow_id = '' OR workflow_delivered = 1))]], {row.id, limit, before})
+                    if events_err then return events_err end
+                    local submissions, submissions_err = tx:execute([[DELETE FROM chestor_autocode_submissions
+                        WHERE run_id = $1 AND (owner_id, key) IN (SELECT owner_id, key FROM chestor_autocode_submissions
+                            WHERE run_id = $1 LIMIT $2)
+                        AND EXISTS (SELECT 1 FROM chestor_autocode_runs WHERE id = $1
+                            AND finished_at > '' AND finished_at < $3
+                            AND (flow_dataflow_id = '' OR workflow_delivered = 1))]], {row.id, limit, before})
+                    if submissions_err then return submissions_err end
+                    local removed, remove_err = tx:execute([[DELETE FROM chestor_autocode_runs WHERE id = $1
+                        AND finished_at > '' AND finished_at < $2
+                        AND (flow_dataflow_id = '' OR workflow_delivered = 1)
+                        AND NOT EXISTS (SELECT 1 FROM chestor_autocode_run_events WHERE run_id = $1)
+                        AND NOT EXISTS (SELECT 1 FROM chestor_autocode_submissions WHERE run_id = $1)]], {row.id, before})
+                    if remove_err then return remove_err end
+                    deleted = deleted + (removed and removed.rows_affected or 0)
+                    needs_continue = needs_continue or (events and events.rows_affected == limit) == true
+                        or (submissions and submissions.rows_affected == limit) == true
+                    return nil
+                end)
                 if prune_err then return nil, prune_err end
-                deleted = deleted + 1
             end
         end
     end
-    return deleted, nil
+    local remaining, remaining_err = query([[SELECT finished_at FROM chestor_autocode_runs
+        WHERE finished_at > '' AND (flow_dataflow_id = '' OR workflow_delivered = 1)
+        AND finished_at >= $1 ORDER BY finished_at, id LIMIT 1]], {before})
+    if remaining_err then return nil, remaining_err end
+    local next_finished_at: string? = nil
+    if remaining and remaining[1] then
+        local stamp = remaining[1].finished_at
+        if type(stamp) ~= "string" then return nil, fail("retention run has no finished time") end
+        next_finished_at = stamp
+    end
+    return deleted, nil, {needs_continue = (deleted > 0 and #rows == limit) or needs_continue, next_finished_at = next_finished_at}
 end
 
 return repo

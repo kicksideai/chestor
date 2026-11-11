@@ -56,6 +56,7 @@ entries:
       database: chestor.autocode.persist:database
       jobs: kickside.core.jobs:jobs
       slot_purge: kickside.core.jobs.persist:slot_purge
+      retention_notifier: kickside.core.retention:notifier
 
   - name: events
     kind: library.lua

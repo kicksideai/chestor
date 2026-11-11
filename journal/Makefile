@@ -24,3 +24,7 @@ typecheck:
 	cd ui && npm run typecheck
 lockrefresh:
 	cd test && wippy update $(WIPPY_UPDATE_ARGS)
+
+.PHONY: ui-test
+ui-test:
+	cd ui && npm test

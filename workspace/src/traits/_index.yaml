@@ -271,7 +271,7 @@ entries:
           - state.read
           - state.write
       llm_alias: DeleteWorkspaceEntry
-      llm_description: "Delete a workspace entry by id (requires delete access). Input { id }. Removes the entry and its component-owned thread; irreversible."
+      llm_description: "Delete a workspace entry by id (requires delete access). Input { id }. Removes the entry and its component-owned thread; irreversible. Deletion runs as a background job: in_progress=true with job_id means the entry stays listed until cleanup completes; deleted=true means it is gone."
       input_schema: |
         {
           "type": "object",
@@ -285,6 +285,11 @@ entries:
           "type": "object",
           "properties": {
             "success": { "type": "boolean" },
+            "deleted": { "type": "boolean", "description": "The entry and its subtree are gone" },
+            "in_progress": { "type": "boolean", "description": "Cleanup continues in the deletion job" },
+            "status": { "type": "string" },
+            "cleanup_pending": { "type": "boolean" },
+            "job_id": { "type": "string", "description": "The deletion job tracking the cleanup" },
             "error": { "type": "string" }
           },
           "required": ["success"]

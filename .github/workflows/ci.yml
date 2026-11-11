@@ -19,6 +19,17 @@ concurrency:
   cancel-in-progress: true
 env:
   WIPPY_REGISTRY: https://hub.wippy.ai
+  AUTOCODE_SOURCE_ARGS: >-
+    --set workspace.replacements.kickside/blocks=${{ github.workspace }}/kickside/platform/blocks
+    --set workspace.replacements.kickside/component=${{ github.workspace }}/kickside/core/component
+    --set workspace.replacements.kickside/contract=${{ github.workspace }}/kickside/core/contract
+    --set workspace.replacements.kickside/core=${{ github.workspace }}/kickside/core/core
+    --set workspace.replacements.kickside/execution=${{ github.workspace }}/kickside/core/execution
+    --set workspace.replacements.kickside/jobs=${{ github.workspace }}/kickside/core/jobs
+    --set workspace.replacements.kickside/realtime-dispatch=${{ github.workspace }}/kickside/core/realtime-dispatch
+    --set workspace.replacements.kickside/security=${{ github.workspace }}/kickside/platform/security
+    --set workspace.replacements.kickside/settings=${{ github.workspace }}/kickside/platform/settings
+    --set workspace.replacements.kickside/users=${{ github.workspace }}/kickside/platform/users
   PGHOST: 127.0.0.1
   PGPORT: '5433'
   PGUSER: kickside
@@ -38,7 +49,17 @@ jobs:
       with:
         fetch-depth: 0
         persist-credentials: false
-    - uses: kicksideai/.github/actions/legal-check@5e168263ac995d107c968af658b810e22788cb6a
+    - uses: kicksideai/.github/actions/setup-wippy@5401fa65bed7d8648125957520e94206ed1ffd0b
+      with:
+        version: 0.3.59a
+        hub-url: https://hub.wippy.ai
+    - name: Materialize locked workspace UI Kit for license provenance
+      run: |
+        set -euo pipefail
+        (cd workspace/build-inputs && wippy install)
+        version=$(jq -er '.packages[".wippy/npm/@kickside/ui-kit"].version' workspace/ui/package-lock.json)
+        wippy artifacts materialize "workspace/build-inputs/.wippy/vendor/kickside/ui-kit-$version.wapp" kickside.ui_kit:package_fs --root workspace/ui/.wippy
+    - uses: kicksideai/.github/actions/legal-check@e1186b6a3f9aac84125b7d5300077b7b23a70804
       with:
         base: ${{ github.event.pull_request.base.sha }}
   modules:
@@ -50,23 +71,23 @@ jobs:
       matrix:
         include:
         - module: autocode
-          wippy_version: 0.3.55a
+          wippy_version: 0.3.59a
           engine: sqlite
           commands: |
             set -euo pipefail
             export TMPDIR="$PWD/.scratch"
             mkdir -p "$TMPDIR"
-            make -C autocode lockrefresh
-            make -C autocode release-check
+            make -C autocode lockrefresh WIPPY_UPDATE_ARGS="$AUTOCODE_SOURCE_ARGS"
+            make -C autocode release-check RUNTIME_ARGS="$AUTOCODE_SOURCE_ARGS"
         - module: autocode
-          wippy_version: 0.3.55a
+          wippy_version: 0.3.59a
           engine: postgres
           commands: |
             set -euo pipefail
             export TMPDIR="$PWD/.scratch"
             mkdir -p "$TMPDIR"
-            make -C autocode lockrefresh
-            make -C autocode release-check TEST_TARGET=test-pg
+            make -C autocode lockrefresh WIPPY_UPDATE_ARGS="$AUTOCODE_SOURCE_ARGS"
+            make -C autocode release-check TEST_TARGET=test-pg RUNTIME_ARGS="$AUTOCODE_SOURCE_ARGS"
         - module: db-schema
           engine: sqlite
           commands: "set -euo pipefail\nsource_root=\"$PWD\"\nexport TMPDIR=\"$source_root/.scratch\"\
@@ -342,7 +363,7 @@ jobs:
         - module: workspace
           engine: sqlite
           commands: "set -euo pipefail\nsource_root=\"$PWD\"\nexport TMPDIR=\"$source_root/.scratch\"\
-            \nmkdir -p \"$TMPDIR\"\nnpm --prefix workspace/ui ci\nnpm --prefix workspace/ui\
+            \nmkdir -p \"$TMPDIR\"\nmake -C workspace ui-kit\nnpm --prefix workspace/ui test\nnpm --prefix workspace/ui\
             \ run typecheck\nnpm --prefix workspace/ui run build\ncd workspace/test\n\
             wippy update\nwippy lint --ns chestor.workspace --ns 'chestor.workspace.*'\
             \ --ns chestor.test_support \nwippy test  2>&1 | tee .wippy-test.log\n\
@@ -363,7 +384,9 @@ jobs:
 
             mkdir -p "$TMPDIR"
 
-            npm --prefix workspace/ui ci
+            make -C workspace ui-kit
+
+            npm --prefix workspace/ui test
 
             npm --prefix workspace/ui run typecheck
 
@@ -429,7 +452,7 @@ jobs:
         node-version: '22'
     - uses: kicksideai/.github/actions/setup-wippy@5401fa65bed7d8648125957520e94206ed1ffd0b
       with:
-        version: ${{ matrix.wippy_version || '0.3.55a' }}
+        version: ${{ matrix.wippy_version || '0.3.59a' }}
         hub-url: https://hub.wippy.ai
     - name: Check out kickside module sources
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1

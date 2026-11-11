@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.2.6](https://github.com/kicksideai/chestor/compare/workspace-v0.2.5...workspace-v0.2.6) (2026-11-10)
+
+
+### Bug Fixes
+
+* rebuild packages without baked default bindings ([#29](https://github.com/kicksideai/chestor/issues/29)) ([c05c730](https://github.com/kicksideai/chestor/commit/c05c730ba5a0569a981839192da0fa41e644a48d))
+
+## [0.2.5](https://github.com/kicksideai/chestor/compare/workspace-v0.2.4...workspace-v0.2.5) (2026-11-08)
+
+
+### Bug Fixes
+
+* **journal:** simplify status text and workspace actions ([#23](https://github.com/kicksideai/chestor/issues/23)) ([ac39560](https://github.com/kicksideai/chestor/commit/ac395602cbe2976470c1c4aae272e91cc9ff8f3f))
+
+## [0.2.4](https://github.com/kicksideai/chestor/compare/workspace-v0.2.3...workspace-v0.2.4) (2026-11-08)
+
+
+### Bug Fixes
+
+* **workspace:** track entry deletions in the workspace list ([#21](https://github.com/kicksideai/chestor/issues/21)) ([44bd87c](https://github.com/kicksideai/chestor/commit/44bd87c5b52d337f3ae984fbb5723d0369118276))
+
+## [0.2.3](https://github.com/kicksideai/chestor/compare/workspace-v0.2.2...workspace-v0.2.3) (2026-11-07)
+
+
+### Bug Fixes
+
+* **workspace:** answer the deletion receipt from DeleteWorkspaceEntry ([#19](https://github.com/kicksideai/chestor/issues/19)) ([d97656e](https://github.com/kicksideai/chestor/commit/d97656ea61b7be4eca77f77dac9738b5a23f5420))
+
 ## [0.2.2](https://github.com/kicksideai/chestor/compare/workspace-v0.2.1...workspace-v0.2.2) (2026-11-06)
 
 

@@ -1,4 +1,5 @@
 @import "@wippy-fe/theme/theme-config.css";
+@import "@kickside/ui-kit/component-deletion.css";
 /* Vendored from the canonical models shared shell (platform/models/ui/src/styles.css) through line ~1492; the .ws-* rules below are workspace-specific. Keep the shared portion in sync; shell consolidation tracked separately. */
 
 /* Models settings surface. Borderless rail + main shell composed from the shared

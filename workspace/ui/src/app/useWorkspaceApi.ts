@@ -91,11 +91,11 @@ export function useWorkspaceApi() {
   }
 
   // A large entry is released at once while its bounded cleanup continues durably;
-  // inProgress reports that accepted continuation.
-  async function remove(id: string): Promise<{ inProgress: boolean }> {
+  // in_progress reports that accepted continuation and job_id the job that runs it.
+  async function remove(id: string): Promise<{ in_progress: boolean; job_id?: string | null }> {
     const { data } = await api.delete(`${BASE}/${id}`)
     if (!data.success) throw new Error(data.error || 'failed to delete')
-    return { inProgress: data.in_progress === true }
+    return { in_progress: data.in_progress === true, job_id: data.job_id }
   }
 
   async function countDescendants(id: string): Promise<number> {

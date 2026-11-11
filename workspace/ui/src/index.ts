@@ -12,7 +12,7 @@ class WorkspaceElement extends WippyVueElement<ComponentProps, Events> {
   static get wippyConfig(): WippyElementConfig<ComponentProps> {
     return {
       propsSchema: { type: 'object', properties: { route: { type: 'string' } } } as WippyPropsSchema,
-      hostCssKeys: ['themeConfigUrl', 'iframeCssUrl'] as const,
+      hostCssKeys: ['themeConfigUrl', 'primeVueCssUrl', 'iframeCssUrl'] as const,
       inlineCss: stylesText,
     }
   }
