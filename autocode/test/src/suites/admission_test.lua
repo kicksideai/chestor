@@ -68,6 +68,70 @@ local function cases()
             return identity.call(user, "app:fixture_admit", request)
         end
 
+        test.it("refuses non-git worktree registration and submission while shared mode stays unchanged", function()
+            local admin = track(identity.admin())
+            local image_id = image(admin)
+            account(admin, "key", "env:ANTHROPIC_API_KEY")
+            local path = identity.directory(admin, "not-a-git-repository")
+            local registered = identity.request(admin, "POST", "/autocode/workspaces", {name = "non-git", host_path = path, isolation = "worktree"})
+            test.eq(registered.status, 400, registered.body)
+            test.not_nil(registered.json.error:find("git repository", 1, true), registered.body)
+            local workspace_id = register(admin, "workspace", {title = "shared"}, {host_path = path})
+            local isolated, isolation_err = admit(admin, {image_id = image_id, workspace_id = workspace_id, repo_url = "", prompt = "task", options = {}, isolation = "worktree"})
+            test.is_nil(isolated); test.not_nil(isolation_err)
+            test.not_nil(tostring(isolation_err):find("git repository", 1, true), tostring(isolation_err))
+            local shared, shared_err = admit(admin, {image_id = image_id, workspace_id = workspace_id, repo_url = "", prompt = "task", options = {}})
+            test.is_nil(shared_err, tostring(shared_err))
+            test.eq(shared.host_path, path)
+            test.eq(shared.effective_isolation, "shared")
+        end)
+        test.it("resolves unset form options from catalog defaults and unattended presets", function()
+            local admin = track(identity.admin())
+            local catalog = identity.request(admin, "GET", "/autocode/catalog").json
+            local default_mode, unattended_mode
+            for _, driver in ipairs(catalog.agents) do
+                if driver.id == "claude" then
+                    unattended_mode = driver.unattended.permission_mode
+                    for _, option in ipairs(driver.options) do
+                        if option.name == "permission_mode" then default_mode = option.default end
+                    end
+                end
+            end
+            test.not_nil(default_mode)
+            test.not_nil(unattended_mode)
+            test.is_true(default_mode ~= unattended_mode)
+            local image_id = image(admin)
+            local account_id = account(admin, "Key", "env:ANTHROPIC_API_KEY")
+            for _, unattended in ipairs({false, true}) do
+                local submitted = identity.request(admin, "POST", "/autocode/runs", {agent = "claude", image_id = image_id,
+                    account_id = account_id, prompt = "task", unattended = unattended, options = json.decode("{}")})
+                test.eq(submitted.status, 201, submitted.body)
+                local run = repo.stored_run(submitted.json.run_id)
+                test.eq(run.options.permission_mode, unattended and unattended_mode or default_mode)
+                test.eq(run.unattended, unattended)
+            end
+        end)
+        test.it("lets explicit options override unattended presets for two catalog harnesses", function()
+            local admin = track(identity.admin())
+            local catalog = identity.request(admin, "GET", "/autocode/catalog").json
+            for _, example in ipairs({{agent = "claude", kind = "env:ANTHROPIC_API_KEY", key = "permission_mode", value = "acceptEdits"},
+                {agent = "codex", kind = "env:CODEX_API_KEY", key = "dangerously_bypass_approvals_and_sandbox", value = false}}) do
+                local allows = {}
+                for _, driver in ipairs(catalog.agents) do if driver.id == example.agent then allows = driver.capabilities end end
+                local image_id = register(admin, "image", {title = "Both", ref = "harness", home = "/opt/agent"}, {settings = {allows = allows}})
+                build_fixture.ready(image_id, admin.id, "/opt/agent", {allows = allows}, identity.call(admin, "app:fixture_image_revision", image_id), {example.agent})
+                local account_id = register(admin, "account", {title = "Key", agent = example.agent, credential_kind = example.kind, enabled = true}, {credential = "test-key"})
+                local submitted = identity.request(admin, "POST", "/autocode/runs", {agent = example.agent, image_id = image_id,
+                    account_id = account_id, prompt = "task", options = {[example.key] = example.value}})
+                test.eq(submitted.status, 201, submitted.body)
+                local run = repo.stored_run(submitted.json.run_id)
+                test.eq(run.options[example.key], example.value)
+                test.is_true(run.unattended)
+                local prepared, prepare_err = identity.call(admin, "chestor.autocode.service:prepare", {run_id = run.id})
+                test.is_nil(prepare_err, tostring(prepare_err))
+                test.not_nil(prepared)
+            end
+        end)
         test.it("rejects an unsafe approved HOME at the admission boundary", function()
             local admin = track(identity.admin())
             local image_id = image(admin)
@@ -191,7 +255,7 @@ local function cases()
             local image_id = image(admin)
             test.is_nil(share(admin, image_id, READ))
             account(member, "Key", "env:ANTHROPIC_API_KEY")
-            local workspace_id = register(admin, "workspace", {title = "Repo"}, {host_path = "/srv/autocode-harness/repo"})
+            local workspace_id = register(admin, "workspace", {title = "Repo"}, {host_path = identity.directory(admin, "repo")})
 
             local _, unknown = admit(member, {image_id = image_id, workspace_id = workspace_id})
             test.not_nil(unknown)

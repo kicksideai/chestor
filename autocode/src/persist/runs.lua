@@ -1,11 +1,10 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 local db = require("database")
+local limits = require("limits")
 local sql = require("sql")
 local uuid = require("uuid")
 local jobs = require("jobs")
 local trace = require("trace")
-local slot_purge = require("slot_purge")
-local retention_notifier = require("retention_notifier")
 
 type Object = db.Object
 type Columns = db.Columns
@@ -35,15 +34,17 @@ local SETTLE_MARGIN_MS = 600000
 -- Runs. Status moves queued -> running -> one terminal status; each
 -- transition names the status it moves from.
 
-local RUN_COLUMNS = [[id, owner_id, actor_id, actor_context, agent, account_id, account_pinned, input, repo_ref, image_id, workspace_id, flow_dataflow_id,
-    flow_signal_id, options, unattended, repo_url, prompt, timeout_ms, status, result, error, usage, cancel_requested,
+local RUN_COLUMNS = [[account_health, tools, gateway, isolation, worktree, id, owner_id, actor_id, actor_context, agent, account_id, account_pinned, input, repo_ref, image_id, workspace_id, flow_dataflow_id,
+    flow_signal_id, account_pool, endpoint, resolved, options, unattended, repo_url, prompt, timeout_ms, status, result, error, usage, cancel_requested,
     created_at, started_at, finished_at, pending_status, job_id]]
 
 local function run(row: Columns): Run
     local status = text(row, "status")
     local dataflow_id = text(row, "flow_dataflow_id")
+    local signal_id = text(row, "flow_signal_id")
     local flow: FlowSignal? = nil
-    if dataflow_id ~= "" then flow = {dataflow_id = dataflow_id, signal_id = text(row, "flow_signal_id")} end
+    if (dataflow_id == "") ~= (signal_id == "") then mismatch(row, "flow_dataflow_id", "a complete workflow destination") end
+    if dataflow_id ~= "" then flow = {dataflow_id = dataflow_id, signal_id = signal_id} end
     if status ~= "queued" and status ~= "running" and status ~= "succeeded" and status ~= "failed" and status ~= "cancelled" then
         mismatch(row, "status", "a run status")
         status = "failed"
@@ -52,7 +53,30 @@ local function run(row: Columns): Run
     local pending_status: RunStatus? = nil
     if pending == "succeeded" or pending == "failed" or pending == "cancelled" then pending_status = pending
     elseif pending ~= "" then mismatch(row, "pending_status", "a terminal run status") end
-    return {account_pinned = flag(row, "account_pinned"), input = text(row, "input"), repo_ref = text(row, "repo_ref"), pending_status = pending_status, job_id = text(row, "job_id"), id = text(row, "id"), owner_id = text(row, "owner_id"),
+    local reach = object(row, "endpoint")
+    local pool = db.strings(row, "account_pool")
+    local tools = object(row, "tools")
+    local gateway = object(row, "gateway")
+    local tree = object(row, "worktree")
+    local worktree: {path: string, repository: string, gitdir: string, removed: boolean?}? = nil
+    if next(tree) ~= nil then
+        if type(tree.path) ~= "string" or tree.path == "" or type(tree.repository) ~= "string" or tree.repository == ""
+            or type(tree.gitdir) ~= "string" or tree.gitdir == "" or (tree.removed ~= nil and type(tree.removed) ~= "boolean") then
+            mismatch(row, "worktree", "a complete worktree")
+        else
+            worktree = {path = tree.path, repository = tree.repository, gitdir = tree.gitdir, removed = tree.removed == true}
+        end
+    end
+    local endpoint: {protocol: string, base_url: string, model: string?}? = nil
+    if reach.protocol ~= nil or reach.base_url ~= nil or reach.model ~= nil or (next(reach) ~= nil and reach.account_endpoint ~= true) then
+        if type(reach.protocol) ~= "string" or reach.protocol == "" or type(reach.base_url) ~= "string" or reach.base_url == ""
+            or (reach.model ~= nil and type(reach.model) ~= "string") then
+            mismatch(row, "endpoint", "a complete endpoint")
+        else endpoint = {protocol = reach.protocol, base_url = reach.base_url, model = reach.model :: string?} end
+    end
+    return {account_health = object(row, "account_health"), account_endpoint = reach.account_endpoint == true, tools = next(tools) and tools or nil, gateway = next(gateway) and gateway or nil, isolation = text(row, "isolation"), worktree = worktree, account_pool = pool,
+        endpoint = endpoint,
+        resolved = flag(row, "resolved"), account_pinned = flag(row, "account_pinned"), input = text(row, "input"), repo_ref = text(row, "repo_ref"), pending_status = pending_status, job_id = text(row, "job_id"), id = text(row, "id"), owner_id = text(row, "owner_id"),
         identity = {actor_id = text(row, "actor_id"), actor_context = text(row, "actor_context")},
         agent = text(row, "agent"), account_id = text(row, "account_id"), image_id = text(row, "image_id"),
         workspace_id = optional(row, "workspace_id"), flow = flow, options = object(row, "options"),
@@ -64,10 +88,10 @@ end
 
 type RunSummary = {id: string, agent: string, account_id: string, image_id: string, workspace_id: string?,
     status: RunStatus, workflow: boolean, cancel_requested: boolean, created_at: string, started_at: string, finished_at: string,
-    prompt_summary: string}
+    prompt_summary: string, usage: Object}
 function repo.run_summaries(owner_id: string, limit: integer, before: string, before_id: string): ({RunSummary}?, error?)
     local rows, err = query([[SELECT id, agent, account_id, image_id, workspace_id, status, flow_dataflow_id,
-        cancel_requested, created_at, started_at, finished_at, SUBSTR(prompt, 1, 300) AS prompt_summary
+        cancel_requested, created_at, started_at, finished_at, usage, SUBSTR(prompt, 1, 300) AS prompt_summary
         FROM chestor_autocode_runs WHERE owner_id = $1
         AND ($2 = '' OR created_at < $2 OR (created_at = $2 AND id < $3))
         ORDER BY created_at DESC, id DESC LIMIT $4]], {owner_id, before, before_id, limit})
@@ -80,8 +104,29 @@ function repo.run_summaries(owner_id: string, limit: integer, before: string, be
         return {id = text(row, "id"), agent = text(row, "agent"), account_id = text(row, "account_id"), image_id = text(row, "image_id"),
             workspace_id = optional(row, "workspace_id"), status = status, workflow = text(row, "flow_dataflow_id") ~= "",
             cancel_requested = flag(row, "cancel_requested"), created_at = text(row, "created_at"), started_at = text(row, "started_at"),
-            finished_at = text(row, "finished_at"), prompt_summary = text(row, "prompt_summary")}
+            finished_at = text(row, "finished_at"), prompt_summary = text(row, "prompt_summary"), usage = object(row, "usage")}
     end)
+end
+
+function repo.bind_gateway(id: string, binding: Object): error?
+    local encoded, err = encode_object(binding, "gateway binding")
+    if not encoded then return err end
+    local changed, write_err = execute("UPDATE chestor_autocode_runs SET gateway = $1 WHERE id = $2 AND status IN ('queued', 'running') AND pending_status = '' AND gateway = '{}'", {encoded, id})
+    if write_err then return write_err end
+    if changed ~= 1 then return errors.new({kind = errors.CONFLICT, message = "run gateway is already issued or settled"}) end
+    return nil
+end
+
+function repo.worktree_cleanup(limit: integer): ({Run}?, error?)
+    local rows, err = query("SELECT " .. RUN_COLUMNS .. [[ FROM chestor_autocode_runs WHERE status IN ('succeeded', 'failed', 'cancelled') AND worktree <> '{}' AND worktree NOT LIKE '%"removed":true%' ORDER BY finished_at, id LIMIT $1]], {limit})
+    return decode(rows, err, run)
+end
+
+function repo.set_worktree(id: string, tree: {repository: string, path: string, gitdir: string, removed: boolean?}?): error?
+    local encoded, err = encode_object(tree or {}, "worktree")
+    if not encoded then return err end
+    local _, write_err = execute("UPDATE chestor_autocode_runs SET worktree = $1 WHERE id = $2", {encoded, id})
+    return write_err
 end
 
 -- run reads one of the owner's runs.
@@ -113,11 +158,14 @@ local function reserve_account(tx: sql.Transaction, candidates: {string}, now: s
     for _, account_id in ipairs(candidates) do
         local _, seed_err = tx:execute([[INSERT INTO chestor_autocode_account_state (account_id) VALUES ($1) ON CONFLICT (account_id) DO NOTHING]], {account_id})
         if seed_err then return nil, seed_err end
-        local rows, read_err = tx:query("SELECT reservation_order, cooldown_until FROM chestor_autocode_account_state WHERE account_id = $1", {account_id})
+        local rows, read_err = tx:query("SELECT reservation_order, cooldown_until, rate_limits FROM chestor_autocode_account_state WHERE account_id = $1", {account_id})
         if read_err then return nil, read_err end
         local state = rows and rows[1]
         if not state or type(state.reservation_order) ~= "number" or type(state.cooldown_until) ~= "string" then return nil, fail("invalid account reservation state") end
-        if state.cooldown_until <= now and (not best or state.reservation_order < best_order or (state.reservation_order == best_order and account_id < best)) then
+        local columns: Columns = {row = state, problem = nil}
+        local reported = object(columns, "rate_limits")
+        if columns.problem then return nil, columns.problem end
+        if state.cooldown_until <= now and not limits.blocked(reported, now) and (not best or state.reservation_order < best_order or (state.reservation_order == best_order and account_id < best)) then
             best, best_order = account_id, state.reservation_order
         end
     end
@@ -135,6 +183,12 @@ function repo.create_run(owner_id: string, identity: Identity, spec: RunSpec, su
     local id = uuid.v7()
     local options, options_err = encode_object(spec.options, "options")
     if not options then return nil, options_err end
+    local reach, endpoint_err = encode_object(spec.endpoint or {}, "endpoint")
+    if not reach then return nil, endpoint_err end
+    local pool, pool_err = db.encoded(spec.account_pool or {}, "account pool")
+    if not pool then return nil, pool_err end
+    local surface, surface_err = encode_object(spec.tools or {}, "tool surface")
+    if not surface then return nil, surface_err end
     local now = db.now()
     -- This write acquires the same admission lock before any eligibility
     -- read on both SQLite and PostgreSQL.
@@ -153,13 +207,20 @@ function repo.create_run(owner_id: string, identity: Identity, spec: RunSpec, su
             end
             local best, reserve_err = reserve_account(tx, candidates or {spec.account_id}, now)
             if not best then return reserve_err end
+            if not spec.endpoint and spec.account_endpoints then
+                local snapshot: Object = {account_endpoint = true}
+                for key, value in pairs(spec.account_endpoints[best] or {}) do snapshot[key] = value end
+                local encoded, encode_err = encode_object(snapshot, "account endpoint")
+                if not encoded then return encode_err end
+                reach = encoded
+            end
             local _, insert_err = tx:execute([[INSERT INTO chestor_autocode_runs
                 (id, owner_id, actor_id, actor_context, agent, account_id, image_id, workspace_id, flow_dataflow_id, flow_signal_id,
-                 options, unattended, repo_url, prompt, timeout_ms, status, created_at, account_pinned, input, repo_ref)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'queued', $16, $17, $18, $19)]],
+                 options, unattended, repo_url, prompt, timeout_ms, status, created_at, account_pinned, input, repo_ref, account_pool, endpoint, resolved, isolation, tools)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, 'queued', $16, $17, $18, $19, $20, $21, $22, $23, $24)]],
                 {id, owner_id, identity.actor_id, identity.actor_context, spec.agent, best, spec.image_id,
                     spec.workspace_id or "", spec.flow and spec.flow.dataflow_id or "", spec.flow and spec.flow.signal_id or "",
-                    options, spec.unattended and 1 or 0, spec.repo_url, spec.prompt, spec.timeout_ms, now, spec.account_pinned == false and 0 or 1, spec.input or "", spec.repo_ref or ""})
+                    options, spec.unattended and 1 or 0, spec.repo_url, spec.prompt, spec.timeout_ms, now, spec.account_pinned == false and 0 or 1, spec.input or "", spec.repo_ref or "", pool, reach, spec.resolved and 1 or 0, spec.isolation or "shared", surface})
             if insert_err then return insert_err end
             if submission then
                 local _, key_err = tx:execute("INSERT INTO chestor_autocode_submissions (owner_id, key, canonical, run_id) VALUES ($1, $2, $3, $4)",
@@ -180,14 +241,23 @@ function repo.create_run(owner_id: string, identity: Identity, spec: RunSpec, su
 end
 
 -- Only an unpinned queued run can change its reserved account.
-function repo.rebalance_run(id: string, candidates: {string}): (string?, error?)
+function repo.rebalance_run(id: string, candidates: {string}, endpoints: {[string]: Object}?): (string?, error?)
     local selected: string? = nil
     local err = transaction({{statement = "UPDATE chestor_autocode_admission_lock SET generation = generation + 1 WHERE id = 1", params = {}}},
         function(tx: sql.Transaction): error?
             local best, reserve_err = reserve_account(tx, candidates, db.now())
             if not best then return reserve_err end
-            local changed, write_err = tx:execute([[UPDATE chestor_autocode_runs SET account_id = $1
-                WHERE id = $2 AND account_pinned = 0 AND status = 'queued']], {best, id})
+            local statement = "UPDATE chestor_autocode_runs SET account_id = $1"
+            local params: {unknown} = {best, id}
+            if endpoints then
+                local snapshot: Object = {account_endpoint = true}
+                for key, value in pairs(endpoints[best] or {}) do snapshot[key] = value end
+                local encoded, encode_err = encode_object(snapshot, "account endpoint")
+                if not encoded then return encode_err end
+                statement = statement .. ", endpoint = $2"
+                params = {best, encoded, id}
+            end
+            local changed, write_err = tx:execute(statement .. " WHERE id = $" .. tostring(#params) .. " AND account_pinned = 0 AND status = 'queued'", params)
             if write_err then return write_err end
             if not changed or changed.rows_affected ~= 1 then return errors.new({kind = errors.CONFLICT, message = "run no longer allows account balancing"}) end
             selected = best
@@ -207,8 +277,7 @@ end
 function repo.acknowledge_delivery(id: string): error?
     local _, err = execute("UPDATE chestor_autocode_runs SET workflow_delivered = 1 WHERE id = $1 AND status IN ('succeeded', 'failed', 'cancelled')", {id})
     if err then return err end
-    local _, notify_err = retention_notifier.notify({kind = "autocode_runs_changed"})
-    return notify_err
+    return nil
 end
 
 function repo.start_run(id: string): (boolean?, error?)
@@ -229,11 +298,13 @@ function repo.start_run(id: string): (boolean?, error?)
 end
 
 -- The pending outcome survives cleanup retries while the run remains unsettled.
-function repo.record_run_outcome(id: string, status: RunStatus, result: string, error_text: string, usage: Object): error?
+function repo.record_run_outcome(id: string, status: RunStatus, result: string, error_text: string, usage: Object, health: Object?): error?
     local usage_json, usage_err = encode_object(usage, "usage")
     if not usage_json then return usage_err end
-    local _, err = execute([[UPDATE chestor_autocode_runs SET pending_status = $1, result = $2, error = $3, usage = $4
-        WHERE id = $5 AND status IN ('queued', 'running') AND pending_status = '']], {status, result, error_text, usage_json, id})
+    local health_json, health_err = encode_object(health or {}, "account health")
+    if not health_json then return health_err end
+    local _, err = execute([[UPDATE chestor_autocode_runs SET pending_status = $1, result = $2, error = $3, usage = $4, account_health = $5
+        WHERE id = $6 AND status IN ('queued', 'running') AND pending_status = '']], {status, result, error_text, usage_json, health_json, id})
     return err
 end
 
@@ -261,8 +332,6 @@ function repo.finish_run(id: string, status: RunStatus, result: string, error_te
         return nil
     end)
     if err then return nil, err end
-    local _, notify_err = retention_notifier.notify({kind = "autocode_runs_changed"})
-    if notify_err then return nil, notify_err end
     return settled, nil
 end
 
@@ -272,90 +341,6 @@ function repo.request_cancel(owner_id: string, id: string): (boolean?, error?)
         WHERE owner_id = $1 AND id = $2 AND status IN ('queued', 'running')]], {owner_id, id})
     if err then return nil, err end
     return changed == 1, nil
-end
-
-type PruneProgress = {needs_continue: boolean, next_finished_at: string?}
-
--- Each run transaction removes at most one page from each child table. The
--- run remains until both children drain; its row lock fences a refreshed cutoff.
-function repo.prune_runs(before: string, limit: integer): (integer?, error?, PruneProgress?)
-    local deleted = 0
-    local needs_continue = false
-    local rows, err = query([[SELECT id, job_id FROM chestor_autocode_runs
-        WHERE finished_at > '' AND (flow_dataflow_id = '' OR workflow_delivered = 1)
-        AND finished_at < $1 ORDER BY finished_at, id LIMIT $2]], {before, limit})
-    if err then return nil, err end
-    rows = rows or {}
-    for _, row in ipairs(rows) do
-        local active = false
-        if type(row.job_id) == "string" and row.job_id ~= "" then
-            local _, cancel_err = jobs.cancel(row.job_id)
-            if cancel_err then return nil, cancel_err end
-            local job, job_err = jobs.get_job(row.job_id)
-            if job_err then return nil, job_err end
-            if job and (job.status == "pending" or job.status == "running") then
-                active = true
-            end
-        end
-        if not active then
-            for _, key in ipairs({"resume", "run"}) do
-                local _, purge_err = slot_purge.purge_slot({namespace = "chestor.autocode", scope = row.id, key = key})
-                if purge_err then
-                    if errors.is(purge_err, errors.CONFLICT) and purge_err:details().cleanup_pending == true then
-                        needs_continue = needs_continue or purge_err:details().needs_continue == true
-                        active = true
-                        break
-                    end
-                    return nil, purge_err
-                end
-            end
-            if not active then
-                local prune_err = transaction({}, function(tx: sql.Transaction): error?
-                    local locked, lock_err = tx:execute([[UPDATE chestor_autocode_runs SET finished_at = finished_at
-                        WHERE id = $1 AND finished_at > '' AND finished_at < $2
-                        AND (flow_dataflow_id = '' OR workflow_delivered = 1)]], {row.id, before})
-                    if lock_err then return lock_err end
-                    if not locked or locked.rows_affected == 0 then return nil end
-                    local events, events_err = tx:execute([[DELETE FROM chestor_autocode_run_events
-                        WHERE run_id = $1 AND seq IN (SELECT seq FROM chestor_autocode_run_events
-                            WHERE run_id = $1 ORDER BY seq LIMIT $2)
-                        AND EXISTS (SELECT 1 FROM chestor_autocode_runs WHERE id = $1
-                            AND finished_at > '' AND finished_at < $3
-                            AND (flow_dataflow_id = '' OR workflow_delivered = 1))]], {row.id, limit, before})
-                    if events_err then return events_err end
-                    local submissions, submissions_err = tx:execute([[DELETE FROM chestor_autocode_submissions
-                        WHERE run_id = $1 AND (owner_id, key) IN (SELECT owner_id, key FROM chestor_autocode_submissions
-                            WHERE run_id = $1 LIMIT $2)
-                        AND EXISTS (SELECT 1 FROM chestor_autocode_runs WHERE id = $1
-                            AND finished_at > '' AND finished_at < $3
-                            AND (flow_dataflow_id = '' OR workflow_delivered = 1))]], {row.id, limit, before})
-                    if submissions_err then return submissions_err end
-                    local removed, remove_err = tx:execute([[DELETE FROM chestor_autocode_runs WHERE id = $1
-                        AND finished_at > '' AND finished_at < $2
-                        AND (flow_dataflow_id = '' OR workflow_delivered = 1)
-                        AND NOT EXISTS (SELECT 1 FROM chestor_autocode_run_events WHERE run_id = $1)
-                        AND NOT EXISTS (SELECT 1 FROM chestor_autocode_submissions WHERE run_id = $1)]], {row.id, before})
-                    if remove_err then return remove_err end
-                    deleted = deleted + (removed and removed.rows_affected or 0)
-                    needs_continue = needs_continue or (events and events.rows_affected == limit) == true
-                        or (submissions and submissions.rows_affected == limit) == true
-                    return nil
-                end)
-                if prune_err then return nil, prune_err end
-            end
-        end
-    end
-    local remaining, remaining_err = query([[SELECT finished_at FROM chestor_autocode_runs
-        WHERE finished_at > '' AND (flow_dataflow_id = '' OR workflow_delivered = 1)
-        AND finished_at >= $1 ORDER BY finished_at, id LIMIT 1]], {before})
-    if remaining_err then return nil, remaining_err end
-    local next_finished_at: string? = nil
-    if remaining and remaining[1] then
-        local stamp = remaining[1].finished_at
-        if type(stamp) ~= "string" then return nil, fail("retention run has no finished time") end
-        next_finished_at = stamp
-    end
-    return deleted, nil, {needs_continue = (deleted > 0 and #rows == limit) or needs_continue, next_finished_at = next_finished_at}
 end
 
 return repo

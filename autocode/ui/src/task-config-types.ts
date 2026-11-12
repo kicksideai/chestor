@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 import { z } from 'zod'
+import { toolSurfaceSchema, endpoint } from './app/wire.ts'
+export { toolSurfaceSchema } from './app/wire.ts'
 export const taskConfigSchema = z.object({
+  tools: toolSurfaceSchema.optional(),
+  isolation: z.enum(['shared', 'worktree']).optional(),
+  profile_id: z.string().optional(),
+  account_pool: z.array(z.string()).optional(),
+  endpoint: endpoint.optional(),
   agent: z.string().optional(),
   account_id: z.string().optional(),
   image_id: z.string().optional(),

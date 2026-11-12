@@ -23,7 +23,7 @@ type Identity = {actor_id: string, actor_context: string}
 -- The balancing state of an account: when a run last started on it, until
 -- when a provider refusal keeps it out of balancing, and that refusal; the day
 -- counts cover the last 24 hours of runs on it.
-type AccountState = {reservation_order: integer, last_used_at: string, cooldown_until: string, last_error: string, runs_day: integer, failures_day: integer}
+type AccountState = {rate_limits: Object?, reservation_order: integer, last_used_at: string, cooldown_until: string, last_error: string, runs_day: integer, failures_day: integer}
 -- "initial" uses a local copy of a registry reference when one exists;
 -- "refresh" pulls it again.
 type BuildMode = "initial" | "refresh"
@@ -32,9 +32,9 @@ type ImageBuild = {identity: Identity, mode: BuildMode, log: string, requested_a
 type Submission = {key: string, canonical: string}
 -- flow: the workflow Flow and signal a run started by an agent task Block resumes.
 type FlowSignal = {dataflow_id: string, signal_id: string}
-type RunSpec = {agent: string, account_id: string, account_pinned: boolean?, input: string?, repo_ref: string?, image_id: string, workspace_id: string?, flow: FlowSignal?,
+type RunSpec = { account_endpoints: {[string]: Object}?, tools: Object?, isolation: string?, account_pool: {string}?, endpoint: {protocol: string, base_url: string, model: string?}?, resolved: boolean?, agent: string, account_id: string, account_pinned: boolean?, input: string?, repo_ref: string?, image_id: string, workspace_id: string?, flow: FlowSignal?,
     options: Object, unattended: boolean, repo_url: string, prompt: string, timeout_ms: integer, trace_context: Object?}
-type Run = {account_pinned: boolean, input: string, repo_ref: string, id: string, owner_id: string, identity: Identity, agent: string, account_id: string, image_id: string,
+type Run = { account_health: Object?, account_endpoint: boolean?, tools: Object?, gateway: Object?, isolation: string?, worktree: {repository: string, path: string, gitdir: string, removed: boolean?}?, account_pool: {string}?, endpoint: {protocol: string, base_url: string, model: string?}?, resolved: boolean?, account_pinned: boolean, input: string, repo_ref: string, id: string, owner_id: string, identity: Identity, agent: string, account_id: string, image_id: string,
     workspace_id: string?, flow: FlowSignal?, options: Object, unattended: boolean, repo_url: string, prompt: string,
     timeout_ms: integer, status: RunStatus, pending_status: RunStatus?, job_id: string?, result: string, error: string, usage: Object, cancel_requested: boolean,
     created_at: string, started_at: string, finished_at: string}
@@ -48,7 +48,7 @@ local repo = {}
 repo.EVENTS_PAGE = 500
 
 local function fail(message: string): error
-    return errors.new({message = message, kind = errors.INTERNAL})
+    return errors.new({message = message, kind = errors.INTERNAL, details = {code = "autocode.invalid_stored_data"}})
 end
 
 local function db_id(): (string?, error?)
@@ -116,14 +116,30 @@ end
 
 local function object(columns: Columns, column: string): Object
     local result: Object = {}
-    local decoded = json.decode(text(columns, column))
-    if type(decoded) ~= "table" then
+    local raw = text(columns, column)
+    local decoded = json.decode(raw)
+    if type(decoded) ~= "table" or not raw:match("^%s*{") then
         mismatch(columns, column, "a JSON object")
         return result
     end
     for key, value in pairs(decoded) do
         if type(key) ~= "string" then mismatch(columns, column, "a JSON object")
         else result[key] = value end
+    end
+    return result
+end
+
+local function strings(columns: Columns, column: string): {string}
+    local raw = text(columns, column)
+    local decoded = json.decode(raw)
+    local result: {string} = {}
+    if type(decoded) ~= "table" or not raw:match("^%s*%[") then mismatch(columns, column, "a JSON array"); return result end
+    for key, value in pairs(decoded) do
+        if type(key) ~= "number" or key < 1 or key > #decoded or key ~= math.floor(key) then mismatch(columns, column, "a string array") end
+    end
+    for _, value in ipairs(decoded) do
+        if type(value) ~= "string" then mismatch(columns, column, "a string array")
+        else result[#result + 1] = value end
     end
     return result
 end
@@ -207,6 +223,7 @@ repo.mismatch = mismatch
 repo.text = text
 repo.int = int
 repo.flag = flag
+repo.strings = strings
 repo.object = object
 repo.optional = optional
 repo.decode = decode

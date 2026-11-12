@@ -20,6 +20,7 @@ type FlowSignal = database.FlowSignal
 
 local repo = {EVENTS_PAGE = database.EVENTS_PAGE, now = database.now, db_id = database.db_id}
 repo.account_states = accounts.account_states
+repo.record_account_limits = accounts.record_account_limits
 repo.settle_account = accounts.settle_account
 repo.record_account_error = accounts.record_account_error
 repo.clear_cooldown = accounts.clear_cooldown
@@ -33,6 +34,9 @@ repo.run_summaries = runs.run_summaries
 repo.run = runs.run
 repo.stored_run = runs.stored_run
 repo.find_submission = runs.find_submission
+repo.bind_gateway = runs.bind_gateway
+repo.worktree_cleanup = runs.worktree_cleanup
+repo.set_worktree = runs.set_worktree
 repo.create_run = runs.create_run
 repo.acknowledge_delivery = runs.acknowledge_delivery
 repo.rebalance_run = runs.rebalance_run
@@ -41,8 +45,6 @@ repo.start_run = runs.start_run
 repo.finish_run = runs.finish_run
 repo.record_run_outcome = runs.record_run_outcome
 repo.request_cancel = runs.request_cancel
-repo.prune_runs = runs.prune_runs
 repo.append_event = events.append_event
-repo.next_seq = events.next_seq
 repo.events = events.events
 return repo

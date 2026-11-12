@@ -17,6 +17,7 @@ entries:
       comment: Folds bee/drivers reader steps into clipped run events and a bounded final answer.
     source: file://records.lua
     imports:
+      canonical_json: kickside.contract:canonical_json
       credentials: chestor.autocode.domain:credentials
       drivers: bee.drivers:drivers
 
@@ -42,3 +43,23 @@ entries:
       drivers: bee.drivers:drivers
       redact: chestor.autocode.runner:redact
       settings: chestor.autocode.domain:settings
+      limits: chestor.autocode.domain:limits
+
+  - name: event_log
+    kind: library.lua
+    source: file://event_log.lua
+    imports:
+      repo: chestor.autocode.persist:repo
+      records: chestor.autocode.runner:records
+      redact: chestor.autocode.runner:redact
+      live: chestor.autocode.domain:live
+
+  - name: prune
+    kind: library.lua
+    source: file://prune.lua
+    imports:
+      repo: chestor.autocode.persist:repo
+      store: chestor.autocode.persist:retention
+      jobs: kickside.core.jobs:jobs
+      slot_purge: kickside.core.jobs.persist:slot_purge
+      worktrees: chestor.autocode.infrastructure:worktrees

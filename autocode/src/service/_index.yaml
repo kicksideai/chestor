@@ -36,6 +36,7 @@ entries:
   kind: library.lua
   source: file://accounts.lua
   modules:
+  - json
   - security
   imports:
     boundary: chestor.autocode.service:boundary
@@ -55,6 +56,7 @@ entries:
   - uuid
   - logger
   imports:
+    endpoint_url: chestor.autocode.domain:endpoint
     trace: kickside.execution:trace
     values: chestor.autocode.service:values
     recipe: chestor.autocode.domain:recipe
@@ -110,7 +112,6 @@ entries:
     resource_dto: chestor.autocode.service:resource_dto
     values: chestor.autocode.service:values
     boundary: chestor.autocode.service:boundary
-    docker_image: chestor.autocode.infrastructure:docker_image
 
 - name: workspace_management
   kind: library.lua
@@ -118,10 +119,12 @@ entries:
   modules:
   - security
   imports:
+    endpoint_url: chestor.autocode.domain:endpoint
     resource_dto: chestor.autocode.service:resource_dto
     values: chestor.autocode.service:values
     resources: chestor.autocode.components:resources
     workspaces: chestor.autocode.infrastructure:workspaces
+    worktrees: chestor.autocode.infrastructure:worktrees
     client: chestor.autocode.service:client
     boundary: chestor.autocode.service:boundary
 
@@ -148,10 +151,14 @@ entries:
 - name: admission
   kind: library.lua
   source: file://admission.lua
-  modules: [security, time]
+  modules: [security, time, funcs]
   imports:
+    gateway: chestor.autocode.service:gateway
+    endpoint_url: chestor.autocode.domain:endpoint
+    profiles: chestor.autocode.service:profiles
     recipe: chestor.autocode.domain:recipe
     repo: chestor.autocode.persist:repo
+    limits: chestor.autocode.domain:limits
     resources: chestor.autocode.components:resources
     drivers: bee.drivers:drivers
     credentials: chestor.autocode.domain:credentials
@@ -174,6 +181,7 @@ entries:
   kind: library.lua
   source: file://docker_maintenance.lua
   imports:
+    worktrees: chestor.autocode.infrastructure:worktrees
     repo: chestor.autocode.persist:repo
     docker: chestor.autocode.infrastructure:docker
 
@@ -186,7 +194,9 @@ entries:
   modules: &owner_modules
     - security
   imports: &owner_imports
+    gateway: chestor.autocode.service:gateway
     repo: chestor.autocode.persist:repo
+    limits: chestor.autocode.domain:limits
     runs: chestor.autocode.service:runs
     transport: chestor.autocode.service:transport
     credentials: chestor.autocode.domain:credentials
@@ -229,3 +239,79 @@ entries:
     admission: chestor.autocode.service:admission
     drivers: bee.drivers:drivers
     credentials: chestor.autocode.domain:credentials
+
+- name: profiles
+  kind: library.lua
+  source: file://profiles.lua
+  modules: [time]
+  imports:
+    boundary: chestor.autocode.service:boundary
+    values: chestor.autocode.service:values
+    resources: chestor.autocode.components:resources
+    drivers: bee.drivers:drivers
+    gateway: chestor.autocode.service:gateway
+    endpoint_url: chestor.autocode.domain:endpoint
+
+- name: list_profiles
+  kind: function.lua
+  source: 'return require("profiles")'
+  method: list_profiles
+  imports:
+    profiles: chestor.autocode.service:profiles
+
+- name: add_profile
+  kind: function.lua
+  source: 'return require("profiles")'
+  method: add_profile
+  imports:
+    profiles: chestor.autocode.service:profiles
+
+- name: update_profile
+  kind: function.lua
+  source: 'return require("profiles")'
+  method: update_profile
+  imports:
+    profiles: chestor.autocode.service:profiles
+
+- name: remove_profile
+  kind: function.lua
+  source: 'return require("profiles")'
+  method: remove_profile
+  imports:
+    profiles: chestor.autocode.service:profiles
+
+- name: validate_worktree
+  kind: function.lua
+  source: file://validate_worktree.lua
+  method: validate
+  imports:
+    resources: chestor.autocode.components:resources
+    worktrees: chestor.autocode.infrastructure:worktrees
+  security:
+    policies: [chestor.autocode.security:git_commands]
+
+- name: gateway
+  kind: library.lua
+  source: file://gateway.lua
+  modules: [registry, crypto, hash, base64, json, time, funcs, logger]
+  imports:
+    endpoint_url: chestor.autocode.domain:endpoint
+    drivers: bee.drivers:drivers
+    job_outcome: chestor.autocode.domain:job_outcome
+    repo: chestor.autocode.persist:repo
+    event_log: chestor.autocode.runner:event_log
+    tool_resolver: wippy.agent.discovery:tools
+    traits: wippy.agent.discovery:traits
+    execution_identity: kickside.execution:execution_identity
+    redact: chestor.autocode.runner:redact
+    values: chestor.autocode.service:values
+
+- name: verify_workspace
+  kind: function.lua
+  source: file://../infrastructure/workspaces.lua
+  method: verify
+  modules: [registry, funcs]
+  imports:
+    host: chestor.autocode.infrastructure:host
+  security:
+    policies: [chestor.autocode.security:git_commands]

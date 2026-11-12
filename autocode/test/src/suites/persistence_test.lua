@@ -1,5 +1,7 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 local test = require("test")
+local prune = require("prune")
+local prune_subject = require("prune_subject")
 local deletion_worker = require("deletion_worker")
 local repo = require("repo")
 local sql = require("sql")
@@ -18,7 +20,7 @@ local identity = {actor_id = "test:actor", actor_context = "{}"}
 local function await_pruned(id)
     local deadline = time.now():add("15s")
     repeat
-        local _, err = repo.prune_runs("2999-01-01T00:00:00Z", 1000)
+        local _, err = prune.prune_runs("2999-01-01T00:00:00Z", 1000)
         test.is_nil(err, tostring(err))
         if not repo.stored_run(id) then return end
         test.is_false(time.now():after(deadline), "retention does not finish after job termination")
@@ -27,6 +29,74 @@ local function await_pruned(id)
 end
 local function cases()
     test.describe("autocode persistence", function()
+        test.it("refuses a partial persisted workflow destination", function()
+            local id = repo.create_run(uuid.v7(), identity, spec(uuid.v7()))
+            for _, column in ipairs({"flow_dataflow_id", "flow_signal_id"}) do
+                local db = sql.get("app:db")
+                test.not_nil(db:execute("UPDATE chestor_autocode_runs SET " .. column .. " = 'orphan' WHERE id = $1", {id}))
+                db:release()
+                local run, err = repo.stored_run(id)
+                test.is_nil(run)
+                test.is_true(errors.is(err, errors.INTERNAL))
+                db = sql.get("app:db")
+                test.not_nil(db:execute("UPDATE chestor_autocode_runs SET " .. column .. " = '' WHERE id = $1", {id}))
+                db:release()
+            end
+        end)
+        test.it("refuses malformed nested run state instead of discarding execution or cleanup fields", function()
+            local id = repo.create_run(uuid.v7(), identity, spec(uuid.v7()))
+            for _, fixture in ipairs({{column = "worktree", value = '{"path":"/repo/tree"}'},
+                {column = "worktree", value = '{"path":"/repo/tree","repository":"/repo","gitdir":"/repo/.git","removed":"yes"}'},
+                {column = "endpoint", value = '{"protocol":"anthropic-messages"}'},
+                {column = "endpoint", value = '{"protocol":"anthropic-messages","base_url":"https://example.com","model":42}'},
+                {column = "account_pool", value = '{"not":"an array"}'}}) do
+                local db = sql.get("app:db")
+                local _, err = db:execute("UPDATE chestor_autocode_runs SET " .. fixture.column .. " = $1 WHERE id = $2", {fixture.value, id})
+                db:release()
+                test.is_nil(err)
+                local run, read_err = repo.stored_run(id)
+                test.is_nil(run, fixture.column)
+                test.is_true(errors.is(read_err, errors.INTERNAL), tostring(read_err))
+                db = sql.get("app:db")
+                test.not_nil(db:execute("UPDATE chestor_autocode_runs SET " .. fixture.column .. " = $1 WHERE id = $2", {fixture.column == "account_pool" and "[]" or "{}", id}))
+                db:release()
+            end
+        end)
+        test.it("refuses unknown build modes and object-shaped agent arrays", function()
+            local image = uuid.v7()
+            test.is_nil(repo.request_image_build(image, identity, "initial", uuid.v7()))
+            for _, fixture in ipairs({{column = "agents", value = '{"agent":"claude"}', restore = "[]"},
+                {column = "approved_agents", value = '{"agent":"claude"}', restore = "[]"},
+                {column = "mode", value = "unknown", restore = "initial"}}) do
+                local db = sql.get("app:db")
+                test.not_nil(db:execute("UPDATE chestor_autocode_image_builds SET " .. fixture.column .. " = $1 WHERE image_id = $2", {fixture.value, image}))
+                db:release()
+                local build, err = repo.image_build(image)
+                test.is_nil(build, fixture.column)
+                test.is_true(errors.is(err, errors.INTERNAL), tostring(err))
+                db = sql.get("app:db")
+                test.not_nil(db:execute("UPDATE chestor_autocode_image_builds SET " .. fixture.column .. " = $1 WHERE image_id = $2", {fixture.restore, image}))
+                db:release()
+            end
+        end)
+        test.it("keeps rejected account windows out of balancing after an operator clears cooldown", function()
+            local a, b, owner = uuid.v7(), uuid.v7(), uuid.v7()
+            test.not_nil(repo.create_run(owner, identity, spec(a), nil, {a}))
+            test.not_nil(repo.create_run(owner, identity, spec(b), nil, {b}))
+            test.is_nil(repo.record_account_limits(a, {windows = {{window = "seven_day", utilization = 1,
+                status = "rejected", resets_at = 2000000000}}, is_using_overage = false}))
+            test.is_nil(repo.clear_cooldown(a))
+            local id, err = repo.create_run(owner, identity, spec(a), nil, {a, b})
+            test.is_nil(err, tostring(err))
+            test.eq(repo.stored_run(id).account_id, b)
+            local states = repo.account_states({a})
+            test.eq(states[a].rate_limits.windows[1].utilization, 1)
+            test.is_nil(repo.record_account_limits(a, {windows = {{window = "seven_day", utilization = 1,
+                status = "rejected", resets_at = 1000000000}}}))
+            local reset_id, reset_err = repo.create_run(owner, identity, spec(a), nil, {a})
+            test.is_nil(reset_err, tostring(reset_err))
+            test.eq(repo.stored_run(reset_id).account_id, a)
+        end)
         test.it("enqueues the configured image deadline and rejects invalid bounds", function()
             local state = require("stubs").reset()
             local builds = require("builds_subject")
@@ -57,7 +127,7 @@ local function cases()
             test.is_nil(select(2, db:execute("UPDATE chestor_autocode_runs SET finished_at = $1 WHERE id = $2", {"0001", active})))
             test.is_nil(select(2, db:execute("UPDATE chestor_autocode_runs SET finished_at = $1 WHERE id = $2", {"0002", terminal})))
             db:release()
-            local count, err = require("run_store_subject").prune_runs("0003", 500)
+            local count, err = prune_subject.prune_runs("0003", 500)
             test.is_nil(err, tostring(err))
             test.eq(count, 1)
             test.not_nil(repo.stored_run(active))
@@ -188,12 +258,10 @@ local function cases()
                 local finished, finish_err = deletion_worker.await(account)
                 test.is_nil(finish_err, tostring(finish_err))
                 test.is_true(finished)
-                local emitted = {}
-                account_health.settle(repo.stored_run(id), failed and {outcome = "failed", error = {
+                local intent = account_health.capture(failed and {outcome = "failed", error = {
                     code = "rate_limit", message = "rate limited", retryable = true}} or {outcome = "succeeded"},
-                    failed and "credential refresh failed" or nil, redact.new("key"),
-                    function(_, text) emitted[#emitted + 1] = text end)
-                test.eq(#emitted, 0)
+                    failed and "credential refresh failed" or nil, redact.new("key"))
+                test.is_nil(account_health.apply(repo.stored_run(id), intent))
                 test.is_true(repo.finish_run(id, failed and "failed" or "succeeded", "", "", {}))
                 local db = sql.get("app:db")
                 local rows = db:query("SELECT account_id FROM chestor_autocode_account_state WHERE account_id = $1", {account})
@@ -217,8 +285,8 @@ local function cases()
             local id, err = repo.create_run(uuid.v7(), identity, request)
             test.is_nil(err)
             test.is_true(repo.finish_run(id, "succeeded", "answer", "", {}))
-            test.is_nil(repo.append_event(id, 2, "system", "finished"))
-            local _, prune_err = repo.prune_runs("2999-01-01T00:00:00Z", 1000)
+            test.is_nil(repo.append_event(id, "system", "finished"))
+            local _, prune_err = prune.prune_runs("2999-01-01T00:00:00Z", 1000)
             test.is_nil(prune_err)
             test.not_nil(repo.stored_run(id))
             test.is_nil(repo.acknowledge_delivery(id))

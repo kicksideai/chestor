@@ -5,6 +5,13 @@ import { flushPromises } from '@vue/test-utils'
 import RunDetail from '../../ui/src/app/run-detail.vue'
 
 describe('run detail', () => {
+  it('displays the frozen worktree isolation mode', async () => {
+    normal()
+    mocks.get.mockResolvedValue({ data: { success: true, run: { ...run, workspace_id: 'w', isolation: 'worktree' }, events: [], more: false, next_seq: 0 } })
+    const w = render(RunDetail, { runId: 'r', accounts: [], images: [], workspaces: [] })
+    await flushPromises()
+    expect(w.text()).toContain('Private git worktree')
+  })
   it('bounds a large run history, pages earlier explicitly and continues live by sequence', async () => {
     normal()
     let last = 10000

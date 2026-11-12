@@ -26,7 +26,7 @@ function M.submit(request: Request, flow: repo.FlowSignal?, idempotency_key: str
     local submission: repo.Submission? = nil
     if key then
         if key == "" or #key > 200 then return nil, refuse("idempotency key must be between 1 and 200 bytes") end
-        local encoded, encode_err = canonical_json.encode({agent = request.agent, account_id = request.account_id or "", image_id = request.image_id,
+        local encoded, encode_err = canonical_json.encode({isolation = request.isolation, tools = request.tools, profile_id = request.profile_id, overrides = request.overrides, account_pool = request.account_pool, endpoint = request.endpoint, agent = request.agent, account_id = request.account_id or "", image_id = request.image_id,
             workspace_id = request.workspace_id or "", options = request.options, unattended = request.unattended,
             repo_url = request.repo_url, repo_ref = request.repo_ref or "", input = request.input, prompt = request.prompt, timeout = request.timeout or "", flow = flow})
         if not encoded then return nil, encode_err end

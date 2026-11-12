@@ -5,7 +5,7 @@ local docker = require("docker")
 local image = require("image")
 local maintenance = require("maintenance")
 local stubs = require("stubs")
-local BASE = "chestor-autocode-harness:base"
+local BASE = "chestor-autocode-harness-base:" .. uuid.v7()
 local function output(args, stdin)
     local lines = {}
     local code, err = docker.run(args, {stdin = stdin, on_line = function(line) lines[#lines + 1] = line end})
@@ -23,6 +23,9 @@ local function cases()
         end)
         -- The suite builds its own small base, so it never depends on images other suites create.
         local base_built = false
+        test.after_all(function()
+            if base_built then output({"image", "rm", BASE}) end
+        end)
         local function base()
             if base_built then return BASE end
             output({"build", "-t", BASE, "-"}, [[FROM debian:bookworm-slim

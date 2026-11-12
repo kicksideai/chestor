@@ -27,6 +27,11 @@ entries:
     addr: ":19347"
     lifecycle: { auto_start: true }
 
+  - name: host_root
+    kind: http.router
+    meta: { server: gateway }
+    prefix: ""
+
   - name: api
     kind: http.router
     meta: { server: gateway }
@@ -176,16 +181,27 @@ entries:
       - { name: bee.drivers:entered_values, value: app:driver_entered_values }
       - { name: bee.drivers:access_scope, value: kickside.security.groups:members }
 
+  - name: dep.kickside.automation
+    kind: ns.dependency
+    component: kickside/automation
+    version: "*"
+    parameters:
+      - { name: kickside.automation:target_db, value: app:db }
+      - { name: kickside.automation:api_router, value: app:api }
+      - { name: kickside.automation:ui_server, value: app:gateway }
+
   - name: dep.chestor.autocode
     kind: ns.dependency
     component: chestor/autocode
     version: "*"
     parameters:
       - { name: chestor.autocode:target_db, value: app:db }
+      - { name: chestor.autocode.security:user_security_scope, value: kickside.security.groups:members }
       - { name: chestor.autocode:docker_executor, value: app:docker }
       - { name: chestor.autocode:api_router, value: app:api }
       - { name: chestor.autocode:ui_server, value: app:gateway }
-      - { name: chestor.autocode:workspace_roots, value: /srv/autocode-harness }
+      - { name: chestor.autocode:workspace_roots, value: / }
+      - { name: chestor.autocode:gateway_endpoint, value: "host.docker.internal:19347" }
       - { name: chestor.autocode:settings_path, value: "/system/autocode" }
 
   - name: driver_host_environment

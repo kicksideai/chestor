@@ -5,7 +5,6 @@ local images = require("images")
 local resource_dto = require("resource_dto")
 local values = require("values")
 local boundary = require("boundary")
-local docker_image = require("docker_image")
 type Object = {[string]: unknown}
 local text = resources.text
 local view = resource_dto.image
@@ -37,15 +36,12 @@ local function create(body: Object): (Created?, error?)
     if not dockerfile then return nil, boundary.error(errors.INVALID, "autocode.invalid_image", "dockerfile is too large") end
     local decoded, decode_err = images.decode(body)
     if not decoded then return nil, boundary.native(decode_err) end
-    local id, err = resources.register("image", {title = decoded.label ~= "" and decoded.label or ref, ref = ref, home = decoded.home,
-        status = "preparing", agents = {}, last_error = ""}, {dockerfile = dockerfile, settings = decoded.settings})
+    local id, err = resources.register("image", {gateway_endpoint = decoded.gateway_endpoint, title = decoded.label ~= "" and decoded.label or ref, ref = ref, home = decoded.home,
+        status = "unprepared", agents = {}, last_error = ""}, {dockerfile = dockerfile, settings = decoded.settings})
     if not id then return nil, boundary.native(err) end
     local build_err = images.request_build(id, "initial")
     if build_err then
-        local context, context_err = resources.context("image", id, resources.ACCESS.WRITE)
-        local reset_err = context_err
-        if context then reset_err = resources.replace(id, {status = "unprepared", last_error = build_err:message()}, nil, context.revision) end
-        return {id = id, build_error = boundary.partial(reset_err or build_err)}, nil
+        return {id = id, build_error = boundary.partial(build_err)}, nil
     end
     return {id = id}, nil
 end
@@ -68,6 +64,7 @@ local function update(body: Object): (Created?, error?)
     local dockerfile = values.text(requested_dockerfile, 65536)
     if not dockerfile then return nil, boundary.error(errors.INVALID, "autocode.invalid_image", "dockerfile is too large") end
     local fields: Object = {title = decoded.label ~= "" and decoded.label or ref, home = decoded.home}
+    if body.gateway_endpoint ~= nil then fields.gateway_endpoint = decoded.gateway_endpoint end
     local previous = context.values.settings
     local ref_changed = ref ~= text(image.meta.ref)
     local dockerfile_changed = dockerfile ~= text(context.values.dockerfile)
@@ -121,15 +118,8 @@ local function delete(args: Object): (Object?, error?)
     if not id or id == "" then return nil, boundary.error(errors.INVALID, "autocode.invalid_request", "image id is required") end
     local image, find_err = resources.get("image", id, resources.ACCESS.DELETE)
     if not image then return nil, boundary.native(find_err) end
-    local err, result = resources.delete(id)
+    local err, result = resources.delete(id, args.remove == true and {remove_ref = text(image.meta.ref)} or nil)
     if err then return nil, boundary.native(err) end
-    if args.remove == true then
-        local remove_err = docker_image.remove(text(image.meta.ref))
-        if remove_err then
-            result.docker_error = boundary.partial(remove_err)
-            return result, nil
-        end
-    end
     return result, nil
 end
 

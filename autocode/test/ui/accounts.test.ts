@@ -67,3 +67,15 @@ it('edits a writable account through the credential card and preserves failures 
   await flushPromises()
   expect(mocks.put).toHaveBeenLastCalledWith(expect.stringContaining('/accounts/a'), { label: 'Existing', endpoint: { base_url: '' } })
 })
+
+it('rejects a credential-kind mismatch when editing an account', async () => {
+  normal()
+  mocks.get.mockImplementation(async path => ({ data: { success: true, ...(path.endsWith('/accounts') ? { accounts: [{ ...account, agent: 'agent', writable: true }] } : respond(path)) } }))
+  const w = render(Accounts, { query: '', selectedAgent: 'agent' })
+  await flushPromises()
+  await w.get('[aria-label="Edit account"]').trigger('click')
+  w.get('chestor-autocode-driver-account').element.dispatchEvent(new CustomEvent('submit', { detail: { agent: 'agent', credential_kind: 'file', label: 'Existing', secret: '{}' } }))
+  await flushPromises()
+  expect(mocks.put).not.toHaveBeenCalled()
+  expect(JSON.parse(w.get('chestor-autocode-driver-account').attributes('config')!).error).toBe('Invalid account submission.')
+})

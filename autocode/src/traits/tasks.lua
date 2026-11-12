@@ -4,11 +4,11 @@ local boundary = require("boundary")
 local security = require("security")
 
 type Object = {[string]: unknown}
-local function call(tool: string, method: string, input: Object): (Object?, error?)
+local function call(tool: string, method: string, input: Object, contract_id: string?): (Object?, error?)
     if not security.actor() or security.can("access", "chestor.autocode.traits:" .. tool) ~= true then
         return nil, boundary.error(errors.PERMISSION_DENIED, "autocode.tool_access_denied", "autocode tool access required")
     end
-    return client.call("chestor.autocode:tasks", method, input)
+    return client.call(contract_id or "chestor.autocode:tasks", method, input)
 end
 
 local function submit(input: Object): (Object?, error?)
@@ -24,4 +24,5 @@ local function accounts(input: Object): (Object?, error?) return call("list_codi
 local function images(input: Object): (Object?, error?) return call("list_coding_images", "list_images", input) end
 local function workspaces(input: Object): (Object?, error?) return call("list_coding_workspaces", "list_workspaces", input) end
 local function cancel(input: Object): (Object?, error?) return call("cancel_coding_run", "cancel_run", input) end
-return {submit = submit, read = read, agents = agents, accounts = accounts, images = images, workspaces = workspaces, cancel = cancel}
+local function profiles(input: Object): (Object?, error?) return call("list_coding_profiles", "list_profiles", input, "chestor.autocode:profiles") end
+return {profiles = profiles, submit = submit, read = read, agents = agents, accounts = accounts, images = images, workspaces = workspaces, cancel = cancel}

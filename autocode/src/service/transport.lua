@@ -7,7 +7,7 @@ local credentials = require("credentials")
 
 type Image = {id: string, ref: string, home: string, memory: string, cpus: string, pids_limit: integer,
     gpus: string, network: string, extra_args: {string}}
-type Prepared = {agent: string, account_id: string, kind: credentials.Kind, image: Image, workspace: admission.Workspace?,
+type Prepared = {gateway_token: string?,agent: string, account_id: string, kind: credentials.Kind, image: Image, workspace: admission.Workspace?,
     workdir: string, launch: drivers.Launch, secret: string, revision: integer}
 type Recipe = recipe.Recipe
 local M = {}
@@ -52,8 +52,15 @@ function M.prepared(value: unknown, run: repo.Run): (Prepared?, error?)
         for _, field in ipairs({"path", "content", "revision", "digest", "provider_ref"}) do
             if type(file[field]) ~= "string" then return nil, invalid end
         end
-        if file.secret_fields ~= nil or file.composition ~= nil then return nil, invalid end
+        if file.composition ~= nil then return nil, invalid end
+        if file.secret_fields ~= nil then
+            if type(file.secret_fields) ~= "table" then return nil, invalid end
+            for _, field in ipairs(file.secret_fields) do
+                if type(field) ~= "table" or field.environment ~= "AUTOCODE_GATEWAY_TOKEN" or not strings(field.path, true) or type(field.prefix) ~= "string" then return nil, invalid end
+            end
+        end
     end
+    if value.gateway_token ~= nil and type(value.gateway_token) ~= "string" then return nil, invalid end
     local driver, driver_err = drivers.get(value.agent)
     if not driver then return nil, driver_err end
     local kind = credentials.kind(driver, value.kind.id)

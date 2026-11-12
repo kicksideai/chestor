@@ -63,9 +63,12 @@ entries:
   - name: run_faults_test
     kind: function.lua
     meta: {type: test, suite: autocode_run_faults, group: Autocode}
+    modules: [time]
     source: file://../../suites/run_faults_test.lua
     method: run
     imports:
+      health: app:account_health_subject
+      redact: chestor.autocode.runner:redact
       test: wippy.test:test
       stubs: app:runner_stubs
       run_subject: app:run_subject
@@ -148,6 +151,7 @@ entries:
     method: run
     imports:
       test: wippy.test:test
+      teardown: app:teardown_subject
       subject: app:image_management_subject
       stubs: app:runner_stubs
 
@@ -260,7 +264,43 @@ entries:
     meta: {type: test, suite: autocode_account_query, group: Autocode}
     source: file://../../suites/account_query_test.lua
     method: run
+    modules: [sql, uuid]
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
     imports:
+      repo: chestor.autocode.persist:repo
       test: wippy.test:test
       subject: app:account_store_subject
       stubs: app:runner_stubs
+
+  - name: worktrees_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_worktrees, group: Autocode}
+    source: file://../../suites/worktrees_test.lua
+    method: run
+    modules: [exec, uuid, sql, json, funcs]
+    imports:
+      prune: chestor.autocode.runner:prune
+      prune_subject: app:prune_subject
+      workspace_paths: app:real_workspaces_subject
+      repo: chestor.autocode.persist:repo
+      test: wippy.test:test
+      subject: app:worktrees_subject
+      host: app:host_subject
+      docker: chestor.autocode.infrastructure:docker
+      quote: chestor.autocode.infrastructure:quote
+      stubs: app:runner_stubs
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: gateway_http_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_gateway_http, group: Autocode}
+    source: file://../../suites/gateway_http_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      api: app:gateway_api_subject
+      stub: app:gateway_http_stub

@@ -4,6 +4,7 @@
 local ctx = require("ctx")
 local repo = require("repo")
 local image_tags = require("image_tags")
+local docker_image = require("docker_image")
 
 local function teardown(remove: ((string) -> error?)?): {[string]: unknown}
     local id = ctx.get("component_id")
@@ -21,17 +22,16 @@ local function delete_account(): {[string]: unknown}
 end
 
 -- Teardown drains the build and releases its retained generation tags.
-local function delete_image(): {[string]: unknown}
+local function delete_image(args: {options: {remove_ref: string?}?}?): {[string]: unknown}
     return teardown(function(id: string): error?
         local err = repo.delete_image_build(id)
         if err then return err end
-        return image_tags.retire(id)
+        local retire_err = image_tags.retire(id)
+        if retire_err then return retire_err end
+        local ref = args and args.options and args.options.remove_ref
+        if ref then return docker_image.remove(ref) end
+        return nil
     end)
 end
 
--- A workspace owns no module rows; its host directory is never removed.
-local function delete_workspace(): {[string]: unknown}
-    return teardown(nil)
-end
-
-return { delete_account = delete_account, delete_image = delete_image, delete_workspace = delete_workspace }
+return { delete_account = delete_account, delete_image = delete_image }

@@ -1,0 +1,10 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "agent": {
+      "type": "string",
+      "maxLength": 64
+    }
+  }
+}

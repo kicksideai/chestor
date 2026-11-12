@@ -1,0 +1,267 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: app
+
+entries:
+  - name: records_subject
+    kind: library.lua
+    source: file://../../records_subject.lua
+    imports:
+      canonical_json: kickside.contract:canonical_json
+      credentials: chestor.autocode.domain:credentials
+      drivers: bee.drivers:drivers
+
+  - name: accounts_subject
+    kind: library.lua
+    source: file://../../accounts_subject.lua
+    modules: [security, logger, json]
+    imports:
+      boundary: chestor.autocode.service:boundary
+      values: chestor.autocode.service:values
+      repo: app:stub_repo
+      resources: app:stub_resources
+      drivers: app:stub_drivers
+      credentials: chestor.autocode.domain:credentials
+      runs: app:stub_runs
+      live: app:stub_live
+
+  - name: stub_context
+    kind: library.lua
+    source: 'return require("stubs").context'
+    imports:
+      stubs: app:runner_stubs
+
+  - name: docker_image_subject
+    kind: library.lua
+    source: file://../../docker_image_subject.lua
+    imports:
+      docker: app:stub_docker
+
+  - name: maintenance_subject_runner
+    kind: library.lua
+    source: file://../../maintenance_runner_subject.lua
+    imports:
+      worktrees: app:stub_worktrees
+      docker: app:stub_docker
+      repo: app:stub_repo
+
+  - name: maintenance_retention_subject_runner
+    kind: library.lua
+    source: file://../../maintenance_runner_subject.lua
+    imports:
+      worktrees: app:stub_worktrees
+      docker: app:stub_docker
+      repo: chestor.autocode.persist:repo
+
+  - name: real_probe_maintenance_subject_runner
+    kind: library.lua
+    source: file://../../maintenance_runner_subject.lua
+    imports:
+      worktrees: app:stub_worktrees
+      docker: app:probe_docker
+      repo: app:stub_repo
+
+  - name: delivery_builds_subject
+    kind: library.lua
+    source: file://../../builds_subject.lua
+    modules: [sql, json, time]
+    imports:
+      trace: kickside.execution:trace
+      recipe: chestor.autocode.domain:recipe
+      database: chestor.autocode.persist:database
+      jobs: app:delivery_jobs
+      settings: chestor.autocode.domain:settings
+
+  - name: arm_subject
+    kind: library.lua
+    source: file://../../arm_subject.lua
+    modules: [json, security]
+    imports:
+      client: chestor.autocode.service:client
+      boundary: chestor.autocode.service:boundary
+      trace: kickside.execution:trace
+      dataflow_repo: app:stub_flow
+  - name: stub_flow
+    kind: library.lua
+    source: file://../../stub_flow.lua
+    imports:
+      stubs: app:runner_stubs
+
+  - name: live_subject
+    kind: library.lua
+    source: file://../../live_subject.lua
+    imports:
+      component: app:stub_component
+      funcs: app:stub_funcs
+      contract: app:stub_realtime_contract
+  - name: stub_realtime_contract
+    kind: library.lua
+    source: file://../../stub_realtime_contract.lua
+    imports:
+      stubs: app:runner_stubs
+
+  - name: run_store_subject
+    kind: library.lua
+    source: file://../../run_store_subject.lua
+    modules: [sql, uuid]
+    imports:
+      trace: kickside.execution:trace
+      database: chestor.autocode.persist:database
+      limits: chestor.autocode.domain:limits
+      jobs: app:stub_jobs
+
+
+  - name: account_query_stub
+    kind: library.lua
+    source: file://../../account_query_stub.lua
+    imports:
+      database: chestor.autocode.persist:database
+      stubs: app:runner_stubs
+
+  - name: account_store_subject
+    kind: library.lua
+    source: file://../../account_store_subject.lua
+    modules: [time]
+    imports:
+      database: app:account_query_stub
+
+  - name: worktrees_subject
+    kind: library.lua
+    source: file://../../worktrees_subject.lua
+    modules: [exec, stream]
+    imports:
+      host: app:host_subject
+      registry: app:stub_registry
+      quote: chestor.autocode.infrastructure:quote
+      workspaces: app:real_workspaces_subject
+
+  - name: gateway_run_subject
+    kind: library.lua
+    source: file://../../run_subject.lua
+    modules: [logger]
+    imports:
+      repo: chestor.autocode.persist:repo
+      runs: app:stub_runs
+      container: chestor.autocode.infrastructure:container
+      event_log: chestor.autocode.runner:event_log
+      records: chestor.autocode.runner:records
+      redact: chestor.autocode.runner:redact
+      docker: app:stub_docker
+      live: app:stub_live
+      worktrees: app:stub_worktrees
+      run_io: app:run_io_subject
+      account_health: app:account_health_subject
+      execution_identity: kickside.execution:execution_identity
+      deferred: app:stub_deferred
+      transport: chestor.autocode.service:transport
+      job_outcome: chestor.autocode.domain:job_outcome
+
+  - name: gateway_http_stub
+    kind: library.lua
+    source: file://../../gateway_http_stub.lua
+
+  - name: gateway_api_subject
+    kind: library.lua
+    source: file://../../gateway_api_subject.lua
+    modules: [json]
+    imports:
+      logger: app:gateway_logger_stub
+      redact: chestor.autocode.runner:redact
+      http: app:gateway_http_stub
+      gateway: app:gateway_handler_stub
+
+  - name: gateway_handler_stub
+    kind: library.lua
+    source: 'return {handle = require("stub").handle}'
+    imports:
+      stub: app:gateway_http_stub
+
+  - name: gateway_logger_stub
+    kind: library.lua
+    source: 'return require("stub")'
+    imports:
+      stub: app:gateway_http_stub
+
+  - name: event_log_subject
+    kind: library.lua
+    source: file://../../event_log_subject.lua
+    imports:
+      repo: app:stub_repo
+      records: chestor.autocode.runner:records
+      redact: chestor.autocode.runner:redact
+      live: app:stub_live
+
+  - name: stub_workspace_host
+    kind: library.lua
+    source: 'return require("stubs").workspace_host'
+    imports: {stubs: 'app:runner_stubs'}
+
+  - name: host_subject
+    kind: library.lua
+    source: file://../../host_subject.lua
+    modules: [exec, stream]
+    imports:
+      registry: app:stub_registry
+      quote: chestor.autocode.infrastructure:quote
+
+  - name: real_workspaces_subject
+    kind: library.lua
+    source: file://../../workspaces_subject.lua
+    modules: [funcs]
+    imports:
+      registry: app:stub_registry
+      host: app:host_subject
+
+  - name: prune_subject
+    kind: library.lua
+    source: file://../../prune_subject.lua
+    imports:
+      repo: chestor.autocode.persist:repo
+      store: chestor.autocode.persist:retention
+      jobs: app:stub_jobs
+      slot_purge: kickside.core.jobs.persist:slot_purge
+      worktrees: chestor.autocode.infrastructure:worktrees
+
+  - name: scheduled_jobs
+    kind: library.lua
+    modules: [time]
+    imports:
+      jobs: kickside.core.jobs:jobs
+    source: |
+      local jobs = require("jobs")
+      local time = require("time")
+      return {enqueue_tx = function(tx, dbtype, job)
+          job.scheduled_at = time.now():add("1h"):utc():format_rfc3339()
+          return jobs.enqueue_tx(tx, dbtype, job)
+      end}
+
+  - name: scheduled_runs
+    kind: library.lua
+    source: file://../../run_store_subject.lua
+    modules: [sql, uuid]
+    imports:
+      trace: kickside.execution:trace
+      database: chestor.autocode.persist:database
+      limits: chestor.autocode.domain:limits
+      jobs: app:scheduled_jobs
+
+  - name: scheduled_repo
+    kind: library.lua
+    source: file://../../delivery_repo.lua
+    imports:
+      repo: chestor.autocode.persist:repo
+      runs: app:scheduled_runs
+      builds: chestor.autocode.persist:builds
+
+  - name: fixture_scheduled_task
+    kind: function.lua
+    source: file://../../submission_subject.lua
+    method: submit
+    modules: [security, logger, ctx]
+    imports:
+      trace: kickside.execution:trace
+      canonical_json: kickside.contract:canonical_json
+      admission: chestor.autocode.service:admission
+      repo: app:scheduled_repo
+      deferred: chestor.autocode.service:deferred
+      live: chestor.autocode.domain:live

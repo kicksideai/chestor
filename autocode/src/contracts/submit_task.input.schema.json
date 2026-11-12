@@ -53,11 +53,96 @@
       "type": "string",
       "maxLength": 200,
       "description": "Optional branch or tag for repo_url (at most 200 bytes); omitted or empty uses the remote default branch."
+    },
+    "profile_id": {
+      "type": "string",
+      "maxLength": 64,
+      "minLength": 1
+    },
+    "account_pool": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 64,
+        "minLength": 1
+      },
+      "uniqueItems": true,
+      "maxItems": 200
+    },
+    "endpoint": {
+      "type": "object",
+      "properties": {
+        "protocol": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "base_url": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "model": {
+          "type": "string",
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "protocol",
+        "base_url"
+      ],
+      "additionalProperties": false
+    },
+    "isolation": {
+      "type": "string",
+      "enum": [
+        "shared",
+        "worktree"
+      ]
+    },
+    "tools": {
+      "type": "object",
+      "properties": {
+        "traits": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 32,
+          "uniqueItems": true
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 128,
+          "uniqueItems": true
+        },
+        "context": {
+          "type": "object",
+          "additionalProperties": {}
+        }
+      },
+      "additionalProperties": false
     }
   },
   "required": [
-    "agent",
-    "image_id",
     "prompt"
+  ],
+  "anyOf": [
+    {
+      "required": [
+        "profile_id"
+      ]
+    },
+    {
+      "required": [
+        "agent",
+        "image_id"
+      ]
+    }
   ]
 }

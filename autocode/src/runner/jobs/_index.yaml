@@ -15,10 +15,12 @@ entries:
       repo: chestor.autocode.persist:repo
       runs: chestor.autocode.service:runs
       container: chestor.autocode.infrastructure:container
+      event_log: chestor.autocode.runner:event_log
       records: chestor.autocode.runner:records
       redact: chestor.autocode.runner:redact
       docker: chestor.autocode.infrastructure:docker
       live: chestor.autocode.domain:live
+      worktrees: chestor.autocode.infrastructure:worktrees
       run_io: chestor.autocode.runner:run_io
       account_health: chestor.autocode.runner:account_health
       execution_identity: kickside.execution:execution_identity
@@ -36,6 +38,7 @@ entries:
         - chestor.autocode.security:deferred_runs
         - chestor.autocode.security:deferred_actor
         - bee.drivers.security:host_access
+        - chestor.autocode.security:git_commands
         - chestor.autocode.security:docker_commands
         - chestor.autocode.security:run_notify
 
@@ -78,7 +81,7 @@ entries:
     modules:
       - time
     imports:
-      repo: chestor.autocode.persist:repo
+      prune: chestor.autocode.runner:prune
       settings: chestor.autocode.domain:settings
     security:
       actor:
@@ -88,3 +91,4 @@ entries:
         - chestor.autocode.security:worker_calls
         - chestor.autocode.security:service_calls
         - chestor.autocode.security:store
+        - chestor.autocode.security:git_commands

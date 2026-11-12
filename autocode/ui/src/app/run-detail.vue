@@ -178,7 +178,10 @@ function usageLine(r: Run) {
   if (r.usage.input_tokens !== undefined) parts.push(`${r.usage.input_tokens} input`)
   if (r.usage.output_tokens !== undefined) parts.push(`${r.usage.output_tokens} output`)
   if (r.usage.cached_tokens !== undefined) parts.push(`${r.usage.cached_tokens} cached`)
-  return parts.length ? `${parts.join(' · ')} tokens` : ''
+  if (r.usage.cache_write_tokens !== undefined) parts.push(`${r.usage.cache_write_tokens} cache write`)
+  if (r.usage.reasoning_tokens !== undefined) parts.push(`${r.usage.reasoning_tokens} reasoning`)
+  if (r.usage.cost_usd !== undefined) parts.push(`$${r.usage.cost_usd}`)
+  return parts.join(' · ')
 }
 </script>
 
@@ -202,9 +205,17 @@ function usageLine(r: Run) {
           <span v-if="run.started_at">{{ duration(run, now) }} {{ active(run) ? 'elapsed' : 'duration' }}</span>
           <span v-if="run.timeout_ms">{{ timeout(run.timeout_ms) }}</span>
           <span>{{ run.unattended ? 'Unattended' : 'Attended' }}</span><span v-if="run.workflow">Workflow</span>
-          <span v-if="run.workspace_id">{{ workspaceLabel(run.workspace_id) }}</span><span v-if="runModel(run)">{{ runModel(run) }}</span><span v-if="usageLine(run)">{{ usageLine(run) }}</span>
+          <span v-if="run.workspace_id">{{ workspaceLabel(run.workspace_id) }}</span><span>{{ run.isolation === 'worktree' ? 'Private git worktree' : 'Shared checkout' }}</span><span v-if="runModel(run)">{{ runModel(run) }}</span><span v-if="usageLine(run)">{{ usageLine(run) }}</span>
         </div>
       </header>
+      <details class="ac-detail-section"><summary class="kx-focus-outline">Effective options</summary>
+        <pre class="ac-pre">{{ JSON.stringify(run.options, null, 2) }}</pre>
+        <p v-if="run.endpoint" class="ac-muted">{{ run.endpoint.protocol }} · {{ run.endpoint.base_url }} · {{ run.endpoint.model }}</p>
+      </details>
+      <section v-if="run.usage.models" class="ac-detail-section" aria-label="Usage by model">
+        <h3>Usage by model</h3>
+        <p v-for="(usage, model) in run.usage.models" :key="model" class="ac-muted">{{ model }} · {{ Object.entries(usage).map(([key, value]) => `${key === 'cost_usd' ? '$' : key + ': '}${value}`).join(' · ') }}</p>
+      </section>
       <p v-if="linkError" class="kx-err" role="alert">{{ linkError }}</p>
       <section class="ac-detail-section" aria-labelledby="ac-prompt-heading">
         <div class="ac-section-head"><h3 id="ac-prompt-heading">Prompt</h3><button v-if="longPrompt" type="button" class="ac-link kx-focus-outline" :aria-expanded="promptExpanded" aria-controls="ac-prompt-text" @click="promptExpanded = !promptExpanded">{{ promptExpanded ? 'Collapse prompt' : 'Expand prompt' }}</button></div>

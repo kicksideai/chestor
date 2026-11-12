@@ -26,7 +26,14 @@ export function requestContractErrors(method: string, path: string, body?: unkno
   let input: Record<string, unknown> = {}
   const account = route.match(/^\/accounts\/([^/]+)$/)
   const run = route.match(/^\/runs\/([^/]+)(\/cancel)?$/)
-  if (route === '/accounts') {
+  const profile = route.match(/^\/profiles\/([^/]+)$/)
+  if (route === '/profiles') {
+    contract = method === 'get' ? 'list_profiles' : 'add_profile'
+    input = method === 'get' ? {} : body as Record<string, unknown>
+  } else if (profile) {
+    contract = method === 'put' ? 'update_profile' : 'remove_profile'
+    input = { ...(method === 'put' ? body as object : {}), id: decodeURIComponent(profile[1]!) }
+  } else if (route === '/accounts') {
     if (method === 'get') { contract = 'list_accounts'; input = { include_unavailable: true } }
     if (method === 'post') { contract = 'add_account'; input = body as Record<string, unknown> }
   } else if (account) {
@@ -61,7 +68,7 @@ export function requestContractErrors(method: string, path: string, body?: unkno
   return validate(serialized) ? [] : [`${label}: ${ajv.errorsText(validate.errors, { separator: '; ' })}`]
 }
 
-export const driver = { id: 'agent', title: 'Agent', icon: 'tabler:robot', credentials: [{ id: 'key', label: 'Key', hint: '', subscription: false }, { id: 'login', label: 'Login', hint: '', file: 'login.json', subscription: true }], endpoints: ['openai'], capabilities: [], options: [] }
+export const driver = { id: 'agent', title: 'Agent', icon: 'tabler:robot', credentials: [{ id: 'key', label: 'Key', hint: '', format: 'text' as const, subscription: false }, { id: 'login', label: 'Login', hint: '', format: 'text' as const, file: 'login.json', subscription: true }], endpoints: ['openai'], capabilities: [], options: [] }
 export const claudeLike: AgentInfo = { ...driver, id: 'claude-like', title: 'Claude-like', unattended: { permission_mode: 'bypassPermissions' }, options: [
   { name: 'permission_mode', label: 'Permission mode', description: '', section: '', group: '', order: 1, type: 'string', values: ['manual', 'bypassPermissions'], default: 'manual', profiles: ['batch'] },
   { name: 'model', label: 'Model', description: '', section: '', group: '', order: 2, type: 'string', default: 'sonnet' },
@@ -81,6 +88,7 @@ export function render<T extends Parameters<typeof mount>[0]>(component: T, prop
 }
 export function respond(path: string) {
   if (path.endsWith('/catalog')) return catalog
+  if (path.endsWith('/profiles')) return { profiles: [] }
   if (path.endsWith('/accounts')) return { accounts: [] }
   if (path.endsWith('/images')) return { images: [image] }
   if (path.endsWith('/workspaces')) return { workspaces: [], roots: [] }

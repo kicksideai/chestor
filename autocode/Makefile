@@ -50,6 +50,10 @@ ui-kit:
 ui-test: ui-kit
 	cd ui && npm test
 check:
+	node scripts/materialize-contracts.mjs --check
+	node scripts/module-rules.test.mjs
+	node scripts/materialize-contracts.test.mjs
+	node scripts/least-privilege.test.mjs
 	node scripts/check-module.mjs
 verify:
 	$(MAKE) lint

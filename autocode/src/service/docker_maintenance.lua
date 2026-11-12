@@ -1,5 +1,6 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 local docker = require("docker")
+local worktrees = require("worktrees")
 local repo = require("repo")
 type Result = {output: string}
 
@@ -25,6 +26,18 @@ local function prune(retention: string): (Result?, error?)
             local remove_err = docker.remove(candidate.id)
             if remove_err then return nil, remove_err end
             output[#output + 1] = "$ docker rm -f " .. candidate.id
+        end
+    end
+    local settled, settled_err = repo.worktree_cleanup(100)
+    if not settled then return nil, settled_err end
+    for _, run in ipairs(settled :: {repo.Run}) do
+        if run.worktree then
+            local remove_err = worktrees.remove(run.worktree)
+            if remove_err then return nil, remove_err end
+            run.worktree.removed = true
+            local clear_err = repo.set_worktree(run.id, run.worktree)
+            if clear_err then return nil, clear_err end
+            output[#output + 1] = "removed settled run worktree " .. run.id
         end
     end
     local probes: {{id: string, image_id: string, build_id: string}} = {}

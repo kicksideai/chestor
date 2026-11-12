@@ -14,6 +14,25 @@ local function cases()
         local fixture = require("contract_fixture").new()
         local users, member, call, image_for, flow_for = fixture.users, fixture.member, fixture.call, fixture.image_for, fixture.flow_for
         test.after_each(fixture.release)
+        test.it("retains normalized usage in get_run, list_runs and the Block output schema", function()
+            local user = member()
+            local usage = {input_tokens = 10, cached_tokens = 0, cache_write_tokens = 3, reasoning_tokens = 2,
+                cost_usd = 0.125, models = {deepseek = {input_tokens = 10, cost_usd = 0.125}}}
+            local id, err = repo.create_run(user.id, {actor_id = user.id, actor_context = "{}"},
+                {agent = "claude", account_id = uuid.v7(), image_id = "fixture", options = {}, unattended = false,
+                    repo_url = "", prompt = "usage", timeout_ms = 60000})
+            test.is_nil(err, tostring(err))
+            test.is_true(repo.finish_run(id, "succeeded", "done", "", usage))
+            local detail = call(user, "get_run", {run_id = id})
+            test.eq(detail.run.usage.models.deepseek.cost_usd, 0.125)
+            local page = call(user, "list_runs", {})
+            test.eq(page.runs[1].usage.cache_write_tokens, 3)
+            test.eq(page.runs[1].usage.cached_tokens, 0)
+            local block = registry.get("chestor.autocode.blocks:block.task")
+            local valid, problem = json.validate(block.data.block.output, {run_id = id, status = "succeeded", answer = "done",
+                error = "", usage = usage, agent = "claude", account_id = "account"})
+            test.is_true(valid, tostring(problem))
+        end)
         test.it("keeps workflow JSON input outside a maximum-sized prompt", function()
             local user = member()
             local image = image_for(user)
@@ -176,7 +195,7 @@ local function cases()
             require("stubs").reset()
             local id = require("run_store_subject").create_run(owner.id, {actor_id = owner.id, actor_context = "{}"},
                 {agent = "claude", account_id = "account", image_id = "image", options = {}, unattended = false, prompt = "task", repo_url = "", timeout_ms = 60000})
-            for seq = 1, 3 do test.is_nil(repo.append_event(id, seq, "log", "line")) end
+            for seq = 1, 3 do test.is_nil(repo.append_event(id, "log", "line")) end
             local page, err = call(owner, "get_run", {run_id = id, limit = 2})
             test.is_nil(err, tostring(err))
             test.eq(#page.events, 2)
@@ -194,7 +213,7 @@ local function cases()
             require("stubs").reset()
             local id = require("run_store_subject").create_run(owner.id, {actor_id = owner.id, actor_context = "{}"},
                 {agent = "claude", account_id = "account", image_id = "image", options = {}, unattended = false, prompt = "history", repo_url = "", timeout_ms = 60000})
-            for seq = 1, 1205 do test.is_nil(repo.append_event(id, seq, "log", "line " .. seq)) end
+            for seq = 1, 1205 do test.is_nil(repo.append_event(id, "log", "line " .. seq)) end
             local latest, err = call(owner, "get_run", {run_id = id, before_seq = 0})
             test.is_nil(err, tostring(err))
             test.eq(#latest.events, 500)
@@ -211,7 +230,7 @@ local function cases()
             test.eq(#oldest.events, 205)
             test.eq(oldest.events[1].seq, 1)
             test.is_false(oldest.more)
-            test.is_nil(repo.append_event(id, 1206, "log", "live"))
+            test.is_nil(repo.append_event(id, "log", "live"))
             local live = call(owner, "get_run", {run_id = id, after_seq = latest.next_seq})
             test.eq(#live.events, 1)
             test.eq(live.events[1].seq, 1206)
@@ -260,6 +279,12 @@ local function cases()
             test.is_true(errors.is(conflict, errors.CONFLICT), tostring(conflict))
             test.eq(conflict:retryable(), false)
             test.not_nil(conflict:details().code)
+        end)
+        test.it("refuses callback fields on the public submission DTO", function()
+            local user = member()
+            local response = identity.request(user, "POST", "/autocode/runs", {agent = "claude", image_id = "image", prompt = "task",
+                flow = {dataflow_id = flow_for(user), node_id = "unparked", signal_id = "unrelated"}})
+            test.eq(response.status, 400, response.body)
         end)
         test.it("refuses another user's dataflow and signal before submission", function()
             local user, other = member(), member()

@@ -5,6 +5,7 @@ local recipe = require("recipe")
 local values = require("values")
 local logger = require("logger")
 local repo = require("repo")
+local endpoint_url = require("endpoint_url")
 local drivers = require("drivers")
 local deferred = require("deferred")
 local jobs = require("jobs")
@@ -13,7 +14,7 @@ local ctx = require("ctx")
 local trace = require("trace")
 
 type Settings = recipe.Settings
-type Decoded = {label: string, home: string, settings: Settings}
+type Decoded = {gateway_endpoint: string?,label: string, home: string, settings: Settings}
 
 local M = {}
 
@@ -74,6 +75,8 @@ end
 
 -- decode reads the label, home and container run settings of a request body.
 function M.decode(body: {[string]: unknown}): (Decoded?, error?)
+    local gateway_endpoint = values.text(body.gateway_endpoint or "", 253)
+    if not gateway_endpoint or (gateway_endpoint ~= "" and not endpoint_url.valid_authority(gateway_endpoint)) then return nil, refuse("gateway_endpoint must be a host and port") end
     local label = values.text(body.label or "", 200)
     local home = values.text(body.home or PRESET.home, 300)
     local memory = values.text(body.memory or RUN_DEFAULTS.memory, 32)
@@ -101,7 +104,7 @@ function M.decode(body: {[string]: unknown}): (Decoded?, error?)
         end
         if not allows then return nil, refuse("allows must be an array of capability names") end
     end
-    return {label = label, home = home, settings = {memory = memory, cpus = cpus, pids_limit = math.floor(pids), gpus = gpus,
+    return {gateway_endpoint = gateway_endpoint, label = label, home = home, settings = {memory = memory, cpus = cpus, pids_limit = math.floor(pids), gpus = gpus,
         network = network, extra_args = extra_args, allows = allows}}, nil
 end
 

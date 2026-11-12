@@ -21,6 +21,29 @@ local function cases()
             users = {}
         end)
 
+        test.it("refuses workspace registration through the module by a member", function()
+            local user = track(identity.member())
+            local response = identity.request(user, "POST", "/autocode/workspaces", {name = "Bypass", host_path = "/"})
+            test.eq(response.status, 403, response.body)
+        end)
+        test.it("removes fixture directories when their owning identity is released", function()
+            local user = identity.admin()
+            local path = identity.directory(user, "cleanup")
+            identity.release(user)
+            local removed, err = require("host").run({"test", "!", "-e", path})
+            test.is_nil(err, tostring(err)); test.not_nil(removed)
+        end)
+        test.it("limits member registry reads to declared execution and discovery entries", function()
+        local user = track(identity.member())
+        for _, id in ipairs({"chestor.autocode.migrations:01_create_tables", "chestor.autocode.security:worker_runtime", "chestor.autocode.infrastructure:future_entry"}) do
+            local result, err = identity.call(user, "app:session_probe", id, "registry.get")
+            test.is_nil(err, tostring(err))
+            test.is_false(result.access, id)
+        end
+        local allowed = identity.call(user, "app:session_probe", "chestor.autocode:autocode_view", "registry.get")
+        test.is_true(allowed.access)
+    end)
+
         for _, path in ipairs(MEMBER_READS) do
             test.it("admits a member to GET " .. path, function()
                 local response = identity.request(track(identity.member()), "GET", path)
@@ -88,7 +111,7 @@ local function cases()
                 test.eq(response.status, 200, response.body)
             end
             local created = identity.request(manager, "POST", "/autocode/workspaces",
-                {name = "Managed workspace", host_path = "/srv/autocode-harness/managed"})
+                {name = "Managed workspace", host_path = identity.directory(manager, "managed")})
             test.eq(created.status, 201, created.body)
             local deleted = identity.request(manager, "DELETE", "/autocode/workspaces/" .. created.json.id)
             test.eq(deleted.status, 200, deleted.body)

@@ -8,6 +8,7 @@ local credentials = require("credentials")
 local runs = require("runs")
 local security = require("security")
 local live = require("live")
+local json = require("json")
 
 type Object = {[string]: unknown}
 type Endpoint = {protocol: string, base_url: string, model: string?}
@@ -49,6 +50,14 @@ function M.list(request: Object): (Object?, error?)
     if not actor then return nil, boundary.error(errors.PERMISSION_DENIED, "autocode.access_denied", "authentication required") end
     local all, err = resources.list("account")
     if not all then return nil, boundary.native(err) end
+    local states: {[string]: repo.AccountState} = {}
+    for offset = 1, #all, 200 do
+        local ids: {string} = {}
+        for index = offset, math.min(offset + 199, #all) do ids[#ids + 1] = all[index].id end
+        local page, read_err = repo.account_states(ids)
+        if not page then return nil, read_err end
+        for id, state in pairs(page) do states[id] = state end
+    end
     local views: {Object} = table.create(1, 0)
     for _, account in ipairs(all) do
         local meta = account.meta
@@ -58,9 +67,9 @@ function M.list(request: Object): (Object?, error?)
             if driver_err and not errors.is(driver_err, errors.NOT_FOUND) then return nil, boundary.native(driver_err) end
             local admitted, reason = nil, "select an agent"
             if driver then admitted, reason = runs.usable(driver, account) end
-            local state = {last_used_at = text(meta.last_used_at), cooldown_until = text(meta.cooldown_until),
-                last_error = text(meta.last_error), runs_day = math.floor(tonumber(meta.runs_day) or 0),
-                failures_day = math.floor(tonumber(meta.failures_day) or 0)}
+            local counts = states[account.id]
+            local state = {last_used_at = text(meta.last_used_at), cooldown_until = text(meta.cooldown_until), last_error = text(meta.last_error),
+                runs_day = counts.runs_day, failures_day = counts.failures_day}
             local base_url = text(meta.endpoint_base_url)
             local model = text(meta.endpoint_model)
             local reach: Endpoint? = nil
@@ -71,6 +80,7 @@ function M.list(request: Object): (Object?, error?)
                     owner = account.owner, mine = account.owner == actor:id(), usable = admitted ~= nil,
                     unavailable_reason = not admitted and reason or nil, writable = resources.has(account.access, resources.ACCESS.WRITE),
                     deletable = resources.has(account.access, resources.ACCESS.DELETE), last_used_at = state.last_used_at,
+                    rate_limits = type(meta.rate_limits) == "string" and meta.rate_limits ~= "" and json.decode(meta.rate_limits) or nil,
                     cooldown_until = state.cooldown_until, last_error = state.last_error, runs_day = state.runs_day, failures_day = state.failures_day}
             end
         end

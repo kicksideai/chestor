@@ -8,6 +8,7 @@
 -- job completes cleanup and applies the recorded outcome, or records an
 -- interruption when execution has no durable outcome.
 local repo = require("repo")
+local event_log = require("event_log")
 local runs = require("runs")
 local container = require("container")
 local records = require("records")
@@ -21,6 +22,7 @@ local deferred = require("deferred")
 local job_outcome = require("job_outcome")
 local logger = require("logger")
 local transport = require("transport")
+local worktrees = require("worktrees")
 
 -- The resource whose kickside.execution.defer grant lets the runner resolve
 -- a run owner's stored identity.
@@ -60,9 +62,8 @@ end
 local function execute(run: repo.Run, job: {[string]: unknown}, trace_context: {[string]: unknown}?): Outcome
     local deadline = type(job.deadline) == "string" and job.deadline or nil
     local run_id = run.id
-    local seq_start, seq_err = repo.next_seq(run_id)
-    if not seq_start then return failure("run events", errors.UNAVAILABLE, seq_err) end
-    local seq = seq_start - 1
+    local health = run.account_health
+    local event_error: error? = nil
     local persist_err: string? = nil
     local redactor = redact.new("")
     local notification_err: error? = nil
@@ -72,13 +73,13 @@ local function execute(run: repo.Run, job: {[string]: unknown}, trace_context: {
     end
     local function emit(kind: string, text: string)
         if persist_err then return end
-        seq = seq + 1
-        local err = repo.append_event(run_id, seq, kind, redact.apply(redactor, text))
+        local err, notify_err = event_log.record(run_id, run.owner_id, kind, text, redactor)
+        notification_err = notification_err or notify_err
         if err then
+            event_error = err
             persist_err = "event log write failed: " .. tostring(err)
             return
         end
-        changed(live.run_topic(run_id))
     end
     local function cleanup(): Outcome?
         local name = runs.container_name(run_id)
@@ -87,17 +88,29 @@ local function execute(run: repo.Run, job: {[string]: unknown}, trace_context: {
             emit("system", "container cleanup: " .. tostring(remove_err))
             return failure("container cleanup", errors.UNAVAILABLE, remove_err)
         end
+        if run.worktree and not run.worktree.removed then
+            local tree_err = worktrees.remove(run.worktree)
+            if tree_err then return failure("worktree cleanup", errors.UNAVAILABLE, tree_err) end
+            run.worktree.removed = true
+            local clear_err = repo.set_worktree(run_id, run.worktree)
+            if clear_err then return failure("worktree cleanup record", errors.UNAVAILABLE, clear_err) end
+        end
         return nil
     end
 
     local function finish(status: repo.RunStatus, answer: string, reason: string, usage: {[string]: unknown}): Outcome
+        if event_error then return failure("run events", errors.UNAVAILABLE, event_error) end
         local shown_answer, shown_reason = redact.apply(redactor, answer), redact.apply(redactor, reason)
         if run.pending_status then
             status, shown_answer, shown_reason, usage = run.pending_status, run.result, run.error, run.usage
         else
-            local record_err = repo.record_run_outcome(run_id, status, shown_answer, shown_reason, usage)
+            local record_err = repo.record_run_outcome(run_id, status, shown_answer, shown_reason, usage, health)
             if record_err then return failure("run outcome write", errors.UNAVAILABLE, record_err) end
             run.pending_status, run.result, run.error, run.usage = status, shown_answer, shown_reason, usage
+        end
+        if health and next(health) ~= nil then
+            local health_err = account_health.apply(run, health :: account_health.Intent)
+            if health_err then return failure("account health settlement", errors.UNAVAILABLE, health_err) end
         end
         local cleanup_failure = cleanup()
         if cleanup_failure then return cleanup_failure end
@@ -127,11 +140,26 @@ local function execute(run: repo.Run, job: {[string]: unknown}, trace_context: {
 
     local prepared, owner, prepare_err = prepare(run)
     if not prepared or not owner then return fail(tostring(prepare_err)) end
+    if run.isolation == "worktree" and prepared.workspace then
+        local tree, tree_err = worktrees.plan(prepared.workspace.host_path, run_id)
+        if not tree then return fail(tostring(tree_err)) end
+        local store_err = repo.set_worktree(run_id, tree)
+        if store_err then return fail(tostring(store_err)) end
+        run.worktree = tree
+        local create_err = worktrees.create(tree, run.repo_ref)
+        if create_err then return fail(tostring(create_err)) end
+        prepared.workspace.host_path = tree.path
+        prepared.workspace.gitdir = tree.gitdir
+    end
     local secret = prepared.secret
     redactor = redact.new(secret)
+    if prepared.gateway_token then
+        for _, needle in ipairs(redact.new(prepared.gateway_token).needles) do redactor.needles[#redactor.needles + 1] = needle end
+    end
     local script, script_err = container.script(prepared.kind, secret, prepared.image.home, prepared.workdir,
         run.repo_url, prepared.launch, math.floor(run.timeout_ms / 1000), run.repo_ref)
     if not script then return fail(tostring(script_err)) end
+    if prepared.gateway_token then script.env.AUTOCODE_GATEWAY_TOKEN = prepared.gateway_token end
     local box = run_io.build(run_id, prepared, script.env)
 
     local function cancelled(): (boolean?, error?)
@@ -178,7 +206,7 @@ local function execute(run: repo.Run, job: {[string]: unknown}, trace_context: {
     if final_read_err then stream_err = stream_err or ("cancellation read: " .. tostring(final_read_err)) end
     was_cancelled = was_cancelled or streamed.cancel_seen
     local refresh_error = run_io.keep_credential(run_id, owner, prepared, box, emit, deadline)
-    account_health.settle(run, terminal, refresh_error, redactor, emit)
+    health = account_health.capture(terminal, refresh_error, redactor, records.limits(folder, terminal))
     local health_notify_err = live.account(run.account_id)
     notification_err = notification_err or health_notify_err
     local fault = terminal and terminal.error
@@ -215,7 +243,7 @@ local function main(input: {[string]: unknown}): Outcome
         if notify_err then return failure("committed run notification", errors.UNAVAILABLE, notify_err) end
         return {ok = true, output = {run_id = run_id, status = run.status}}
     end
-    return execute(run, job, type(input.trace_context) == "table" and input.trace_context or nil)
+    return execute(run :: repo.Run, job, type(input.trace_context) == "table" and input.trace_context or nil)
 end
 
 return { main = main }

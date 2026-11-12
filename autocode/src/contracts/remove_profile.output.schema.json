@@ -1,0 +1,47 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "success": {
+      "type": "boolean"
+    },
+    "component_id": {
+      "type": "string"
+    },
+    "deleted": {
+      "type": "boolean"
+    },
+    "in_progress": {
+      "type": "boolean"
+    },
+    "job_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "cleanup_pending": {
+      "type": "boolean"
+    },
+    "notification_error": {
+      "type": "object"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "retryable": {
+      "type": "boolean"
+    },
+    "details": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "id"
+  ]
+}

@@ -78,16 +78,13 @@ entries:
   - name: images_delete
     kind: function.lua
     meta:
-      comment: "DELETE /autocode/images/{id} - Drain the build and delete the component, then optionally remove the Docker image; return docker_error if host removal fails after deletion."
+      comment: "DELETE /autocode/images/{id} - Accept component deletion with optional Docker-reference removal after build termination."
     source: file://../image_routes.lua
     method: delete
     imports:
       web: chestor.autocode.api:web
       images: chestor.autocode.service:image_management
 
-    security:
-      policies:
-        - chestor.autocode.security:docker_commands
 
   - name: images_delete.endpoint
     kind: http.endpoint

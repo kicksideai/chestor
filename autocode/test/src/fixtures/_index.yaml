@@ -43,6 +43,8 @@ entries:
     source: file://../fixture.lua
     method: register
     imports:
+      retention: chestor.autocode.runner:prune
+      host: chestor.autocode.infrastructure:host
       images: chestor.autocode.service:images
       resources: chestor.autocode.components:resources
       runs: chestor.autocode.service:runs
@@ -63,6 +65,8 @@ entries:
     source: file://../fixture.lua
     method: admit
     imports:
+      retention: chestor.autocode.runner:prune
+      host: chestor.autocode.infrastructure:host
       images: chestor.autocode.service:images
       resources: chestor.autocode.components:resources
       runs: chestor.autocode.service:runs
@@ -75,6 +79,8 @@ entries:
     source: file://../fixture.lua
     method: prune
     imports:
+      retention: chestor.autocode.runner:prune
+      host: chestor.autocode.infrastructure:host
       images: chestor.autocode.service:images
       resources: chestor.autocode.components:resources
       runs: chestor.autocode.service:runs
@@ -117,6 +123,8 @@ entries:
     method: image_recipe
     modules: [security]
     imports:
+      gateway: chestor.autocode.service:gateway
+      limits: chestor.autocode.domain:limits
       repo: chestor.autocode.persist:repo
       runs: chestor.autocode.service:runs
       resources: chestor.autocode.components:resources
@@ -130,6 +138,8 @@ entries:
     source: file://../fixture.lua
     method: image_revision
     imports:
+      retention: chestor.autocode.runner:prune
+      host: chestor.autocode.infrastructure:host
       images: chestor.autocode.service:images
       resources: chestor.autocode.components:resources
       runs: chestor.autocode.service:runs
@@ -164,3 +174,92 @@ entries:
       consts: userspace.dataflow:consts
       blocks: kickside.blocks:blocks
     modules: [uuid]
+
+  - name: gateway_echo
+    kind: function.lua
+    meta:
+      type: tool
+      llm_alias: GatewayEcho
+      input_schema: {type: object, properties: {text: {type: string}}, additionalProperties: false}
+    source: file://../gateway_probe.lua
+    method: echo
+    modules: [security, ctx]
+
+  - name: gateway_denied
+    kind: function.lua
+    meta: {type: tool, llm_alias: GatewayDenied, input_schema: {type: object, properties: {}}}
+    source: 'return {run = function() error("entered a denied tool") end}'
+    method: run
+
+  - name: gateway_refused
+    kind: function.lua
+    meta: {type: tool, llm_alias: GatewayRefused, input_schema: {type: object, properties: {}}}
+    source: 'local security = require("security"); return {run = function() if not security.can("access", "app:gateway_protected") then return nil, errors.new({kind = errors.PERMISSION_DENIED, message = "fixture tool permission denied", details = {code = "fixture.tool_denied"}}) end; return {allowed = true} end}'
+    modules: [security]
+    method: run
+
+  - name: gateway_trait
+    kind: registry.entry
+    meta: {type: agent.trait}
+    prompt: Use the bound board when answering.
+    tools: [app:gateway_echo]
+
+  - name: gateway_seed
+    kind: function.lua
+    source: file://../gateway_seed.lua
+    method: seed
+    modules: [sql, json, uuid]
+    imports:
+      execution_identity: kickside.execution:execution_identity
+
+  - name: fixture_directory
+    kind: function.lua
+    source: file://../fixture.lua
+    method: directory
+    imports:
+      retention: chestor.autocode.runner:prune
+      host: chestor.autocode.infrastructure:host
+      images: chestor.autocode.service:images
+      resources: chestor.autocode.components:resources
+      runs: chestor.autocode.service:runs
+      repo: chestor.autocode.persist:repo
+    security:
+      policies: [chestor.autocode.security:git_commands]
+
+  - name: gateway_privileged_echo
+    kind: function.lua
+    meta:
+      type: tool
+      llm_alias: GatewayPrivilegedEcho
+      input_schema: {type: object, properties: {text: {type: string}}, additionalProperties: false}
+    source: file://../gateway_probe.lua
+    method: echo
+    modules: [security, ctx]
+
+  - name: gateway_privileged_trait
+    kind: registry.entry
+    meta: {type: agent.trait}
+    prompt: Report the bound context.
+    tools: [app:gateway_privileged_echo]
+
+  - name: gateway_foreign
+    kind: contract.binding
+    meta:
+      title: Foreign gateway fixture
+      class: [app.gateway.foreign]
+      placement: {parents: [root], fixed: true}
+    contracts:
+      - contract: kickside.contract:component
+        methods: {get_status: 'app:gateway_foreign_status'}
+      - contract: kickside.contract:deletable
+        methods: {delete: 'app:gateway_foreign_delete'}
+
+  - name: gateway_foreign_status
+    kind: function.lua
+    source: 'return {run = function() return {status = "ready"} end}'
+    method: run
+
+  - name: gateway_foreign_delete
+    kind: function.lua
+    source: 'return {run = function() return {success = true} end}'
+    method: run

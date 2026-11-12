@@ -42,6 +42,12 @@ local function build(run_id: string, prepared: Prepared, env: {[string]: string}
     if workspace then
         args[#args + 1] = "--mount"
         args[#args + 1] = "type=bind,source=" .. workspace.host_path .. ",target=" .. prepared.workdir .. (workspace.writable and "" or ",readonly")
+        if workspace.gitdir then
+            args[#args + 1] = "--mount"
+            args[#args + 1] = "type=bind,source=" .. workspace.gitdir .. ",target=" .. workspace.gitdir .. ",readonly"
+            args[#args + 1] = "--mount"
+            args[#args + 1] = "type=bind,source=" .. workspace.host_path .. "/.git,target=" .. prepared.workdir .. "/.git,readonly"
+        end
     end
     for _, arg in ipairs(settings_args(prepared.image)) do args[#args + 1] = arg end
     local names: {string} = {}

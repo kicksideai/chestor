@@ -27,6 +27,13 @@
           },
           "host_path": {
             "type": "string"
+          },
+          "isolation": {
+            "type": "string",
+            "enum": [
+              "shared",
+              "worktree"
+            ]
           }
         },
         "required": [

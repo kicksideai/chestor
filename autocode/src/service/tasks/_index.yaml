@@ -20,6 +20,7 @@ entries:
     runs: chestor.autocode.service:runs
     repo: chestor.autocode.persist:repo
     accounts: chestor.autocode.service:accounts
+    endpoint_url: chestor.autocode.domain:endpoint
     resource_dto: chestor.autocode.service:resource_dto
 
 - name: list_accounts
@@ -28,6 +29,9 @@ entries:
   method: list_accounts
   modules: *task_modules
   imports: *task_imports
+
+  security:
+    policies: [chestor.autocode.security:store]
 
 - name: list_images
   kind: function.lua
@@ -70,6 +74,3 @@ entries:
   method: cancel_run
   modules: *task_modules
   imports: *task_imports
-  security:
-    policies:
-    - chestor.autocode.security:docker_commands

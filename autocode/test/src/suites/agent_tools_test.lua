@@ -27,17 +27,18 @@ local function cases()
             local trait = registry.get(TOOLS .. "coding_tasks")
             test.eq(trait.meta.type, "agent.trait")
             test.eq(trait.meta.public, true)
-            test.eq(#trait.data.tools, 7)
+            test.eq(#trait.data.tools, 8)
             local definition = registry.get("chestor.autocode:tasks")
             for _, pair in ipairs({{"submit_coding_task", "submit_task", "SubmitCodingTask"},
                 {"read_coding_run", "get_run", "ReadCodingRun"}, {"list_coding_agents", "list_agents", "ListCodingAgents"},
+                {"list_coding_profiles", "list_profiles", "ListCodingProfiles", "chestor.autocode:profiles"},
                 {"list_coding_accounts", "list_accounts", "ListCodingAccounts"}, {"list_coding_images", "list_images", "ListCodingImages"},
                 {"list_coding_workspaces", "list_workspaces", "ListCodingWorkspaces"}, {"cancel_coding_run", "cancel_run", "CancelCodingRun"}}) do
                 local tool = registry.get(TOOLS .. pair[1])
                 test.eq(tool.meta.type, "tool")
                 test.eq(tool.meta.public, true)
                 test.eq(tool.meta.llm_alias, pair[3])
-                for _, method in ipairs(definition.data.methods) do
+                for _, method in ipairs((pair[4] and registry.get(pair[4]) or definition).data.methods) do
                     if method.name == pair[2] then
                         test.eq(tool.meta.input_schema, method.input_schemas[1].definition)
                         test.eq(tool.meta.output_schema, method.output_schemas[1].definition)
@@ -60,7 +61,7 @@ local function cases()
         test.it("refuses outsiders and members without the separate tool capability", function()
             for _, groups in ipairs({{identity.SIGNED_IN}, {identity.SIGNED_IN, identity.MEMBERS}}) do
                 local caller = user(groups)
-                for _, name in ipairs({"submit_coding_task", "read_coding_run", "list_coding_agents", "list_coding_accounts", "list_coding_images", "list_coding_workspaces", "cancel_coding_run"}) do
+                for _, name in ipairs({"submit_coding_task", "read_coding_run", "list_coding_agents", "list_coding_profiles", "list_coding_accounts", "list_coding_images", "list_coding_workspaces", "cancel_coding_run"}) do
                     local result, err = identity.call(caller, TOOLS .. name, {})
                     test.is_nil(result)
                     test.is_true(errors.is(err, errors.PERMISSION_DENIED), tostring(err))
@@ -69,7 +70,7 @@ local function cases()
         end)
         test.it("requires module access in addition to tool access", function()
             local caller = user({identity.SIGNED_IN, "app:coding_tools"})
-            for _, name in ipairs({"submit_coding_task", "read_coding_run", "list_coding_agents", "list_coding_accounts", "list_coding_images", "list_coding_workspaces", "cancel_coding_run"}) do
+            for _, name in ipairs({"submit_coding_task", "read_coding_run", "list_coding_agents", "list_coding_profiles", "list_coding_accounts", "list_coding_images", "list_coding_workspaces", "cancel_coding_run"}) do
                 local result, err = identity.call(caller, TOOLS .. name, {})
                 test.is_nil(result)
                 test.is_true(errors.is(err, errors.PERMISSION_DENIED), tostring(err))
@@ -88,8 +89,7 @@ local function cases()
                 time.sleep("50ms")
             end
             local all = identity.call(owner, TOOLS .. "read_coding_run", {run_id = id, limit = 100})
-            local next_seq = #all.events > 0 and all.events[#all.events].seq or 0
-            for offset = 1, 3 do test.is_nil(repo.append_event(id, next_seq + offset, "log", "line")) end
+            for offset = 1, 3 do test.is_nil(repo.append_event(id, "log", "line")) end
             local total = #all.events + 3
             local page, err = identity.call(owner, TOOLS .. "read_coding_run", {run_id = id, limit = total - 1})
             test.is_nil(err, tostring(err))

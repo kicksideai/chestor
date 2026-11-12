@@ -49,7 +49,7 @@ local function close(child: Child)
     child.executor:release()
 end
 
--- `sh -c 'exec docker "$@" 2>&1'` folds docker's stderr into stdout so a
+-- The fixed shell entrypoint folds Docker stderr into stdout so a
 -- single reader drains the child and a full stderr pipe cannot stall it.
 local function start(args: {string}, opts: Options): (Child?, error?)
     local ceiling: time.Time? = nil
@@ -69,9 +69,11 @@ local function start(args: {string}, opts: Options): (Child?, error?)
     if context ~= "" then environment.DOCKER_CONTEXT = context end
     local executor, err = exec.get(executor_id)
     if not executor then return nil, fail("docker executor", err) end
-    local argv = {"/bin/sh", "-c", 'exec docker "$@" 2>&1', "sh"}
+    local argv = {"docker"}
     for _, arg in ipairs(args) do argv[#argv + 1] = arg end
-    local proc, proc_err = executor:exec(quote.line(argv), {env = environment})
+    environment.AUTOCODE_DOCKER_COMMAND = "exec " .. quote.line(argv)
+    local command = quote.line({"/bin/sh", "-c", 'exec /bin/sh -c "$AUTOCODE_DOCKER_COMMAND" 2>&1'})
+    local proc, proc_err = executor:exec(command, {env = environment})
     if not proc then
         executor:release()
         return nil, fail("docker exec", proc_err)

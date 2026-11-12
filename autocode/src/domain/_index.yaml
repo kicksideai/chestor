@@ -46,3 +46,12 @@ entries:
     imports:
       job_types: kickside.core.jobs:types
 
+
+  - name: endpoint
+    kind: library.lua
+    source: file://endpoint.lua
+
+  - name: limits
+    kind: library.lua
+    source: file://limits.lua
+    modules: [time]

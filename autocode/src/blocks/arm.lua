@@ -21,7 +21,7 @@ local function arm(args: Args): (Object?, error?)
         if key ~= "include_input" and key ~= "run_timeout" then request[key] = value end
     end
     -- The Block's own timeout belongs to the platform wait; the run limit is run_timeout.
-    if type(config.run_timeout) == "string" and config.run_timeout ~= "" then request.timeout = config.run_timeout end
+    if type(config.run_timeout) == "string" then request.timeout = config.run_timeout end
     if config.include_input ~= false and args.input ~= nil and not (type(args.input) == "table" and next(args.input) == nil) then
         request.input = args.input
     end

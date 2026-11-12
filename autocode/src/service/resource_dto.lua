@@ -3,7 +3,7 @@ local resources = require("resources")
 local repo = require("repo")
 type Image = {id: string, ref: string, label: string, home: string, status: string, usable: boolean, agents: {string}, last_error: string,
     owner: string, writable: boolean, deletable: boolean, shareable: boolean}
-type Workspace = {id: string, name: string, writable: boolean, deletable: boolean, shareable: boolean, host_path: string?}
+type Workspace = {isolation: string?,id: string, name: string, writable: boolean, deletable: boolean, shareable: boolean, host_path: string?}
 local M = {}
 local text = resources.text
 function M.image(image: resources.Resource, build: repo.ImageBuild?): Image
@@ -17,7 +17,7 @@ function M.image(image: resources.Resource, build: repo.ImageBuild?): Image
         shareable = resources.has(image.access, resources.ACCESS.ADMIN)}
 end
 function M.workspace(workspace: resources.Resource): Workspace
-    return {id = workspace.id, name = text(workspace.meta.title), writable = resources.has(workspace.access, resources.ACCESS.WRITE),
+    return {isolation = text(workspace.meta.isolation) ~= "" and text(workspace.meta.isolation) or "shared", id = workspace.id, name = text(workspace.meta.title), writable = resources.has(workspace.access, resources.ACCESS.WRITE),
         deletable = resources.has(workspace.access, resources.ACCESS.DELETE), shareable = resources.has(workspace.access, resources.ACCESS.ADMIN)}
 end
 return M

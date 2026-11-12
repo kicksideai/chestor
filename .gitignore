@@ -8,3 +8,4 @@ ui/dist/
 __pycache__/
 journal/local/
 *.tsbuildinfo
+*.lock.runtime.lock

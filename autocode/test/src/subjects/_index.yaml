@@ -103,6 +103,12 @@ entries:
       transport: chestor.autocode.service:transport
       job_outcome: chestor.autocode.domain:job_outcome
 
+  - name: stub_worktrees
+    kind: library.lua
+    source: 'return require("stubs").worktrees'
+    imports:
+      stubs: app:runner_stubs
+
   - name: run_subject
     kind: library.lua
     source: file://../run_subject.lua
@@ -111,10 +117,12 @@ entries:
       repo: app:stub_repo
       runs: app:stub_runs
       container: chestor.autocode.infrastructure:container
+      event_log: app:event_log_subject
       records: chestor.autocode.runner:records
       redact: chestor.autocode.runner:redact
       docker: app:stub_docker
       live: app:stub_live
+      worktrees: app:stub_worktrees
       run_io: app:run_io_subject
       account_health: app:account_health_subject
       execution_identity: app:stub_execution_identity
@@ -140,7 +148,9 @@ entries:
   - name: workspaces_subject
     kind: library.lua
     source: file://../workspaces_subject.lua
+    modules: [funcs]
     imports:
+      host: app:stub_workspace_host
       registry: app:stub_registry
 
   - name: stub_registry
@@ -155,6 +165,8 @@ entries:
     modules: [security]
     imports:
       repo: app:stub_repo
+      gateway: chestor.autocode.service:gateway
+      limits: chestor.autocode.domain:limits
       runs: app:stub_runs
       resources: app:stub_resources
       transport: chestor.autocode.service:transport
@@ -172,7 +184,7 @@ entries:
     source: file://../retention_subject.lua
     modules: [time]
     imports:
-      repo: app:stub_repo
+      prune: app:stub_repo
       settings: app:stub_settings
 
   - name: retention_cleanup_subject
@@ -180,7 +192,7 @@ entries:
     source: file://../retention_subject.lua
     modules: [time]
     imports:
-      repo: chestor.autocode.persist:repo
+      prune: chestor.autocode.runner:prune
       settings: app:stub_settings
 
   - name: image_requests_subject
@@ -188,6 +200,7 @@ entries:
     source: file://../image_requests_subject.lua
     modules: [uuid, logger, ctx]
     imports:
+      endpoint_url: chestor.autocode.domain:endpoint
       trace: kickside.execution:trace
       recipe: chestor.autocode.domain:recipe
       repo: app:stub_repo
@@ -222,6 +235,7 @@ entries:
       runs: app:stub_runs
       repo: app:stub_repo
       accounts: chestor.autocode.service:accounts
+      endpoint_url: chestor.autocode.domain:endpoint
       resource_dto: chestor.autocode.service:resource_dto
 
   - name: run_io_subject
@@ -243,6 +257,7 @@ entries:
     modules: [time]
     imports:
       repo: app:stub_repo
+      limits: chestor.autocode.domain:limits
       drivers: app:stub_drivers
       redact: chestor.autocode.runner:redact
       settings: app:stub_settings
@@ -288,10 +303,12 @@ entries:
       repo: app:delivery_repo
       runs: app:stub_runs
       container: chestor.autocode.infrastructure:container
+      event_log: chestor.autocode.runner:event_log
       records: chestor.autocode.runner:records
       redact: chestor.autocode.runner:redact
       docker: app:stub_docker
       live: app:stub_live
+      worktrees: app:stub_worktrees
       run_io: app:run_io_subject
       account_health: app:account_health_subject
       execution_identity: app:stub_execution_identity
@@ -314,6 +331,7 @@ entries:
     kind: library.lua
     source: file://../teardown_subject.lua
     imports:
+      docker_image: app:docker_image_subject
       image_tags: app:image_tags_subject
       ctx: app:stub_context
       repo: app:stub_repo
@@ -382,9 +400,8 @@ entries:
     imports:
       trace: kickside.execution:trace
       database: chestor.autocode.persist:database
+      limits: chestor.autocode.domain:limits
       jobs: app:delivery_jobs
-      slot_purge: kickside.core.jobs.persist:slot_purge
-      retention_notifier: kickside.core.retention:notifier
 
   - name: delivery_repo
     kind: library.lua
@@ -425,127 +442,3 @@ entries:
     kind: library.lua
     source: file://../redact_subject.lua
     modules: [json]
-
-  - name: records_subject
-    kind: library.lua
-    source: file://../records_subject.lua
-    imports:
-      credentials: chestor.autocode.domain:credentials
-      drivers: bee.drivers:drivers
-
-  - name: accounts_subject
-    kind: library.lua
-    source: file://../accounts_subject.lua
-    modules: [security, logger]
-    imports:
-      boundary: chestor.autocode.service:boundary
-      values: chestor.autocode.service:values
-      repo: app:stub_repo
-      resources: app:stub_resources
-      drivers: app:stub_drivers
-      credentials: chestor.autocode.domain:credentials
-      runs: app:stub_runs
-      live: app:stub_live
-
-  - name: stub_context
-    kind: library.lua
-    source: 'return require("stubs").context'
-    imports:
-      stubs: app:runner_stubs
-
-  - name: docker_image_subject
-    kind: library.lua
-    source: file://../docker_image_subject.lua
-    imports:
-      docker: app:stub_docker
-
-  - name: maintenance_subject_runner
-    kind: library.lua
-    source: file://../maintenance_runner_subject.lua
-    imports:
-      docker: app:stub_docker
-      repo: app:stub_repo
-
-  - name: maintenance_retention_subject_runner
-    kind: library.lua
-    source: file://../maintenance_runner_subject.lua
-    imports:
-      docker: app:stub_docker
-      repo: chestor.autocode.persist:repo
-
-  - name: real_probe_maintenance_subject_runner
-    kind: library.lua
-    source: file://../maintenance_runner_subject.lua
-    imports:
-      docker: app:probe_docker
-      repo: app:stub_repo
-
-  - name: delivery_builds_subject
-    kind: library.lua
-    source: file://../builds_subject.lua
-    modules: [sql, json, time]
-    imports:
-      trace: kickside.execution:trace
-      recipe: chestor.autocode.domain:recipe
-      database: chestor.autocode.persist:database
-      jobs: app:delivery_jobs
-      settings: chestor.autocode.domain:settings
-
-  - name: arm_subject
-    kind: library.lua
-    source: file://../arm_subject.lua
-    modules: [json, security]
-    imports:
-      client: chestor.autocode.service:client
-      boundary: chestor.autocode.service:boundary
-      trace: kickside.execution:trace
-      dataflow_repo: app:stub_flow
-  - name: stub_flow
-    kind: library.lua
-    source: file://../stub_flow.lua
-    imports:
-      stubs: app:runner_stubs
-
-  - name: live_subject
-    kind: library.lua
-    source: file://../live_subject.lua
-    imports:
-      component: app:stub_component
-      funcs: app:stub_funcs
-      contract: app:stub_realtime_contract
-  - name: stub_realtime_contract
-    kind: library.lua
-    source: file://../stub_realtime_contract.lua
-    imports:
-      stubs: app:runner_stubs
-
-  - name: run_store_subject
-    kind: library.lua
-    source: file://../run_store_subject.lua
-    modules: [sql, uuid]
-    imports:
-      trace: kickside.execution:trace
-      database: chestor.autocode.persist:database
-      jobs: app:stub_jobs
-      slot_purge: kickside.core.jobs.persist:slot_purge
-      retention_notifier: app:retention_notifier_stub
-
-  - name: retention_notifier_stub
-    kind: library.lua
-    source: file://../retention_notifier.lua
-    imports:
-      stubs: app:runner_stubs
-
-  - name: account_query_stub
-    kind: library.lua
-    source: file://../account_query_stub.lua
-    imports:
-      database: chestor.autocode.persist:database
-      stubs: app:runner_stubs
-
-  - name: account_store_subject
-    kind: library.lua
-    source: file://../account_store_subject.lua
-    modules: [time]
-    imports:
-      database: app:account_query_stub

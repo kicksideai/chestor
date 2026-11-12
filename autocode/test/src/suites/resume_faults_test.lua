@@ -30,6 +30,17 @@ local function cases()
             local encoded = json.encode(state.resume_args.payload.usage)
             test.eq(encoded, "{}")
         end)
+        test.it("delivers reported cost and model usage unchanged to the workflow", function()
+            local state = stubs.reset()
+            state.run.status, state.run.flow = "succeeded", {dataflow_id = "flow", signal_id = "signal"}
+            state.run.usage = {cost_usd = 0.125, cache_write_tokens = 0, models = {deepseek = {cost_usd = 0.125}}}
+            local delivered, err = resume.run({payload = {run_id = "run"}})
+            test.is_nil(err)
+            test.not_nil(delivered)
+            test.eq(state.resume_args.payload.usage.cost_usd, 0.125)
+            test.eq(state.resume_args.payload.usage.cache_write_tokens, 0)
+            test.eq(state.resume_args.payload.usage.models.deepseek.cost_usd, 0.125)
+        end)
         test.it("preserves the resume failure kind, retryability and details", function()
             local state = stubs.reset()
             state.run.status, state.run.flow = "succeeded", {dataflow_id = "flow", signal_id = "signal"}

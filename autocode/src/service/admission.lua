@@ -2,6 +2,9 @@
 -- Admission checks the caller's account, trusted image build and workspace,
 -- then asks the driver for its launch.
 local recipe = require("recipe")
+local profiles = require("profiles")
+local limits = require("limits")
+local endpoint_url = require("endpoint_url")
 local repo = require("repo")
 local resources = require("resources")
 local drivers = require("drivers")
@@ -10,19 +13,21 @@ local workspaces = require("workspaces")
 local settings = require("settings")
 local security = require("security")
 local time = require("time")
+local gateway = require("gateway")
+local funcs = require("funcs")
 
 type Object = {[string]: unknown}
 -- What a member asks for: an agent, and one of its accounts or none.
-type Request = {agent: string, account_id: string?, image_id: string, workspace_id: string?, options: Object,
+type Request = {tools: Object?,isolation: string?,profile_id: string?, overrides: Object?, account_pool: {string}?, endpoint: Endpoint?, resolved: boolean?, agent: string, account_id: string?, image_id: string, workspace_id: string?, options: Object,
     unattended: boolean?, repo_url: string, repo_ref: string?, input: string?, prompt: string, timeout: string?, idempotency_key: string?}
 type Endpoint = {protocol: string, base_url: string, model: string?}
 type Account = {id: string, label: string, owner: string, kind: credentials.Kind, endpoint: Endpoint?}
-type Image = {id: string, ref: string, home: string, memory: string, cpus: string, pids_limit: integer, gpus: string,
+type Image = {gateway_endpoint: string?,id: string, ref: string, home: string, memory: string, cpus: string, pids_limit: integer, gpus: string,
     network: string, extra_args: {string}, allows: {string}}
 -- writable: the caller's grant mounts the workspace read-write.
-type Workspace = {id: string, host_path: string, writable: boolean}
+type Workspace = {gateway_endpoint: string?,isolation: string?, gitdir: string?,id: string, host_path: string, writable: boolean}
 type Admitted = {candidates: {string}, spec: repo.RunSpec, account: Account, driver: drivers.Driver, image: Image, workspace: Workspace?,
-    workdir: string, launch: drivers.Launch}
+    workdir: string, launch: drivers.Launch, launch_request: drivers.LaunchRequest, surface: gateway.Surface?}
 local M = {}
 local function refuse(message: string): error
     return errors.new({kind = errors.INVALID, message = message})
@@ -51,27 +56,17 @@ local function endpoint(meta: Object): Endpoint?
     return {protocol = text(meta.endpoint_protocol), base_url = base_url, model = model ~= "" and model or nil}
 end
 
-function M.valid_endpoint(url: string): boolean
-    local authority = url:match("^https?://([^/?#%s]+)[^?#%s]*$")
-    if not authority or authority:find("@", 1, true) then return false end
-    local host, port = authority:match("^(%[[%x:]+%]):(%d+)$")
-    if not host then host, port = authority:match("^([%w.-]+):(%d+)$") end
-    if not host then
-        return authority:match("^[%w][%w.-]*$") ~= nil or authority:match("^%[[%x:]+%]$") ~= nil
-    end
-    local number = tonumber(port)
-    return number ~= nil and number >= 1 and number <= 65535
-end
+M.valid_endpoint = endpoint_url.valid_endpoint
 -- usable decodes an account resource the caller may run on: an enabled
 -- account of the driver holding a credential it still reads.
-function M.usable(driver: drivers.Driver, resource: resources.Resource): (Account?, string?)
+function M.usable(driver: drivers.Driver, resource: resources.Resource, override: Endpoint?): (Account?, string?)
     local meta = resource.meta
     local label = text(meta.title)
     if text(meta.agent) ~= driver.id then return nil, "select one of your " .. driver.title .. " accounts" end
     if not resources.flag(meta.enabled, true) then return nil, "account " .. label .. " is disabled" end
     local kind = credentials.kind(driver, text(meta.credential_kind))
     if not kind then return nil, "account " .. label .. " holds a credential " .. driver.id .. " no longer reads" end
-    local reach = endpoint(meta)
+    local reach = override or endpoint(meta)
     if reach then
         if kind.subscription or not kind.variable or not M.valid_endpoint(reach.base_url) or not contains(driver.endpoints, reach.protocol) then
             return nil, "account " .. label .. " has an unsupported endpoint"
@@ -80,39 +75,39 @@ function M.usable(driver: drivers.Driver, resource: resources.Resource): (Accoun
     return {id = resource.id, label = label, owner = resource.owner, kind = kind, endpoint = reach}, nil
 end
 -- account returns an eligible account and the candidates for reservation.
-local function account(driver: drivers.Driver, account_id: string?): (Account?, {string}?, error?)
+local function account(driver: drivers.Driver, account_id: string?, pool: {string}?, override: Endpoint?): (Account?, {Account}?, error?)
     if account_id and account_id ~= "" then
         local resource, err = resources.get("account", account_id, resources.ACCESS.READ)
         if not resource then
             if errors.is(err, errors.NOT_FOUND) then return nil, nil, refuse("select one of your " .. driver.title .. " accounts") end
             return nil, nil, err
         end
-        local selected, problem = M.usable(driver, resource)
+        local selected, problem = M.usable(driver, resource, override)
         if not selected then return nil, nil, refuse(problem or "account is not usable") end
         local states, state_err = repo.account_states({selected.id})
         if not states then return nil, nil, state_err end
-        if states[selected.id].cooldown_until > repo.now() then return nil, nil, refuse("account " .. selected.label .. " is cooling down") end
-        return selected, {selected.id}, nil
+        if states[selected.id].cooldown_until > repo.now() or limits.blocked(states[selected.id].rate_limits, repo.now()) then return nil, nil, refuse("account " .. selected.label .. " is cooling down") end
+        return selected, {selected}, nil
     end
     local all, list_err = resources.list("account")
     if not all then return nil, nil, list_err end
     local candidates: {Account} = {}
     local ids: {string} = {}
     for _, resource in ipairs(all) do
-        local selected = M.usable(driver, resource)
-        if selected then
+        local selected = M.usable(driver, resource, override)
+        if selected and (not pool or #pool == 0 or contains(pool, selected.id)) then
             candidates[#candidates + 1] = selected
             ids[#ids + 1] = selected.id
         end
     end
     local states, state_err = repo.account_states(ids)
     if not states then return nil, nil, state_err end
-    local eligible: {string} = {}
+    local eligible: {Account} = {}
     local selected: Account? = nil
     local now = repo.now()
     for _, candidate in ipairs(candidates) do
-        if states[candidate.id].cooldown_until <= now then
-            eligible[#eligible + 1] = candidate.id
+        if states[candidate.id].cooldown_until <= now and not limits.blocked(states[candidate.id].rate_limits, now) then
+            eligible[#eligible + 1] = candidate
             selected = selected or candidate
         end
     end
@@ -140,7 +135,7 @@ local function image(driver: drivers.Driver, image_id: string): (Image?, error?)
         return nil, refuse("image " .. ref .. " does not contain the " .. driver.id .. " CLI; rebuild it with the CLI installed")
     end
     local run: recipe.Settings = built.settings
-    return {id = resource.id, ref = ref, home = home, memory = run.memory, cpus = run.cpus,
+    return {gateway_endpoint = text(resource.meta.gateway_endpoint), id = resource.id, ref = ref, home = home, memory = run.memory, cpus = run.cpus,
         pids_limit = run.pids_limit, gpus = run.gpus, network = run.network,
         extra_args = run.extra_args, allows = run.allows}, nil
 end
@@ -154,7 +149,7 @@ local function workspace(workspace_id: string): (Workspace?, error?)
     local allowed, path_err, config_err = workspaces.admit(host_path)
     if config_err then return nil, config_err end
     if not allowed then return nil, refuse(path_err or "workspace path is not admitted") end
-    return {id = workspace_id, host_path = host_path, writable = resources.has(context.access, resources.ACCESS.WRITE)}, nil
+    return {gateway_endpoint = text(context.values.gateway_endpoint), id = workspace_id, isolation = text(context.values.isolation) ~= "" and text(context.values.isolation) or "shared", host_path = host_path, writable = resources.has(context.access, resources.ACCESS.WRITE)}, nil
 end
 -- timeout_ms reads a requested duration, or the run_timeout setting.
 local function timeout_ms(requested: string?): (integer?, error?)
@@ -173,17 +168,40 @@ local function timeout_ms(requested: string?): (integer?, error?)
 end
 -- repository URLs carry no credentials: a run reaches a private repository
 -- through credentials the image or the workspace provides.
-local function repository(url: string): error?
-    if url == "" then return nil end
-    if url:match("^%a[%w+.-]*://[^/@]*@") then return refuse("repository URL must not contain credentials") end
-    return nil
-end
 -- admit checks a request against what it names under the caller's grants and
 -- asks the driver for the launch. Runs are batch turns: the brief arrives once
 -- on stdin or argv and stdin then closes.
 function M.admit(request: Request, launching: boolean?): (Admitted?, error?)
     local actor = security.actor()
     if not actor then return nil, errors.new({kind = errors.PERMISSION_DENIED, message = "authentication required"}) end
+    local profile_options: Object = {}
+    if request.profile_id and not request.resolved then
+        local defaults, defaults_err = profiles.defaults(request.profile_id)
+        if not defaults then return nil, defaults_err end
+        local merged: Object = {}
+        for key, value in pairs(request) do merged[key] = value end
+        local explicit = request.overrides or {}
+        for _, field in ipairs({"agent", "account_id", "account_pool", "endpoint", "image_id", "workspace_id", "repo_url", "repo_ref", "unattended", "isolation"}) do
+            if explicit[field] == nil and defaults[field] ~= nil then merged[field] = defaults[field] end
+        end
+        if explicit.account_id ~= nil then merged.account_pool = request.account_pool or {} end
+        if explicit.account_pool ~= nil then merged.account_id = request.account_id end
+        if explicit.workspace_id and (not request.workspace_id or request.workspace_id == "") then merged.workspace_id = nil end
+        if explicit.timeout == nil and defaults.run_timeout ~= nil then merged.timeout = defaults.run_timeout end
+        if defaults.tools or request.tools then
+            local surface: Object = {}
+            for key, value in pairs(defaults.tools or {}) do surface[key] = value end
+            for key, value in pairs(request.tools or {}) do surface[key] = value end
+            local context: Object = {}
+            for key, value in pairs((defaults.tools and defaults.tools.context) or {}) do context[key] = value end
+            for key, value in pairs((request.tools and request.tools.context) or {}) do context[key] = value end
+            surface.context = context
+            merged.tools = surface
+        end
+        profile_options = type(defaults.options) == "table" and defaults.options or {}
+        request = merged :: Request
+    end
+    if request.endpoint and request.endpoint.base_url == "" then request.endpoint = nil end
     local driver, driver_err = drivers.get(request.agent)
     if not driver then
         if errors.is(driver_err, errors.NOT_FOUND) then return nil, refuse("select an agent") end
@@ -193,14 +211,16 @@ function M.admit(request: Request, launching: boolean?): (Admitted?, error?)
     if request.unattended == nil then unattended = driver.unattended ~= nil end
     local limit, limit_err = timeout_ms(request.timeout)
     if not limit then return nil, limit_err end
-    local repo_err = repository(request.repo_url)
-    if repo_err then return nil, repo_err end
-    local selected, candidates, account_err = account(driver, request.account_id)
-    if not selected or not candidates then return nil, account_err end
+    local repo_err = endpoint_url.repository_problem(request.repo_url, request.repo_ref or "", request.workspace_id ~= nil and request.workspace_id ~= "")
+    if repo_err then return nil, refuse(repo_err) end
+    local selected, eligible, account_err = account(driver, request.account_id, request.account_pool, request.endpoint)
+    if not selected or not eligible then return nil, account_err end
+    local candidates: {string} = {}
+    for _, candidate in ipairs(eligible) do candidates[#candidates + 1] = candidate.id end
     local chosen, image_err = image(driver, request.image_id)
     if not chosen then return nil, image_err end
     local mounted: Workspace? = nil
-    if request.workspace_id then
+    if request.workspace_id and request.workspace_id ~= "" then
         local found, workspace_err = workspace(request.workspace_id)
         if not found then return nil, workspace_err end
         mounted = found
@@ -209,21 +229,53 @@ function M.admit(request: Request, launching: boolean?): (Admitted?, error?)
         return nil, refuse("repository cloning requires a scratch workspace; select a workspace to use its existing checkout")
     end
 
+    local isolation = request.isolation or (mounted and mounted.isolation) or "shared"
+    if isolation ~= "shared" and isolation ~= "worktree" then return nil, refuse("isolation must be shared or worktree") end
+    if isolation == "worktree" then
+        if not mounted then return nil, refuse("worktree isolation requires a registered git workspace") end
+        if not mounted.writable then return nil, refuse("worktree isolation requires workspace WRITE access") end
+        local valid, validate_err = funcs.call("chestor.autocode.service:validate_worktree", {workspace_id = mounted.id})
+        if not valid then return nil, validate_err end
+    elseif mounted and request.repo_ref and request.repo_ref ~= "" then
+        return nil, refuse("repo_ref on a registered workspace requires worktree isolation")
+    end
+
+    local options: Object = {}
+    if not request.resolved then
+        for _, option in ipairs(driver.options) do
+            local batch = not option.profiles or #option.profiles == 0 or contains(option.profiles, "batch")
+            if batch and option.default ~= nil then options[option.name] = option.default end
+        end
+        if unattended then
+            for key, value in pairs(driver.unattended or {}) do options[key] = value end
+        end
+        for key, value in pairs(profile_options) do options[key] = value end
+    end
+    for key, value in pairs(request.options) do options[key] = value end
+    local reach = request.endpoint or (not request.resolved and selected.endpoint or nil)
+    local account_endpoints: {[string]: Object} = {}
+    if not request.endpoint then
+        for _, candidate in ipairs(eligible) do account_endpoints[candidate.id] = candidate.endpoint or {} end
+    end
     local brief = request.prompt
     if launching and request.input and request.input ~= "" then brief = brief .. "\n\nInput:\n" .. request.input end
-    local launch, launch_err = drivers.launch(driver.id, {profile_id = "batch", brief = brief, home = chosen.home,
-        unattended = unattended, options = request.options, placement = placement(chosen, mounted),
-        endpoint = selected.endpoint})
+    local surface, surface_err = gateway.resolve(request.tools, driver.id)
+    if surface_err then return nil, surface_err end
+    local launch_request: drivers.LaunchRequest = {profile_id = "batch", brief = brief, home = chosen.home,
+        unattended = false, options = options, placement = placement(chosen, mounted),
+        endpoint = reach, instructions = surface and surface.instructions or nil}
+    local launch, launch_err = drivers.launch(driver.id, launch_request)
     if not launch then return nil, launch_err end
 
-    return {candidates = candidates, spec = {agent = driver.id, account_id = selected.id, account_pinned = request.account_id ~= nil and request.account_id ~= "", input = request.input, repo_ref = request.repo_ref, image_id = chosen.id,
-        workspace_id = mounted and mounted.id or nil, options = request.options, unattended = unattended,
+    return {candidates = candidates, spec = {tools = request.tools, isolation = isolation, account_pool = request.account_pool, endpoint = request.endpoint, account_endpoints = account_endpoints, resolved = true, agent = driver.id, account_id = selected.id, account_pinned = request.account_id ~= nil and request.account_id ~= "", input = request.input, repo_ref = request.repo_ref, image_id = chosen.id,
+        workspace_id = mounted and mounted.id or nil, options = options, unattended = unattended,
         repo_url = request.repo_url, prompt = request.prompt, timeout_ms = limit}, account = selected, driver = driver,
-        image = chosen, workspace = mounted, workdir = workdir(chosen, mounted), launch = launch}, nil
+        image = chosen, workspace = mounted, workdir = workdir(chosen, mounted), launch = launch, launch_request = launch_request, surface = surface}, nil
 end
 -- request returns the admission request a recorded run was submitted with.
 function M.request(run: repo.Run): Request
-    return {agent = run.agent, account_id = run.account_id, image_id = run.image_id, workspace_id = run.workspace_id,
+    return {tools = run.tools, isolation = run.isolation, account_pool = run.account_pool, endpoint = run.endpoint, resolved = run.resolved,
+        agent = run.agent, account_id = run.account_id, image_id = run.image_id, workspace_id = run.workspace_id,
         options = run.options, unattended = run.unattended, repo_url = run.repo_url, repo_ref = run.repo_ref, input = run.input, prompt = run.prompt,
         timeout = tostring(run.timeout_ms) .. "ms"}
 end

@@ -1,10 +1,12 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 local values = require("values")
+local endpoint_url = require("endpoint_url")
 local resource_dto = require("resource_dto")
 local resources = require("resources")
 local workspaces = require("workspaces")
 local security = require("security")
 local client = require("client")
+local worktrees = require("worktrees")
 local boundary = require("boundary")
 type Object = {[string]: unknown}
 type WorkspaceList = {workspaces: {resource_dto.Workspace}, roots: {string}?}
@@ -28,7 +30,17 @@ local function create(body: Object): ({id: string}?, error?)
     local allowed, path_err, config_err = workspaces.admit(normalized)
     if config_err then return nil, boundary.native(config_err) end
     if not allowed then return nil, boundary.error(errors.INVALID, "autocode.invalid_workspace", path_err or "path not allowed") end
-    local id, err = resources.register("workspace", {title = name}, {host_path = normalized})
+    local endpoint = body.gateway_endpoint
+    if endpoint ~= nil and (type(endpoint) ~= "string" or (endpoint ~= "" and not endpoint_url.valid_authority(endpoint))) then
+        return nil, boundary.error(errors.INVALID, "autocode.invalid_workspace", "gateway_endpoint must be a host and port")
+    end
+    local isolation = body.isolation or "shared"
+    if isolation ~= "shared" and isolation ~= "worktree" then return nil, boundary.error(errors.INVALID, "autocode.invalid_workspace", "isolation must be shared or worktree") end
+    if isolation == "worktree" then
+        local tree, git_err = worktrees.plan(normalized, "validation")
+        if not tree then return nil, boundary.native(git_err) end
+    end
+    local id, err = resources.register("workspace", {title = name, isolation = isolation}, {host_path = normalized, isolation = isolation, gateway_endpoint = endpoint})
     if not id then return nil, boundary.native(err) end
     return {id = id}, nil
 end

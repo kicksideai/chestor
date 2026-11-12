@@ -45,8 +45,7 @@ local function cases()
             local policy = registry.get("chestor.autocode.security:docker_commands")
             local matches = false
             for _, resource in ipairs(policy.data.policy.resources) do
-                local prefix = resource:match("^(.-) %*$")
-                if prefix and state.command:sub(1, #prefix + 1) == prefix .. " " then matches = true end
+                if resource == state.command then matches = true end
             end
             test.is_true(matches)
         end)
@@ -82,7 +81,7 @@ local function cases()
             state.exec_steps = {{code = 1}, {code = 0}}
             test.is_nil(docker.ensure_removed("container"))
             test.eq(#state.exec_commands, 2)
-            test.not_nil(state.exec_commands[2]:find("name=^container$", 1, true))
+            test.not_nil(state.command_env.AUTOCODE_DOCKER_COMMAND:find("name=^container$", 1, true))
         end)
         test.it("preserves removal failure when the container remains or verification fails", function()
             for _, verify in ipairs({{code = 0, chunks = {"container-id\n"}}, {code = 1},

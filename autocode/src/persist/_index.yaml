@@ -54,20 +54,20 @@ entries:
     imports:
       trace: kickside.execution:trace
       database: chestor.autocode.persist:database
+      limits: chestor.autocode.domain:limits
       jobs: kickside.core.jobs:jobs
-      slot_purge: kickside.core.jobs.persist:slot_purge
-      retention_notifier: kickside.core.retention:notifier
 
   - name: events
     kind: library.lua
     source: file://events.lua
-    modules: []
+    modules: [sql]
     imports:
       database: chestor.autocode.persist:database
 
   - name: project_account
     kind: function.lua
     source: file://account_state.lua
+    modules: [json]
     method: project
     imports:
       repo: chestor.autocode.persist:repo
@@ -80,3 +80,10 @@ entries:
         - chestor.autocode.security:service_calls
         - chestor.autocode.security:store
         - chestor.autocode.security:account_status
+
+  - name: retention
+    kind: library.lua
+    source: file://retention.lua
+    modules: [sql]
+    imports:
+      database: chestor.autocode.persist:database

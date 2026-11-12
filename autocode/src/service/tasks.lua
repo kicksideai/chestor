@@ -11,6 +11,7 @@ local ctx = require("ctx")
 local registry = require("registry")
 local accounts = require("accounts")
 local resource_dto = require("resource_dto")
+local endpoint_url = require("endpoint_url")
 
 type Object = {[string]: unknown}
 local M = {}
@@ -93,26 +94,26 @@ function M.list_workspaces(args: unknown): (Object?, error?)
     return {workspaces = result}, nil
 end
 local function task(request: Object): (runs.Request?, error?)
-    local agent = values.text(request.agent, 64)
-    local image = values.text(request.image_id, 64)
+    local agent = values.text(request.agent or "", 64)
+    local image = values.text(request.image_id or "", 64)
     local prompt = values.text(request.prompt, 16384)
     local account = values.text(request.account_id or "", 64)
     local workspace = values.text(request.workspace_id or "", 64)
     local repository = values.text(request.repo_url or "", 2000)
     local repo_ref = values.text(request.repo_ref or "", 200)
-    if not repo_ref or repo_ref:sub(1, 1) == "-" or repo_ref:find("[%s%c]") then return nil, invalid("repo_ref must be a branch or tag of at most 200 bytes") end
-    for _, forbidden in ipairs({"..", "~", "^", ":", "?", "*", "[", "\\", "@{"}) do
-        if repo_ref:find(forbidden, 1, true) then return nil, invalid("repo_ref must be a branch or tag") end
+    if not repo_ref then return nil, invalid("repo_ref must be a branch or tag of at most 200 bytes") end
+    if not request.profile_id and repository then
+        local problem = endpoint_url.repository_problem(repository, repo_ref, request.workspace_id ~= nil and request.workspace_id ~= "")
+        if problem then return nil, invalid(problem) end
     end
-    if repo_ref ~= "" and repository == "" then return nil, invalid("repo_ref requires repo_url") end
     local node_input: string? = nil
     if request.input ~= nil then
         local encoded, input_err = values.json(request.input, 65536)
         if not encoded then return nil, boundary.native(input_err) end
         node_input = encoded
     end
-    if not agent or agent == "" then return nil, invalid("select an agent") end
-    if not image or image == "" then return nil, invalid("select an image") end
+    if not agent or (agent == "" and not request.profile_id) then return nil, invalid("select an agent") end
+    if not image or (image == "" and not request.profile_id) then return nil, invalid("select an image") end
     if not prompt or prompt == "" then return nil, invalid("prompt is required and must fit the task limit") end
     if not account or not workspace or not repository then return nil, invalid("task fields exceed their byte limits") end
     local timeout = values.text(request.timeout or "", 64)
@@ -123,10 +124,18 @@ local function task(request: Object): (runs.Request?, error?)
     if not options then return nil, invalid("options must be an object") end
     local key = type(request.idempotency_key) == "string" and request.idempotency_key or ""
     if #key > 200 then return nil, invalid("idempotency key exceeds 200 bytes") end
-    return {agent = agent, image_id = image, account_id = account ~= "" and account or nil,
+    local overrides: Object? = nil
+    if request.profile_id then
+        overrides = {}
+        for _, name in ipairs({"agent", "account_id", "account_pool", "endpoint", "image_id", "workspace_id", "repo_url", "repo_ref", "unattended", "timeout", "isolation", "tools"}) do
+            if request[name] ~= nil then overrides[name] = true end
+        end
+    end
+    return {tools = request.tools, isolation = request.isolation, profile_id = type(request.profile_id) == "string" and request.profile_id or nil, overrides = overrides,
+        account_pool = request.account_pool, endpoint = request.endpoint, agent = agent, image_id = image, account_id = account ~= "" and account or nil,
         workspace_id = workspace ~= "" and workspace or nil, prompt = prompt, input = node_input, repo_url = repository, repo_ref = repo_ref, options = options,
         unattended = unattended, timeout = timeout ~= "" and timeout or nil,
-        idempotency_key = request.idempotency_key ~= nil and key or nil}, nil
+        idempotency_key = request.idempotency_key ~= nil and key or nil} :: runs.Request, nil
 end
 function M.submit_task(args: unknown): (Object?, error?)
     local request, err = input("submit_task", args)
@@ -148,7 +157,7 @@ function M.submit_task(args: unknown): (Object?, error?)
     return {run_id = id}, nil
 end
 local function run_view(run: repo.Run): Object
-    return {id = run.id, agent = run.agent, account_id = run.account_id, image_id = run.image_id, workspace_id = run.workspace_id,
+    return {id = run.id, isolation = run.isolation or "shared", endpoint = run.endpoint, agent = run.agent, account_id = run.account_id, image_id = run.image_id, workspace_id = run.workspace_id,
         options = values.object(run.options), unattended = run.unattended, repo_url = run.repo_url, prompt = run.prompt,
         timeout_ms = run.timeout_ms, workflow = run.flow ~= nil, status = run.status, result = run.result, error = run.error,
         usage = values.object(run.usage), cancel_requested = run.cancel_requested, created_at = run.created_at, started_at = run.started_at, finished_at = run.finished_at}
@@ -199,6 +208,7 @@ function M.list_runs(args: unknown): (Object?, error?)
         local last = page[#page]
         next_cursor = last.created_at .. "|" .. last.id
     end
+    for _, summary in ipairs(page) do summary.usage = values.object(summary.usage) or {} end
     return {runs = values.array(page), next_cursor = next_cursor}, nil
 end
 function M.cancel_run(args: unknown): (Object?, error?)

@@ -23,6 +23,7 @@ const saving = ref(false)
 const name = ref('')
 const nameEdited = ref(false)
 const hostPath = ref('')
+const isolation = ref<'shared' | 'worktree'>('shared')
 const loaded = ref(false)
 
 function rootPath(root: string) { return root.replace(/\/+$/, '') + '/' }
@@ -35,12 +36,12 @@ watch(hostPath, path => {
 
 const refresh = serial(async () => {
   try {
-    const data = await reconcile(autocode.workspaces, data => data.workspaces.map(w => w.id), topicIds, alive)
-    if (!alive()) return
-    workspaces.value = data.workspaces
-    roots.value = data.roots ?? []
-    loaded.value = true
-    error.value = ''
+    await reconcile(autocode.workspaces, data => data.workspaces.map(w => w.id), topicIds, alive, data => {
+      workspaces.value = data.workspaces
+      roots.value = data.roots ?? []
+      loaded.value = true
+      error.value = ''
+    }, () => { void refresh() })
   } catch (e) {
     if (alive()) error.value = errorText(e, 'Could not load workspaces.')
   }
@@ -52,7 +53,7 @@ async function save() {
   error.value = ''
   saving.value = true
   try {
-    await autocode.createWorkspace({ name: name.value, host_path: hostPath.value })
+    await autocode.createWorkspace({ name: name.value, isolation: isolation.value, host_path: hostPath.value })
     if (!alive()) return
     nameEdited.value = false
     name.value = ''
@@ -110,6 +111,7 @@ watch(workspaces, value => emit('count', value.length))
         <label class="ac-field"><span>Name</span><input v-model="name" @input="nameEdited = true" autofocus class="kx-focus-halo" placeholder="e.g. Kickside checkout" /></label>
         <label class="ac-field"><span>Host directory</span><input v-model="hostPath" class="ac-mono kx-focus-halo" :placeholder="(roots[0] ?? '/srv/work') + '/project'" /><small class="ac-hint">An existing directory, mounted at <code>/workspace</code>.</small></label>
         <p v-if="error" class="kx-err" role="alert">{{ error }}</p>
+        <label class="ac-field"><span>Isolation</span><select v-model="isolation" class="kx-focus-halo" aria-label="Workspace isolation"><option value="shared">Shared checkout</option><option value="worktree">Private git worktree</option></select></label>
         <footer class="ac-dialog-foot"><button type="button" class="ac-btn kx-focus-halo" :disabled="saving" @click="adding = false">Cancel</button><button type="button" class="ac-btn primary kx-focus-halo" :disabled="saving || !name.trim() || !hostPath.trim()" @click="save"><Icon icon="tabler:folder-plus" />{{ saving ? 'Saving…' : 'Add workspace' }}</button></footer>
       </fieldset>
     </AppDialog>

@@ -30,11 +30,9 @@
           },
           "endpoint": {
             "type": "object",
-            "additionalProperties": false,
             "properties": {
               "protocol": {
                 "type": "string",
-                "minLength": 1,
                 "maxLength": 64
               },
               "base_url": {
@@ -47,9 +45,9 @@
               }
             },
             "required": [
-              "protocol",
               "base_url"
-            ]
+            ],
+            "additionalProperties": false
           },
           "owner": {
             "type": "string"
@@ -86,6 +84,59 @@
           "failures_day": {
             "type": "integer",
             "minimum": 0
+          },
+          "rate_limits": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "windows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "window": {
+                      "type": "string"
+                    },
+                    "utilization": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "status": {
+                      "enum": [
+                        "allowed",
+                        "warning",
+                        "rejected"
+                      ]
+                    },
+                    "resets_at": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "window",
+                    "status"
+                  ]
+                }
+              },
+              "overage_status": {
+                "enum": [
+                  "allowed",
+                  "warning",
+                  "rejected"
+                ]
+              },
+              "overage_disabled_reason": {
+                "type": "string"
+              },
+              "is_using_overage": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "windows"
+            ]
           }
         },
         "required": [

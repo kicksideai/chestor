@@ -42,7 +42,7 @@ async function readLog(id: string) {
 // A status change refetches the list and the open build log.
 const refresh = serial(async () => {
   try {
-    const list = await reconcile(autocode.images, list => list.map(i => i.id), topicIds, () => alive)
+    const list = await reconcile(autocode.images, list => list.map(i => i.id), topicIds, () => alive, list => { images.value = list; loaded.value = true; error.value = '' }, () => { void refresh() })
     if (!alive) return
     images.value = list
     void readOwnership(list, ++ownershipGeneration)
@@ -124,9 +124,8 @@ async function remove(image: Image) {
   if (log.value?.id === image.id) closeLog()
   error.value = ''
   try {
-    const result = await autocode.deleteImage(image.id, removeFromDocker)
+    await autocode.deleteImage(image.id, removeFromDocker)
     await refresh()
-    if (result.docker_error) error.value = `Image deleted. Docker cleanup failed: ${result.docker_error.message}. Docker prune covers removal of unused images.`
   } catch (e) {
     error.value = errorText(e, 'Could not delete the image.')
   }

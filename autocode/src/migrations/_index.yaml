@@ -26,3 +26,38 @@ entries:
     imports:
       migration: wippy.migration:migration
     method: migrate
+
+  - name: 03_profiles_and_limits
+    kind: function.lua
+    meta:
+      type: migration
+      timestamp: "2026-11-10T00:00:00Z"
+    source: file://03_profiles_and_limits.lua
+    modules: [sql]
+    imports:
+      migration: wippy.migration:migration
+    method: migrate
+
+  - name: 04_run_isolation
+    kind: function.lua
+    meta: {type: migration, timestamp: "2026-11-10T01:00:00Z"}
+    source: file://04_run_isolation.lua
+    modules: [sql]
+    imports: {migration: 'wippy.migration:migration'}
+    method: migrate
+
+  - name: 05_run_gateway
+    kind: function.lua
+    meta: {type: migration, timestamp: "2026-11-10T02:00:00Z"}
+    source: file://05_run_gateway.lua
+    modules: [sql]
+    imports: {migration: 'wippy.migration:migration'}
+    method: migrate
+
+  - name: 06_run_account_health
+    kind: function.lua
+    meta: {type: migration, timestamp: "2026-11-12T00:00:00Z"}
+    source: file://06_run_account_health.lua
+    modules: [sql]
+    imports: {migration: 'wippy.migration:migration'}
+    method: migrate

@@ -1,33 +1,35 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 import { z } from 'zod'
+import { credentialKind, endpoint, profile, usage } from './wire.ts'
+export { credentialKind, endpoint, profile, usage } from './wire.ts'
 
 const strings = z.array(z.string())
 const values = z.record(z.unknown())
-export const credentialKind = z.object({ id: z.string(), label: z.string(), hint: z.string(), file: z.string().optional(), subscription: z.boolean(), format: z.enum(['json_object', 'single_line', 'text']).optional() })
 export const driverOption = z.object({ name: z.string(), label: z.string(), description: z.string(), section: z.string(), group: z.string(), order: z.number(), type: z.string(), values: z.array(z.unknown()).optional(), schema: values.optional(), default: z.unknown().optional(), profiles: strings.optional() })
-export const agentInfo = z.object({ id: z.string(), title: z.string(), icon: z.string().optional(), credentials: z.array(credentialKind), endpoints: strings, capabilities: strings, unattended: values.optional(), options: z.array(driverOption) })
-export const endpoint = z.object({ protocol: z.string(), base_url: z.string(), model: z.string().optional() })
+export const agentInfo = z.object({ id: z.string(), title: z.string(), icon: z.string(), credentials: z.array(credentialKind), endpoints: strings, capabilities: strings, unattended: values.optional(), options: z.array(driverOption) })
 export const imageRunSettings = z.object({ memory: z.string(), cpus: z.string(), pids_limit: z.number().int(), gpus: z.string(), network: z.string(), extra_args: strings, allows: strings })
 export const defaultImage = z.object({ ref: z.string(), label: z.string(), home: z.string(), dockerfile: z.string(), settings: imageRunSettings.optional() })
 export const accountLimits = z.object({ label_bytes: z.number().int().positive(), secret_bytes: z.number().int().positive(), endpoint_url_bytes: z.number().int().positive(), endpoint_model_bytes: z.number().int().positive() })
 export const catalog = z.object({ agents: z.array(agentInfo), default_image: defaultImage, can_images: z.boolean(), can_workspaces: z.boolean(), can_prune: z.boolean(), build_cache_retention: z.string(), settings_path: z.string().optional(), account_limits: accountLimits.optional() })
 // usable describes eligibility; cooldown_until separately controls readiness.
+export const rateLimits = z.object({ windows: z.array(z.object({ window: z.string(), utilization: z.number().optional(), status: z.enum(['allowed', 'warning', 'rejected']), resets_at: z.number().int().optional() })), overage_status: z.string().optional(), overage_disabled_reason: z.string().optional(), is_using_overage: z.boolean().optional() })
+export type Profile = z.infer<typeof profile>
+export type ProfileInput = Omit<Profile, 'id' | 'owner' | 'writable' | 'deletable'>
 export const account = z.object({
   id: z.string(), agent: z.string(), label: z.string(), credential_kind: z.string(), subscription: z.boolean(), enabled: z.boolean(),
-  endpoint: endpoint.optional(), owner: z.string(), mine: z.boolean(), usable: z.boolean(), unavailable_reason: z.string().optional(),
+  rate_limits: rateLimits.optional(), endpoint: endpoint.optional(), owner: z.string(), mine: z.boolean(), usable: z.boolean(), unavailable_reason: z.string().optional(),
   writable: z.boolean(), deletable: z.boolean(), last_used_at: z.string(), cooldown_until: z.string(), last_error: z.string(), runs_day: z.number().int(), failures_day: z.number().int(),
 })
 // Component metadata may contain an unrecognised image status.
 export const image = z.object({ id: z.string(), ref: z.string(), label: z.string(), home: z.string(), status: z.string(), usable: z.boolean(), agents: strings, last_error: z.string(), owner: z.string(), writable: z.boolean(), deletable: z.boolean(), shareable: z.boolean() })
 export const imageDetail = z.object({ image, build_log: z.string(), dockerfile: z.string().optional(), settings: imageRunSettings.optional() })
-export const workspace = z.object({ id: z.string(), name: z.string(), writable: z.boolean(), deletable: z.boolean(), shareable: z.boolean(), host_path: z.string().optional() })
-export const usage = z.object({ input_tokens: z.number().optional(), output_tokens: z.number().optional(), cached_tokens: z.number().optional() })
+export const workspace = z.object({ isolation: z.enum(['shared', 'worktree']).optional(), id: z.string(), name: z.string(), writable: z.boolean(), deletable: z.boolean(), shareable: z.boolean(), host_path: z.string().optional() })
 export const runStatus = z.enum(['queued', 'running', 'succeeded', 'failed', 'cancelled'])
 export const run = z.object({
-  id: z.string(), agent: z.string(), account_id: z.string(), image_id: z.string(), workspace_id: z.string().optional(), options: values, unattended: z.boolean(), repo_url: z.string(), prompt: z.string(), status: runStatus, result: z.string(), error: z.string(), usage, cancel_requested: z.boolean(), timeout_ms: z.number(), workflow: z.boolean(), created_at: z.string(), started_at: z.string(), finished_at: z.string(),
+  endpoint: endpoint.optional(), id: z.string(), agent: z.string(), account_id: z.string(), image_id: z.string(), workspace_id: z.string().optional(), isolation: z.enum(['shared', 'worktree']).optional(), options: values, unattended: z.boolean(), repo_url: z.string(), prompt: z.string(), status: runStatus, result: z.string(), error: z.string(), usage, cancel_requested: z.boolean(), timeout_ms: z.number(), workflow: z.boolean(), created_at: z.string(), started_at: z.string(), finished_at: z.string(),
 })
-export const runSummary = run.pick({ id: true, agent: true, account_id: true, image_id: true, workspace_id: true, status: true, workflow: true, cancel_requested: true, created_at: true, started_at: true, finished_at: true }).extend({ prompt_summary: z.string() })
-export const runEvent = z.object({ seq: z.number().int(), kind: z.enum(['assistant', 'reasoning', 'tool', 'tool_result', 'tool_error', 'system', 'error', 'log']), text: z.string(), created_at: z.string() })
+export const runSummary = run.pick({ id: true, agent: true, account_id: true, image_id: true, workspace_id: true, status: true, workflow: true, cancel_requested: true, created_at: true, started_at: true, finished_at: true }).extend({ prompt_summary: z.string(), usage: usage.optional() })
+export const runEvent = z.object({ seq: z.number().int(), kind: z.enum(['assistant', 'reasoning', 'tool', 'tool_call', 'hook', 'tool_result', 'tool_error', 'system', 'error', 'log']), text: z.string(), created_at: z.string() })
 
 export const runPage = z.object({ run, events: z.array(runEvent), more: z.boolean(), next_seq: z.number().int().nonnegative() })
 

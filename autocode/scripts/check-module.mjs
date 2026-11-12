@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
-import { execFileSync } from 'node:child_process'
+import { manifestProblems, viewProblems, trackedFiles } from './module-rules.mjs'
 import { access, readFile, readdir, stat } from 'node:fs/promises'
 import { dirname, extname, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -40,8 +40,7 @@ if (!moduleManifest.includes(`organization: ${identity.organization}`)) report('
 if (!moduleManifest.includes(`module: ${identity.module}`)) report('wippy.yaml module differs from template identity')
 if (/^version:/m.test(moduleManifest)) report('wippy.yaml must not pin a release version; the publisher selects it')
 if (!rootIndex.includes(`namespace: ${identity.namespace}`)) report('root ns.definition namespace differs from template identity')
-if (!rootIndex.includes('announced: true') || !rootIndex.includes('auto_register: true')) report('view.component must be announced and auto-registered')
-if (!rootIndex.includes(`tag_name: ${identity.tag}`)) report('registry web-component tag differs from template identity')
+for (const problem of viewProblems(rootIndex, identity.tag)) report(problem)
 if (packageJson.wippy?.tagName !== identity.tag) report('package.json web-component tag differs from template identity')
 if (typeof packageJson.wippy?.description !== 'string' || packageJson.wippy.description.length < 120) report('wippy.description must explain the module behavior and usage')
 if (!securityIndex.includes('default: kickside.security.groups:members')) report('user_security_scope must default to the platform Members group')
@@ -128,16 +127,7 @@ for (const file of staticFiles.filter((path) => extname(path) === '.js')) {
 
 const yamlFiles = (await walk(resolve(root, 'src'))).filter((path) => /\.ya?ml$/.test(path))
 for (const file of yamlFiles) {
-  const lines = (await readFile(file, 'utf8')).split('\n')
-  for (let index = 0; index < lines.length; index += 1) {
-    if (!/^\s*kind:\s*ns\.dependency\s*$/.test(lines[index])) continue
-    const nearby = lines.slice(Math.max(0, index - 8), index + 1)
-    const versionLine = [...nearby].reverse().find((line) => /^\s*(?:-\s*)?version:\s*/.test(line))
-    const version = versionLine?.replace(/^\s*(?:-\s*)?version:\s*/, '').replace(/^['"]|['"]$/g, '')
-    if (!version || !(version === '*' || /^(>=|<=|>|<|\^|~)/.test(version))) {
-      report(`${relative(root, file)}:${index + 1} ns.dependency must declare a compatibility range, never an exact version`)
-    }
-  }
+  for (const problem of manifestProblems(await readFile(file, 'utf8'))) report(`${relative(root, file)}: ${problem}`)
 }
 
 const markdownFiles = (await walk(root)).filter((path) => extname(path) === '.md')
@@ -179,20 +169,13 @@ for (const file of allFiles) {
 
 
 try {
-  const tracked = execFileSync('git', ['ls-files', '--', '.'], {
-    cwd: root,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'ignore'],
-  }).trim().split('\n').filter(Boolean)
-  for (const path of tracked) {
+  for (const path of trackedFiles(root)) {
     if (path === 'wippy.lock' || path.startsWith('.wippy/') || path.includes('/node_modules/')
         || path.endsWith('.wapp') || path.endsWith('.env') || path.endsWith('.map')) {
       report(`generated or sensitive file is tracked: ${path}`)
     }
   }
-} catch {
-  // The repository may be checked before its first git init. All other checks still run.
-}
+} catch (error) { report(`Git hygiene check failed: ${error.message}`) }
 
 if (failed) process.exit(1)
 console.log(`Module checks passed for ${identity.organization}/${identity.module}`)

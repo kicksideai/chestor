@@ -2,6 +2,7 @@
 local time = require("time")
 local uuid = require("uuid")
 local M = {state = {}}
+M.workspace_host = {run = function(args) return args[#args] end}
 local repo = {}
 local component = {}
 local execution_identity = {}
@@ -130,20 +131,30 @@ function docker.run(args, opts)
         M.state.blanket_prune = true
         return 0
     elseif args[1] == "create" then
+        if M.state.on_create then M.state.on_create(opts) end
         if M.state.cancel_on_create then M.state.run.cancel_requested = true end
         if M.state.create_error then return nil, M.state.create_error end
         return 0
     elseif args[1] == "start" then
+        M.state.stop_signal = channel.new(1)
+        if M.state.on_attach then M.state.on_attach() end
         M.state.attached = true
         M.state.streaming = true
         if M.state.cancel_on_attach then M.state.run.cancel_requested = true end
         if M.state.cancel_silently then
             M.state.run.cancel_requested = true
             for i = 1, M.state.output_lines or 0 do if opts.on_line then opts.on_line("line " .. tostring(i)) end end
-            time.sleep("750ms")
-        elseif opts.on_line then opts.on_line("log line"); time.sleep("300ms") end
+        elseif opts.on_line then
+            opts.on_line("log line")
+            if M.state.after_output then M.state.after_output() end
+        end
+        if M.state.run.cancel_requested then
+            local received = channel.select({M.state.stop_signal:case_receive(), time.after("5s"):case_receive()})
+            if received.channel ~= M.state.stop_signal then error("attachment never received Docker stop") end
+        end
+        M.state.stop_signal = nil
         M.state.streaming = false
-        return 0
+        return M.state.stream_code or 0
     end
     if args[1] == "run" and M.state.runtime_missing then return 127 end
     if args[1] ~= "run" and args[1] ~= "build" and args[1] ~= "pull"
@@ -155,15 +166,18 @@ function docker.run(args, opts)
     return 0
 end
 function repo.now() return "now" end
-function repo.record_account_error() end
-function repo.next_seq() if M.state.seq_error then return nil, M.state.seq_error end; return 1 end
-function repo.append_event(_, _, kind, text) table.insert(M.state.events, {kind = kind, text = text}) end
+function repo.record_account_error(_, message)
+    if M.state.account_error_write_error then return M.state.account_error_write_error end
+    M.state.account_error = message
+end
+function repo.append_event(_, kind, text) if M.state.event_error then return M.state.event_error end; table.insert(M.state.events, {kind = kind, text = text}) end
 function repo.finish_run(_, status, result, reason, usage)
     M.state.run.status, M.state.run.result, M.state.run.error, M.state.run.usage = status, result, reason, usage
     M.state.settlements = (M.state.settlements or 0) + 1
     return true
 end
-function repo.record_run_outcome(_, status, result, reason, usage)
+function repo.record_run_outcome(_, status, result, reason, usage, health)
+    M.state.run.account_health = health
     if not M.state.run.pending_status then
         M.state.run.pending_status, M.state.run.result, M.state.run.error, M.state.run.usage = status, result, reason, usage
     end
@@ -174,8 +188,12 @@ function repo.start_run()
     M.state.run.status = "running"
     return true
 end
-function docker.stop(_, deadline) record_deadline("stop", deadline); M.state.stopped = M.state.stopped + 1 end
+function docker.stop(_, deadline)
+    record_deadline("stop", deadline); M.state.stopped = M.state.stopped + 1
+    if M.state.stop_signal then M.state.stop_signal:send(true) end
+end
 function docker.remove(name, deadline)
+    if M.state.on_remove then M.state.on_remove() end
     record_deadline("remove", deadline)
     M.state.removed = M.state.removed + 1
     M.state.removed_names = M.state.removed_names or {}
@@ -207,6 +225,7 @@ end
 function live.account(id)
     M.state.health_topics = M.state.health_topics or {}
     table.insert(M.state.health_topics, "component." .. id)
+    if M.state.on_health then M.state.on_health() end
     return M.state.notify_error
 end
 live.RUNS_TOPIC = "runs"
@@ -234,7 +253,11 @@ function repo.create_run(owner, _, spec)
     M.state.created = {owner = owner, spec = spec}
     return "queued-run"
 end
-function repo.settle_account() end
+function repo.record_account_limits(_, value)
+    if M.state.account_limits_error then return M.state.account_limits_error end
+    M.state.account_limits = value
+end
+function repo.settle_account(_, refusal, cooldown) M.state.account_settlement = {refusal = refusal, cooldown = cooldown}; return M.state.account_health_error end
 function component.query(options)
     M.state.query_options = options
     if M.state.query_error then return nil, M.state.query_error end
@@ -286,7 +309,7 @@ function exec.get(id)
 end
 function drivers.reader()
     return {feed = function() return {problems = {}, observations = {}} end,
-        finish = function() return {problems = {}, observations = {}, terminal = M.state.terminal or {outcome = "succeeded"}} end}
+        finish = function() return {problems = {}, observations = M.state.observations or {}, terminal = M.state.terminal or {outcome = "succeeded"}} end}
 end
 function resources.text(value) return type(value) == "string" and value or "" end
 function resources.patch_context(_, values, revision)
@@ -313,7 +336,8 @@ function resources.image_recipe(id, access)
     value.settings, value.dockerfile = snapshot.context.values.settings, snapshot.context.values.dockerfile
     return value
 end
-function resources.delete(id)
+function resources.delete(id, options)
+    M.state.delete_options = options
     if M.state.on_delete then M.state.on_delete() end
     if M.state.delete_error then return M.state.delete_error end
     M.state.deleted = id
@@ -358,6 +382,13 @@ function M.recipe_fixture()
     return {ref = "image", home = "/home/agent", dockerfile = "", revision = 1,
         settings = {memory = "", cpus = "", pids_limit = 0, gpus = "", network = "none", extra_args = {}, allows = {}}}
 end
+local worktrees = {}
+function worktrees.plan(path, id) return {repository = path, path = path .. "/.autocode-runs/" .. id, gitdir = path .. "/.git"} end
+function worktrees.create() M.state.worktree_created = (M.state.worktree_created or 0) + 1 end
+function worktrees.remove() M.state.worktree_removed = (M.state.worktree_removed or 0) + 1; return M.state.worktree_error end
+function repo.worktree_cleanup(limit) M.state.worktree_cleanup_limit = limit; return M.state.cleanup_trees or {} end
+function repo.set_worktree(_, value) M.state.run.worktree = value end
+M.worktrees = worktrees
 M.repo = repo
 M.component = component
 M.execution_identity = execution_identity

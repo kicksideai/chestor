@@ -10,7 +10,7 @@ local component_types = require("component_types")
 local recipe = require("recipe")
 
 type Object = {[string]: unknown}
-type Kind = "account" | "image" | "workspace"
+type Kind = "account" | "image" | "workspace" | "profile"
 -- access: the caller's effective mask on the resource; owner: the creating user.
 type Resource = {id: string, kind: Kind, meta: Object, access: integer, owner: string}
 -- revision: the private context revision a compare-and-set write expects.
@@ -21,6 +21,7 @@ local M = {}
 M.ACCESS = component.ACCESS
 
 M.KINDS = {
+    profile = "chestor.autocode.components:profile",
     account = "chestor.autocode.components:account",
     image = "chestor.autocode.components:image",
     workspace = "chestor.autocode.components:workspace",
@@ -169,10 +170,10 @@ function M.replace(id: string, fields: Object, patch: Object?, revision: integer
 end
 
 -- delete removes a resource the caller may delete, running its teardown.
-function M.delete(id: string): (error?, Object?)
+function M.delete(id: string, options: Object?): (error?, Object?)
     local svc, svc_err = service()
     if not svc then return svc_err end
-    local result, call_err = svc:delete({component_id = id})
+    local result, call_err = svc:delete({component_id = id, delete_options = options})
     if call_err then return envelope.call_error(call_err, "delete_component") end
     local err = envelope.error_of(result :: component_types.ServiceEnvelope, "delete_component")
     if err then return err, nil end

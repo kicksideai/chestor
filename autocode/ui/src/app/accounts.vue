@@ -65,9 +65,12 @@ async function annotate(list: Account[]) {
 
 const refresh = serial(async () => {
   try {
-    const list = await reconcile(autocode.accounts, list => list.map(a => a.id), topicIds, alive)
+    const list = await reconcile(autocode.accounts, list => list.map(a => a.id), topicIds, alive, list => {
+      accounts.value = list
+      loaded.value = true
+      error.value = ''
+    }, () => { void refresh() })
     if (!alive()) return
-    accounts.value = list
     await annotate(list)
     if (!alive()) return
     loaded.value = true
@@ -97,7 +100,7 @@ async function submit(event: Event) {
   if (!(event instanceof CustomEvent)) return
   const decoded = accountSubmission.safeParse(event.detail)
   if (saving.value) return
-  if (!decoded.success || decoded.data.agent !== agent.value || (editing.value && !editing.value.writable)) { saveError.value = 'Invalid account submission.'; return }
+  if (!decoded.success || decoded.data.agent !== agent.value || (editing.value && (!editing.value.writable || decoded.data.credential_kind !== editing.value.credential_kind))) { saveError.value = 'Invalid account submission.'; return }
   const account = decoded.data
   saveError.value = ''
   saving.value = true

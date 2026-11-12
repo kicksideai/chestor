@@ -9,6 +9,11 @@ entries:
       title: Autocode
       description: Run coding agent CLIs in Docker images across accounts, as a page and as a workflow Block, with streamed task output.
 
+  - name: dep.wippy.agent
+    version: "*"
+    kind: ns.dependency
+    component: wippy/agent
+
   - name: dep.bee.drivers
     version: "*"
     kind: ns.dependency
@@ -24,7 +29,7 @@ entries:
     component: kickside/contract
 
   - name: dep.kickside.component
-    version: "*"
+    version: ">=0.3.16"
     kind: ns.dependency
     meta:
       comment: Component service - accounts, images and workspaces are component kinds with grants and teardown.
@@ -185,3 +190,7 @@ entries:
       order: 80
       render: component
       component_tag: chestor-autocode
+
+  - name: run_gateway
+    kind: http.router
+    prefix: /autocode-gateway

@@ -5,6 +5,17 @@ local subject = require("subject")
 local stubs = require("stubs")
 local function cases()
     test.describe("autocode canonical submission", function()
+        test.it("includes isolation and tool context in the idempotent request identity", function()
+            local function canonical(isolation, board)
+                local state = stubs.reset()
+                local _, err = subject.submit({agent = "claude", image_id = "image", options = {}, prompt = "task", repo_url = "", isolation = isolation,
+                    tools = {tools = {"app:gateway_echo"}, context = {board_id = board}}}, nil, "key")
+                test.is_nil(err, tostring(err))
+                return state.submission.canonical
+            end
+            test.is_true(canonical("shared", "a") ~= canonical("worktree", "a"))
+            test.is_true(canonical("worktree", "a") ~= canonical("worktree", "b"))
+        end)
         test.it("leaves container stopping to the cancellation watcher", function()
             local state = stubs.reset()
             test.is_nil(subject.cancel("owner", "run"))

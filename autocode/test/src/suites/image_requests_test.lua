@@ -4,6 +4,19 @@ local subject = require("subject")
 local stubs = require("stubs")
 local function cases()
     test.describe("autocode image requests", function()
+        test.it("requires a bounded gateway authority with a real TCP port", function()
+            stubs.reset()
+            for _, endpoint in ipairs({"host:0", "host:65536", "host:999999", "-host:80", "host..invalid:80", string.rep("h", 254) .. ":80"}) do
+                local value, err = subject.decode({gateway_endpoint = endpoint})
+                test.is_nil(value, endpoint)
+                test.is_true(errors.is(err, errors.INVALID), tostring(err))
+            end
+            for _, endpoint in ipairs({"host.docker.internal:1", "worker_1:65535", "localhost:19347"}) do
+                local value, err = subject.decode({gateway_endpoint = endpoint})
+                test.is_nil(err, tostring(err))
+                test.eq(value.gateway_endpoint, endpoint)
+            end
+        end)
         test.it("normalizes HOME before excluding the workspace mount and root", function()
             stubs.reset()
             for _, home in ipairs({"/", "/workspace", "/workspace/child", "//workspace//child", "/opt/../workspace", "/workspace/../"}) do

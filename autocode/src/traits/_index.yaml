@@ -13,9 +13,10 @@ entries:
       tags: [coding, tasks]
     prompt: >-
       Delegate a bounded coding task asynchronously with SubmitCodingTask.
-      Discover caller-visible IDs with ListCodingAgents, ListCodingAccounts,
+      Discover caller-visible IDs with ListCodingProfiles, ListCodingAgents, ListCodingAccounts,
       ListCodingImages and ListCodingWorkspaces. CancelCodingRun cancels an owned task. Submission
       returns a run ID; use ReadCodingRun to read its status, result and events.
+      Select profile_id to inherit a named profile; explicit task fields and options override its defaults.
       Reuse an idempotency key when retrying the same submission. A queued or
       running task is unfinished: check again when its result is needed, without
       a tight polling loop. Follow more and next_seq to read further event pages.
@@ -24,6 +25,7 @@ entries:
       - chestor.autocode.traits:submit_coding_task
       - chestor.autocode.traits:read_coding_run
       - chestor.autocode.traits:list_coding_agents
+      - chestor.autocode.traits:list_coding_profiles
       - chestor.autocode.traits:list_coding_accounts
       - chestor.autocode.traits:list_coding_images
       - chestor.autocode.traits:list_coding_workspaces
@@ -157,6 +159,25 @@ entries:
       output_schema: file://../contracts/cancel_run.output.schema.json
     source: file://tasks.lua
     method: cancel
+    modules: [security]
+    imports:
+      client: chestor.autocode.service:client
+      boundary: chestor.autocode.service:boundary
+
+  - name: list_coding_profiles
+    kind: function.lua
+    meta:
+      type: tool
+      public: true
+      title: List coding profiles
+      llm_alias: ListCodingProfiles
+      llm_description: List coding profiles using the caller's resource grants.
+      mcp:
+        required_scopes: [state.read]
+      input_schema: file://../contracts/list_profiles.input.schema.json
+      output_schema: file://../contracts/list_profiles.output.schema.json
+    source: file://tasks.lua
+    method: profiles
     modules: [security]
     imports:
       client: chestor.autocode.service:client

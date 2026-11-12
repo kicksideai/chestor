@@ -26,22 +26,10 @@ local repo = {}
 -- mode it was requested with, then its log once it finished.
 
 local function image_build(row: Columns): ImageBuild
-    local agents: {string} = {}
-    local decoded = json.decode(text(row, "agents"))
-    if type(decoded) ~= "table" then mismatch(row, "agents", "a JSON array")
-    else
-        for _, value in ipairs(decoded) do
-            if type(value) ~= "string" then mismatch(row, "agents", "strings") else agents[#agents + 1] = value end
-        end
-    end
-    local approved_agents: {string} = {}
-    local approved = json.decode(text(row, "approved_agents"))
-    if type(approved) ~= "table" then mismatch(row, "approved_agents", "a JSON array")
-    else
-        for _, value in ipairs(approved) do
-            if type(value) ~= "string" then mismatch(row, "approved_agents", "strings") else approved_agents[#approved_agents + 1] = value end
-        end
-    end
+    local agents = db.strings(row, "agents")
+    local approved_agents = db.strings(row, "approved_agents")
+    local mode = text(row, "mode")
+    if mode ~= "initial" and mode ~= "refresh" then mismatch(row, "mode", "a build mode") end
     local approved_recipe: recipe.Recipe? = nil
     local prior = db.object(row, "approved_recipe")
     if next(prior) ~= nil then
@@ -58,7 +46,7 @@ local function image_build(row: Columns): ImageBuild
     end
     return {approved_recipe = approved_recipe, approved_agents = approved_agents, recipe = decoded_recipe, projected = flag(row, "projected"), build_id = text(row, "build_id"), job_id = text(row, "job_id"), status = text(row, "status"), agents = agents, last_error = text(row, "last_error"),
         identity = {actor_id = text(row, "actor_id"), actor_context = text(row, "actor_context")},
-        mode = text(row, "mode") == "refresh" and "refresh" or "initial", log = text(row, "log"),
+        mode = mode :: BuildMode, log = text(row, "log"),
         requested_at = text(row, "requested_at"), finished_at = text(row, "finished_at")}
 end
 
