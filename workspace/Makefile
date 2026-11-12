@@ -23,6 +23,8 @@ ui-test: ui-kit
 	cd ui && npm test
 lockrefresh:
 	cd build-inputs && wippy update $(WIPPY_UPDATE_ARGS)
+	$(MAKE) ui-kit
+	cd ui && npm install --package-lock-only --no-audit --no-fund
 	cd test && wippy update $(WIPPY_UPDATE_ARGS)
 # Published build input: materialized into ui/.wippy/npm, which ui/package.json
 # links as the @kickside/ui-kit npm workspace.

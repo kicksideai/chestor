@@ -86,7 +86,7 @@ Lockfiles: `autocode/ui/package-lock.json`, `db-schema/ui/package-lock.json`, `g
 
 LICENSE: [License text](#license-text-769d154fbde32a915af110b1123650bc79f4cbe675acc66e005265bf069c6c6c)
 
-### npm: @kickside/ui-kit@1.7.0
+### npm: @kickside/ui-kit@1.7.1
 
 License: LicenseRef-KickSide-Community-1.0
 

@@ -20,8 +20,7 @@ modules:
       version: 0.2.7
       hash: 3954d2cc679886deb8a15a4a3c8c36e4ea09e578f09a2eb6f27f0ac62e10fdf7
     - name: kickside/jobs
-      version: 0.1.67
-      hash: 6517b38a70a0a963312cb5367531a55e5372b63e13d3bd92cc724d297bf781bf
+      version: 0.1.76
     - name: kickside/realtime-dispatch
       version: 0.1.1
       hash: 6f0fa3625683510a1565afff3b40b6726ea5604b940b1627b787f6615683264d
@@ -32,14 +31,14 @@ modules:
       version: 0.1.55
       hash: 6e2a3d0351c4540e12f1ecabe4a58d82d3dd1866fecd57f6e26c69712b53715a
     - name: wippy/agent
-      version: 0.5.9
-      hash: c0eff8b8cebd49bec8a2704ead671e0ea79434b54b9ebb5c36873b823c08ab4c
+      version: 0.5.13
+      hash: 857b603fc6f036b053380bf6c8f00f42f6eb2720fe3df5f8fcb436a35dfdddf1
     - name: wippy/bootloader
       version: 0.3.18
       hash: c7e71b358539b450b49b55e725f60f2dac8218e1c596cf3a473ce71e36b10a9b
     - name: wippy/llm
-      version: 0.5.12
-      hash: 4a6aa0e035b639b83add7120b331032b56312f794978988d92ec52a640e565e8
+      version: 0.5.19
+      hash: 1851a5dbb11031ef813cc6965530e489b1e9d96ec34c94154ae36942c9d2c59b
     - name: wippy/migration
       version: 0.3.26
       hash: cf4848ad3f8ba8d31d944b2f3a7274bc2b7cf2888dd80f0db63b2c71a85f89c1
