@@ -13,7 +13,7 @@ class e extends o {
   static get vueConfig() {
     return {
       lazyConfig: n(
-        () => import("./lazy-mount-BBby_phr.js").then((t) => t.mountConfig),
+        () => import("./lazy-mount-7Ngh6sAC.js").then((t) => t.mountConfig),
         "Could not load the workspace. Reload the page to try again.",
         r
       )
