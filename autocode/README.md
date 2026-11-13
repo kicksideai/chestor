@@ -96,7 +96,7 @@ make test-pg
 `test-pg` creates and drops a dedicated PostgreSQL database. Set `PG_URL` for
 the maintenance connection and `RUNTIME_ARGS` for harness profile variables
 when using a different server. The default test server is local PostgreSQL
-on port 5433. Both engines run the same suites.
+on port 5547. Both engines run the same suites.
 
 Edit frontend source under `ui/` and commit regenerated `static/` assets.
 `build-inputs/` resolves the published `kickside/ui-kit` package; `make ui-kit`
