@@ -2,14 +2,14 @@
 <script setup lang="ts">
 import { accountState, errorText, shortTime } from './presentation.ts'
 import { useRequiredCatalog } from './catalog.ts'
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { Icon } from '@iconify/vue'
 import { defaultAgent } from './defaults.ts'
-import { useTaskTargeting } from './task-targeting.ts'
+import { useTaskTargeting, effectiveTask } from './task-targeting.ts'
 import type { TaskConfig } from '../task-config-types.ts'
 import AgentPicker from './agent-picker.vue'
 import DriverOptions from './driver-options.vue'
-import { autocode, type Account, type Image, type Workspace } from './api.ts'
+import { autocode, type Account, type Image, type Workspace, type Profile } from './api.ts'
 
 // The new task form. Accounts list the caller's usable, enabled accounts of the
 // agent; an empty account balances across the ready ones. Images list the
@@ -18,6 +18,19 @@ const props = defineProps<{ accounts: Account[]; images: Image[]; workspaces: Wo
 const emit = defineEmits<{ started: [id: string]; goto: [tab: 'accounts', agent: string]; agentChanged: [agent: string]; cancel: []; busy: [value: boolean] }>()
 const catalog = useRequiredCatalog()
 const root = ref<HTMLElement | null>(null)
+const profiles = ref<Profile[]>([])
+const profileId = ref('')
+const overridden = ref<TaskConfig>({})
+const selectedProfile = computed(() => profiles.value.find(p => p.id === profileId.value))
+onMounted(async () => {
+  try { profiles.value = await autocode.profiles() }
+  catch (e) { error.value = errorText(e, 'Could not load profiles.') }
+})
+function chooseProfile() { overridden.value = {} }
+function set(patch: Partial<TaskConfig>) {
+  if (profileId.value) overridden.value = { ...overridden.value, ...patch }
+  else custom.value = { ...custom.value, ...patch }
+}
 
 // Images live on the Autocode tab of the System settings.
 function openImages() {
@@ -26,36 +39,41 @@ function openImages() {
   root.value?.dispatchEvent(new CustomEvent('navigate', { detail: { path }, bubbles: true, composed: true }))
 }
 
-const target = ref<TaskConfig>({ agent: defaultAgent(catalog.value, props.accounts), account_id: '', image_id: '', workspace_id: '', repo_url: '' })
-const { now, driver, agentAccounts, ready, agentImages: readyImages, invalidOptions, optionValues, normalizeConfig, selectAgent } = useTaskTargeting(target, {
+const custom = ref<TaskConfig>({ agent: defaultAgent(catalog.value, props.accounts), account_id: '', image_id: '', workspace_id: '', repo_url: '' })
+const target = computed(() => effectiveTask(profileId.value ? overridden.value : custom.value, selectedProfile.value))
+const { now, driver, agentAccounts, ready, agentImages: readyImages, invalidOptions, optionValues, invalidImage, invalidAccount, invalidWorkspace, selectAgent } = useTaskTargeting(target, {
   catalog: () => catalog.value, accounts: () => props.accounts, images: () => props.images, workspaces: () => props.workspaces,
-}, 'live')
+}, 'live', () => !!profileId.value)
 const agentId = computed({
   get: () => target.value.agent ?? '',
-  set: agent => { if (agent !== target.value.agent) target.value = selectAgent(agent) },
+  set: agent => {
+    if (agent === target.value.agent) return
+    const selected = selectAgent(agent)
+    set({ agent, account_id: selected.account_id, image_id: selected.image_id, options: selected.options, unattended: selected.unattended })
+  },
 })
 function field(name: 'account_id' | 'image_id' | 'workspace_id' | 'repo_url' | 'repo_ref') {
-  return computed({ get: () => target.value[name] ?? '', set: value => { target.value[name] = value } })
+  return computed({ get: () => target.value[name] ?? '', set: value => set({ [name]: value }) })
 }
 const accountId = field('account_id')
 const imageId = field('image_id')
 const workspaceId = field('workspace_id')
 const repoUrl = field('repo_url')
 const repoRef = field('repo_ref')
-const timeout = ref('')
+const timeout = computed({ get: () => target.value.run_timeout ?? '', set: value => set({ run_timeout: value }) })
 const prompt = ref('')
-const options = computed({ get: () => optionValues.value, set: value => { target.value.options = value } })
-const unattended = computed({ get: () => target.value.unattended !== false, set: value => { target.value.unattended = value } })
+const options = computed({ get: () => optionValues.value, set: value => set({ options: value }) })
+const unattended = computed({ get: () => target.value.unattended ?? !!driver.value?.unattended, set: value => set({ unattended: value }) })
 const starting = ref(false)
 const error = ref('')
 
 function accountTitle(a: Account) {
-  return accountState(a, now.value) === 'cooling' ? `${a.label} (cooling down until ${shortTime(a.cooldown_until)})` : a.label
+  return accountState(a, now.value) === 'cooling' ? `${a.label} (cooling down${a.cooldown_until ? ' until ' + shortTime(a.cooldown_until) : ''})` : a.label
 }
 watch(agentId, agent => emit('agentChanged', agent), { immediate: true })
 
 let submission: { snapshot: string; key: string; body: Parameters<typeof autocode.startRun>[0] } | undefined
-watch([agentId, accountId, imageId, workspaceId, repoUrl, repoRef, timeout, prompt, options, unattended], () => {
+watch([profileId, agentId, accountId, imageId, workspaceId, repoUrl, repoRef, timeout, prompt, options, unattended], () => {
   submission = undefined
 }, { deep: true, flush: 'sync' })
 
@@ -65,10 +83,16 @@ async function start() {
   starting.value = true
   emit('busy', true)
   try {
-    const body = {
+    const custom = {
       agent: agentId.value, account_id: accountId.value, image_id: imageId.value, workspace_id: workspaceId.value,
-      repo_url: repoUrl.value, repo_ref: repoRef.value.trim() || undefined, timeout: timeout.value.trim() || undefined, prompt: prompt.value, options: normalizeConfig(target.value).options ?? {}, unattended: unattended.value,
+      repo_url: repoUrl.value, repo_ref: repoRef.value.trim() || undefined, timeout: timeout.value.trim() || undefined, prompt: prompt.value, options: target.value.options ?? {}, unattended: unattended.value,
     }
+    const { run_timeout, ...overrides } = overridden.value
+    const body = profileId.value ? {
+      profile_id: profileId.value, prompt: prompt.value, options: target.value.options ?? {},
+      ...overrides,
+      ...(run_timeout !== undefined ? { timeout: run_timeout } : {}),
+    } : custom
     const snapshot = JSON.stringify(body)
     if (!submission || submission.snapshot !== snapshot) submission = { snapshot, key: crypto.randomUUID(), body: { ...body, options: JSON.parse(JSON.stringify(body.options)) as Record<string, unknown> } }
     const { run_id } = await autocode.startRun({ ...submission.body, idempotency_key: submission.key })
@@ -87,6 +111,7 @@ async function start() {
 <template>
   <fieldset ref="root" class="ac-form ac-new" :disabled="starting">
     <label class="ac-field ac-composer"><span>Prompt</span><textarea v-model="prompt" autofocus rows="8" class="kx-focus-halo" placeholder="What should the agent do?" /></label>
+    <label class="ac-field"><span>Profile</span><select v-model="profileId" aria-label="Profile" class="kx-focus-halo" @change="chooseProfile"><option value="">Custom task</option><option v-for="p in profiles" :key="p.id" :value="p.id">{{ p.title }}</option></select></label>
     <div class="ac-field"><span>Agent</span><AgentPicker v-model="agentId" :agents="catalog.agents" /></div>
     <p v-if="agentId && !agentAccounts.length" class="ac-muted">
       No {{ driver?.title }} accounts you can run on. <button class="ac-link kx-focus-outline" type="button" @click="emit('goto', 'accounts', agentId)">Add an account</button>
@@ -99,18 +124,19 @@ async function start() {
       <label class="ac-field">
         <span>Account</span>
         <select v-model="accountId" class="kx-focus-halo">
+          <option v-if="profileId && invalidAccount" :value="accountId">{{ accountId }} (unavailable)</option>
           <option value="">Auto ({{ ready.length }} ready)</option>
           <option v-for="a in agentAccounts" :key="a.id" :value="a.id">{{ accountTitle(a) }}</option>
         </select>
       </label>
     <label class="ac-field">
       <span>Image</span>
-      <select v-model="imageId" class="kx-focus-halo"><option v-for="i in readyImages" :key="i.id" :value="i.id">{{ i.label }}</option></select>
+      <select v-model="imageId" class="kx-focus-halo"><option v-if="profileId && invalidImage && imageId" :value="imageId">{{ imageId }} (unavailable)</option><option v-for="i in readyImages" :key="i.id" :value="i.id">{{ i.label }}</option></select>
     </label>
     <label class="ac-field">
       <span>Workspace</span>
       <select v-model="workspaceId" class="kx-focus-halo">
-        <option value="">Scratch directory</option>
+        <option value="">Scratch directory</option><option v-if="profileId && invalidWorkspace" :value="workspaceId">{{ workspaceId }} (unavailable)</option>
         <option v-for="w in workspaces" :key="w.id" :value="w.id">{{ w.name }}{{ w.writable ? '' : ' (read-only)' }}</option>
       </select>
     </label>
@@ -132,13 +158,12 @@ async function start() {
       <input v-model="unattended" type="checkbox" class="kx-focus-outline" />
       Unattended · skip permission prompts when the image allows it
     </label>
-    <DriverOptions v-if="driver" :key="driver.id" v-model="options" :options="driver.options"
-      :locked="unattended && driver.unattended ? driver.unattended : {}" @invalid="(n: number) => (invalidOptions = n)" />
+    <DriverOptions v-if="driver" :key="profileId + driver.id" v-model="options" :options="driver.options" :defaults="{ ...(unattended ? driver.unattended : {}), ...selectedProfile?.options }" @invalid="(n: number) => (invalidOptions = n)" />
     </div></details>
     <p v-if="error" class="kx-err" role="alert">{{ error }}</p>
     <footer class="ac-dialog-foot"><button type="button" class="ac-btn kx-focus-halo" @click="emit('cancel')">Cancel</button>
     <button type="button" class="ac-btn primary kx-focus-halo"
-      :disabled="starting || invalidOptions > 0 || !agentId || !(accountId || ready.length) || !imageId || !prompt.trim()" @click="start">
+      :disabled="starting || invalidOptions > 0 || (!profileId && (!agentId || !(accountId || ready.length) || !imageId)) || !prompt.trim()" @click="start">
       <Icon icon="tabler:player-play" /> {{ starting ? 'Starting…' : 'Start' }}
     </button>
     </footer>

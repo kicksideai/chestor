@@ -58,16 +58,19 @@ function kindLabel(a: Account) {
 
 // Keep the ownership line for accounts shared with the caller.
 async function annotate(list: Account[]) {
-  const foreign = [...new Set(list.filter((a) => !a.mine).map((a) => a.owner))].filter((id) => !(id in owners.value))
+  const foreign = [...new Set(list.filter((a) => !a.mine).map((a) => a.owner_user_id))].filter((id) => !(id in owners.value))
   const labels = await principalLabels(foreign)
   if (alive()) owners.value = { ...owners.value, ...labels }
 }
 
 const refresh = serial(async () => {
   try {
-    const list = await reconcile(autocode.accounts, list => list.map(a => a.id), topicIds, alive)
+    const list = await reconcile(autocode.accounts, list => list.map(a => a.id), topicIds, alive, list => {
+      accounts.value = list
+      loaded.value = true
+      error.value = ''
+    }, () => { void refresh() })
     if (!alive()) return
-    accounts.value = list
     await annotate(list)
     if (!alive()) return
     loaded.value = true
@@ -97,7 +100,7 @@ async function submit(event: Event) {
   if (!(event instanceof CustomEvent)) return
   const decoded = accountSubmission.safeParse(event.detail)
   if (saving.value) return
-  if (!decoded.success || decoded.data.agent !== agent.value || (editing.value && !editing.value.writable)) { saveError.value = 'Invalid account submission.'; return }
+  if (!decoded.success || decoded.data.agent !== agent.value || (editing.value && (!editing.value.writable || decoded.data.credential_kind !== editing.value.credential_kind))) { saveError.value = 'Invalid account submission.'; return }
   const account = decoded.data
   saveError.value = ''
   saving.value = true
@@ -162,7 +165,7 @@ onMounted(() => {
     <section v-for="g in groups" :key="g.agent.id" class="ac-stack">
       <div class="ac-card-head"><h2 class="ac-card-title"><Icon :icon="agentIcon(g.agent.id, catalog.agents)" />{{ g.agent.title }}</h2><span class="ac-muted">{{ g.accounts.filter(a => a.usable && accountState(a, now) === 'ready').length }} of {{ g.accounts.length }} ready</span></div>
       <ul class="ac-account-grid">
-        <AccountRow v-for="a in g.accounts" :key="a.id" :account="a" :kind-label="kindLabel(a)" :owner-label="owners[a.owner] || a.owner" @edit="edit(a)" @toggle="toggle(a)" @rename="(label: string) => rename(a, label)" @remove="remove(a)" />
+        <AccountRow v-for="a in g.accounts" :key="a.id" :account="a" :kind-label="kindLabel(a)" :owner-label="owners[a.owner_user_id] || a.owner_user_id" @edit="edit(a)" @toggle="toggle(a)" @rename="(label: string) => rename(a, label)" @remove="remove(a)" />
       </ul>
     </section>
     <AppDialog v-if="adding" :title="editing ? 'Edit account' : 'Add account'" :busy="saving" @close="adding = false">

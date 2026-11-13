@@ -42,7 +42,7 @@ async function readLog(id: string) {
 // A status change refetches the list and the open build log.
 const refresh = serial(async () => {
   try {
-    const list = await reconcile(autocode.images, list => list.map(i => i.id), topicIds, () => alive)
+    const list = await reconcile(autocode.images, list => list.map(i => i.id), topicIds, () => alive, list => { images.value = list; loaded.value = true; error.value = '' }, () => { void refresh() })
     if (!alive) return
     images.value = list
     void readOwnership(list, ++ownershipGeneration)
@@ -55,9 +55,9 @@ const refresh = serial(async () => {
 })
 async function readOwnership(list: Image[], generation: number) {
   try {
-    const labels = await principalLabels([...new Set(list.map(i => i.owner))])
+    const labels = await principalLabels([...new Set(list.map(i => i.owner_user_id))])
     if (!alive || generation !== ownershipGeneration) return
-    ownership.value = Object.fromEntries(list.map(i => [i.id, `Owner: ${labels[i.owner] || i.owner}`]))
+    ownership.value = Object.fromEntries(list.map(i => [i.id, `Owner: ${labels[i.owner_user_id] || i.owner_user_id}`]))
   } catch (e) {
     if (alive && generation === ownershipGeneration) error.value = errorText(e, 'Could not load image owners.')
   }
@@ -124,9 +124,8 @@ async function remove(image: Image) {
   if (log.value?.id === image.id) closeLog()
   error.value = ''
   try {
-    const result = await autocode.deleteImage(image.id, removeFromDocker)
+    await autocode.deleteImage(image.id, removeFromDocker)
     await refresh()
-    if (result.docker_error) error.value = `Image deleted. Docker cleanup failed: ${result.docker_error.message}. Docker prune covers removal of unused images.`
   } catch (e) {
     error.value = errorText(e, 'Could not delete the image.')
   }

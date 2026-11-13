@@ -215,23 +215,22 @@ describe('images', () => {
     await flushPromises()
     expect(w.findComponent(ImageForm).exists()).toBe(false)
   })
-  it('refreshes deleted images and warns when Docker cleanup fails', async () => {
+  it('refreshes images after accepting asynchronous deletion with Docker cleanup', async () => {
   normal()
   let deleted = false
   mocks.get.mockImplementation(async path => ({ data: { success: true, ...respond(path), ...(path.endsWith('/images') ? { images: deleted ? [] : [{ ...image, deletable: true }] } : {}) } }))
   mocks.confirm.mockResolvedValue(true)
   mocks.delete.mockImplementation(async () => {
     deleted = true
-    return { data: { success: true, docker_error: { message: 'Docker unavailable', kind: 'Unavailable', retryable: false, details: { code: 'daemon_down' } } } }
+    return { data: { success: true, deleted: false, in_progress: true, job_id: 'delete-job' } }
   })
   const w = render(Images, { query: '' })
   await flushPromises()
   await w.get('[aria-label="Delete image"]').trigger('click')
   await flushPromises()
   expect(w.find('[aria-label="Delete image"]').exists()).toBe(false)
-  expect(w.text()).toContain('Image deleted')
-  expect(w.text()).toContain('Docker unavailable')
-  expect(w.text()).toContain('prune')
+  expect(mocks.delete).toHaveBeenCalledWith('/api/v1/autocode/images/i?remove=1')
+  expect(w.find('[role="alert"]').exists()).toBe(false)
 })
 })
 
