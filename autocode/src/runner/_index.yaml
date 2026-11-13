@@ -17,6 +17,7 @@ entries:
       comment: Folds bee/drivers reader steps into clipped run events and a bounded final answer.
     source: file://records.lua
     imports:
+      canonical_json: kickside.contract:canonical_json
       credentials: chestor.autocode.domain:credentials
       drivers: bee.drivers:drivers
 

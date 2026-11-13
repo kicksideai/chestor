@@ -26,3 +26,14 @@ entries:
     imports:
       migration: wippy.migration:migration
     method: migrate
+
+  - name: 03_profiles_and_limits
+    kind: function.lua
+    meta:
+      type: migration
+      timestamp: "2026-11-10T00:00:00Z"
+    source: file://03_profiles_and_limits.lua
+    modules: [sql]
+    imports:
+      migration: wippy.migration:migration
+    method: migrate

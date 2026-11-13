@@ -260,7 +260,9 @@ entries:
     meta: {type: test, suite: autocode_account_query, group: Autocode}
     source: file://../../suites/account_query_test.lua
     method: run
+    modules: [sql, uuid]
     imports:
+      repo: chestor.autocode.persist:repo
       test: wippy.test:test
       subject: app:account_store_subject
       stubs: app:runner_stubs

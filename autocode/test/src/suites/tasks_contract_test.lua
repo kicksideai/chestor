@@ -14,6 +14,25 @@ local function cases()
         local fixture = require("contract_fixture").new()
         local users, member, call, image_for, flow_for = fixture.users, fixture.member, fixture.call, fixture.image_for, fixture.flow_for
         test.after_each(fixture.release)
+        test.it("retains normalized usage in get_run, list_runs and the Block output schema", function()
+            local user = member()
+            local usage = {input_tokens = 10, cached_tokens = 0, cache_write_tokens = 3, reasoning_tokens = 2,
+                cost_usd = 0.125, models = {deepseek = {input_tokens = 10, cost_usd = 0.125}}}
+            local id, err = repo.create_run(user.id, {actor_id = user.id, actor_context = "{}"},
+                {agent = "claude", account_id = uuid.v7(), image_id = "fixture", options = {}, unattended = false,
+                    repo_url = "", prompt = "usage", timeout_ms = 60000})
+            test.is_nil(err, tostring(err))
+            test.is_true(repo.finish_run(id, "succeeded", "done", "", usage))
+            local detail = call(user, "get_run", {run_id = id})
+            test.eq(detail.run.usage.models.deepseek.cost_usd, 0.125)
+            local page = call(user, "list_runs", {})
+            test.eq(page.runs[1].usage.cache_write_tokens, 3)
+            test.eq(page.runs[1].usage.cached_tokens, 0)
+            local block = registry.get("chestor.autocode.blocks:block.task")
+            local valid, problem = json.validate(block.data.block.output, {run_id = id, status = "succeeded", answer = "done",
+                error = "", usage = usage, agent = "claude", account_id = "account"})
+            test.is_true(valid, tostring(problem))
+        end)
         test.it("keeps workflow JSON input outside a maximum-sized prompt", function()
             local user = member()
             local image = image_for(user)

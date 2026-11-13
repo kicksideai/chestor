@@ -23,7 +23,7 @@ type Identity = {actor_id: string, actor_context: string}
 -- The balancing state of an account: when a run last started on it, until
 -- when a provider refusal keeps it out of balancing, and that refusal; the day
 -- counts cover the last 24 hours of runs on it.
-type AccountState = {reservation_order: integer, last_used_at: string, cooldown_until: string, last_error: string, runs_day: integer, failures_day: integer}
+type AccountState = {rate_limits: Object?, reservation_order: integer, last_used_at: string, cooldown_until: string, last_error: string, runs_day: integer, failures_day: integer}
 -- "initial" uses a local copy of a registry reference when one exists;
 -- "refresh" pulls it again.
 type BuildMode = "initial" | "refresh"

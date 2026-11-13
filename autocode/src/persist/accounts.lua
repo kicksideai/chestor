@@ -13,7 +13,7 @@ local repo = {}
 -- Account state.
 
 local function account_state(row: Columns): AccountState
-    return {reservation_order = int(row, "reservation_order"), last_used_at = text(row, "last_used_at"), cooldown_until = text(row, "cooldown_until"),
+    return {rate_limits = db.object(row, "rate_limits"), reservation_order = int(row, "reservation_order"), last_used_at = text(row, "last_used_at"), cooldown_until = text(row, "cooldown_until"),
         last_error = text(row, "last_error"), runs_day = int(row, "runs_day"), failures_day = int(row, "failures_day")}
 end
 
@@ -31,14 +31,14 @@ function repo.account_states(ids: {string}): ({[string]: AccountState}?, error?)
     for index, id in ipairs(ids) do
         marks[#marks + 1] = "$" .. tostring(index + 1)
         params[#params + 1] = id
-        result[id] = {reservation_order = 0, last_used_at = "", cooldown_until = "", last_error = "", runs_day = 0, failures_day = 0}
+        result[id] = {rate_limits = {}, reservation_order = 0, last_used_at = "", cooldown_until = "", last_error = "", runs_day = 0, failures_day = 0}
     end
     local list = table.concat(marks, ", ")
     local rows, err = query([[WITH recent AS (
         SELECT account_id, COUNT(*) AS runs_day, SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) AS failures_day
         FROM chestor_autocode_runs WHERE created_at >= $1 AND account_id IN (]] .. list .. [[) GROUP BY account_id)
         SELECT ids.account_id, COALESCE(s.reservation_order, 0) AS reservation_order, COALESCE(s.last_used_at, '') AS last_used_at,
-        COALESCE(s.cooldown_until, '') AS cooldown_until, COALESCE(s.last_error, '') AS last_error,
+        COALESCE(s.rate_limits, '{}') AS rate_limits, COALESCE(s.cooldown_until, '') AS cooldown_until, COALESCE(s.last_error, '') AS last_error,
         COALESCE(r.runs_day, 0) AS runs_day, COALESCE(r.failures_day, 0) AS failures_day
         FROM (SELECT account_id FROM chestor_autocode_account_state WHERE account_id IN (]] .. list .. [[)
             UNION SELECT account_id FROM chestor_autocode_runs WHERE account_id IN (]] .. list .. [[)) ids
@@ -53,6 +53,13 @@ function repo.account_states(ids: {string}): ({[string]: AccountState}?, error?)
         result[account_id] = state
     end
     return result, nil
+end
+
+function repo.record_account_limits(account_id: string, value: db.Object): error?
+    local encoded, encode_err = db.encode_object(value, "rate limits")
+    if not encoded then return encode_err end
+    local _, err = execute("UPDATE chestor_autocode_account_state SET rate_limits = $1 WHERE account_id = $2", {encoded, account_id})
+    return err
 end
 
 -- settle_account records how a run on the account ended: an empty refusal

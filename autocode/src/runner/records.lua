@@ -3,6 +3,7 @@
 -- completion pieces share segment state across reader steps. Retained text
 -- passes the filter before the log and result limits apply.
 local credentials = require("credentials")
+local canonical_json = require("canonical_json")
 local drivers = require("drivers")
 
 type Kind = "assistant" | "reasoning" | "tool" | "tool_result" | "tool_error" | "system" | "error"
@@ -10,7 +11,7 @@ type Event = {kind: Kind, text: string}
 type Text = {text: string, dropped: integer}
 type Segment = {channel: string, text: string, dropped: integer, answer: Text?, done: boolean, ordinal: integer, message: integer,
     answer_message: integer?, answer_start: integer?, answer_dropped: integer?}
-type Folder = {segments: {[string]: Segment}, order: {string}, filter: (string) -> string,
+type Folder = {rate_limits: {[string]: unknown}?, segments: {[string]: Segment}, order: {string}, filter: (string) -> string,
     answer: Text?, answer_ordinal: integer, partial: Text?, partial_ordinal: integer, ordinal: integer, step: integer, message: integer}
 
 local M = {}
@@ -172,7 +173,10 @@ function M.step(folder: Folder, step: drivers.Step): {Event}
     end
     for _, observation in ipairs(step.observations) do
         local data = observation.data
-        if data.type == "text" then
+        if data.type == "rate_limit" then
+            local raw = (data :: {[string]: unknown}).limits
+            if type(raw) == "table" then folder.rate_limits = raw end
+        elseif data.type == "text" then
             text_observation(folder, data, out)
         else
             flush(folder, out)
@@ -206,14 +210,33 @@ function M.terminal(folder: Folder, terminal: drivers.Terminal?): {Event}
     return out
 end
 
+function M.limits(folder: Folder, terminal: drivers.Terminal?): {[string]: unknown}?
+    local latest = terminal and (terminal :: {[string]: unknown}).rate_limits
+    if type(latest) == "table" then return latest end
+    return folder.rate_limits
+end
+
 -- usage reports the terminal's token usage as stored run usage.
 function M.usage(terminal: drivers.Terminal?): {[string]: unknown}
     local result: {[string]: unknown} = {}
     local usage = terminal and terminal.usage
     if not usage then return result end
-    if usage.input_tokens then result.input_tokens = usage.input_tokens end
-    if usage.output_tokens then result.output_tokens = usage.output_tokens end
-    if usage.cached_tokens then result.cached_tokens = usage.cached_tokens end
+    local function copy(value: {[string]: unknown}): {[string]: unknown}
+        local projected: {[string]: unknown} = {}
+        for _, field in ipairs({"input_tokens", "output_tokens", "cached_tokens", "cache_write_tokens", "reasoning_tokens", "cost_usd", "cost_decimal", "currency"}) do
+            if value[field] ~= nil then projected[field] = value[field] end
+        end
+        return canonical_json.object(projected) :: {[string]: unknown}
+    end
+    result = copy(usage :: {[string]: unknown})
+    local by_model = (usage :: {[string]: unknown}).models
+    if type(by_model) == "table" then
+        local models: {[string]: unknown} = {}
+        for name, model in pairs(by_model) do
+            if type(name) == "string" and type(model) == "table" then models[name] = copy(model) end
+        end
+        result.models = canonical_json.object(models)
+    end
     return result
 end
 

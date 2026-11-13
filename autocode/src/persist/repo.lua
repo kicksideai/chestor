@@ -20,6 +20,7 @@ type FlowSignal = database.FlowSignal
 
 local repo = {EVENTS_PAGE = database.EVENTS_PAGE, now = database.now, db_id = database.db_id}
 repo.account_states = accounts.account_states
+repo.record_account_limits = accounts.record_account_limits
 repo.settle_account = accounts.settle_account
 repo.record_account_error = accounts.record_account_error
 repo.clear_cooldown = accounts.clear_cooldown
