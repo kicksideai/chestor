@@ -5,6 +5,7 @@ workspace:
   replacements:
     chestor/autocode: ..
 override:
+  "kickside.component:encryption_key:default": app:encryption_key
   "kickside.core.retention.service:sweeper.service:lifecycle.auto_start": false
   "kickside.core.jobs:policy:meta.slot_retry.retry_after_ms": 100
   "kickside.core.jobs:policy:meta.slot_retry.max_delay_ms": 1000

@@ -112,9 +112,7 @@ end
 function M.context(kind: Kind, id: string, required: integer): (Context?, error?)
     local found, find_err = M.get(kind, id, required)
     if not found then return nil, find_err end
-    local svc, svc_err = service()
-    if not svc then return nil, svc_err end
-    local result, call_err = svc:get_access_context({component_id = id, access_mask = required, include_context = true})
+    local result, call_err = component.get_context_snapshot(id, required, true)
     if call_err then return nil, envelope.call_error(call_err, "get_access_context") end
     local result_err = envelope.error_of(result :: component_types.ServiceEnvelope, "get_access_context")
     if result_err then return nil, result_err end

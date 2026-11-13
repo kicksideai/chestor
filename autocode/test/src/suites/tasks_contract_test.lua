@@ -33,7 +33,7 @@ local function cases()
             local user = identity.admin()
             users[#users + 1] = user
             local image = image_for(user)
-            local account = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "input launch", secret = "key"})
+            local account = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "input launch", secret = "autocode-secret-storage-sentinel"})
             local prefix = '{"value":"'
             local prompt, input = string.rep("p", 16384), prefix .. string.rep("x", 65536 - #prefix - 2) .. '"}'
             require("stubs").reset()
@@ -42,6 +42,16 @@ local function cases()
                     repo_url = "", prompt = prompt, input = input, timeout_ms = 60000})
             local prepared, err = identity.call(user, "chestor.autocode.service:prepare", {run_id = id})
             test.is_nil(err, tostring(err))
+            test.eq(prepared.secret, "autocode-secret-storage-sentinel")
+            local db = assert(sql.get("app:db"))
+            local row = assert(db:query("SELECT private_context,encrypted_secrets FROM kickside_components WHERE component_id=$1", {account.json.id}))[1]
+            test.is_nil((assert(json.encode(row)):find(prepared.secret, 1, true)))
+            test.not_nil(row.encrypted_secrets)
+            test.is_nil(select(2, db:release()))
+            local listed = identity.request(user, "GET", "/autocode/accounts")
+            test.eq(listed.status, 200)
+            test.is_nil((listed.body:find(prepared.secret, 1, true)))
+            test.is_nil((account.body:find(prepared.secret, 1, true)))
             local expected = prompt .. "\n\nInput:\n" .. input
             test.eq(prepared.launch.argv[#prepared.launch.argv], expected)
         end)
