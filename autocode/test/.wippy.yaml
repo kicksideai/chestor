@@ -5,6 +5,7 @@ workspace:
   replacements:
     chestor/autocode: ..
 override:
+  "kickside.component:encryption_key:default": app:encryption_key
   "kickside.core.retention.service:sweeper.service:lifecycle.auto_start": false
   "kickside.core.jobs:policy:meta.slot_retry.retry_after_ms": 100
   "kickside.core.jobs:policy:meta.slot_retry.max_delay_ms": 1000
@@ -14,7 +15,7 @@ vars:
   sqlite_path: ./.wippy/autocode-test.db
   http_port: 19347
   pg_host: 127.0.0.1
-  pg_port: 5433
+  pg_port: 5547
   pg_database: chestor_autocode_test
   pg_username: kickside
   pg_password: kickside

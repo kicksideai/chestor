@@ -96,7 +96,7 @@ make test-pg
 `test-pg` creates and drops a dedicated PostgreSQL database. Set `PG_URL` for
 the maintenance connection and `RUNTIME_ARGS` for harness profile variables
 when using a different server. The default test server is local PostgreSQL
-on port 5433. Both engines run the same suites.
+on port 5547. Both engines run the same suites.
 
 Edit frontend source under `ui/` and commit regenerated `static/` assets.
 `build-inputs/` resolves the published `kickside/ui-kit` package; `make ui-kit`
@@ -224,3 +224,11 @@ dispatch remain platform requirements. Module
 HTTP permissions do not close those platform gaps. The task service keeps callback handling in `service/tasks.lua`, account
 credentials in `components/resources.lua` and `service/owner.lua`, and all kind
 writes through the component service so each platform correction has one seam.
+
+Run credentials reach the owning CLI only after its container starts, over the
+attached execution's stdin. Docker create arguments, container environment,
+labels and image layers do not carry the account credential. Login-file
+directories use tmpfs; the runner reads refreshed files from the running
+container's mount namespace before existing cleanup removes the container.
+CLI output and durable run records retain their credential redaction. A stopped
+or interrupted run never depends on a credential file surviving the container.

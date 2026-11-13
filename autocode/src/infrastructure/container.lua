@@ -3,7 +3,7 @@
 -- credential and the driver's files into a fresh HOME, enter the working
 -- directory, clone the optional repository, and exec the driver's command
 -- under the run's timeout. Each step is fatal on failure. Every value the
--- script needs arrives through the container environment, never through argv.
+-- script needs arrives on attached stdin, never through container configuration.
 local drivers = require("drivers")
 local credentials = require("credentials")
 local quote = require("quote")

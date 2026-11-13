@@ -134,6 +134,8 @@ function docker.run(args, opts)
         if M.state.create_error then return nil, M.state.create_error end
         return 0
     elseif args[1] == "start" then
+        return 0
+    elseif args[1] == "exec" then
         M.state.attached = true
         M.state.streaming = true
         if M.state.cancel_on_attach then M.state.run.cancel_requested = true end

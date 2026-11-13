@@ -3,6 +3,24 @@ local test = require("test")
 local transport = require("transport")
 local function cases()
     test.describe("autocode transported preparation", function()
+        test.it("delivers credentials only on attached stdin and mounts login storage in memory", function()
+            local run = {agent = "claude", account_id = "account", image_id = "image"}
+            local prepared = require("stubs").preparation(run)
+            local secret = "docker-config-credential-sentinel"
+            prepared.secret = secret
+            prepared.kind = {id = "file:.login/auth.json", file = {path = ".login/auth.json", initialize = {}, write_back = true}}
+            local script = assert(require("container").script(prepared.kind, secret, prepared.image.home,
+                prepared.workdir, "", prepared.launch, 60))
+            local box = require("run_io").build("transport-test", prepared, script.env)
+            local args = table.concat(box.create, " ")
+            test.is_nil(args:find(secret, 1, true))
+            test.is_nil(args:find(" -e ", 1, true))
+            test.is_nil(next(box.env or {}))
+            test.not_nil(box.stdin:find(secret, 1, true))
+            test.not_nil(args:find("--tmpfs", 1, true))
+            test.not_nil(args:find(prepared.image.home .. "/.login", 1, true))
+        end)
+
         test.it("clones the named branch through a quoted environment variable and named depth", function()
             local container = require("container")
             local launch = {executable = "agent", argv = {}, environment = {}, files = {}, readiness = "none"}

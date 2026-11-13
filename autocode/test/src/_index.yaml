@@ -3,6 +3,13 @@ version: "1.0"
 namespace: app
 
 entries:
+  - name: encryption_key_storage
+    kind: env.storage.static
+    values: {KEY: 'abababababababababababababababababababababababababababababababab'}
+  - name: encryption_key
+    kind: env.variable
+    variable: KEY
+    storage: app:encryption_key_storage
   - name: definition
     kind: ns.definition
     meta: { title: Autocode Test Harness }

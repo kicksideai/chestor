@@ -203,6 +203,7 @@ entries:
       test: wippy.test:test
       transport: chestor.autocode.service:transport
       container: chestor.autocode.infrastructure:container
+      run_io: chestor.autocode.runner:run_io
       stubs: app:runner_stubs
 
   - name: job_outcome_test

@@ -144,7 +144,7 @@ local function execute(run: repo.Run, job: {[string]: unknown}, trace_context: {
     if inspect_err then return fail("recorded image ID inspection failed: " .. tostring(inspect_err)) end
     if inspected ~= 0 then return fail("recorded image ID is no longer available in Docker; prepare the image again: " .. prepared.image.ref) end
     local create_output: {string} = {}
-    local created, create_err = docker.run(box.create, {deadline = deadline, env = box.env, on_line = function(line: string) create_output[#create_output + 1] = line end})
+    local created, create_err = docker.run(box.create, {deadline = deadline, on_line = function(line: string) create_output[#create_output + 1] = line end})
     if create_err or created ~= 0 then
         return fail(create_err and tostring(create_err) or ("container create failed: " .. table.concat(create_output, "\n")))
     end

@@ -7,7 +7,7 @@ VERSION ?= $(shell node -p "require('../.release-please-manifest.json')['autocod
 TEST_TARGET ?= test
 SHELL := bash
 .SHELLFLAGS := -o pipefail -ec
-PG_URL ?= postgresql://kickside:kickside@127.0.0.1:5433/postgres
+PG_URL ?= postgresql://kickside:kickside@127.0.0.1:5547/postgres
 
 .PHONY: check build dev lint test test-pg typecheck lockrefresh ui-kit ui-test verify release-check publish
 build: ui-kit

@@ -13,6 +13,7 @@ entries:
   - name: account
     kind: contract.binding
     meta:
+      secret_fields: [{path: [credential], type: string}]
       title: Agent account
       comment: A credential one agent CLI runs with - an API key, optionally for an own endpoint, or a personal subscription login. READ grants let a run use either credential kind.
       icon: tabler:key

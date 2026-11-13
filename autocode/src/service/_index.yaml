@@ -179,6 +179,8 @@ entries:
 
 - name: prepare
   kind: function.lua
+  security:
+    policies: [chestor.autocode.security:account_secret_dispatch, chestor.autocode.security:account_secret_read]
   meta:
     comment: Runs under the run owner - admits the recorded run again with the owner's current grants and reads the account credential.
   source: file://owner.lua

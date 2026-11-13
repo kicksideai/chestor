@@ -236,6 +236,7 @@ entries:
       redact: chestor.autocode.runner:redact
       docker: app:stub_docker
       transport: chestor.autocode.service:transport
+      quote: chestor.autocode.infrastructure:quote
 
   - name: account_health_subject
     kind: library.lua
