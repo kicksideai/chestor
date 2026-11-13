@@ -7,6 +7,7 @@ local redact = require("redact")
 local docker = require("docker")
 local time = require("time")
 local transport = require("transport")
+local quote = require("quote")
 local MAX_CREDENTIAL_BYTES = credentials.MAX_BYTES
 local KEEP_CREDENTIAL = "chestor.autocode.service:keep_credential"
 type Container = {name: string, create: {string}, env: {[string]: string}, stdin: string?}
@@ -44,19 +45,32 @@ local function build(run_id: string, prepared: Prepared, env: {[string]: string}
         args[#args + 1] = "type=bind,source=" .. workspace.host_path .. ",target=" .. prepared.workdir .. (workspace.writable and "" or ",readonly")
     end
     for _, arg in ipairs(settings_args(prepared.image)) do args[#args + 1] = arg end
+    local file = prepared.kind.file
+    if file then
+        local parent = file.path:match("^(.*)/[^/]+$")
+        args[#args + 1] = "--tmpfs"
+        args[#args + 1] = prepared.image.home .. (parent and ("/" .. parent) or "") .. ":rw,mode=1777"
+    end
+    for _, arg in ipairs({"--entrypoint", "sleep", prepared.image.ref, "infinity"}) do args[#args + 1] = arg end
     local names: {string} = {}
     for variable in pairs(env) do names[#names + 1] = variable end
     table.sort(names)
+    local bootstrap: {string} = {"set -e"}
     for _, variable in ipairs(names) do
-        args[#args + 1] = "-e"
-        args[#args + 1] = variable
+        bootstrap[#bootstrap + 1] = "export " .. variable .. "=" .. quote.posix(env[variable])
     end
-    for _, arg in ipairs({"--entrypoint", "sh", prepared.image.ref, "-c", 'eval "$AUTOCODE_SCRIPT"'}) do args[#args + 1] = arg end
-    return {name = name, create = args, env = env, stdin = prepared.launch.stdin}
+    bootstrap[#bootstrap + 1] = "AUTOCODE_INPUT=" .. quote.posix(prepared.launch.stdin or "")
+    bootstrap[#bootstrap + 1] = 'printf %s "$AUTOCODE_INPUT" | eval "$AUTOCODE_SCRIPT"'
+    return {name = name, create = args, env = {}, stdin = table.concat(bootstrap, "\n") .. "\n"}
 end
 
 local function stream(prepared: Prepared, box: Container, redactor: redact.Redactor, emit: Emit,
     cancelled: () -> (boolean?, error?), persist_error: () -> string?, deadline: string?): (Streamed?, error?)
+    local started, start_err = docker.run({"start", box.name}, {deadline = deadline})
+    if start_err then return nil, start_err end
+    if started ~= 0 then
+        return nil, errors.new({kind = errors.UNAVAILABLE, message = "container start failed"})
+    end
     local reader, reader_err = drivers.reader(prepared.agent, false)
     if not reader then
         return nil, reader_err
@@ -95,7 +109,7 @@ local function stream(prepared: Prepared, box: Container, redactor: redact.Redac
         end
         watch_done:send(true)
     end)
-    local code, docker_err = docker.run({"start", "-a", "-i", box.name}, {
+    local code, docker_err = docker.run({"exec", "-i", box.name, "sh", "-s"}, {
         deadline = deadline,
         stdin = box.stdin,
         on_line = function(line: string)
@@ -124,7 +138,7 @@ local function keep_credential(run_id: string, owner: Caller, prepared: Prepared
     local secret = prepared.secret
     local file = prepared.kind.file
     if file and file.write_back then
-        local content, copy_err = docker.copy_file(box.name, prepared.image.home .. "/" .. file.path, MAX_CREDENTIAL_BYTES, deadline)
+        local content, copy_err = docker.read_file(box.name, prepared.image.home .. "/" .. file.path, MAX_CREDENTIAL_BYTES, deadline)
         if not content then
             refresh_error = "credential refresh cannot be saved; re-add the account login: " .. tostring(copy_err)
             emit("system", refresh_error)

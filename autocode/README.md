@@ -224,3 +224,11 @@ dispatch remain platform requirements. Module
 HTTP permissions do not close those platform gaps. The task service keeps callback handling in `service/tasks.lua`, account
 credentials in `components/resources.lua` and `service/owner.lua`, and all kind
 writes through the component service so each platform correction has one seam.
+
+Run credentials reach the owning CLI only after its container starts, over the
+attached execution's stdin. Docker create arguments, container environment,
+labels and image layers do not carry the account credential. Login-file
+directories use tmpfs; the runner reads refreshed files from the running
+container's mount namespace before existing cleanup removes the container.
+CLI output and durable run records retain their credential redaction. A stopped
+or interrupted run never depends on a credential file surviving the container.

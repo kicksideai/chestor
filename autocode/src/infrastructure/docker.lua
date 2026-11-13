@@ -233,6 +233,15 @@ function M.copy_file(container: string, path: string, limit: integer, deadline: 
     return content, nil
 end
 
+-- Read a mounted file in the running container's namespace. Docker archives
+-- do not include tmpfs mounts. Never include file contents in a failed result.
+function M.read_file(container: string, path: string, limit: integer, deadline: string?): (string?, error?)
+    local content, code, err = capture({"exec", container, "cat", "--", path}, limit, deadline)
+    if err then return nil, err end
+    if code ~= 0 then return nil, fail("container file read failed") end
+    return content, nil
+end
+
 -- Keep started containers readable; remove a created container so it cannot launch after cancellation.
 function M.stop(name: string, deadline: string?): error?
     local listed, list_err = output({"ps", "-a", "--format", "{{.State}}", "--filter", "name=^" .. name .. "$"}, deadline)
