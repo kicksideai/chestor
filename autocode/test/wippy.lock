@@ -17,14 +17,14 @@ modules:
       version: 0.3.2
       hash: df463a8e8e9ce71c9e1b87bb4bdbfb389b28fa7a6dff73f47d3de58ee546c715
     - name: kickside/core
-      version: 0.3.14
-      hash: 42b89ce2af5786d78dcc554f347b540f6b6a0fe08542dd84c4afd2b38c977ed2
+      version: 0.3.15
+      hash: 8208298047046c7c1c9379b550024a7746595d52daae26e84cae9f07048a82ed
     - name: kickside/execution
-      version: 0.2.7
-      hash: 3954d2cc679886deb8a15a4a3c8c36e4ea09e578f09a2eb6f27f0ac62e10fdf7
+      version: 0.2.8
+      hash: 7ffa847541cce7d03424bad43828fb08e9b077b6a08b3fe857cd0a22fa589e97
     - name: kickside/jobs
-      version: 0.1.76
-      hash: 110b338cf400340cdc9c8bf677dcdd3b72b6606c5035405b7499b41a11f16f4c
+      version: 0.1.78
+      hash: c81b69564313d2eda1fb9b7c6391629c0965686e02f2e0e1778f27c45b984ffd
     - name: kickside/realtime-dispatch
       version: 0.1.1
       hash: 6f0fa3625683510a1565afff3b40b6726ea5604b940b1627b787f6615683264d
@@ -32,8 +32,8 @@ modules:
       version: 0.2.27
       hash: 9e0eaa5b0420bc49b24e770271cf8ab6fd7f56a23d7692c846ebb5e5169d418a
     - name: kickside/settings
-      version: 0.3.7
-      hash: 8a625775e9a15715a8607edd3171f52090259fd9eb9819462208485111e15bdc
+      version: 0.3.8
+      hash: 564aa7acb818b707b29af927a16afa787ad211f0d60793ec158a814a7aaf046b
     - name: kickside/users
       version: 0.2.22
       hash: b2885b57e85abe950053fda9226c977a3edd7348d51c0c02d7f519aac141ecb6
