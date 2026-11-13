@@ -52,6 +52,7 @@ entries:
     method: run
     modules: [json]
     imports:
+      image_state: chestor.autocode.domain:image_state
       test: wippy.test:test
       stubs: app:runner_stubs
       image_subject: app:image_subject
@@ -63,9 +64,12 @@ entries:
   - name: run_faults_test
     kind: function.lua
     meta: {type: test, suite: autocode_run_faults, group: Autocode}
+    modules: [time]
     source: file://../../suites/run_faults_test.lua
     method: run
     imports:
+      health: app:account_health_subject
+      redact: chestor.autocode.runner:redact
       test: wippy.test:test
       stubs: app:runner_stubs
       run_subject: app:run_subject
@@ -90,11 +94,13 @@ entries:
     kind: function.lua
     meta: {type: test, suite: autocode_docker, group: Autocode}
     source: file://../../suites/docker_test.lua
-    modules: [registry, time]
+    modules: [registry, time, json]
     method: run
     imports:
+      host: app:host_error_subject
       test: wippy.test:test
       docker_subject: app:docker_subject
+      io: app:run_io_subject
       stubs: app:runner_stubs
 
   - name: workspaces_test
@@ -148,6 +154,7 @@ entries:
     method: run
     imports:
       test: wippy.test:test
+      teardown: app:teardown_subject
       subject: app:image_management_subject
       stubs: app:runner_stubs
 
@@ -261,8 +268,76 @@ entries:
     source: file://../../suites/account_query_test.lua
     method: run
     modules: [sql, uuid]
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
     imports:
       repo: chestor.autocode.persist:repo
       test: wippy.test:test
       subject: app:account_store_subject
       stubs: app:runner_stubs
+
+  - name: gateway_http_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_gateway_http, group: Autocode}
+    source: file://../../suites/gateway_http_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      api: app:gateway_api_subject
+      stub: app:gateway_http_stub
+
+  - name: upgrade_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_populated_upgrade, group: Autocode}
+    source: file://../../suites/upgrade_test.lua
+    method: run
+    modules: [sql, funcs, uuid, json, registry]
+    imports:
+      host: app:host_commands
+      component: kickside.component:component
+      test: wippy.test:test
+      repo: app:upgrade_runs
+      identity: app:identity
+      contract_fixture: app:contract_fixture
+      workspace_store: app:upgrade_workspace_store
+      runner: app:upgrade_runner
+      docker_runner: app:upgrade_docker_runner
+      docker: chestor.autocode.infrastructure:docker
+      stubs: app:runner_stubs
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: mount_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_mount_isolation, group: Autocode}
+    source: file://../../suites/mount_test.lua
+    method: run
+    modules: [uuid]
+    imports:
+      test: wippy.test:test
+      io: chestor.autocode.runner:run_io
+      stubs: app:runner_stubs
+      docker: chestor.autocode.infrastructure:docker
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: client_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_client, group: Autocode}
+    source: file://../../suites/client_test.lua
+    method: run
+    modules: [exec, uuid, json]
+    imports:
+      paths: app:real_workspaces_subject
+      native_docker: app:native_docker_subject
+      io: chestor.autocode.runner:run_io
+      test: wippy.test:test
+      docker: chestor.autocode.infrastructure:docker
+      quote: chestor.autocode.infrastructure:quote
+      stubs: app:runner_stubs
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]

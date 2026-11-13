@@ -3,6 +3,22 @@ version: "1.0"
 namespace: chestor.autocode.security
 
 entries:
+  - name: cancel_signal
+    kind: security.policy
+    meta: {private: true, comment: Ownership-checked cancellation wakes only the Autocode runner event system.}
+    policy:
+      resources: chestor.autocode
+      actions: events.send
+      effect: allow
+
+  - name: cancel_subscription
+    kind: security.policy
+    meta: {private: true, comment: Attached runners receive cancellation through the Autocode event system.}
+    policy:
+      resources: chestor.autocode
+      actions: events.subscribe
+      effect: allow
+
   - name: store
     kind: security.policy
     meta:
@@ -20,18 +36,224 @@ entries:
       comment: Trusted workers discover autocode and its platform dependencies.
     policy:
       resources:
-        - chestor.autocode:*
-        - chestor.autocode.api:*
-        - chestor.autocode.blocks:*
-        - chestor.autocode.components:*
-        - chestor.autocode.domain:*
-        - chestor.autocode.infrastructure:*
-        - chestor.autocode.drivers:*
-        - chestor.autocode.migrations:*
-        - chestor.autocode.persist:*
-        - chestor.autocode.runner:*
-        - chestor.autocode.security:*
-        - chestor.autocode.service:*
+        - chestor.autocode.api:accounts_create
+        - chestor.autocode.api:accounts_create.user.endpoint
+        - chestor.autocode.api:accounts_delete
+        - chestor.autocode.api:accounts_delete.user.endpoint
+        - chestor.autocode.api:accounts_list
+        - chestor.autocode.api:accounts_list.user.endpoint
+        - chestor.autocode.api:accounts_update
+        - chestor.autocode.api:accounts_update.user.endpoint
+        - chestor.autocode.api:catalog
+        - chestor.autocode.api:catalog.user.endpoint
+        - chestor.autocode.api:images_create
+        - chestor.autocode.api:images_create.endpoint
+        - chestor.autocode.api:images_delete
+        - chestor.autocode.api:images_delete.endpoint
+        - chestor.autocode.api:images_get
+        - chestor.autocode.api:images_get.user.endpoint
+        - chestor.autocode.api:images_list
+        - chestor.autocode.api:images_list.user.endpoint
+        - chestor.autocode.api:images_prepare
+        - chestor.autocode.api:images_prepare.endpoint
+        - chestor.autocode.api:images_update
+        - chestor.autocode.api:images_update.endpoint
+        - chestor.autocode.api:maintenance_prune
+        - chestor.autocode.api:maintenance_prune.endpoint
+        - chestor.autocode.api:profiles_create
+        - chestor.autocode.api:profiles_create.user.endpoint
+        - chestor.autocode.api:profiles_delete
+        - chestor.autocode.api:profiles_delete.user.endpoint
+        - chestor.autocode.api:profiles_list
+        - chestor.autocode.api:profiles_list.user.endpoint
+        - chestor.autocode.api:profiles_update
+        - chestor.autocode.api:profiles_update.user.endpoint
+        - chestor.autocode.api:run_hook
+        - chestor.autocode.api:run_hook.endpoint
+        - chestor.autocode.api:run_mcp
+        - chestor.autocode.api:run_mcp.endpoint
+        - chestor.autocode.api:runs_cancel
+        - chestor.autocode.api:runs_cancel.user.endpoint
+        - chestor.autocode.api:runs_create
+        - chestor.autocode.api:runs_create.user.endpoint
+        - chestor.autocode.api:runs_get
+        - chestor.autocode.api:runs_get.user.endpoint
+        - chestor.autocode.api:runs_list
+        - chestor.autocode.api:runs_list.user.endpoint
+        - chestor.autocode.api:web
+        - chestor.autocode.api:workspaces_create
+        - chestor.autocode.api:workspaces_create.endpoint
+        - chestor.autocode.api:workspaces_delete
+        - chestor.autocode.api:workspaces_delete.endpoint
+        - chestor.autocode.api:workspaces_list
+        - chestor.autocode.api:workspaces_list.user.endpoint
+        - chestor.autocode.blocks:arm_task
+        - chestor.autocode.blocks:block.task
+        - chestor.autocode.blocks:resume
+        - chestor.autocode.components:account
+        - chestor.autocode.components:delete_account
+        - chestor.autocode.components:delete_image
+        - chestor.autocode.components:delete_profile
+        - chestor.autocode.components:delete_workspace
+        - chestor.autocode.components:image
+        - chestor.autocode.components:profile
+        - chestor.autocode.components:resources
+        - chestor.autocode.components:status
+        - chestor.autocode.components:workspace
+        - chestor.autocode.domain:credentials
+        - chestor.autocode.domain:endpoint
+        - chestor.autocode.domain:job_outcome
+        - chestor.autocode.domain:limits
+        - chestor.autocode.domain:live
+        - chestor.autocode.domain:recipe
+        - chestor.autocode.domain:settings
+        - chestor.autocode.drivers:activation
+        - chestor.autocode.infrastructure:container
+        - chestor.autocode.infrastructure:docker
+        - chestor.autocode.infrastructure:docker_image
+        - chestor.autocode.infrastructure:host
+        - chestor.autocode.infrastructure:image_tags
+        - chestor.autocode.infrastructure:quote
+        - chestor.autocode.infrastructure:workspaces
+        - chestor.autocode.persist:accounts
+        - chestor.autocode.persist:builds
+        - chestor.autocode.persist:database
+        - chestor.autocode.persist:db_config
+        - chestor.autocode.persist:events
+        - chestor.autocode.persist:project_account
+        - chestor.autocode.persist:repo
+        - chestor.autocode.persist:retention
+        - chestor.autocode.persist:workspaces
+        - chestor.autocode.persist:runs
+        - chestor.autocode.runner:account_health
+        - chestor.autocode.runner:event_log
+        - chestor.autocode.runner:image
+        - chestor.autocode.runner:prune
+        - chestor.autocode.runner:records
+        - chestor.autocode.runner:redact
+        - chestor.autocode.runner:retention
+        - chestor.autocode.runner:run
+        - chestor.autocode.runner:run_io
+        - chestor.autocode.security:account_notify
+        - chestor.autocode.security:account_status
+        - chestor.autocode.security:component_teardown
+        - chestor.autocode.security:deferred_actor
+        - chestor.autocode.security:deferred_images
+        - chestor.autocode.security:deferred_runs
+        - chestor.autocode.security:docker_commands
+        - chestor.autocode.security:driver_activation
+        - chestor.autocode.security:flow_context
+        - chestor.autocode.security:flow_identity
+        - chestor.autocode.security:flow_resume
+        - chestor.autocode.security:flow_resume_arm
+        - chestor.autocode.security:gateway_dispatch
+        - chestor.autocode.security:image_status
+        - chestor.autocode.security:management_reads
+        - chestor.autocode.security:management_runtime
+        - chestor.autocode.security:member_endpoints
+        - chestor.autocode.security:module_access
+        - chestor.autocode.security:module_management
+        - chestor.autocode.security:module_runtime
+        - chestor.autocode.security:run_notify
+        - chestor.autocode.security:service_calls
+        - chestor.autocode.security:store
+        - chestor.autocode.security:task_calls
+        - chestor.autocode.security:teardown_security
+        - chestor.autocode.security:tool_access
+        - chestor.autocode.security:ui_access
+        - chestor.autocode.security:user_security_scope
+        - chestor.autocode.security:worker_calls
+        - chestor.autocode.security:worker_runtime
+        - chestor.autocode.service:accounts
+        - chestor.autocode.service:add_account
+        - chestor.autocode.service:add_profile
+        - chestor.autocode.service:admission
+        - chestor.autocode.service:boundary
+        - chestor.autocode.service:cancel_run
+        - chestor.autocode.service:catalog
+        - chestor.autocode.service:client
+        - chestor.autocode.service:deferred
+        - chestor.autocode.service:docker_maintenance
+        - chestor.autocode.service:gateway
+        - chestor.autocode.service:get_run
+        - chestor.autocode.service:image_management
+        - chestor.autocode.service:image_ready
+        - chestor.autocode.service:image_recipe
+        - chestor.autocode.service:images
+        - chestor.autocode.service:keep_credential
+        - chestor.autocode.service:list_accounts
+        - chestor.autocode.service:list_agents
+        - chestor.autocode.service:list_images
+        - chestor.autocode.service:list_profiles
+        - chestor.autocode.service:get_profile
+        - chestor.autocode.service:list_runs
+        - chestor.autocode.service:list_workspaces
+        - chestor.autocode.service:maintenance
+        - chestor.autocode.service:prepare
+        - chestor.autocode.service:profiles
+        - chestor.autocode.service:remove_account
+        - chestor.autocode.service:remove_profile
+        - chestor.autocode.service:resource_dto
+        - chestor.autocode.service:runs
+        - chestor.autocode.service:submit_task
+        - chestor.autocode.service:transport
+        - chestor.autocode.service:update_account
+        - chestor.autocode.service:update_profile
+        - chestor.autocode.service:values
+        - chestor.autocode.service:verify_workspace
+        - chestor.autocode.service:workspace_management
+        - chestor.autocode.traits:cancel_coding_run
+        - chestor.autocode.traits:coding_tasks
+        - chestor.autocode.traits:list_coding_accounts
+        - chestor.autocode.traits:list_coding_agents
+        - chestor.autocode.traits:list_coding_images
+        - chestor.autocode.traits:list_coding_profiles
+        - chestor.autocode.traits:read_coding_profile
+        - chestor.autocode.traits:list_coding_workspaces
+        - chestor.autocode.traits:read_coding_run
+        - chestor.autocode.traits:submit_coding_task
+        - chestor.autocode:accounts
+        - chestor.autocode:accounts_binding
+        - chestor.autocode:api_router
+        - chestor.autocode:autocode_view
+        - chestor.autocode:definition
+        - chestor.autocode:dep.bee.drivers
+        - chestor.autocode:dep.kickside.blocks
+        - chestor.autocode:dep.kickside.component
+        - chestor.autocode:dep.kickside.contract
+        - chestor.autocode:dep.kickside.core
+        - chestor.autocode:dep.kickside.execution
+        - chestor.autocode:dep.kickside.jobs
+        - chestor.autocode:dep.kickside.settings
+        - chestor.autocode:dep.wippy.agent
+        - chestor.autocode:dep.wippy.migration
+        - chestor.autocode:docker_context
+        - chestor.autocode:docker_executor
+        - chestor.autocode:driver_account_view
+        - chestor.autocode:gateway_endpoint
+        - chestor.autocode:nav_item
+        - chestor.autocode:profiles
+        - chestor.autocode:profiles_binding
+        - chestor.autocode:run_gateway
+        - chestor.autocode:runtime_config
+        - chestor.autocode:setting.account_cooldown
+        - chestor.autocode:setting.build_cache_retention
+        - chestor.autocode:setting.image_build_timeout
+        - chestor.autocode:setting.run_retention
+        - chestor.autocode:setting.run_timeout
+        - chestor.autocode:settings.block.autocode
+        - chestor.autocode:settings_path
+        - chestor.autocode:settings_tab
+        - chestor.autocode:settings_tab_view
+        - chestor.autocode:target_db
+        - chestor.autocode:task_config_view
+        - chestor.autocode:tasks
+        - chestor.autocode:tasks_binding
+        - chestor.autocode:ui_fs
+        - chestor.autocode:ui_server
+        - chestor.autocode:ui_static
+        - chestor.autocode:validate_duration
+        - chestor.autocode:workspace_roots
         - bee.drivers:*
         - bee.drivers.*
         - kickside.settings:*
@@ -64,7 +286,6 @@ entries:
         - kickside.settings:settings
         - kickside.settings:settings_binding
         - kickside.core.jobs.persist:pool_nudge
-        - kickside.core.retention:notify
         - kickside.mcp:credential_restriction
         - kickside.identity:link_get
         - resolve
@@ -96,10 +317,10 @@ entries:
     kind: security.policy
     meta:
       private: true
-      comment: Workers construct the live principal actor after Users resolution.
+      comment: Workers reconstruct the live principal actor and policy groups after Users resolution.
     policy:
       resources: "*"
-      actions: security.actor.create
+      actions: [security.actor.create, security.policy_group.get, security.policy.get, security.scope.create]
       effect: allow
 
   - name: docker_commands
@@ -109,7 +330,7 @@ entries:
       comment: The only command line the module runs - the docker CLI behind its stderr-merging shell wrapper on the module's executor.
     policy:
       resources:
-        - "/bin/sh -c 'exec docker \"$@\" 2>&1' sh *"
+        - /bin/sh -c 'exec /bin/sh -ec "$AUTOCODE_DOCKER_CLIENT" 2>&1'
       actions: [exec.get, exec.run]
       effect: allow
 
@@ -145,6 +366,16 @@ entries:
     policy:
       actions: [funcs.call, funcs.security, kickside.execution.defer]
       resources: [kickside.blocks:resume, kickside.blocks:resume_under_identity, kickside.workflows.runs:resume, security]
+      effect: allow
+
+  - name: flow_resume_arm
+    kind: security.policy
+    meta:
+      private: true
+      comment: The Autocode completion job may resume only its own wait arm.
+    policy:
+      actions: funcs.call
+      resources: chestor.autocode.blocks:arm_task
       effect: allow
 
   - name: flow_identity
@@ -184,3 +415,28 @@ entries:
         - field: meta.impl_id
           operator: eq
           value: chestor.autocode.components:account
+
+  - name: gateway_dispatch
+    kind: security.policy
+    meta: {private: true, comment: The gateway dispatches only frozen tools under the reconstructed owner actor, scope and context.}
+    policy:
+      resources: "*"
+      actions: [funcs.call, funcs.context]
+      effect: allow
+
+  - name: workspace_probe
+    kind: security.policy
+    meta: {private: true, comment: Fixed no-follow directory probe; only its path is supplied as data.}
+    policy:
+      resources:
+        - "/bin/sh -c 'PATH=/usr/bin:/bin; export PATH; exec timeout -k 2 30 /bin/sh -c '\"'\"'marker=$AUTOCODE_HOST_TIMEOUT_MARKER\ntrap '\"'\"'\"'\"'\"'\"'\"'\"'printf \"\\n%s\\n\" \"$marker\"; trap \"\" TERM; wait; exit 124'\"'\"'\"'\"'\"'\"'\"'\"' TERM\n/bin/sh -ec '\"'\"'\"'\"'\"'\"'\"'\"'\nfail() { printf '\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'%s\\n'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"' \"$*\" >&2; exit 1; }\nclean_path() {\n    newline='\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\n'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\n    carriage=$(printf '\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\\r'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"')\n    case \"$1\" in *\"$newline\"*|*\"$carriage\"*) fail '\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'control character in path'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"';; esac\n    case \"$1\" in /*) ;; *) fail '\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'absolute path required'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"';; esac\n    case \"$1\" in *//*|*/./*|*/../*|*/.|*/..|*'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"','\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'*|*'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'='\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'*) fail '\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'unclean path'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"';; esac\n}\nwalk() (\n    clean_path \"$1\"\n    remaining=${1#/}; current=\n    while test -n \"$remaining\"; do\n        part=${remaining%%/*}\n        if test \"$remaining\" = \"$part\"; then remaining=; else remaining=${remaining#*/}; fi\n        current=$current/$part\n        test ! -L \"$current\" || fail '\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'symlink traversal refused'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\n        cd -P \"$current\" || exit\n        test \"$PWD\" = \"$current\" || fail '\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'directory identity changed'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\n    done\n)\nno_mounts() {\n    AUTOCODE_CHECK_PATH=$1 awk '\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\n    BEGIN { path=ENVIRON[\"AUTOCODE_CHECK_PATH\"] }\n    function decode(v) {\n        gsub(/\\\\040/, \" \", v); gsub(/\\\\011/, \"\\t\", v); gsub(/\\\\012/, \"\\n\", v); gsub(/\\\\134/, \"\\\\\", v); return v\n    }\n    { device[NR]=$3; root[NR]=decode($4); point[NR]=decode($5); count[$3 SUBSEP root[NR]]++ }\n    END {\n        for(i=1;i<=NR;i++) {\n            alias=(root[i]!=\"/\" || count[device[i] SUBSEP root[i]]>1)\n            if(path!=\"/\" && alias && (point[i]==path || index(path,point[i] \"/\")==1)) exit 1\n        }\n    }'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"' /proc/self/mountinfo || fail '\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'path crosses a mount alias'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\n}\n\nwalk \"$AUTOCODE_WORKSPACE_PATH\"; no_mounts \"$AUTOCODE_WORKSPACE_PATH\"; printf '\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'%s\\n'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"'\"' \"$AUTOCODE_WORKSPACE_PATH\"'\"'\"'\"'\"'\"'\"'\"'\"' &\nwait $!\n'\"'\"' 2>&1'"
+      actions: [exec.get, exec.run]
+      effect: allow
+
+  - name: flow_authorization
+    kind: security.policy
+    meta: {private: true, comment: Blocks owns authorization of the pending parked signal.}
+    policy:
+      resources: kickside.blocks:authorize_arm
+      actions: funcs.call
+      effect: allow

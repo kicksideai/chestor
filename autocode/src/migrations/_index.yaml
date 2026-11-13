@@ -37,3 +37,56 @@ entries:
     imports:
       migration: wippy.migration:migration
     method: migrate
+
+  - name: 04_run_gateway
+    kind: function.lua
+    meta: {type: migration, timestamp: "2026-11-10T02:00:00Z"}
+    source: file://04_run_gateway.lua
+    modules: [sql]
+    imports: {migration: 'wippy.migration:migration'}
+    method: migrate
+
+  - name: 05_run_account_health
+    kind: function.lua
+    meta: {type: migration, timestamp: "2026-11-12T00:00:00Z"}
+    source: file://05_run_account_health.lua
+    modules: [sql]
+    imports: {migration: 'wippy.migration:migration'}
+    method: migrate
+
+  - name: 06_workspace_admission
+    kind: function.lua
+    meta: {type: migration, timestamp: "2026-11-12T01:00:00Z"}
+    security:
+      policies: [chestor.autocode.security:workspace_upgrade_status]
+    source: file://06_workspace_admission.lua
+    modules: [sql, contract, security]
+    imports:
+      migration: wippy.migration:migration
+      component: kickside.component:component
+      execution_identity: kickside.execution:execution_identity
+      workspaces: chestor.autocode.infrastructure:workspaces
+      approvals: chestor.autocode.persist:workspaces
+    method: migrate
+
+  - name: 07_image_snapshots
+    kind: function.lua
+    meta: {type: migration, timestamp: "2026-11-12T02:00:00Z"}
+    source: file://07_image_snapshots.lua
+    modules: [sql]
+    imports:
+      migration: wippy.migration:migration
+      component: kickside.component:component
+      builds: chestor.autocode.persist:builds
+      image_state: chestor.autocode.domain:image_state
+    method: migrate
+    security:
+      policies: [chestor.autocode.security:image_status]
+
+  - name: 08_workspace_provenance
+    kind: function.lua
+    meta: {type: migration, timestamp: "2026-11-12T03:00:00Z"}
+    source: file://08_workspace_provenance.lua
+    modules: [sql]
+    imports: {migration: 'wippy.migration:migration'}
+    method: migrate

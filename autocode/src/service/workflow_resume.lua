@@ -28,7 +28,8 @@ local function run(input: {[string]: unknown}): ({run_id: string}?, error?)
     local actor, scope = security.actor(), security.scope()
     if not actor or not scope then return failure("workflow resume identity is required", errors.PERMISSION_DENIED) end
     local _, resume_err = funcs.new():with_actor(actor):with_scope(scope):call(RESUME, {dataflow_id = flow.dataflow_id, signal_id = flow.signal_id,
-        payload = {run_id = stored.id, status = stored.status, answer = stored.result, error = stored.error, usage = canonical_json.object(stored.usage),
+        arm_id = "chestor.autocode.blocks:arm_task",
+        payload = {run_id = stored.id, status = stored.status, answer = stored.result, error = stored.error, error_native = stored.error_native, usage = canonical_json.object(stored.usage),
             agent = stored.agent, account_id = stored.account_id}})
     if resume_err then return nil, errors.wrap(resume_err, "workflow resume") end
     local delivery_err = repo.acknowledge_delivery(run_id)

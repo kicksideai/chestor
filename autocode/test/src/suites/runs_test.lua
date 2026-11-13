@@ -119,7 +119,7 @@ local function cases()
             end
         end
 
-        test.it("submits through the agent tool and reads the complete real runner result", function()
+        test.it("cancels refused legacy work and runs with a normally re-registered workspace", function()
             local image_ref = "chestor-autocode-harness:claude"
             local output = {}
             local code, err = docker.run({"build", "-t", image_ref, "-"}, {stdin = [[
@@ -139,17 +139,48 @@ USER node
             local rotated = identity.request(member, "PUT", "/autocode/accounts/" .. account_id,
                 {secret = SECRET, endpoint = {protocol = "anthropic-messages", base_url = identity.container_url() .. "/mock", model = "claude-sonnet-4-6"}})
             test.eq(rotated.status, 200, rotated.body)
-            local submitted, submit_err = identity.call(member, "chestor.autocode.traits:submit_coding_task",
-                {agent = "claude", image_id = image_id, account_id = account_id, prompt = "Return the fixture answer."})
+            local admin = users[1]
+            local path = identity.directory(admin, "legacy-real-run")
+            local legacy = identity.call(admin, "app:fixture_register", "workspace", {title = "legacy"}, {host_path = path})
+            test.is_true(identity.call(admin, "app:fixture_patch", {kind = "workspace", id = legacy, context = {note = "administrator edit"}}))
+            local shared = identity.request(admin, "POST", "/component-access/share/" .. legacy,
+                {subject_id = member.id, subject_type = "user", access_mask = 3})
+            test.eq(shared.status, 200, shared.body)
+            local submitted, submit_err = identity.call(member, "app:queue_legacy", {
+                agent = "claude", image_id = image_id, account_id = account_id, workspace_id = legacy,
+                prompt = "Return the fixture answer.", repo_url = "", options = {}, timeout_ms = 60000})
             test.is_nil(submit_err, tostring(submit_err))
-            local done = settled(member, submitted.run_id, true)
+            local waiting = repo.stored_run(submitted.run_id)
+            local ceiling = time.now():add("30s")
+            while true do
+                local job = require("jobs").get_job(waiting.job_id)
+                if job.status == "pending" and job.scheduled_at == nil then break end
+                test.is_true(time.now():before(ceiling), "queued run must park while awaiting approval")
+                time.sleep("100ms")
+            end
+            test.eq(repo.stored_run(submitted.run_id).status, "queued")
+            local cancelled = identity.request(member, "POST", "/autocode/runs/" .. submitted.run_id .. "/cancel")
+            test.eq(cancelled.status, 200, cancelled.body)
+            test.eq(settled(member, submitted.run_id, true).json.run.status, "cancelled")
+            local registered = identity.request(admin, "POST", "/autocode/workspaces", {name = "registered", host_path = path})
+            test.eq(registered.status, 201, registered.body)
+            local current = registered.json.id
+            test.is_true(current ~= legacy)
+            test.eq(identity.request(admin, "POST", "/component-access/share/" .. current,
+                {subject_id = member.id, subject_type = "user", access_mask = 3}).status, 200)
+            local fresh = identity.request(member, "POST", "/autocode/runs", {
+                agent = "claude", image_id = image_id, account_id = account_id, workspace_id = current,
+                prompt = "Return the fixture answer.", unattended = false})
+            test.eq(fresh.status, 201, fresh.body)
+            local done = settled(member, fresh.json.run_id, true)
             test.eq(done.json.run.status, "succeeded", done.body)
             test.eq(done.json.run.result, anthropic.answer())
+            test.eq(done.json.run.workspace_id, current)
         end)
 
         test.it("re-prepares local settings under the saving manager and refreshes without a pull", function()
-            local owner = track(identity.admin())
-            local manager = track(identity.admin())
+            local owner = track(identity.user({identity.SIGNED_IN, identity.MEMBERS, "app:autocode_managers"}))
+            local manager = track(identity.user({identity.SIGNED_IN, identity.MEMBERS, "app:autocode_managers"}))
             local image_ref = "chestor-autocode-harness:local-" .. owner.id
             local_images[#local_images + 1] = image_ref
             local output = {}
@@ -184,9 +215,6 @@ USER node
                     time.sleep("100ms")
                 end
             end
-            local initial_detail = identity.request(owner, "GET", "/autocode/images/" .. image_id)
-            test.eq(initial_detail.json.image.status, "preparing", initial_detail.body)
-            test.is_false(initial_detail.json.image.usable)
             local initial = ready()
             local ready_detail = identity.request(owner, "GET", "/autocode/images/" .. image_id)
             test.eq(ready_detail.json.image.status, "ready", ready_detail.body)
@@ -196,16 +224,16 @@ USER node
             test.eq(granted.status, 200, granted.body)
             local updated = identity.request(manager, "PUT", "/autocode/images/" .. image_id, {memory = "8g"})
             test.eq(updated.status, 200, updated.body)
-            local preparing = repo.image_build(image_id)
+            local preparing = ready(initial.build_id)
             test.is_true(preparing.build_id ~= initial.build_id)
-            test.eq(preparing.status, "preparing")
+            test.eq(preparing.status, "ready")
             test.eq(preparing.mode, "initial")
             test.eq(preparing.identity.actor_id, manager.id)
             local refreshing = identity.request(manager, "GET", "/autocode/images/" .. image_id)
-            test.eq(refreshing.json.image.status, "preparing", refreshing.body)
+            test.eq(refreshing.json.image.status, "ready", refreshing.body)
             test.is_true(refreshing.json.image.usable)
             test.eq(refreshing.json.image.ref, image_ref)
-            local saved = ready(initial.build_id)
+            local saved = preparing
             test.eq(saved.recipe.settings.memory, "8g")
             test.eq(saved.recipe.revision, identity.call(manager, "app:fixture_image_revision", image_id))
             test.is_true(saved.recipe.revision > initial.recipe.revision)

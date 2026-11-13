@@ -43,6 +43,8 @@ entries:
     kind: function.lua
     meta:
       comment: "POST /autocode/images - Register an image and request its first build."
+    security:
+      policies: [chestor.autocode.security:image_mutation]
     source: file://../image_routes.lua
     method: create
     imports:
@@ -61,6 +63,8 @@ entries:
     kind: function.lua
     meta:
       comment: "PUT /autocode/images/{id} - Change an image's label, home and run settings; prepare changed settings under the saving manager."
+    security:
+      policies: [chestor.autocode.security:image_mutation]
     source: file://../image_routes.lua
     method: update
     imports:
@@ -78,16 +82,13 @@ entries:
   - name: images_delete
     kind: function.lua
     meta:
-      comment: "DELETE /autocode/images/{id} - Drain the build and delete the component, then optionally remove the Docker image; return docker_error if host removal fails after deletion."
+      comment: "DELETE /autocode/images/{id} - Accept component deletion with optional Docker-reference removal after build termination."
     source: file://../image_routes.lua
     method: delete
     imports:
       web: chestor.autocode.api:web
       images: chestor.autocode.service:image_management
 
-    security:
-      policies:
-        - chestor.autocode.security:docker_commands
 
   - name: images_delete.endpoint
     kind: http.endpoint
@@ -101,6 +102,8 @@ entries:
     kind: function.lua
     meta:
       comment: "POST /autocode/images/{id}/prepare - Rebuild a Dockerfile, pull a registry reference or re-probe a local-only image without pulling."
+    security:
+      policies: [chestor.autocode.security:image_mutation]
     source: file://../image_routes.lua
     method: prepare
     imports:

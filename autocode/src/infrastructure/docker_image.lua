@@ -12,6 +12,8 @@ end
 
 -- Docker lists confirm absence and container use independently of CLI language.
 local function remove(ref: string): error?
+    local by_id = ref:match("^sha256:[a-f0-9]+$") ~= nil or ref:match("^[a-f0-9]+$") ~= nil
+    local short_id = ref:gsub("^sha256:", "")
     local output: {string} = {}
     local code, err = docker.run({"image", "rm", ref}, {on_line = function(line: string) output[#output + 1] = line end})
     if err then return err end
@@ -22,8 +24,6 @@ local function remove(ref: string): error?
     if not images then return list_err and errors.wrap(list_err, "Docker image removal failed: " .. table.concat(output, "\n")) or failure end
     local image_id: string? = nil
     local references: {[string]: integer} = {}
-    local by_id = ref:match("^sha256:[a-f0-9]+$") ~= nil or ref:match("^[a-f0-9]+$") ~= nil
-    local short_id = ref:gsub("^sha256:", "")
     for _, line in ipairs(images) do
         local id, repository, tag, digest = line:match("^(%S+) (%S+) (%S+) (%S+)$")
         if type(id) ~= "string" or type(repository) ~= "string" or type(tag) ~= "string" or type(digest) ~= "string" then return failure end

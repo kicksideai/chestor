@@ -11,10 +11,12 @@ entries:
     method: main
     modules:
       - logger
+      - json
     imports:
       repo: chestor.autocode.persist:repo
       runs: chestor.autocode.service:runs
       container: chestor.autocode.infrastructure:container
+      event_log: chestor.autocode.runner:event_log
       records: chestor.autocode.runner:records
       redact: chestor.autocode.runner:redact
       docker: chestor.autocode.infrastructure:docker
@@ -38,6 +40,7 @@ entries:
         - bee.drivers.security:host_access
         - chestor.autocode.security:docker_commands
         - chestor.autocode.security:run_notify
+        - chestor.autocode.security:cancel_subscription
 
   - name: image
     kind: process.lua
@@ -46,6 +49,8 @@ entries:
     source: file://../image.lua
     method: main
     imports:
+      container: chestor.autocode.infrastructure:container
+      image_state: chestor.autocode.domain:image_state
       image_tags: chestor.autocode.infrastructure:image_tags
       repo: chestor.autocode.persist:repo
       drivers: bee.drivers:drivers
@@ -78,7 +83,7 @@ entries:
     modules:
       - time
     imports:
-      repo: chestor.autocode.persist:repo
+      prune: chestor.autocode.runner:prune
       settings: chestor.autocode.domain:settings
     security:
       actor:

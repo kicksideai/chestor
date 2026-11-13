@@ -27,6 +27,10 @@ local function strings(value: unknown): {string}?
     for _, item in ipairs(value) do result[#result + 1] = item end
     return result
 end
+function M.valid_extra_args(args: {string}): boolean
+    for _, argument in ipairs(args) do if argument:find("%z") then return false end end
+    return true
+end
 function M.decode(value: unknown): (Recipe?, error?)
     local invalid = errors.new({kind = errors.INTERNAL, message = "image recipe contains malformed data",
         details = {code = "autocode.invalid_recipe"}})

@@ -27,6 +27,7 @@ entries:
     meta:
       comment: The script a run's container executes around a bee/drivers launch.
     source: file://container.lua
+    modules: [json]
     imports:
       drivers: bee.drivers:drivers
       credentials: chestor.autocode.domain:credentials
@@ -38,6 +39,7 @@ entries:
       comment: Runs the docker CLI on the host executor with merged, line-streamed output, and copies files out of containers.
     source: file://docker.lua
     modules:
+      - json
       - registry
       - exec
       - stream
@@ -50,5 +52,11 @@ entries:
     meta:
       comment: Admits workspace host paths that lie inside the operator's workspace roots.
     source: file://workspaces.lua
-    modules:
-      - registry
+    modules: [registry, funcs]
+    imports:
+      host: chestor.autocode.infrastructure:host
+
+  - name: host
+    kind: library.lua
+    source: file://host.lua
+    modules: [exec, registry, stream, uuid]

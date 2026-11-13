@@ -15,6 +15,16 @@ type User = {id: string, email: string, groups: {string}, token: string}
 type Response = {status: integer, body: string, json: unknown}
 
 local M = {}
+local directories: {[string]: {string}} = {}
+function M.directory(user: User, name: string): string
+    local unique = name .. "-" .. uuid.v7()
+    local path, err = M.call(user, "app:fixture_directory", unique)
+    if not path then error(tostring(err)) end
+    directories[user.id] = directories[user.id] or {}
+    table.insert(directories[user.id], unique)
+    return path
+end
+
 
 -- The platform Members group, which autocode and the platform modules bind their member policies to.
 M.MEMBERS = "kickside.security.groups:members"
@@ -93,9 +103,9 @@ local function manage(method: string, path: string, body: unknown?): Response
     return send(method, base_url() .. prefix .. path, admin.token, body)
 end
 -- Creates an account through HTTP, assigns groups through provisioning and signs in.
-function M.user(groups: {string}): User
-    local id = uuid.v4()
-    local email = id .. "@autocode.test.local"
+function M.user(groups: {string}, user_id: string?): User
+    local id = user_id or uuid.v4()
+    local email = id:find("@", 1, true) and id or id .. "@autocode.test.local"
     local response = manage("POST", "/users", {user_id = id, email = email, password = PASSWORD,
         full_name = "Autocode " .. id:sub(1, 8), status = "active", groups = table.create(1, 0)})
     if response.status ~= 201 then error("could not create user: " .. response.body) end
@@ -122,8 +132,8 @@ function M.outsider(): User
 end
 
 -- A signed-in administrator.
-function M.admin(): User
-    return M.user({M.SIGNED_IN, M.ADMINS})
+function M.admin(user_id: string?): User
+    return M.user({M.SIGNED_IN, M.ADMINS}, user_id)
 end
 
 -- Calls a function under the actor and scope of the user's session token.
@@ -149,6 +159,11 @@ end
 
 -- Queues user deletion through the Users admin API and revokes its sessions.
 function M.release(user: User)
+    for _, name in ipairs(directories[user.id] or {}) do
+        local removed, err = M.call(user, "app:fixture_directory", name, true)
+        if not removed then error("fixture directory cleanup: " .. tostring(err)) end
+    end
+    directories[user.id] = nil
     local response = manage("DELETE", "/users/" .. user.id, nil)
     if response.status ~= 202 then error("could not delete user " .. user.id .. ": " .. response.body) end
     active = active - 1

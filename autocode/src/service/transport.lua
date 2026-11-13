@@ -7,7 +7,7 @@ local credentials = require("credentials")
 
 type Image = {id: string, ref: string, home: string, memory: string, cpus: string, pids_limit: integer,
     gpus: string, network: string, extra_args: {string}}
-type Prepared = {agent: string, account_id: string, kind: credentials.Kind, image: Image, workspace: admission.Workspace?,
+type Prepared = {gateway_token: string?,agent: string, account_id: string, kind: credentials.Kind, image: Image, workspace: admission.Workspace?,
     workdir: string, launch: drivers.Launch, secret: string, revision: integer}
 type Recipe = recipe.Recipe
 local M = {}
@@ -40,6 +40,7 @@ function M.prepared(value: unknown, run: repo.Run): (Prepared?, error?)
     end
     if type(image.pids_limit) ~= "number" or image.pids_limit ~= math.floor(image.pids_limit)
         or not strings(image.extra_args, true) then return nil, invalid end
+    if not recipe.valid_extra_args(image.extra_args :: {string}) then return nil, invalid end
     local workspace = value.workspace
     if run.workspace_id and (type(workspace) ~= "table" or workspace.id ~= run.workspace_id) then return nil, invalid end
     if not run.workspace_id and workspace ~= nil then return nil, invalid end
@@ -52,8 +53,15 @@ function M.prepared(value: unknown, run: repo.Run): (Prepared?, error?)
         for _, field in ipairs({"path", "content", "revision", "digest", "provider_ref"}) do
             if type(file[field]) ~= "string" then return nil, invalid end
         end
-        if file.secret_fields ~= nil or file.composition ~= nil then return nil, invalid end
+        if file.composition ~= nil then return nil, invalid end
+        if file.secret_fields ~= nil then
+            if type(file.secret_fields) ~= "table" then return nil, invalid end
+            for _, field in ipairs(file.secret_fields) do
+                if type(field) ~= "table" or field.environment ~= "AUTOCODE_GATEWAY_TOKEN" or not strings(field.path, true) or type(field.prefix) ~= "string" then return nil, invalid end
+            end
+        end
     end
+    if value.gateway_token ~= nil and type(value.gateway_token) ~= "string" then return nil, invalid end
     local driver, driver_err = drivers.get(value.agent)
     if not driver then return nil, driver_err end
     local kind = credentials.kind(driver, value.kind.id)
@@ -66,6 +74,9 @@ end
 function M.recipe(value: unknown): (Recipe?, error?)
     local decoded, err = recipe.decode(value)
     if not decoded then return nil, err end
+    if not recipe.valid_extra_args(decoded.settings.extra_args) then
+        return nil, errors.new({kind = errors.INVALID, message = "image extra_args contains NUL bytes; edit extra_args and rebuild it", details = {code = "autocode.unsafe_image_settings"}})
+    end
     if decoded.dockerfile == nil then
         return nil, errors.new({kind = errors.INTERNAL, message = "image recipe has no Dockerfile"})
     end

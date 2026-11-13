@@ -1,0 +1,116 @@
+{
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "agent": {
+      "type": "string",
+      "maxLength": 64,
+      "minLength": 1
+    },
+    "image_id": {
+      "type": "string",
+      "maxLength": 64,
+      "minLength": 1
+    },
+    "account_id": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "account_pool": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 64,
+        "minLength": 1
+      },
+      "maxItems": 200,
+      "uniqueItems": true
+    },
+    "endpoint": {
+      "type": "object",
+      "properties": {
+        "protocol": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "base_url": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "model": {
+          "type": "string",
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "protocol",
+        "base_url"
+      ],
+      "additionalProperties": false
+    },
+    "tools": {
+      "type": "object",
+      "properties": {
+        "traits": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 32
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "maxItems": 128
+        },
+        "context": {
+          "type": "object",
+          "additionalProperties": {}
+        }
+      },
+      "additionalProperties": false
+    },
+    "workspace_id": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "repo_url": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "repo_ref": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "run_timeout": {
+      "type": "string",
+      "maxLength": 64
+    },
+    "unattended": {
+      "type": "boolean"
+    },
+    "options": {
+      "type": "object",
+      "additionalProperties": {}
+    },
+    "id": {
+      "type": "string",
+      "maxLength": 64,
+      "minLength": 1
+    }
+  },
+  "required": [
+    "id"
+  ],
+  "additionalProperties": false
+}

@@ -1,6 +1,8 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 -- The default agent image recipe, the decoder of image run settings, and the
 -- build request every image change goes through.
+local resources = require("resources")
+local image_state = require("image_state")
 local recipe = require("recipe")
 local values = require("values")
 local logger = require("logger")
@@ -89,6 +91,7 @@ function M.decode(body: {[string]: unknown}): (Decoded?, error?)
     if type(pids) ~= "number" or pids < 0 or pids ~= math.floor(pids) then return nil, refuse("pids_limit must be a non-negative integer") end
     local extra_args = values.strings(body.extra_args or RUN_DEFAULTS.extra_args, 64, 1024)
     if not extra_args then return nil, refuse("extra_args must be an array of strings") end
+    if not recipe.valid_extra_args(extra_args) then return nil, refuse("extra_args must not contain NUL bytes") end
     local allows: {string}? = nil
     if body.allows == nil then
         local defaults, defaults_err = default_allows()
@@ -136,8 +139,14 @@ function M.request_build(image_id: string, mode: repo.BuildMode): error?
     local build_id = uuid.v7()
     local trace_context, trace_err = trace.normalize(ctx.get("trace_context"))
     if trace_err then return trace_err end
+    local context, context_err = resources.context("image", image_id, resources.ACCESS.WRITE)
+    if not context then return context_err end
     local err = repo.request_image_build(image_id, row, mode, build_id, replaces, trace_context)
     if err then return err end
+    local build, read_err = repo.image_build(image_id)
+    if not build then return read_err end
+    local projection_err = resources.replace(image_id, image_state.fields(build), nil, context.revision)
+    if projection_err then return projection_err end
     local wake_err = deferred.nudge()
     if wake_err then logger:warn("autocode committed image build awaits jobs reconciliation", {image_id = image_id, build_id = build_id, error = tostring(wake_err)}) end
     return nil

@@ -4,6 +4,7 @@
 local maintenance = require("maintenance")
 local settings = require("settings")
 local time = require("time")
+local MAINTENANCE_TIMEOUT = "5m"
 
 local function cache_retention(): (string?, error?)
     local value, err = settings.get("build_cache_retention")
@@ -18,7 +19,8 @@ end
 local function prune(): (maintenance.Result?, error?)
     local retention, retention_err = cache_retention()
     if not retention then return nil, retention_err end
-    return maintenance.prune(retention)
+    local deadline = time.now():add(MAINTENANCE_TIMEOUT):utc():format("2006-01-02T15:04:05.999999999Z07:00")
+    return maintenance.prune(retention, deadline)
 end
 
 return {prune = prune, cache_retention = cache_retention}
