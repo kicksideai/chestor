@@ -5,6 +5,7 @@ local fixture = require("contract_fixture")
 local sql = require("sql")
 local time = require("time")
 local json = require("json")
+local uuid = require("uuid")
 local function query(statement, params)
     local db = sql.get("app:db")
     local rows, err = db:query(statement, params or {})
@@ -72,6 +73,41 @@ local function cases()
             end, "Flow did not resume")
             test.eq(status, "completed")
         end
+        test.it("cancels a parked legacy job delivers its Flow and releases workspace deletion", function()
+            local user = identity.admin()
+            f.users[#f.users + 1] = user
+            local config = request(user)
+            local path = identity.directory(user, "parked-cancellation")
+            local workspace = assert(identity.call(user, "app:fixture_register", "workspace", {title = "legacy"}, {host_path = path}))
+            local parked = assert(identity.call(user, "app:flow_probe", {config = config, create_only = true}))
+            local flow = parked.dataflow_id
+            execute("UPDATE dataflow_nodes SET status = 'waiting' WHERE node_id = $1", {parked.node_id})
+            local yield_id = uuid.v7()
+            execute([[INSERT INTO dataflow_data (data_id, dataflow_id, node_id, type, content, content_type, created_at)
+                VALUES ($1, $2, $3, 'node.yield', $4, 'application/json', CURRENT_TIMESTAMP)]],
+                {yield_id, flow, parked.node_id, json.encode({yield_id = yield_id, yield_context = {wait_for_signal = true, signal_id = "cancel-parked"}})})
+            local submitted, err = identity.call(user, "app:queue_legacy", {agent = "claude", image_id = config.image_id,
+                account_id = config.account_id, workspace_id = workspace, prompt = "cancel while parked", repo_url = "", options = {}, timeout_ms = 60000,
+                flow = {dataflow_id = flow, signal_id = "cancel-parked"}})
+            test.is_nil(err, tostring(err))
+            wait_for(function()
+                local row = query([[SELECT j.status, j.scheduled_at FROM kickside_job j
+                    JOIN chestor_autocode_runs r ON r.job_id = CAST(j.id AS TEXT) WHERE r.id = $1]], {submitted.run_id})[1]
+                return row and row.status == "pending" and row.scheduled_at == nil
+            end, "legacy job did not park")
+            local cancelled = identity.request(user, "POST", "/autocode/runs/" .. submitted.run_id .. "/cancel")
+            test.eq(cancelled.status, 200, cancelled.body)
+            local done = wait_for(function()
+                local row = query("SELECT status, workflow_delivered FROM chestor_autocode_runs WHERE id = $1", {submitted.run_id})[1]
+                return row.status == "cancelled" and tonumber(row.workflow_delivered) == 1 and row
+            end, "parked cancellation did not settle and deliver its Flow")
+            test.eq(done.status, "cancelled")
+            wait_for(function()
+                return query("SELECT status FROM dataflows WHERE dataflow_id = $1", {flow})[1].status == "completed"
+            end, "cancelled run did not resume its Flow")
+            local removed = identity.request(user, "DELETE", "/autocode/workspaces/" .. workspace)
+            test.eq(removed.status, 200, removed.body)
+        end)
         test.it("reopens realtime under each recovered Flow user after warming the arm", function()
             for _ = 1, 2 do
                 local user = f.member()

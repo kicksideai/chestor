@@ -74,7 +74,8 @@ local function cases()
         end)
         test.it("does not publish ready over a recipe revision invalidation", function()
             local state = stubs.reset()
-            state.build.recipe = {revision = 7}
+            state.build.recipe = stubs.recipe_fixture()
+            state.build.recipe.revision = 7
             state.build.status, state.build.finished_at = "ready", "finished"
             state.replace_conflict = true
             local result, err = subject.image_ready({image_id = "image", build_id = "generation"})

@@ -5,30 +5,29 @@ local records = require("records")
 local drivers = require("drivers")
 local redact = require("redact")
 local docker = require("docker")
-local time = require("time")
+local events = require("events")
 local transport = require("transport")
+local container = require("container")
 local MAX_CREDENTIAL_BYTES = credentials.MAX_BYTES
 local KEEP_CREDENTIAL = "chestor.autocode.service:keep_credential"
-type Container = {name: string, create: {string}, env: {[string]: string}, stdin: string?}
+type Container = {name: string, create: {string}, env: {[string]: string}, stdin: string?,
+    isolation: {name: string, image: string, network: string, gpus: boolean, limits: transport.Image, mounts: {{source: string, target: string, readonly: boolean}}}}
 type Caller = {call: (self: Caller, string, {[string]: unknown}) -> (unknown, error?)}
 type Prepared = transport.Prepared
 type Emit = (string, string) -> ()
 type Streamed = {folder: records.Folder, terminal: drivers.Terminal?, stream_error: string?, docker_error: error?,
-    code: integer?, last_log: string, cancel_seen: boolean}
+    code: integer?, last_log: string, error_native: error?, cancel_seen: boolean}
 
 -- Image run settings: limits, GPU access, network, then the administrator's
 -- docker run arguments, all placed before the image reference.
 local function settings_args(image: transport.Image): {string}
-    local args: {string} = {}
+    local args = container.limits(image)
     local function add(flag: string, value: string)
         if value ~= "" then
             args[#args + 1] = flag
             args[#args + 1] = value
         end
     end
-    add("--memory", image.memory)
-    add("--cpus", image.cpus)
-    if image.pids_limit > 0 then add("--pids-limit", tostring(image.pids_limit)) end
     add("--gpus", image.gpus)
     add("--network", image.network)
     for _, arg in ipairs(image.extra_args) do args[#args + 1] = arg end
@@ -37,22 +36,19 @@ end
 
 local function build(run_id: string, prepared: Prepared, env: {[string]: string}): Container
     local name = runs.container_name(run_id)
-    local args: {string} = {"create", "--pull=never", "-i", "--name", name, "--label", "chestor.autocode.run=" .. run_id}
+    local args: {string} = {"create", "--cap-drop=NET_RAW", "--cgroupns=private", "--pull=never", "-i", "--name", name, "--label", "chestor.autocode.run=" .. run_id}
     local workspace = prepared.workspace
     if workspace then
         args[#args + 1] = "--mount"
-        args[#args + 1] = "type=bind,source=" .. workspace.host_path .. ",target=" .. prepared.workdir .. (workspace.writable and "" or ",readonly")
+        args[#args + 1] = "type=bind,source=" .. workspace.host_path .. ",target=" .. prepared.workdir .. ",bind-recursive=disabled" .. (workspace.writable and "" or ",readonly")
+
     end
     for _, arg in ipairs(settings_args(prepared.image)) do args[#args + 1] = arg end
-    local names: {string} = {}
-    for variable in pairs(env) do names[#names + 1] = variable end
-    table.sort(names)
-    for _, variable in ipairs(names) do
-        args[#args + 1] = "-e"
-        args[#args + 1] = variable
-    end
-    for _, arg in ipairs({"--entrypoint", "sh", prepared.image.ref, "-c", 'eval "$AUTOCODE_SCRIPT"'}) do args[#args + 1] = arg end
-    return {name = name, create = args, env = env, stdin = prepared.launch.stdin}
+    for _, arg in ipairs({"--entrypoint", "sh", prepared.image.ref, "-c", container.entrypoint}) do args[#args + 1] = arg end
+    return {name = name, create = args, env = env, stdin = prepared.launch.stdin,
+        isolation = {name = name, image = prepared.image.ref, network = prepared.image.network, gpus = prepared.image.gpus ~= "",
+            limits = prepared.image,
+            mounts = workspace and {{source = workspace.host_path, target = prepared.workdir, readonly = not workspace.writable}} or {}}}
 end
 
 local function stream(prepared: Prepared, box: Container, redactor: redact.Redactor, emit: Emit,
@@ -64,11 +60,12 @@ local function stream(prepared: Prepared, box: Container, redactor: redact.Redac
     local folder = records.new(function(text: string): string return redact.apply(redactor, text) end)
     local terminal: drivers.Terminal? = nil
     local stream_err: string? = nil
+    local native: error? = nil
     local stopped = false
     local cancel_seen = false
     local function check_cancel()
         local requested, read_err = cancelled()
-        if read_err then stream_err = stream_err or ("cancellation read: " .. tostring(read_err)) end
+        if read_err then native = native or read_err; stream_err = stream_err or ("cancellation read: " .. tostring(read_err)) end
         if requested then cancel_seen = true end
         if not stopped and (requested or read_err or persist_error()) then
             stopped = true
@@ -79,6 +76,7 @@ local function stream(prepared: Prepared, box: Container, redactor: redact.Redac
     local last_log = ""
     local function settle(step: drivers.Step?, err: error?)
         if not step then
+            native = native or err
             stream_err = stream_err or tostring(err)
             return
         end
@@ -86,12 +84,17 @@ local function stream(prepared: Prepared, box: Container, redactor: redact.Redac
         if step.terminal then terminal = step.terminal end
 
     end
-    local watching = true
-    local watch_done = channel.new(1)
+    local subscription, subscribe_err = events.subscribe("chestor.autocode", "cancel." .. box.name)
+    if not subscription then return nil, subscribe_err end
+    local signals = subscription:channel()
+    local done, watch_done = channel.new(1), channel.new(1)
+    -- Subscribe before the catch-up read so a concurrent committed cancel cannot be missed.
+    check_cancel()
     coroutine.spawn(function()
-        while watching do
+        while true do
+            local selected = channel.select({done:case_receive(), signals:case_receive()})
+            if selected.channel == done then break end
             check_cancel()
-            time.sleep("250ms")
         end
         watch_done:send(true)
     end)
@@ -105,18 +108,24 @@ local function stream(prepared: Prepared, box: Container, redactor: redact.Redac
                 last_log = records.clip(redact.apply(redactor, line))
                 emit("log", last_log)
             end
+            if not stopped and persist_error() then
+                stopped = true
+                local stop_err = docker.stop(box.name, deadline)
+                if stop_err then native = native or stop_err; emit("system", "container stop: " .. tostring(stop_err)) end
+            end
         end,
         on_overflow = function(bytes: integer)
             emit("system", "dropped an output line of " .. tostring(bytes) .. " bytes, over the " .. tostring(docker.MAX_LINE_BYTES) .. "-byte bound")
         end,
     })
-    watching = false
+    done:send(true)
     watch_done:receive()
+    subscription:close()
     settle(reader:finish())
     for _, event in ipairs(records.terminal(folder, terminal)) do emit(event.kind, event.text) end
 
     return {folder = folder, terminal = terminal, stream_error = stream_err, docker_error = docker_err,
-        code = code, last_log = last_log, cancel_seen = cancel_seen}, nil
+        code = code, last_log = last_log, error_native = native, cancel_seen = cancel_seen}, nil
 end
 
 local function keep_credential(run_id: string, owner: Caller, prepared: Prepared, box: Container, emit: Emit, deadline: string?): string?

@@ -13,9 +13,16 @@ entries:
     namespace: app.security
     kind: security.policy
     meta:
-      comment: Administrators hold every action, as the host administrator group does.
+      comment: Administrators hold every action except service-only thread output publication, as on the host.
     groups: [app.security:admin]
-    policy: { resources: "*", actions: "*", effect: allow }
+    policy:
+      resources: '*'
+      actions: '*'
+      effect: allow
+      conditions:
+        - field: action
+          operator: nin
+          value: [threads.output.publish]
 
   - name: autocode_managers
     kind: registry.entry
@@ -92,4 +99,42 @@ entries:
     policy:
       resources: '*'
       actions: [process.*, security.actor.create, security.policy.get, security.scope.create, env.get]
+      effect: allow
+
+  - name: gateway_fixture_calls
+    kind: security.policy
+    groups: [app.security:user]
+    policy: {resources: ['app:gateway_echo', 'app:gateway_refused', 'app:gateway_domain', 'app:gateway_native'], actions: [funcs.call, registry.get], effect: allow}
+
+  - name: gateway_fixture_registry
+    kind: security.policy
+    groups: [app.security:user]
+    policy: {resources: ['app:gateway_echo', 'app:gateway_trait', 'app:gateway_denied', 'app:gateway_refused', 'app:gateway_domain', 'app:gateway_native'], actions: [registry.get], effect: allow}
+
+  - name: gateway_privileged_tools
+    kind: registry.entry
+    meta: {type: kickside.security.group_composition}
+    group_id: app:gateway_tools
+    policies: [app:gateway_privileged_calls]
+
+  - name: gateway_privileged_calls
+    kind: security.policy
+    policy:
+      resources: [app:gateway_privileged_echo]
+      actions: [funcs.call, registry.get]
+      effect: allow
+
+  - name: gateway_local_discovery
+    kind: security.policy
+    groups: [app.security:user]
+    policy:
+      resources: [app:gateway_privileged_echo, app:gateway_privileged_trait, app:gateway_foreign]
+      actions: registry.get
+      effect: allow
+
+  - name: fixture_commands
+    kind: security.policy
+    policy:
+      resources: [app:docker, /bin/sh -c 'PATH=/usr/bin:/bin; export PATH; exec timeout -k 2 30 /bin/sh -c "$AUTOCODE_HOST_WRAPPER" 2>&1']
+      actions: [exec.get, exec.run]
       effect: allow

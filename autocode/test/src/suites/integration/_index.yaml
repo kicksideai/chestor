@@ -23,6 +23,8 @@ entries:
     method: run
     modules: [sql, uuid, time, funcs, process, channel]
     imports:
+      prune: chestor.autocode.runner:prune
+      prune_subject: app:prune_subject
       test: wippy.test:test
       repo: chestor.autocode.persist:repo
       retention: app:retention_cleanup_subject
@@ -58,9 +60,13 @@ entries:
       comment: The endpoint firewall admits members, refuses outsiders, and keeps management endpoints to administrators.
     source: file://../../suites/access_test.lua
     method: run
+    modules: [uuid]
     imports:
       test: wippy.test:test
+      host: app:host_commands
       identity: app:identity
+      docker: chestor.autocode.infrastructure:docker
+      deletion_worker: app:deletion_test_worker
     security:
       actor: { id: app:test_runner }
       policies: [app:test_runtime]
@@ -91,8 +97,11 @@ entries:
       comment: Run admission follows the caller's grants on accounts, images and workspaces, and balances across usable accounts.
     source: file://../../suites/admission_test.lua
     method: run
-    modules: [sql, json]
+    modules: [sql, json, channel]
     imports:
+      host: app:host_commands
+      component: kickside.component:component
+      image_state: chestor.autocode.domain:image_state
       test: wippy.test:test
       identity: app:identity
       build_fixture: app:build_fixture
@@ -130,6 +139,10 @@ entries:
     method: run
     modules: [json, sql, uuid, time]
     imports:
+      workspace_fence: app:workspace_fence_subject
+      fence: app:workspace_fence_database
+      prune: chestor.autocode.runner:prune
+      prune_subject: app:prune_subject
       deletion_worker: app:deletion_test_worker
       test: wippy.test:test
       repo: chestor.autocode.persist:repo
@@ -152,6 +165,7 @@ entries:
     method: run
     modules: [time, registry, uuid, json, sql]
     imports:
+      image_state: chestor.autocode.domain:image_state
       test: wippy.test:test
       identity: app:identity
       contract_fixture: app:contract_fixture
@@ -171,6 +185,7 @@ entries:
     method: run
     modules: [registry, json, time]
     imports:
+      contract_fixture: app:contract_fixture
       test: wippy.test:test
       identity: app:identity
       repo: chestor.autocode.persist:repo
@@ -184,6 +199,7 @@ entries:
     meta: {type: test, suite: autocode_accounts_contract, group: Autocode}
     source: file://../accounts_contract_test.lua
     method: run
+    modules: [sql]
     imports:
       test: wippy.test:test
       identity: app:identity
@@ -202,6 +218,8 @@ entries:
     method: run
     modules: [uuid, time, sql]
     imports:
+      prune: chestor.autocode.runner:prune
+      prune_subject: app:prune_subject
       test: wippy.test:test
       repo: app:delivery_repo
       jobs: kickside.core.jobs:jobs
@@ -221,6 +239,7 @@ entries:
       test: wippy.test:test
       docker: chestor.autocode.infrastructure:docker
       image: app:real_image_subject
+      run_io: chestor.autocode.runner:run_io
       container: chestor.autocode.infrastructure:container
       maintenance: app:real_probe_maintenance_subject
       stubs: app:runner_stubs
@@ -233,11 +252,45 @@ entries:
     meta: {type: test, suite: autocode_flow, group: Autocode}
     source: file://../../suites/flow_test.lua
     method: run
-    modules: [sql, time, json]
+    modules: [sql, time, json, uuid]
     imports:
       test: wippy.test:test
       identity: app:identity
       contract_fixture: app:contract_fixture
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: profiles_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_profiles, group: Autocode}
+    source: file://../../suites/profiles_test.lua
+    method: run
+    imports:
+      test: wippy.test:test
+      identity: app:identity
+      contract_fixture: app:contract_fixture
+      repo: chestor.autocode.persist:repo
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: gateway_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_gateway, group: Autocode}
+    source: file://../../suites/gateway_test.lua
+    method: run
+    modules: [json, sql, hash, http_client]
+    imports:
+      stubs: app:runner_stubs
+      runner: app:gateway_run_subject
+      test: wippy.test:test
+      identity: app:identity
+      contract_fixture: app:contract_fixture
+      gateway: chestor.autocode.service:gateway
+      drivers: bee.drivers:drivers
+      container: chestor.autocode.infrastructure:container
+      repo: chestor.autocode.persist:repo
     security:
       actor: {id: app:test_runner}
       policies: [app:test_runtime]

@@ -27,6 +27,11 @@ entries:
     addr: ":19347"
     lifecycle: { auto_start: true }
 
+  - name: host_root
+    kind: http.router
+    meta: { server: gateway }
+    prefix: ""
+
   - name: api
     kind: http.router
     meta: { server: gateway }
@@ -166,6 +171,47 @@ entries:
       - { name: wippy.views:api_router, value: app:api }
       - { name: wippy.views:env_storage, value: app:env_storage }
 
+  - name: dep.wippy.relay
+    kind: ns.dependency
+    component: wippy/relay
+    version: "*"
+    parameters:
+      - {name: wippy.relay:application_host, value: app:processes}
+      - {name: wippy.relay:env_storage, value: app:env_storage}
+      - {name: wippy.relay:user_security_scope, value: app.security:user}
+
+  - name: dep.kickside.connection
+    kind: ns.dependency
+    component: kickside/connection
+    version: "*"
+    parameters:
+      - {name: kickside.connection:api_router, value: app:api}
+      - {name: kickside.connection:ui_server, value: app:gateway}
+
+  - name: upload_files
+    kind: fs.directory
+    directory: ./.wippy/uploads
+    auto_init: true
+
+  - name: dep.kickside.uploads
+    kind: ns.dependency
+    component: kickside/uploads
+    version: "*"
+    parameters:
+      - {name: kickside.uploads:database_resource, value: app:db}
+      - {name: kickside.uploads:storage_id, value: app:upload_files}
+      - {name: kickside.uploads:env_storage, value: app:env_storage}
+      - {name: kickside.uploads:api_router, value: app:api}
+      - {name: kickside.uploads:ui_server, value: app:gateway}
+
+  - name: dep.kickside.agents
+    kind: ns.dependency
+    component: kickside/agents
+    version: "*"
+    parameters:
+      - {name: kickside.agents:api_router, value: app:api}
+      - {name: kickside.agents:ui_server, value: app:gateway}
+
   - name: dep.bee.drivers
     kind: ns.dependency
     component: bee/drivers
@@ -176,16 +222,27 @@ entries:
       - { name: bee.drivers:entered_values, value: app:driver_entered_values }
       - { name: bee.drivers:access_scope, value: kickside.security.groups:members }
 
+  - name: dep.kickside.automation
+    kind: ns.dependency
+    component: kickside/automation
+    version: "*"
+    parameters:
+      - { name: kickside.automation:target_db, value: app:db }
+      - { name: kickside.automation:api_router, value: app:api }
+      - { name: kickside.automation:ui_server, value: app:gateway }
+
   - name: dep.chestor.autocode
     kind: ns.dependency
     component: chestor/autocode
     version: "*"
     parameters:
       - { name: chestor.autocode:target_db, value: app:db }
+      - { name: chestor.autocode.security:user_security_scope, value: kickside.security.groups:members }
       - { name: chestor.autocode:docker_executor, value: app:docker }
       - { name: chestor.autocode:api_router, value: app:api }
       - { name: chestor.autocode:ui_server, value: app:gateway }
-      - { name: chestor.autocode:workspace_roots, value: /srv/autocode-harness }
+      - { name: chestor.autocode:workspace_roots, value: / }
+      - { name: chestor.autocode:gateway_endpoint, value: "host.docker.internal:19347" }
       - { name: chestor.autocode:settings_path, value: "/system/autocode" }
 
   - name: driver_host_environment
@@ -211,6 +268,30 @@ entries:
   - name: docker
     kind: exec.native
     default_env:
+      HOME: ./.wippy/executor-home
+      PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+  - name: docker_readonly_home
+    kind: exec.native
+    default_env:
+      HOME: ./.wippy/readonly-home
+      DOCKER_CONFIG: ./.wippy/readonly-client-config
+      PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+  - name: docker_default_endpoint
+    kind: exec.native
+    default_env:
+      HOME: ./.wippy/executor-home
+      DOCKER_HOST: unix://
+      DOCKER_CONTEXT: ""
+      PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+  - name: docker_explicit_endpoint
+    kind: exec.native
+    default_env:
+      HOME: ./.wippy/executor-home
+      DOCKER_HOST: unix:///var/run/docker.sock
+      DOCKER_CONTEXT: ""
       PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
   - name: deletion_test_worker

@@ -9,6 +9,11 @@ entries:
       title: Autocode
       description: Run coding agent CLIs in Docker images across accounts, as a page and as a workflow Block, with streamed task output.
 
+  - name: dep.wippy.agent
+    version: "*"
+    kind: ns.dependency
+    component: wippy/agent
+
   - name: dep.bee.drivers
     version: "*"
     kind: ns.dependency
@@ -185,3 +190,7 @@ entries:
       order: 80
       render: component
       component_tag: chestor-autocode
+
+  - name: run_gateway
+    kind: http.router
+    prefix: /autocode-gateway

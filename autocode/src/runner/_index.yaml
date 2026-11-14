@@ -24,7 +24,7 @@ entries:
   - name: run_io
     kind: library.lua
     source: file://run_io.lua
-    modules: [time]
+    modules: [events]
     imports:
       credentials: chestor.autocode.domain:credentials
       runs: chestor.autocode.service:runs
@@ -33,6 +33,7 @@ entries:
       redact: chestor.autocode.runner:redact
       docker: chestor.autocode.infrastructure:docker
       transport: chestor.autocode.service:transport
+      container: chestor.autocode.infrastructure:container
 
   - name: account_health
     kind: library.lua
@@ -43,3 +44,21 @@ entries:
       drivers: bee.drivers:drivers
       redact: chestor.autocode.runner:redact
       settings: chestor.autocode.domain:settings
+      limits: chestor.autocode.domain:limits
+
+  - name: event_log
+    kind: library.lua
+    source: file://event_log.lua
+    imports:
+      repo: chestor.autocode.persist:repo
+      records: chestor.autocode.runner:records
+      redact: chestor.autocode.runner:redact
+      live: chestor.autocode.domain:live
+
+  - name: prune
+    kind: library.lua
+    source: file://prune.lua
+    imports:
+      store: chestor.autocode.persist:retention
+      jobs: kickside.core.jobs:jobs
+      slot_purge: kickside.core.jobs.persist:slot_purge

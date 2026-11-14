@@ -11,6 +11,16 @@ entries:
     targets:
       - entry: chestor.autocode.migrations:01_create_tables
         path: .meta.target_db
+      - entry: chestor.autocode.migrations:08_workspace_provenance
+        path: .meta.target_db
+      - entry: chestor.autocode.migrations:07_image_snapshots
+        path: .meta.target_db
+      - entry: chestor.autocode.migrations:06_workspace_admission
+        path: .meta.target_db
+      - entry: chestor.autocode.migrations:05_run_account_health
+        path: .meta.target_db
+      - entry: chestor.autocode.migrations:04_run_gateway
+        path: .meta.target_db
       - entry: chestor.autocode.migrations:03_profiles_and_limits
         path: .meta.target_db
       - entry: chestor.autocode.migrations:02_run_retention_index
@@ -27,6 +37,14 @@ entries:
       comment: Authenticated HTTP router the autocode endpoints attach to.
     targets:
       - entry: chestor.autocode.api:catalog.user.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:profiles_list.user.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:profiles_create.user.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:profiles_update.user.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:profiles_delete.user.endpoint
         path: .meta.router
       - entry: chestor.autocode.api:accounts_list.user.endpoint
         path: .meta.router
@@ -71,6 +89,8 @@ entries:
       value_kind: http.service
       comment: HTTP server the autocode UI bundle is served from.
     targets:
+      - entry: chestor.autocode:run_gateway
+        path: .meta.server
       - entry: chestor.autocode:ui_static
         path: .meta.server
 
@@ -87,18 +107,20 @@ entries:
     kind: ns.requirement
     meta:
       value_kind: exec
-      comment: Host-owned executor for the Docker CLI, on a host that can reach the selected daemon.
+      comment: Host-owned executor for Docker and workspace probes on the selected daemon's filesystem host.
     targets:
       - entry: chestor.autocode:runtime_config
         path: .meta.docker_executor
       - entry: chestor.autocode.security:docker_commands
+        path: .policy.resources +=
+      - entry: chestor.autocode.security:workspace_probe
         path: .policy.resources +=
 
   - name: docker_context
     kind: ns.requirement
     default: ""
     meta:
-      comment: Docker CLI context selected by the host; empty uses the executor's default context.
+      comment: Optional host Docker CLI context override; empty preserves the executor environment and current context.
     targets:
       - entry: chestor.autocode:runtime_config
         path: .meta.docker_context
@@ -111,3 +133,12 @@ entries:
     targets:
       - entry: chestor.autocode:settings_tab
         path: .path
+
+  - name: gateway_endpoint
+    kind: ns.requirement
+    default: ""
+    meta:
+      comment: Host and port reachable from agent containers, without a path; Autocode appends its gateway router prefix. Only the host binding selects the credential destination.
+    targets:
+      - entry: chestor.autocode:runtime_config
+        path: .meta.gateway_endpoint

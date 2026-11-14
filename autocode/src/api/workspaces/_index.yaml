@@ -27,6 +27,8 @@ entries:
       comment: "POST /autocode/workspaces - Register a host directory under the workspace roots as a workspace."
     source: file://../workspace_routes.lua
     method: create
+    security:
+      policies: [chestor.autocode.security:store, chestor.autocode.security:workspace_mutation]
     imports:
       web: chestor.autocode.api:web
       workspaces: chestor.autocode.service:workspace_management

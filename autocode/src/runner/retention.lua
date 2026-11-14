@@ -1,6 +1,6 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 -- Core continues full pages and wakes again at the next run expiry.
-local repo = require("repo")
+local prune = require("prune")
 local settings = require("settings")
 local time = require("time")
 
@@ -17,7 +17,7 @@ local function run(): {[string]: unknown}
         return {success = false, error = errors.new({kind = errors.INVALID, message = "run_retention must be positive: " .. retention})}
     end
     local before = time.now():add(-duration:nanoseconds()):utc():format_rfc3339()
-    local deleted, err, progress = repo.prune_runs(before, BATCH)
+    local deleted, err, progress = prune.prune_runs(before, BATCH)
     if err then return {success = false, error = err} end
     if deleted == nil or not progress then
         return {success = false, error = errors.new({kind = errors.INTERNAL, message = "run retention returns no progress"})}

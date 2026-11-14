@@ -50,10 +50,10 @@ function M.account(account_id: string): error?
     return nil
 end
 
-function M.notify(owner_id: string, topic: string): error?
+function M.notify(owner_user_id: string, topic: string): error?
     local service, open_err = realtime()
     if not service then return open_err end
-    local result, notify_err = service:notify({user_id = owner_id, topic = topic, data = {}})
+    local result, notify_err = service:notify({user_id = owner_user_id, topic = topic, data = {}})
     if notify_err then return errors.wrap(notify_err, "realtime notify") end
     if type(result) ~= "table" or result.success ~= true then
         return errors.new({message = "realtime notify refused: " .. tostring(type(result) == "table" and result.error or "no result"),

@@ -27,6 +27,28 @@
           },
           "host_path": {
             "type": "string"
+          },
+          "unavailable_reason": {
+            "type": "string"
+          },
+          "conflicts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "host_path": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "host_path"
+              ]
+            }
           }
         },
         "required": [
@@ -37,6 +59,10 @@
           "shareable"
         ]
       }
+    },
+    "next_offset": {
+      "type": "integer",
+      "minimum": 0
     }
   },
   "required": [

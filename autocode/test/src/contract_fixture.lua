@@ -39,14 +39,21 @@ local function new()
         test.eq(shared.status, 200, shared.body)
         return image
     end
-    local function flow_for(user)
+    local function flow_for(user, signal_id)
         local id = uuid.v7()
         local db = sql.get("app:db")
         local _, err = db:execute([[INSERT INTO dataflows
             (dataflow_id, actor_id, type, status, created_at, updated_at)
             VALUES ($1, $2, 'test', 'pending', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)]], {id, user.id})
+        test.is_nil(err, tostring(err))
+        local node_id, yield_id = uuid.v7(), uuid.v7()
+        local _, node_err = db:execute("INSERT INTO dataflow_nodes (node_id, dataflow_id, type, status, created_at, updated_at) VALUES ($1, $2, 'kickside.blocks:await', 'waiting', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", {node_id, id})
+        test.is_nil(node_err, tostring(node_err))
+        local _, yield_err = db:execute([[INSERT INTO dataflow_data (data_id, dataflow_id, node_id, type, content, content_type, created_at)
+            VALUES ($1, $2, $3, 'node.yield', $4, 'application/json', CURRENT_TIMESTAMP)]],
+            {uuid.v7(), id, node_id, json.encode({yield_id = yield_id, yield_context = {wait_for_signal = true, signal_id = signal_id or "signal"}})})
         db:release()
-        test.is_nil(err)
+        test.is_nil(yield_err, tostring(yield_err))
         return id
     end
     return {users = users, member = member, call = call, image_for = image_for, flow_for = flow_for,

@@ -10,6 +10,7 @@ local deferred = require("deferred")
 local TOOLS = "chestor.autocode.traits:"
 local function cases()
     test.describe("autocode agent tools", function()
+        local f = require("contract_fixture").new()
         local users = {}
         local function user(groups)
             local created = identity.user(groups)
@@ -22,22 +23,46 @@ local function cases()
         test.after_each(function()
             for _, created in ipairs(users) do identity.release(created) end
             users = {}
+            f.release()
+        end)
+        test.it("pages discovery tools with bounded summaries and reads a selected profile", function()
+            local caller = member()
+            local image_id = f.image_for(caller)
+            for index = 1, 26 do
+                f.call(caller, "add_profile", {title = "Profile " .. tostring(index), agent = "claude", image_id = image_id, options = {model = "sonnet"}}, "chestor.autocode:profiles")
+            end
+            local listed, err = identity.call(caller, TOOLS .. "list_coding_profiles", {})
+            test.is_nil(err, tostring(err)); test.eq(#listed.profiles, 25); test.eq(listed.next_offset, 25)
+            test.is_nil(listed.profiles[1].options); test.is_nil(listed.profiles[1].tools)
+            local next_page, next_err = identity.call(caller, TOOLS .. "list_coding_profiles", {limit = 1, offset = listed.next_offset})
+            test.is_nil(next_err, tostring(next_err)); test.eq(#next_page.profiles, 1); test.is_nil(next_page.next_offset)
+            test.is_true(listed.profiles[1].id ~= next_page.profiles[1].id)
+            local detail, detail_err = identity.call(caller, TOOLS .. "read_coding_profile", {id = listed.profiles[1].id})
+            test.is_nil(detail_err, tostring(detail_err)); test.eq(detail.profile.options.model, "sonnet")
+            for _, pair in ipairs({{"list_coding_agents", "agents"}, {"list_coding_accounts", "accounts"}, {"list_coding_images", "images"}, {"list_coding_workspaces", "workspaces"}}) do
+                local page, page_err = identity.call(caller, TOOLS .. pair[1], {limit = 1, offset = 0})
+                test.is_nil(page_err, tostring(page_err)); test.is_true(#page[pair[2]] <= 1)
+            end
+            local excessive, bounds_err = identity.call(caller, TOOLS .. "list_coding_profiles", {limit = 101})
+            test.is_nil(excessive); test.is_true(errors.is(bounds_err, errors.INVALID), tostring(bounds_err))
         end)
         test.it("declares a public trait and tools with the contract's exact DTO schemas", function()
             local trait = registry.get(TOOLS .. "coding_tasks")
             test.eq(trait.meta.type, "agent.trait")
             test.eq(trait.meta.public, true)
-            test.eq(#trait.data.tools, 7)
+            test.eq(#trait.data.tools, 9)
             local definition = registry.get("chestor.autocode:tasks")
             for _, pair in ipairs({{"submit_coding_task", "submit_task", "SubmitCodingTask"},
                 {"read_coding_run", "get_run", "ReadCodingRun"}, {"list_coding_agents", "list_agents", "ListCodingAgents"},
+                {"list_coding_profiles", "list_profiles", "ListCodingProfiles", "chestor.autocode:profiles"},
+                {"read_coding_profile", "get_profile", "ReadCodingProfile", "chestor.autocode:profiles"},
                 {"list_coding_accounts", "list_accounts", "ListCodingAccounts"}, {"list_coding_images", "list_images", "ListCodingImages"},
                 {"list_coding_workspaces", "list_workspaces", "ListCodingWorkspaces"}, {"cancel_coding_run", "cancel_run", "CancelCodingRun"}}) do
                 local tool = registry.get(TOOLS .. pair[1])
                 test.eq(tool.meta.type, "tool")
                 test.eq(tool.meta.public, true)
                 test.eq(tool.meta.llm_alias, pair[3])
-                for _, method in ipairs(definition.data.methods) do
+                for _, method in ipairs((pair[4] and registry.get(pair[4]) or definition).data.methods) do
                     if method.name == pair[2] then
                         test.eq(tool.meta.input_schema, method.input_schemas[1].definition)
                         test.eq(tool.meta.output_schema, method.output_schemas[1].definition)
@@ -60,7 +85,7 @@ local function cases()
         test.it("refuses outsiders and members without the separate tool capability", function()
             for _, groups in ipairs({{identity.SIGNED_IN}, {identity.SIGNED_IN, identity.MEMBERS}}) do
                 local caller = user(groups)
-                for _, name in ipairs({"submit_coding_task", "read_coding_run", "list_coding_agents", "list_coding_accounts", "list_coding_images", "list_coding_workspaces", "cancel_coding_run"}) do
+                for _, name in ipairs({"submit_coding_task", "read_coding_run", "list_coding_agents", "list_coding_profiles", "read_coding_profile", "list_coding_accounts", "list_coding_images", "list_coding_workspaces", "cancel_coding_run"}) do
                     local result, err = identity.call(caller, TOOLS .. name, {})
                     test.is_nil(result)
                     test.is_true(errors.is(err, errors.PERMISSION_DENIED), tostring(err))
@@ -69,7 +94,7 @@ local function cases()
         end)
         test.it("requires module access in addition to tool access", function()
             local caller = user({identity.SIGNED_IN, "app:coding_tools"})
-            for _, name in ipairs({"submit_coding_task", "read_coding_run", "list_coding_agents", "list_coding_accounts", "list_coding_images", "list_coding_workspaces", "cancel_coding_run"}) do
+            for _, name in ipairs({"submit_coding_task", "read_coding_run", "list_coding_agents", "list_coding_profiles", "read_coding_profile", "list_coding_accounts", "list_coding_images", "list_coding_workspaces", "cancel_coding_run"}) do
                 local result, err = identity.call(caller, TOOLS .. name, {})
                 test.is_nil(result)
                 test.is_true(errors.is(err, errors.PERMISSION_DENIED), tostring(err))
@@ -88,8 +113,7 @@ local function cases()
                 time.sleep("50ms")
             end
             local all = identity.call(owner, TOOLS .. "read_coding_run", {run_id = id, limit = 100})
-            local next_seq = #all.events > 0 and all.events[#all.events].seq or 0
-            for offset = 1, 3 do test.is_nil(repo.append_event(id, next_seq + offset, "log", "line")) end
+            for offset = 1, 3 do test.is_nil(repo.append_event(id, "log", "line")) end
             local total = #all.events + 3
             local page, err = identity.call(owner, TOOLS .. "read_coding_run", {run_id = id, limit = total - 1})
             test.is_nil(err, tostring(err))

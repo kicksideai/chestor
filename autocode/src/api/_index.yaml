@@ -157,15 +157,11 @@ entries:
   - name: runs_cancel
     kind: function.lua
     meta:
-      comment: "POST /autocode/runs/{id}/cancel - Cancel one of the caller's runs and stop its container."
+      comment: "POST /autocode/runs/{id}/cancel - Request cancellation of an owned run; the runner stops its container."
     source: file://runs.lua
     method: cancel
     imports:
       web: chestor.autocode.api:web
-
-    security:
-      policies:
-        - chestor.autocode.security:docker_commands
 
   - name: runs_cancel.user.endpoint
     kind: http.endpoint
@@ -195,3 +191,117 @@ entries:
     method: POST
     func: maintenance_prune
     path: /autocode/maintenance/prune
+
+  - name: profiles_list
+    kind: function.lua
+    meta:
+      comment: "GET /autocode/profiles - Agent profiles the caller can see, with their balancing state and without credentials."
+    source: file://profiles.lua
+    method: list
+    imports:
+      web: chestor.autocode.api:web
+
+  - name: profiles_list.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "GET /autocode/profiles"
+    method: GET
+    func: profiles_list
+    path: /autocode/profiles
+
+  - name: profiles_create
+    kind: function.lua
+    meta:
+      comment: "POST /autocode/profiles - Add reusable agent defaults without credentials."
+    source: file://profiles.lua
+    method: create
+    imports:
+      web: chestor.autocode.api:web
+
+  - name: profiles_create.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "POST /autocode/profiles"
+    method: POST
+    func: profiles_create
+    path: /autocode/profiles
+
+  - name: profiles_update
+    kind: function.lua
+    meta:
+      comment: "PUT /autocode/profiles/{id} - Update reusable profile defaults under its WRITE grant."
+    source: file://profiles.lua
+    method: update
+    imports:
+      web: chestor.autocode.api:web
+
+  - name: profiles_update.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "PUT /autocode/profiles/{id}"
+    method: PUT
+    func: profiles_update
+    path: /autocode/profiles/{id}
+
+  - name: profiles_delete
+    kind: function.lua
+    meta:
+      comment: "DELETE /autocode/profiles/{id} - Delete an profile through component teardown."
+    source: file://profiles.lua
+    method: delete
+    imports:
+      web: chestor.autocode.api:web
+
+  - name: profiles_delete.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "DELETE /autocode/profiles/{id}"
+    method: DELETE
+    func: profiles_delete
+    path: /autocode/profiles/{id}
+
+  - name: run_mcp
+    kind: function.lua
+    source: file://gateway.lua
+    method: mcp
+    modules: &gateway_modules [http, json, logger]
+    imports: &gateway_imports
+      redact: chestor.autocode.runner:redact
+      gateway: chestor.autocode.service:gateway
+    security: &gateway_security
+      actor: {id: 'system:chestor.autocode.gateway'}
+      policies:
+        - chestor.autocode.security:worker_runtime
+        - chestor.autocode.security:worker_calls
+        - chestor.autocode.security:service_calls
+        - chestor.autocode.security:store
+        - chestor.autocode.security:deferred_runs
+        - chestor.autocode.security:deferred_actor
+        - chestor.autocode.security:gateway_dispatch
+
+  - name: run_hook
+    kind: function.lua
+    source: file://gateway.lua
+    method: hook
+    modules: *gateway_modules
+    imports: *gateway_imports
+    security:
+      actor: {id: 'system:chestor.autocode.gateway'}
+      policies:
+        - chestor.autocode.security:worker_runtime
+        - chestor.autocode.security:store
+        - chestor.autocode.security:run_notify
+
+  - name: run_mcp.endpoint
+    kind: http.endpoint
+    meta: {router: 'chestor.autocode:run_gateway'}
+    method: POST
+    path: /mcp/{action_id}
+    func: run_mcp
+
+  - name: run_hook.endpoint
+    kind: http.endpoint
+    meta: {router: 'chestor.autocode:run_gateway'}
+    method: POST
+    path: /hook/{action_id}
+    func: run_hook

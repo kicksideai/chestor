@@ -145,6 +145,54 @@
         },
         "finished_at": {
           "type": "string"
+        },
+        "endpoint": {
+          "type": "object",
+          "properties": {
+            "protocol": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "base_url": {
+              "type": "string",
+              "maxLength": 512
+            },
+            "model": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          "required": [
+            "protocol",
+            "base_url"
+          ],
+          "additionalProperties": false
+        },
+        "error_native": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            },
+            "retryable": {
+              "type": "boolean"
+            },
+            "details": {
+              "type": "object",
+              "additionalProperties": {}
+            }
+          },
+          "required": [
+            "kind",
+            "message"
+          ],
+          "additionalProperties": false
+        },
+        "owner_user_id": {
+          "type": "string"
         }
       },
       "required": [
@@ -165,7 +213,8 @@
         "cancel_requested",
         "created_at",
         "started_at",
-        "finished_at"
+        "finished_at",
+        "owner_user_id"
       ]
     },
     "events": {
@@ -188,7 +237,9 @@
               "tool_error",
               "system",
               "error",
-              "log"
+              "log",
+              "tool_call",
+              "hook"
             ]
           },
           "text": {

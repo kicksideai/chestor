@@ -5,7 +5,6 @@ local images = require("images")
 local resource_dto = require("resource_dto")
 local values = require("values")
 local boundary = require("boundary")
-local docker_image = require("docker_image")
 type Object = {[string]: unknown}
 local text = resources.text
 local view = resource_dto.image
@@ -18,7 +17,7 @@ local function get(args: Object): (Detail?, error?)
     if not image then return nil, boundary.native(err) end
     local build, build_err = repo.image_build(id)
     if build_err then return nil, boundary.native(build_err) end
-    local body: Detail = {image = view(image, build), build_log = build and build.log or ""}
+    local body: Detail = {image = view(image), build_log = build and build.log or ""}
     if resources.has(image.access, resources.ACCESS.WRITE) then
         local decoded, decode_err = resources.image_recipe(id, resources.ACCESS.WRITE)
         if not decoded then return nil, decode_err end
@@ -38,14 +37,11 @@ local function create(body: Object): (Created?, error?)
     local decoded, decode_err = images.decode(body)
     if not decoded then return nil, boundary.native(decode_err) end
     local id, err = resources.register("image", {title = decoded.label ~= "" and decoded.label or ref, ref = ref, home = decoded.home,
-        status = "preparing", agents = {}, last_error = ""}, {dockerfile = dockerfile, settings = decoded.settings})
+        status = "unprepared", usable = false, agents = {}, last_error = ""}, {dockerfile = dockerfile, settings = decoded.settings})
     if not id then return nil, boundary.native(err) end
     local build_err = images.request_build(id, "initial")
     if build_err then
-        local context, context_err = resources.context("image", id, resources.ACCESS.WRITE)
-        local reset_err = context_err
-        if context then reset_err = resources.replace(id, {status = "unprepared", last_error = build_err:message()}, nil, context.revision) end
-        return {id = id, build_error = boundary.partial(reset_err or build_err)}, nil
+        return {id = id, build_error = boundary.partial(build_err)}, nil
     end
     return {id = id}, nil
 end
@@ -89,7 +85,7 @@ local function update(body: Object): (Created?, error?)
     if prepares then
         local build, build_err = repo.image_build(id)
         if build_err then return nil, boundary.native(build_err) end
-        if not build or not build.approved_recipe then fields.status = "unprepared" end
+        if not build or not build.approved_recipe then fields.status, fields.usable, fields.agents = "unprepared", false, {} end
         local _, admit_err = images.admit_build(id)
         if admit_err then return nil, boundary.native(admit_err) end
     end
@@ -121,15 +117,8 @@ local function delete(args: Object): (Object?, error?)
     if not id or id == "" then return nil, boundary.error(errors.INVALID, "autocode.invalid_request", "image id is required") end
     local image, find_err = resources.get("image", id, resources.ACCESS.DELETE)
     if not image then return nil, boundary.native(find_err) end
-    local err, result = resources.delete(id)
+    local err, result = resources.delete(id, args.remove == true and {remove = true} or nil)
     if err then return nil, boundary.native(err) end
-    if args.remove == true then
-        local remove_err = docker_image.remove(text(image.meta.ref))
-        if remove_err then
-            result.docker_error = boundary.partial(remove_err)
-            return result, nil
-        end
-    end
     return result, nil
 end
 

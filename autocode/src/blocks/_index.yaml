@@ -25,9 +25,60 @@ entries:
         config:
           type: object
           additionalProperties: false
-          required: [ agent, image_id, prompt ]
+          required: [ prompt ]
+          anyOf:
+            - required: [ profile_id ]
+            - required: [ agent, image_id ]
           properties:
+            tools:
+              type: object
+              properties:
+                traits:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 200
+                  maxItems: 32
+                  uniqueItems: true
+                tools:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+                    maxLength: 200
+                  maxItems: 128
+                  uniqueItems: true
+                context:
+                  type: object
+                  additionalProperties: {}
+              additionalProperties: false
+            profile_id: { type: string, minLength: 1, maxLength: 64, title: Profile }
             agent: { type: string, minLength: 1, maxLength: 64, title: Agent }
+            account_pool:
+              {
+                type: array,
+                maxItems: 200,
+                uniqueItems: true,
+                items: { type: string, minLength: 1, maxLength: 64 },
+                title: Account pool
+              }
+            endpoint:
+              type: object
+              properties:
+                protocol:
+                  type: string
+                  maxLength: 64
+                base_url:
+                  type: string
+                  maxLength: 512
+                model:
+                  type: string
+                  maxLength: 200
+              required:
+                - protocol
+                - base_url
+              additionalProperties: false
             account_id:
               {
                 type: string,
@@ -127,6 +178,22 @@ entries:
               additionalProperties: false
             agent: { type: string }
             account_id: { type: string }
+            error_native:
+              type: object
+              properties:
+                kind:
+                  type: string
+                message:
+                  type: string
+                retryable:
+                  type: boolean
+                details:
+                  type: object
+                  additionalProperties: {}
+              required:
+                - kind
+                - message
+              additionalProperties: false
         error:
           type: object
           required: [ code, message ]
@@ -167,14 +234,17 @@ entries:
         identity; the run's settlement enqueues the node's resume.
     source: file://arm.lua
     security:
-      policies: [ chestor.autocode.security:flow_context ]
+      policies:
+        [
+          chestor.autocode.security:flow_context,
+          chestor.autocode.security:flow_authorization
+        ]
     method: arm
-    modules: [ json, security ]
+    modules: [ funcs ]
     imports:
       trace: kickside.execution:trace
       client: chestor.autocode.service:client
       boundary: chestor.autocode.service:boundary
-      dataflow_repo: userspace.dataflow.persist:dataflow_repo
 
   # chestor.autocode.blocks:resume
   - name: resume
@@ -195,4 +265,5 @@ entries:
         - chestor.autocode.security:worker_runtime
         - chestor.autocode.security:store
         - chestor.autocode.security:flow_resume
+        - chestor.autocode.security:flow_resume_arm
         - chestor.autocode.security:flow_identity

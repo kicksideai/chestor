@@ -19,19 +19,150 @@ entries:
     groups: []
     policy:
       resources:
-        - chestor.autocode:*
-        - chestor.autocode.api:*
-        - chestor.autocode.blocks:*
-        - chestor.autocode.components:*
-        - chestor.autocode.domain:*
-        - chestor.autocode.infrastructure:*
-        - chestor.autocode.drivers:*
-        - chestor.autocode.migrations:*
-        - chestor.autocode.persist:*
-        - chestor.autocode.runner:*
-        - chestor.autocode.security:*
-        - chestor.autocode.service:*
-      actions: [registry.get, registry.find]
+        - chestor.autocode.api:accounts_create
+        - chestor.autocode.api:accounts_create.user.endpoint
+        - chestor.autocode.api:accounts_delete
+        - chestor.autocode.api:accounts_delete.user.endpoint
+        - chestor.autocode.api:accounts_list
+        - chestor.autocode.api:accounts_list.user.endpoint
+        - chestor.autocode.api:accounts_update
+        - chestor.autocode.api:accounts_update.user.endpoint
+        - chestor.autocode.api:catalog
+        - chestor.autocode.api:catalog.user.endpoint
+        - chestor.autocode.api:images_create.endpoint
+        - chestor.autocode.api:images_delete.endpoint
+        - chestor.autocode.api:images_get
+        - chestor.autocode.api:images_get.user.endpoint
+        - chestor.autocode.api:images_list
+        - chestor.autocode.api:images_list.user.endpoint
+        - chestor.autocode.api:images_prepare.endpoint
+        - chestor.autocode.api:images_update.endpoint
+        - chestor.autocode.api:maintenance_prune.endpoint
+        - chestor.autocode.api:profiles_create
+        - chestor.autocode.api:profiles_create.user.endpoint
+        - chestor.autocode.api:profiles_delete
+        - chestor.autocode.api:profiles_delete.user.endpoint
+        - chestor.autocode.api:profiles_list
+        - chestor.autocode.api:profiles_list.user.endpoint
+        - chestor.autocode.api:profiles_update
+        - chestor.autocode.api:profiles_update.user.endpoint
+        - chestor.autocode.api:run_hook.endpoint
+        - chestor.autocode.api:run_mcp.endpoint
+        - chestor.autocode.api:runs_cancel
+        - chestor.autocode.api:runs_cancel.user.endpoint
+        - chestor.autocode.api:runs_create
+        - chestor.autocode.api:runs_create.user.endpoint
+        - chestor.autocode.api:runs_get
+        - chestor.autocode.api:runs_get.user.endpoint
+        - chestor.autocode.api:runs_list
+        - chestor.autocode.api:runs_list.user.endpoint
+        - chestor.autocode.api:web
+        - chestor.autocode.api:workspaces_create.endpoint
+        - chestor.autocode.api:workspaces_delete.endpoint
+        - chestor.autocode.api:workspaces_list
+        - chestor.autocode.api:workspaces_list.user.endpoint
+        - chestor.autocode.blocks:arm_task
+        - chestor.autocode.blocks:block.task
+        - chestor.autocode.components:account
+        - chestor.autocode.components:image
+        - chestor.autocode.components:profile
+        - chestor.autocode.components:resources
+        - chestor.autocode.components:status
+        - chestor.autocode.components:workspace
+        - chestor.autocode.domain:credentials
+        - chestor.autocode.domain:endpoint
+        - chestor.autocode.domain:job_outcome
+        - chestor.autocode.domain:image_state
+        - chestor.autocode.domain:limits
+        - chestor.autocode.domain:live
+        - chestor.autocode.domain:recipe
+        - chestor.autocode.domain:settings
+        - chestor.autocode.drivers:activation
+        - chestor.autocode.infrastructure:container
+        - chestor.autocode.infrastructure:docker
+        - chestor.autocode.infrastructure:docker_image
+        - chestor.autocode.infrastructure:host
+        - chestor.autocode.infrastructure:image_tags
+        - chestor.autocode.infrastructure:quote
+        - chestor.autocode.infrastructure:workspaces
+        - chestor.autocode.persist:accounts
+        - chestor.autocode.persist:builds
+        - chestor.autocode.persist:database
+        - chestor.autocode.persist:db_config
+        - chestor.autocode.persist:events
+        - chestor.autocode.persist:project_account
+        - chestor.autocode.persist:repo
+        - chestor.autocode.persist:workspaces
+        - chestor.autocode.persist:runs
+        - chestor.autocode.runner:account_health
+        - chestor.autocode.runner:event_log
+        - chestor.autocode.runner:image
+        - chestor.autocode.runner:records
+        - chestor.autocode.runner:redact
+        - chestor.autocode.runner:run
+        - chestor.autocode.runner:run_io
+        - chestor.autocode.service:accounts
+        - chestor.autocode.service:add_account
+        - chestor.autocode.service:add_profile
+        - chestor.autocode.service:admission
+        - chestor.autocode.service:boundary
+        - chestor.autocode.service:cancel_run
+        - chestor.autocode.service:catalog
+        - chestor.autocode.service:client
+        - chestor.autocode.service:deferred
+        - chestor.autocode.service:docker_maintenance
+        - chestor.autocode.service:gateway
+        - chestor.autocode.service:gateway_surface
+        - chestor.autocode.service:get_run
+        - chestor.autocode.service:image_management
+        - chestor.autocode.service:images
+        - chestor.autocode.service:list_accounts
+        - chestor.autocode.service:list_agents
+        - chestor.autocode.service:list_images
+        - chestor.autocode.service:list_profiles
+        - chestor.autocode.service:get_profile
+        - chestor.autocode.service:list_runs
+        - chestor.autocode.service:list_workspaces
+        - chestor.autocode.service:maintenance
+        - chestor.autocode.service:profiles
+        - chestor.autocode.service:remove_account
+        - chestor.autocode.service:remove_profile
+        - chestor.autocode.service:resource_dto
+        - chestor.autocode.service:runs
+        - chestor.autocode.service:submit_task
+        - chestor.autocode.service:transport
+        - chestor.autocode.service:update_account
+        - chestor.autocode.service:update_profile
+        - chestor.autocode.service:values
+        - chestor.autocode.service:verify_workspace
+        - chestor.autocode.service:workspace_management
+        - chestor.autocode.traits:coding_tasks
+        - chestor.autocode:accounts
+        - chestor.autocode:accounts_binding
+        - chestor.autocode:autocode_view
+        - chestor.autocode:definition
+        - chestor.autocode:driver_account_view
+        - chestor.autocode:nav_item
+        - chestor.autocode:profiles
+        - chestor.autocode:profiles_binding
+        - chestor.autocode:run_gateway
+        - chestor.autocode:runtime_config
+        - chestor.autocode:setting.account_cooldown
+        - chestor.autocode:setting.build_cache_retention
+        - chestor.autocode:setting.image_build_timeout
+        - chestor.autocode:setting.run_retention
+        - chestor.autocode:setting.run_timeout
+        - chestor.autocode:settings.block.autocode
+        - chestor.autocode:settings_tab
+        - chestor.autocode:settings_tab_view
+        - chestor.autocode:task_config_view
+        - chestor.autocode:tasks
+        - chestor.autocode:tasks_binding
+        - chestor.autocode:ui_fs
+        - chestor.autocode:ui_static
+      actions:
+        - registry.get
+        - registry.find
       effect: allow
 
   - name: module_runtime
@@ -44,6 +175,10 @@ entries:
       resources:
         - chestor.autocode.api:catalog
         - chestor.autocode.api:accounts_list
+        - chestor.autocode.api:profiles_list
+        - chestor.autocode.api:profiles_create
+        - chestor.autocode.api:profiles_update
+        - chestor.autocode.api:profiles_delete
         - chestor.autocode.api:accounts_create
         - chestor.autocode.api:accounts_update
         - chestor.autocode.api:accounts_delete
@@ -61,11 +196,17 @@ entries:
         - chestor.autocode.service:list_accounts
         - chestor.autocode.service:list_images
         - chestor.autocode.service:list_workspaces
+        - chestor.autocode.service:verify_workspace
         - chestor.autocode.service:submit_task
         - chestor.autocode.service:get_run
         - chestor.autocode.service:list_runs
         - chestor.autocode.service:cancel_run
         - chestor.autocode.service:add_account
+        - chestor.autocode.service:list_profiles
+        - chestor.autocode.service:get_profile
+        - chestor.autocode.service:add_profile
+        - chestor.autocode.service:update_profile
+        - chestor.autocode.service:remove_profile
         - chestor.autocode.service:update_account
         - chestor.autocode.service:remove_account
       actions: [funcs.call]
@@ -79,6 +220,7 @@ entries:
     policy:
       resources:
         - chestor.autocode.components:account
+        - chestor.autocode.components:profile
         - chestor.autocode.components:image
         - chestor.autocode.components:workspace
         - kickside.contract:deletable
@@ -125,6 +267,10 @@ entries:
       resources:
         - chestor.autocode.api:catalog.user.endpoint
         - chestor.autocode.api:accounts_list.user.endpoint
+        - chestor.autocode.api:profiles_list.user.endpoint
+        - chestor.autocode.api:profiles_create.user.endpoint
+        - chestor.autocode.api:profiles_update.user.endpoint
+        - chestor.autocode.api:profiles_delete.user.endpoint
         - chestor.autocode.api:accounts_create.user.endpoint
         - chestor.autocode.api:accounts_update.user.endpoint
         - chestor.autocode.api:accounts_delete.user.endpoint
@@ -198,6 +344,8 @@ entries:
         - chestor.autocode:tasks
         - chestor.autocode:tasks_binding
         - chestor.autocode:accounts
+        - chestor.autocode:profiles
+        - chestor.autocode:profiles_binding
         - chestor.autocode:accounts_binding
         - list_agents
         - list_accounts
@@ -208,6 +356,11 @@ entries:
         - list_runs
         - cancel_run
         - add_account
+        - list_profiles
+        - get_profile
+        - add_profile
+        - update_profile
+        - remove_profile
         - update_account
         - remove_account
       actions: [access, contract.get, contract.open, contract.call]
@@ -227,6 +380,8 @@ entries:
         - chestor.autocode.traits:read_coding_run
         - chestor.autocode.traits:list_coding_agents
         - chestor.autocode.traits:list_coding_accounts
+        - chestor.autocode.traits:list_coding_profiles
+        - chestor.autocode.traits:read_coding_profile
         - chestor.autocode.traits:list_coding_images
         - chestor.autocode.traits:list_coding_workspaces
         - chestor.autocode.traits:cancel_coding_run

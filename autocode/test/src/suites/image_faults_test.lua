@@ -6,6 +6,30 @@ local resource_dto = require("resource_dto")
 local json = require("json")
 local function cases()
     test.describe("autocode image failures", function()
+        test.it("renders images solely from the public component snapshot", function()
+            local state = stubs.reset()
+            local row = {id = "image", owner_user_id = "owner", owner = "owner", access = 15, meta = {title = "public", ref = "public:tag", home = "/home/agent",
+                status = "failed", usable = "true", agents = '["claude"]', last_error = "public failure"}}
+            state.build.status, state.build.finished_at, state.build.projected = "ready", "finished", true
+            local dto = resource_dto.image(row, state.build)
+            test.eq(dto.status, "failed"); test.eq(dto.last_error, "public failure")
+            test.is_true(dto.usable); test.eq(dto.agents[1], "claude")
+        end)
+        test.it("retains native image recipe failures in the settled build", function()
+            local state = stubs.reset()
+            state.recipe_error = errors.new({kind = errors.PERMISSION_DENIED, message = "recipe denied", retryable = false, details = {code = "recipe.denied"}})
+            local outcome = image.main({payload = {image_id = "image", build_id = "generation"}})
+            test.is_true(outcome.ok); test.eq(outcome.output.status, "failed")
+            test.not_nil(state.build.error_native); test.eq(state.build.error_native.details.code, "recipe.denied")
+            test.eq(outcome.output.error_native.kind, errors.PERMISSION_DENIED)
+        end)
+        test.it("preserves native image projection kind retryability and details", function()
+            local state = stubs.reset()
+            state.projection_cause = errors.new({kind = errors.PERMISSION_DENIED, message = "projection denied", retryable = false, details = {code = "projection.denied"}})
+            local outcome = image.main({payload = {image_id = "image", build_id = "generation"}})
+            test.is_false(outcome.ok); test.eq(outcome.error_native.kind, errors.PERMISSION_DENIED)
+            test.is_false(outcome.error_native.retryable); test.eq(outcome.error_native.details.code, "projection.denied")
+        end)
         test.it("uses the job deadline for image preparation, probes and tag cleanup", function()
             local state = stubs.reset()
             state.recipe = {ref = "image", home = "/home/agent", dockerfile = "FROM scratch", revision = 7,
@@ -15,14 +39,153 @@ local function cases()
             test.is_true(#state.deadline_calls >= 5)
             for _, call in ipairs(state.deadline_calls) do test.eq(call.deadline, deadline, call.command) end
         end)
+        test.it("keeps tuning discard notices from both successful probes in the build log", function()
+            local state = stubs.reset()
+            state.recipe = stubs.recipe_fixture()
+            state.recipe.settings.extra_args = {"--memory-swappiness=60"}
+            local warning = "WARNING: Your kernel does not support memory swappiness capabilities or the cgroup is not mounted. Memory swappiness discarded."
+            state.create_lines = {warning, string.rep("a", 64)}
+            test.is_true(image.main({payload = {image_id = "image", build_id = "generation"}}).ok)
+            test.eq(state.build.status, "ready", state.build.log)
+            local notices = 0
+            for line in state.build.log:gmatch("[^\n]+") do if line == warning then notices = notices + 1 end end
+            test.eq(notices, 2)
+            test.is_nil(state.build.log:find(string.rep("a", 64), 1, true))
+        end)
+        test.it("keeps unlimited quota discard notices from both successful probes in the build log", function()
+            local state = stubs.reset()
+            state.recipe = stubs.recipe_fixture()
+            state.recipe.settings.extra_args = {"--cpu-quota=-1"}
+            local warning = "WARNING: Your kernel does not support CPU CFS scheduler. CPU period/quota discarded."
+            state.create_lines = {warning, string.rep("a", 64)}
+            test.is_true(image.main({payload = {image_id = "image", build_id = "generation"}}).ok)
+            test.eq(state.build.status, "ready", state.build.log)
+            local notices = 0
+            for line in state.build.log:gmatch("[^\n]+") do if line == warning then notices = notices + 1 end end
+            test.eq(notices, 2)
+            test.is_nil(state.build.log:find(string.rep("a", 64), 1, true))
+        end)
+        test.it("keeps period without quota discard notices from both successful probes in the build log", function()
+            local state = stubs.reset()
+            state.recipe = stubs.recipe_fixture()
+            state.recipe.settings.extra_args = {"--cpu-period=100000"}
+            local warning = "WARNING: Your kernel does not support CPU CFS scheduler. CPU period/quota discarded."
+            state.create_lines = {warning, string.rep("a", 64)}
+            test.is_true(image.main({payload = {image_id = "image", build_id = "generation"}}).ok)
+            test.eq(state.build.status, "ready", state.build.log)
+            local notices = 0
+            for line in state.build.log:gmatch("[^\n]+") do if line == warning then notices = notices + 1 end end
+            test.eq(notices, 2)
+            test.is_nil(state.build.log:find(string.rep("a", 64), 1, true))
+        end)
+        test.it("keeps positive extra quota discard notices from both successful probes in the build log", function()
+            local state = stubs.reset()
+            state.recipe = stubs.recipe_fixture()
+            state.recipe.settings.extra_args = {"--cpu-quota=25000", "--cpu-period=100000"}
+            local warning = "WARNING: Your kernel does not support CPU CFS scheduler. CPU period/quota discarded."
+            state.create_lines = {warning, string.rep("a", 64)}
+            test.is_true(image.main({payload = {image_id = "image", build_id = "generation"}}).ok)
+            test.eq(state.build.status, "ready", state.build.log)
+            local notices = 0
+            for line in state.build.log:gmatch("[^\n]+") do if line == warning then notices = notices + 1 end end
+            test.eq(notices, 2)
+            test.is_nil(state.build.log:find(string.rep("a", 64), 1, true))
+        end)
+        test.it("explicitly drops NET_RAW and requests private cgroup namespaces for both image probes", function()
+            local state = stubs.reset()
+            state.recipe = stubs.recipe_fixture()
+            test.is_true(image.main({payload = {image_id = "image", build_id = "generation"}}).ok)
+            local probes = 0
+            for _, command in ipairs(state.commands) do
+                if command:sub(1, 7) == "create " then
+                    probes = probes + 1
+                    test.not_nil(command:find("--cgroupns=private", 1, true), command)
+                    test.not_nil(command:find("--cap-drop=NET_RAW", 1, true), command)
+                end
+            end
+            test.eq(probes, 2)
+        end)
+        test.it("applies recipe memory CPU and process bounds and the operation deadline to both probes", function()
+            for _, limits in ipairs({{memory = "96m", cpus = "0.25", pids_limit = 37}, {memory = "", cpus = "", pids_limit = 0}}) do
+                local state = stubs.reset()
+                state.recipe = stubs.recipe_fixture()
+                for key, value in pairs(limits) do state.recipe.settings[key] = value end
+                local checked = 0
+                state.on_create = function(options)
+                    checked = checked + 1
+                    for _, field in ipairs({"memory", "cpus", "pids_limit"}) do
+                        test.eq(options.isolation.limits[field], state.recipe.settings[field])
+                    end
+                end
+                local deadline = "2999-01-01T00:00:00Z"
+                test.is_true(image.main({payload = {image_id = "image", build_id = "generation"}, job = {deadline = deadline}}).ok)
+                local probes = 0
+                for _, call in ipairs(state.deadline_calls) do test.eq(call.deadline, deadline) end
+                for _, command in ipairs(state.commands) do
+                    if command:sub(1, 7) == "create " then
+                        probes = probes + 1
+                        for _, option in ipairs({{"--memory", limits.memory}, {"--cpus", limits.cpus}, {"--pids-limit", limits.pids_limit}}) do
+                            if option[2] == "" or option[2] == 0 then
+                                test.is_nil(command:find(option[1], 1, true), command)
+                            else
+                                test.not_nil(command:find(option[1] .. " " .. tostring(option[2]), 1, true), command)
+                            end
+                        end
+                    end
+                end
+                test.eq(probes, 2); test.eq(checked, 2)
+            end
+        end)
+        test.it("passes base limits then unchanged extra arguments once to Docker for both probes", function()
+            for _, base in ipairs({{memory = "", cpus = "", pids_limit = 0}, {memory = "96m", cpus = "1", pids_limit = 37}}) do
+                local state = stubs.reset()
+                state.recipe = stubs.recipe_fixture()
+                for key, value in pairs(base) do state.recipe.settings[key] = value end
+                state.recipe.settings.extra_args = {"--memory", "128m", "-m64m", "--cpus=0.5", "--cpus", "0.25", "--pids-limit=32", "--pids-limit", "16"}
+                test.is_true(image.main({payload = {image_id = "image", build_id = "generation"}}).ok)
+                local probes = 0
+                for _, command in ipairs(state.commands) do
+                    if command:sub(1, 7) == "create " then
+                        probes = probes + 1
+                        for _, bound in ipairs({"--memory 128m -m64m", "--cpus=0.5 --cpus 0.25", "--pids-limit=32 --pids-limit 16"}) do
+                            test.not_nil(command:find(bound, 1, true), command)
+                        end
+                    end
+                end
+                test.eq(probes, 2)
+            end
+        end)
+        test.it("lets Docker parse all resource classes including boolean and named limits in both probes", function()
+            local state = stubs.reset()
+            state.recipe = stubs.recipe_fixture()
+            state.recipe.settings.extra_args = {"-itqm128m", "-c512", "--memory-swap=-1", "--memory-reservation=32m",
+                "--memory-swappiness=20", "--kernel-memory=16m", "--cpus=0", "--pids-limit=-1", "--cpu-period=100000", "--cpu-quota=25000",
+                "--cpu-rt-period=1000000", "--cpu-rt-runtime=10000", "--cpuset-cpus=0", "--cpuset-mems=0", "--cpu-count=1", "--cpu-percent=25",
+                "--blkio-weight=100", "--io-maxbandwidth=1mb", "--io-maxiops=10", "--shm-size=16m", "--oom-score-adj=100",
+                "--ulimit=nofile=1024:2048", "--ulimit=nproc=16:32", "--ulimit=nofile=2048:4096", "--oom-kill-disable", "--oom-kill-disable=false"}
+            test.is_true(image.main({payload = {image_id = "image", build_id = "generation"}}).ok)
+            local probes = 0
+            for _, command in ipairs(state.commands) do
+                if command:sub(1, 7) == "create " then
+                    probes = probes + 1
+                    for _, bound in ipairs(state.recipe.settings.extra_args) do
+                        test.not_nil(command:find(bound, 1, true), command)
+                    end
+                end
+            end
+            test.eq(probes, 2)
+        end)
         test.it("projects build progress separately from approved generation usability", function()
-            local resource = {id = "image", meta = {ref = "new:tag", title = "New label", status = "preparing"}, access = 15, owner = "owner"}
+            local resource = {id = "image", meta = {ref = "new:tag", title = "New label", status = "preparing"}, access = 15, owner_user_id = "owner", owner = "owner"}
             local created = resource_dto.image(resource, nil)
             test.eq(created.status, "preparing")
             test.is_false(created.usable)
             test.eq(json.encode(created.agents), "[]")
             local state = stubs.reset()
-            local function read() return resource_dto.image(resource, state.build) end
+            local function read()
+                if state.public then for key, value in pairs(state.public) do resource.meta[key] = value end end
+                return resource_dto.image(resource)
+            end
             test.eq(read().status, "preparing")
             test.is_false(read().usable)
             test.is_true(image.main({payload = {image_id = "image", build_id = "generation"}}).ok)
@@ -32,6 +195,9 @@ local function cases()
             state.build = {build_id = "refresh", job_id = "job", identity = {actor_id = "owner", actor_context = "{}"},
                 mode = "refresh", finished_at = "", status = "preparing", agents = {}, last_error = "", projected = false,
                 approved_recipe = approved, approved_agents = {"claude"}}
+            -- A queued replacement publishes the same snapshot as request_build.
+            for key, value in pairs(require("image_state").fields(state.build)) do resource.meta[key] = value end
+            state.public = nil
             test.eq(read().status, "preparing")
             test.is_true(read().usable)
             test.eq(read().agents[1], "claude")
@@ -66,7 +232,7 @@ local function cases()
             local state = stubs.reset()
             local seen = {}
             local function read()
-                seen[#seen + 1] = resource_dto.image({id = "image", meta = state.public or {}, access = 15, owner = "owner"}, state.build).status
+                seen[#seen + 1] = resource_dto.image({id = "image", meta = state.public or {}, access = 15, owner_user_id = "owner", owner = "owner"}, state.build).status
             end
             state.on_meta, state.on_image_notify = read, read
             state.image_notify_error = true
@@ -103,11 +269,11 @@ local function cases()
         end)
         test.it("pins the fetched image ID in the recipe and uses its generation tag in both probes", function()
             local state = stubs.reset()
-            state.docker_steps = {{lines = {"sha256:" .. string.rep("a", 64) .. " 0"}}, {}, {lines = {"sha256:" .. string.rep("a", 64)}}, {}, {}}
+            state.docker_steps = {{lines = {"sha256:" .. string.rep("a", 64) .. " 0"}}, {}, {lines = {"sha256:" .. string.rep("a", 64)}}, {}, {}, {}, {}}
             test.is_true(image.main({payload = {image_id = "image", build_id = "generation"}}).ok)
             test.eq(state.build.recipe.ref, "sha256:" .. string.rep("a", 64))
             test.not_nil(state.commands[4]:find("chestor-autocode/image:generation", 1, true))
-            test.not_nil(state.commands[5]:find("chestor-autocode/image:generation", 1, true))
+            test.not_nil(state.commands[6]:find("chestor-autocode/image:generation", 1, true))
         end)
         test.it("builds and approves its generation tag when another build replaces the shared reference", function()
             local state = stubs.reset()
@@ -121,7 +287,7 @@ local function cases()
             test.is_nil(state.commands[1]:find("-t shared:latest", 1, true))
             test.not_nil(table.concat(state.commands, "\n"):find("image tag chestor-autocode/image:generation shared:latest", 1, true))
             for _, command in ipairs(state.commands) do
-                if command:sub(1, 4) == "run " then test.not_nil(command:find("chestor-autocode/image:generation", 1, true)) end
+                if command:sub(1, 7) == "create " then test.not_nil(command:find("chestor-autocode/image:generation", 1, true)) end
             end
         end)
         test.it("retires only previous tags of the same component after approval", function()
@@ -133,11 +299,11 @@ local function cases()
         test.it("names and labels both probes and removes leftovers before each", function()
             local state = stubs.reset()
             test.is_true(image.main({payload = {image_id = "image", build_id = "generation"}}).ok)
-            test.eq(state.removed, 2)
+            test.eq(state.removed, 4)
             test.eq(state.removed_names[1], "autocode-probe-generation")
             local probes = 0
             for _, command in ipairs(state.commands) do
-                if command:sub(1, 4) == "run " then
+                if command:sub(1, 7) == "create " then
                     probes = probes + 1
                     test.not_nil(command:find("--name autocode-probe-generation", 1, true))
                     test.not_nil(command:find("--label chestor.autocode", 1, true))
@@ -158,7 +324,7 @@ local function cases()
         test.it("refreshes a local-only image without pulling and records why", function()
             local state = stubs.reset()
             state.build.mode = "refresh"
-            state.docker_steps = {{lines = {"sha256:" .. string.rep("a", 64) .. " 0"}}, {}, {lines = {"sha256:" .. string.rep("a", 64)}}, {}, {}}
+            state.docker_steps = {{lines = {"sha256:" .. string.rep("a", 64) .. " 0"}}, {}, {lines = {"sha256:" .. string.rep("a", 64)}}, {}, {}, {}, {}}
             test.is_true(image.main({payload = {image_id = "image", build_id = "generation"}}).ok)
             test.eq(state.build.status, "ready", state.build.log)
             test.eq(state.docker_commands[1], "image inspect --format {{.Id}} {{len .RepoDigests}} image")
@@ -169,7 +335,7 @@ local function cases()
         test.it("pulls a registry-provenance image before probing it", function()
             local state = stubs.reset()
             state.build.mode = "refresh"
-            state.docker_steps = {{lines = {"sha256:" .. string.rep("a", 64) .. " 1"}}, {lines = {"Digest: sha256:" .. string.rep("b", 64)}}, {}, {lines = {"sha256:" .. string.rep("a", 64)}}, {}, {}}
+            state.docker_steps = {{lines = {"sha256:" .. string.rep("a", 64) .. " 1"}}, {lines = {"Digest: sha256:" .. string.rep("b", 64)}}, {}, {lines = {"sha256:" .. string.rep("a", 64)}}, {}, {}, {}, {}}
             test.is_true(image.main({payload = {image_id = "image", build_id = "generation"}}).ok)
             test.eq(state.build.status, "ready", state.build.log)
             test.eq(state.docker_commands[2], "pull image")
@@ -190,7 +356,7 @@ local function cases()
         test.it("pulls a missing local image on refresh", function()
             local state = stubs.reset()
             state.build.mode = "refresh"
-            state.docker_steps = {{code = 1}, {lines = {"Digest: sha256:" .. string.rep("b", 64)}}, {}, {lines = {"sha256:" .. string.rep("a", 64)}}, {}, {}}
+            state.docker_steps = {{code = 1}, {lines = {"Digest: sha256:" .. string.rep("b", 64)}}, {}, {lines = {"sha256:" .. string.rep("a", 64)}}, {}, {}, {}, {}}
             test.is_true(image.main({payload = {image_id = "image", build_id = "generation"}}).ok)
             test.eq(state.build.status, "ready", state.build.log)
             test.eq(state.docker_commands[2], "pull image")
