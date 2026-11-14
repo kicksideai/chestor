@@ -13,6 +13,7 @@ local event_log = require("event_log")
 local runs = require("runs")
 local container = require("container")
 local records = require("records")
+local settings = require("settings")
 local redact = require("redact")
 local docker = require("docker")
 local live = require("live")
@@ -141,6 +142,10 @@ local function execute(run: repo.Run, job: {[string]: unknown}, trace_context: {
     if requested then return finish("cancelled", "", "cancelled by user", {}) end
     if attempt > 1 and run.status ~= "queued" then return fail("the runner stopped before the run settled") end
 
+    if run.status == "queued" then
+        local queue_err = settings.check_queue(run.created_at)
+        if queue_err then return fail(queue_err:message(), queue_err) end
+    end
     local prepared, owner, prepare_err = prepare(run)
     if not prepared or not owner then
         if run.status == "queued" and prepare_err and (prepare_err:details() or {}).code == "autocode.workspace_approval_required" then

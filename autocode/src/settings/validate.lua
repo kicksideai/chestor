@@ -3,9 +3,9 @@ local time = require("time")
 local settings = require("settings")
 type Input = {key: string, value: unknown}
 local function validate(input: Input): (boolean?, error?)
-    if input.key == "run_event_count" or input.key == "run_event_bytes" then
-        local minimum = input.key == "run_event_count" and 4 or 1024
-        local maximum = input.key == "run_event_count" and 100000 or 1073741824
+    local bounds = settings.INTEGER_BOUNDS[input.key]
+    if bounds then
+        local minimum, maximum = bounds[1], bounds[2]
         if type(input.value) ~= "number" or input.value % 1 ~= 0 or input.value < minimum or input.value > maximum then
             return nil, errors.new({kind = errors.INVALID, message = input.key .. " must be an integer between " .. tostring(minimum) .. " and " .. tostring(maximum)})
         end

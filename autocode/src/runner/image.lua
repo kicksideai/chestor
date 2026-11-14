@@ -16,19 +16,20 @@ local component = require("component")
 local transport = require("transport")
 local container = require("container")
 
-local MAX_LOG = 65536
+local settings = require("settings")
+local text = require("text")
 local DEFERRED_OWNER = "chestor.autocode:images"
 local RECIPE = "chestor.autocode.service:image_recipe"
 
-type Log = {lines: {string}, size: integer}
+type Log = {lines: {string}, size: integer, limit: integer}
 type Recipe = transport.Recipe
 type Outcome = job_outcome.Outcome
 
 local function add(log: Log, line: string)
-    if #line > MAX_LOG then line = line:sub(1, MAX_LOG) end
+    line = text.head(line, log.limit)
     log.lines[#log.lines + 1] = line
     log.size = log.size + #line + 1
-    while log.size > MAX_LOG and #log.lines > 1 do
+    while log.size > log.limit and #log.lines > 1 do
         log.size = log.size - #log.lines[1] - 1
         table.remove(log.lines, 1)
     end
@@ -222,7 +223,9 @@ local function main(input: {[string]: unknown}): Outcome
     local recipe, decode_err = transport.recipe(result)
     if not recipe then return refused(image_id, build_id, tostring(decode_err), deadline, decode_err) end
 
-    local log: Log = {lines = {}, size = 0}
+    local limit, limit_err = settings.integer("build_log_bytes")
+    if not limit then return failure("build log setting", errors.INVALID, limit_err) end
+    local log: Log = {lines = {}, size = 0, limit = limit}
     local status = "failed"
     local agents: {string} = {}
     local tag = image_tags.name(image_id, build_id)

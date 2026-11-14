@@ -18,22 +18,15 @@ end
 
 local NOTICE = "Run event history truncated: keeping the first event and a rolling tail. The run result and usage are retained separately."
 
--- Do not cut a multi-byte UTF-8 character at the byte ceiling.
-local function clip(value: string, limit: integer): string
-    if #value <= limit then return value end
-    while limit > 0 do
-        local next_byte = value:byte(limit + 1)
-        if not next_byte or next_byte < 128 or next_byte >= 192 then break end
-        limit = limit - 1
-    end
-    return value:sub(1, limit)
-end
+local clip = require("text").head
 
 function repo.append_event(run_id: string, kind: string, body: string): error?
     local max_count, max_bytes, setting_err = settings.event_limits()
     if not max_count or not max_bytes then return setting_err end
+    local text_bytes, text_err = settings.integer("event_text_bytes")
+    if not text_bytes then return text_err end
     kind = clip(kind, 64)
-    body = clip(body, math.min(8192, max_bytes // 4) - #kind)
+    body = clip(body, math.min(text_bytes + 192, max_bytes // 4) - #kind)
     return db.transaction({}, function(tx: sql.Transaction, engine: string): error?
         local locked, lock_err = tx:execute("UPDATE chestor_autocode_runs SET id = id WHERE id = $1", {run_id})
         if lock_err then return lock_err end

@@ -97,6 +97,8 @@ entries:
     kind: library.lua
     source: file://../image_subject.lua
     imports:
+      text: chestor.autocode.domain:text
+      settings: app:stub_settings
       container: chestor.autocode.infrastructure:container
       image_state: chestor.autocode.domain:image_state
       image_tags: app:image_tags_subject
@@ -113,6 +115,7 @@ entries:
     source: file://../run_subject.lua
     modules: [logger, json]
     imports:
+      settings: app:stub_settings
       repo: app:stub_repo
       runs: app:stub_runs
       container: chestor.autocode.infrastructure:container
@@ -245,6 +248,7 @@ entries:
     source: file://../run_io_subject.lua
     modules: [events]
     imports:
+      settings: app:stub_settings
       container: chestor.autocode.infrastructure:container
       credentials: chestor.autocode.domain:credentials
       runs: app:stub_runs
@@ -304,6 +308,7 @@ entries:
     source: file://../run_subject.lua
     modules: [logger, json]
     imports:
+      settings: app:stub_settings
       repo: app:delivery_repo
       runs: app:stub_runs
       container: chestor.autocode.infrastructure:container
@@ -402,6 +407,7 @@ entries:
     source: file://../delivery_runs_subject.lua
     modules: [sql, uuid]
     imports:
+      settings: app:stub_settings
       job_outcome: chestor.autocode.domain:job_outcome
       trace: kickside.execution:trace
       database: chestor.autocode.persist:database
@@ -420,6 +426,8 @@ entries:
     kind: library.lua
     source: file://../image_subject.lua
     imports:
+      text: chestor.autocode.domain:text
+      settings: app:stub_settings
       container: chestor.autocode.infrastructure:container
       image_state: chestor.autocode.domain:image_state
       image_tags: chestor.autocode.infrastructure:image_tags
@@ -455,5 +463,6 @@ entries:
     source: file://../events_subject.lua
     modules: [sql]
     imports:
+      text: chestor.autocode.domain:text
       database: chestor.autocode.persist:database
       settings: app:stub_settings

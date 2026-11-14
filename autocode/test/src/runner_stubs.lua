@@ -167,7 +167,7 @@ function docker.run(args, opts)
             assert(events.send("chestor.autocode", "cancel.container", "container"))
             for i = 1, M.state.output_lines or 0 do if opts.on_line then opts.on_line("line " .. tostring(i)) end end
         elseif opts.on_line then
-            opts.on_line("log line")
+            opts.on_line(M.state.log_line or "log line")
             if M.state.after_output then M.state.after_output() end
         end
         if M.state.run.cancel_requested then
@@ -295,6 +295,7 @@ function repo.delete_image_build(_, cleanup)
     M.state.build = nil
     return nil
 end
+function repo.expire_queued(before, limit) M.state.queue_before, M.state.queue_batch = before, limit; return false, nil, M.state.next_queued end
 function repo.run() return M.state.run end
 function registry.get(id)
     if id ~= "chestor.autocode:runtime_config" then error("unexpected registry entry: " .. id) end
@@ -306,8 +307,19 @@ function resources.get(kind, id)
     if kind ~= "image" then error("unexpected component kind: " .. kind) end
     return {id = id, meta = {ref = M.state.image_ref or "image", home = M.state.image_home or "/opt/agent", status = M.state.image_status or "ready"}, access = 15, owner_user_id = "owner", owner = "owner"}
 end
+function settings.check_queue() return M.state.queue_error end
+function settings.integer(key)
+    if key == "pending_runs_per_owner" then return M.state.pending_owner or 128 end
+    if key == "pending_runs_global" then return M.state.pending_global or 4096 end
+    if key == "result_bytes" then return M.state.result_bytes or 1048576 end
+    if key == "event_text_bytes" then return M.state.event_text_bytes or 8000 end
+    if key == "build_log_bytes" then return M.state.build_log_bytes or 65536 end
+    if key == "clone_depth" then return M.state.clone_depth or 50 end
+    error("unexpected integer setting: " .. key)
+end
 function settings.event_limits() return M.state.event_count or 12, M.state.event_bytes or 2048 end
 function settings.get(id)
+    if id == "queue_timeout" then return M.state.queue_timeout or "24h" end
     if id == "workflow_delivery_timeout" then return M.state.delivery_timeout or "24h" end
     if id == "image_build_timeout" then return M.state.build_timeout or "30m" end
     if id == "account_cooldown" then return M.state.cooldown or "1m" end

@@ -73,4 +73,18 @@ function M.next_finished(before: string): (string?, error?)
     end
     return next_finished_at, nil
 end
+function M.queued(before: string, limit: integer): ({{id: string}}?, error?)
+    local rows, err = query([[SELECT id FROM chestor_autocode_runs
+        WHERE status = 'queued' AND started_at = '' AND created_at <= $1
+        ORDER BY created_at, id LIMIT $2]], {before, limit})
+    return db.decode(rows, err, function(row: db.Columns): {id: string}
+        return {id = db.text(row, "id")}
+    end)
+end
+function M.next_queued(before: string): (string?, error?)
+    local rows, err = query([[SELECT created_at FROM chestor_autocode_runs
+        WHERE status = 'queued' AND started_at = '' AND created_at > $1
+        ORDER BY created_at, id LIMIT 1]], {before})
+    return db.first(rows, err, function(row: db.Columns): string return db.text(row, "created_at") end)
+end
 return M

@@ -13,6 +13,7 @@ entries:
       - logger
       - json
     imports:
+      settings: chestor.autocode.domain:settings
       repo: chestor.autocode.persist:repo
       runs: chestor.autocode.service:runs
       container: chestor.autocode.infrastructure:container
@@ -49,6 +50,8 @@ entries:
     source: file://../image.lua
     method: main
     imports:
+      text: chestor.autocode.domain:text
+      settings: chestor.autocode.domain:settings
       container: chestor.autocode.infrastructure:container
       image_state: chestor.autocode.domain:image_state
       image_tags: chestor.autocode.infrastructure:image_tags

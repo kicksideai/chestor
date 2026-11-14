@@ -8,11 +8,12 @@ local json = require("json")
 local drivers = require("drivers")
 local credentials = require("credentials")
 local quote = require("quote")
+local settings = require("settings")
 
 type Script = {env: {[string]: string}}
 
 local KILL_GRACE_SECONDS = 30
-local M = {CLONE_DEPTH = 50}
+local M = {}
 M.entrypoint = [=[
 AUTOCODE_TRANSFER_ITEM=0
 for AUTOCODE_TRANSFER_NAME in $AUTOCODE_TRANSFER_NAMES; do
@@ -47,7 +48,7 @@ end
 -- timeout_seconds bounds the CLI: timeout stops it, then kills it 30 seconds
 -- later, and the container exits with code 124.
 function M.script(kind: credentials.Kind, secret: string, home: string, workdir: string, repo_url: string,
-                  launch: drivers.Launch, timeout_seconds: integer, repo_ref: string?): (Script?, error?)
+                  launch: drivers.Launch, timeout_seconds: integer, repo_ref: string?, clone_depth: integer?): (Script?, error?)
     local env: {[string]: string} = {HOME = home}
     for name, value in pairs(launch.environment) do env[name] = value end
     local lines: {string} = {"exec 2>&1", "set -e", "umask 077"}
@@ -95,7 +96,11 @@ function M.script(kind: credentials.Kind, secret: string, home: string, workdir:
             env.AUTOCODE_REPO_REF = repo_ref
             branch = ' --branch "$AUTOCODE_REPO_REF"'
         end
-        lines[#lines + 1] = 'git clone --quiet --depth ' .. tostring(M.CLONE_DEPTH) .. branch .. ' -- "$AUTOCODE_REPO" repo'
+        local depth, depth_err = clone_depth, nil :: error?
+        if depth == nil then depth, depth_err = settings.integer("clone_depth") end
+        if depth == nil then return nil, depth_err end
+        local shallow = depth > 0 and (" --depth " .. tostring(depth)) or ""
+        lines[#lines + 1] = 'git clone --quiet' .. shallow .. branch .. ' -- "$AUTOCODE_REPO" repo'
         lines[#lines + 1] = "cd repo"
     end
 

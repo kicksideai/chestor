@@ -2,6 +2,7 @@
 local job_outcome = require("job_outcome")
 local db = require("database")
 local limits = require("limits")
+local settings = require("settings")
 local sql = require("sql")
 local uuid = require("uuid")
 local jobs = require("jobs")
@@ -158,6 +159,10 @@ end
 
 -- create_run reserves an account and records the run and its job in one transaction.
 function repo.create_run(owner_user_id: string, identity: Identity, spec: RunSpec, submission: Submission?, candidates: {string}?): (string?, error?)
+    local owner_limit, owner_err = settings.integer("pending_runs_per_owner")
+    if not owner_limit then return nil, owner_err end
+    local global_limit, global_err = settings.integer("pending_runs_global")
+    if not global_limit then return nil, global_err end
     local trace_context, trace_err = trace.normalize(spec.trace_context)
     if trace_err then return nil, trace_err end
     trace_context = trace_context or trace.begin("autocode.run")
@@ -184,6 +189,21 @@ function repo.create_run(owner_user_id: string, identity: Identity, spec: RunSpe
                     if type(row.run_id) ~= "string" then return fail("submission has no run id") end
                     id = row.run_id
                     return nil
+                end
+            end
+            for _, budget in ipairs({{owner = owner_user_id, limit = owner_limit, label = "owner"},
+                {owner = "", limit = global_limit, label = "global"}}) do
+                local statement = "SELECT COUNT(*) AS n FROM chestor_autocode_runs WHERE status IN ('queued', 'running')"
+                local params: {unknown} = {}
+                if budget.owner ~= "" then statement = statement .. " AND owner_id = $1"; params = {budget.owner} end
+                local rows, count_err = tx:query(statement, params)
+                if not rows then return count_err end
+                local columns: Columns = {row = rows[1]}
+                local count = int(columns, "n")
+                if columns.problem then return columns.problem end
+                if count >= budget.limit then
+                    return errors.new({kind = errors.CONFLICT, message = budget.label .. " pending run budget exceeded",
+                        details = {code = "autocode.pending_budget_exceeded", budget = budget.label, limit = budget.limit}})
                 end
             end
             if spec.workspace_id and spec.workspace_id ~= "" then

@@ -29,6 +29,7 @@ entries:
     source: file://container.lua
     modules: [json]
     imports:
+      settings: chestor.autocode.domain:settings
       drivers: bee.drivers:drivers
       credentials: chestor.autocode.domain:credentials
       quote: chestor.autocode.infrastructure:quote
