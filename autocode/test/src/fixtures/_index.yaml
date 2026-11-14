@@ -386,3 +386,11 @@ entries:
       resources: chestor.autocode.components:resources
       runs: chestor.autocode.service:runs
       repo: chestor.autocode.persist:repo
+
+  - name: idle_queue_probe
+    namespace: chestor.autocode.zz
+    kind: function.lua
+    meta: {type: kickside.retention.owner}
+    source: file://../idle_retention_probe.lua
+    method: run
+    modules: [process]

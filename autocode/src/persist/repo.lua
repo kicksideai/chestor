@@ -41,6 +41,7 @@ repo.acknowledge_delivery = runs.acknowledge_delivery
 repo.expire_delivery = runs.expire_delivery
 repo.rebalance_run = runs.rebalance_run
 repo.cancel_requested = runs.cancel_requested
+repo.begin_creation = runs.begin_creation
 repo.start_run = runs.start_run
 repo.finish_run = runs.finish_run
 repo.record_run_outcome = runs.record_run_outcome

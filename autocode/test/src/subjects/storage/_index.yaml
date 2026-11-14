@@ -249,6 +249,8 @@ entries:
 
   - name: fixture_scheduled_task
     kind: function.lua
+    security:
+      policies: [kickside.core.retention:notify_access]
     source: file://../../submission_subject.lua
     method: submit
     modules: [security, logger, ctx, events]
@@ -259,6 +261,7 @@ entries:
       repo: app:scheduled_repo
       deferred: chestor.autocode.service:deferred
       live: chestor.autocode.domain:live
+      retention_notifier: kickside.core.retention:notifier
 
   - name: upgrade_db
     kind: db.sql.sqlite
@@ -409,3 +412,24 @@ entries:
     imports:
       database: app:workspace_fence_database
       runs: chestor.autocode.persist:runs
+
+  - name: queue_run_subject
+    kind: library.lua
+    source: file://../../run_subject.lua
+    modules: [logger, json]
+    imports:
+      settings: app:stub_settings
+      repo: chestor.autocode.persist:repo
+      runs: app:stub_runs
+      container: chestor.autocode.infrastructure:container
+      event_log: app:event_log_subject
+      records: chestor.autocode.runner:records
+      redact: chestor.autocode.runner:redact
+      docker: app:stub_docker
+      live: app:stub_live
+      run_io: app:run_io_subject
+      account_health: app:account_health_subject
+      execution_identity: app:stub_execution_identity
+      deferred: app:stub_deferred
+      transport: chestor.autocode.service:transport
+      job_outcome: chestor.autocode.domain:job_outcome

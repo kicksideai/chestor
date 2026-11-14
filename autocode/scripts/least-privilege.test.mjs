@@ -13,6 +13,12 @@ test('image deletion holds no Docker authority and only the imports it uses', ()
   assert.ok(!entry('src/security/workers/_index.yaml', 'worker_calls').policy.resources.includes('kickside.core.retention:notify'))
 })
 
+test('queue admission alone receives Core retention notification authority', () => {
+  assert.deepEqual(entry('src/service/tasks/_index.yaml', 'submit_task').security.policies, ['kickside.core.retention:notify_access'])
+  for (const name of ['get_run', 'list_runs', 'cancel_run'])
+    assert.ok(!entry('src/service/tasks/_index.yaml', name).security?.policies?.includes('kickside.core.retention:notify_access'))
+})
+
 test('observation hooks cannot reconstruct owners or dispatch tools', () => {
   const policies = entry('src/api/_index.yaml', 'run_hook').security.policies
   for (const name of ['deferred_runs', 'deferred_actor', 'gateway_dispatch', 'worker_calls'])

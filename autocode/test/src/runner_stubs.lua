@@ -19,6 +19,12 @@ local jobs = {}
 local runs = {}
 local live = {}
 local deferred = {}
+local retention_notifier = {}
+function retention_notifier.notify(change)
+    M.state.retention_change = change
+    M.state.retention_committed = M.state.created ~= nil
+    return true, M.state.retention_error
+end
 local resources = {}
 local funcs = {}
 local exec = {}
@@ -203,6 +209,12 @@ function repo.record_run_outcome(_, status, result, reason, usage, health, nativ
     if not M.state.run.pending_status then
         M.state.run.pending_status, M.state.run.result, M.state.run.error, M.state.run.usage = status, result, reason, usage
     end
+end
+function repo.begin_creation()
+    if M.state.marker_error then return nil, M.state.marker_error end
+    if M.state.run.dispatch_state == "expiring" then return false end
+    M.state.run.dispatch_state = "creating"
+    return true
 end
 function repo.start_run()
     if M.state.cancel_on_reserve then M.state.run.cancel_requested = true end
@@ -441,6 +453,7 @@ M.jobs = jobs
 M.runs = runs
 M.live = live
 M.deferred = deferred
+M.retention_notifier = retention_notifier
 M.resources = resources
 M.funcs = funcs
 M.exec = exec

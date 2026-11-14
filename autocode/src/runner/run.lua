@@ -140,7 +140,7 @@ local function execute(run: repo.Run, job: {[string]: unknown}, trace_context: {
     local requested, cancel_read_err = repo.cancel_requested(run_id)
     if cancel_read_err then return failure("cancellation read", errors.UNAVAILABLE, cancel_read_err) end
     if requested then return finish("cancelled", "", "cancelled by user", {}) end
-    if attempt > 1 and run.status ~= "queued" then return fail("the runner stopped before the run settled") end
+    if run.dispatch_state == "creating" or (attempt > 1 and run.status ~= "queued") then return fail("the runner stopped before the run settled") end
 
     if run.status == "queued" then
         local queue_err = settings.check_queue(run.created_at)
@@ -177,6 +177,13 @@ local function execute(run: repo.Run, job: {[string]: unknown}, trace_context: {
     local inspected, inspect_err = docker.run({"image", "inspect", "--format", "{{.Id}}", prepared.image.ref}, {deadline = deadline})
     if inspect_err then return fail("recorded image ID inspection failed: " .. tostring(inspect_err), inspect_err) end
     if inspected ~= 0 then return fail("recorded image ID is no longer available in Docker; prepare the image again: " .. prepared.image.ref) end
+    local claimed, claim_err = repo.begin_creation(run_id)
+    if claim_err then return failure("container creation marker", errors.UNAVAILABLE, claim_err) end
+    if not claimed then
+        return fail("run queue window expired before execution started", errors.new({kind = errors.UNAVAILABLE,
+            message = "run queue window expired before execution started", retryable = false,
+            details = {code = "autocode.queue_expired"}}))
+    end
     local create_output: {string} = {}
     local created, create_err = docker.run(box.create, {deadline = deadline, env = box.env, isolation = box.isolation, on_line = function(line: string)
         create_output[#create_output + 1] = line

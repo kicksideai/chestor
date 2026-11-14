@@ -65,17 +65,29 @@ local function expire_queued(before: string, limit: integer): (boolean?, error?,
     local purged = 0
     local needs_continue = false
     for _, row in ipairs(rows) do
-        local _, purge_err = slot_purge.purge_slot({namespace = "chestor.autocode", scope = row.id, key = "run"})
-        if purge_err then
-            if not errors.is(purge_err, errors.CONFLICT) or purge_err:details().cleanup_pending ~= true then return nil, purge_err end
-            needs_continue = needs_continue or purge_err:details().needs_continue == true
-        else
-            local expired = errors.new({kind = errors.UNAVAILABLE, message = "run queue window expired before execution started",
-                retryable = false, details = {code = "autocode.queue_expired"}})
-            local _, finish_err = runs.finish_run(row.id, "failed", "", expired:message(), {}, nil,
-                job_outcome.data(expired))
-            if finish_err then return nil, finish_err end
-            purged = purged + 1
+        local claimed, claim_err = store.claim_expiry(row.id, before)
+        if claim_err then return nil, claim_err end
+        if claimed then
+            local _, purge_err = slot_purge.purge_slot({namespace = "chestor.autocode", scope = row.id, key = "run"})
+            if purge_err then
+                if not errors.is(purge_err, errors.CONFLICT) or purge_err:details().cleanup_pending ~= true then return nil, purge_err end
+                needs_continue = needs_continue or purge_err:details().needs_continue == true
+            else
+                local expired = errors.new({kind = errors.UNAVAILABLE, message = "run queue window expired before execution started",
+                    retryable = false, details = {code = "autocode.queue_expired"}})
+                -- No lease remains. Preserve an outcome written by a worker that
+                -- observed the expiry claim before releasing its lease.
+                local current, read_err = runs.stored_run(row.id)
+                if read_err then return nil, read_err end
+                local status: "failed" | "cancelled" | "succeeded" | "queued" | "running" = "failed"
+                local answer, reason, usage, native = "", expired:message(), {}, job_outcome.data(expired)
+                if current and current.pending_status then
+                    status, answer, reason, usage, native = current.pending_status, current.result, current.error, current.usage, current.error_native
+                end
+                local _, finish_err = runs.finish_run(row.id, status, answer, reason, usage, nil, native)
+                if finish_err then return nil, finish_err end
+                purged = purged + 1
+            end
         end
     end
     local next_created, next_err = store.next_queued(before)

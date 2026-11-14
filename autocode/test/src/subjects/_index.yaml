@@ -395,6 +395,7 @@ entries:
       repo: app:stub_repo
       deferred: app:stub_deferred
       live: app:stub_live
+      retention_notifier: app:stub_retention_notifier
 
   - name: delivery_jobs
     kind: library.lua
@@ -466,3 +467,8 @@ entries:
       text: chestor.autocode.domain:text
       database: chestor.autocode.persist:database
       settings: app:stub_settings
+
+  - name: stub_retention_notifier
+    kind: library.lua
+    source: 'return require("stubs").retention_notifier'
+    imports: {stubs: 'app:runner_stubs'}

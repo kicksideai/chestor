@@ -26,7 +26,7 @@ and start tasks. Account grants allow grantees to run with the stored credential
 including subscription logins. Use official API keys or your own endpoints for
 production or multiple users.
 
-Upgrade automatically preserves a valid workspace when every current WRITE or ADMIN holder has workspace-management authority, resolving direct and group grants through Component and the directory, regardless of context revision. Other workspaces stay refused with a reason; an administrator re-registers them through the normal workspace path and updates saved references. Approved queued runs execute without an upgrade action; see the [upgrade rules](docs/reference.md#spec-workspace-approval).
+Upgrade automatically preserves a valid workspace when every current WRITE or ADMIN holder has workspace-management authority, resolving direct and group grants through Component and the directory, regardless of context revision. Other workspaces stay refused with a reason; an administrator re-registers them through the normal workspace path and updates saved references. Approved workspaces need no upgrade action; existing unfinished runs follow conservative cleanup recovery on the 0.1.7 upgrade; see the [upgrade rules](docs/reference.md#spec-workspace-approval).
 A member who changed a legacy workspace and later lost WRITE is not detected.
 
 ## Requirements

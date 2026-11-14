@@ -37,7 +37,7 @@ type RunSpec = { account_endpoints: {[string]: Object}?, tools: Object?, account
 type Run = { workflow_delivered: integer?, account_health: Object?, account_endpoint: boolean?, tools: Object?, gateway: Object?, account_pool: {string}?, endpoint: {protocol: string, base_url: string, model: string?}?, resolved: boolean?, account_pinned: boolean, input: string, repo_ref: string, id: string, owner_user_id: string, owner_id: string, identity: Identity, agent: string, account_id: string, image_id: string,
     workspace_id: string?, flow: FlowSignal?, options: Object, unattended: boolean, repo_url: string, prompt: string,
     timeout_ms: integer, status: RunStatus, pending_status: RunStatus?, job_id: string?, result: string, error: string, error_native: Object?, usage: Object, cancel_requested: boolean,
-    created_at: string, started_at: string, finished_at: string}
+    created_at: string, started_at: string, finished_at: string, dispatch_state: string}
 type RunEvent = {seq: integer, kind: string, text: string, created_at: string}
 -- Work a write commits together with its rows, such as enqueueing a job.
 type Transactional = (sql.Transaction, string) -> error?

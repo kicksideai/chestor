@@ -75,7 +75,7 @@ function M.next_finished(before: string): (string?, error?)
 end
 function M.queued(before: string, limit: integer): ({{id: string}}?, error?)
     local rows, err = query([[SELECT id FROM chestor_autocode_runs
-        WHERE status = 'queued' AND started_at = '' AND created_at <= $1
+        WHERE status = 'queued' AND dispatch_state IN ('waiting', 'expiring') AND pending_status = '' AND created_at <= $1
         ORDER BY created_at, id LIMIT $2]], {before, limit})
     return db.decode(rows, err, function(row: db.Columns): {id: string}
         return {id = db.text(row, "id")}
@@ -83,8 +83,16 @@ function M.queued(before: string, limit: integer): ({{id: string}}?, error?)
 end
 function M.next_queued(before: string): (string?, error?)
     local rows, err = query([[SELECT created_at FROM chestor_autocode_runs
-        WHERE status = 'queued' AND started_at = '' AND created_at > $1
+        WHERE status = 'queued' AND dispatch_state IN ('waiting', 'expiring') AND pending_status = '' AND created_at > $1
         ORDER BY created_at, id LIMIT 1]], {before})
     return db.first(rows, err, function(row: db.Columns): string return db.text(row, "created_at") end)
+end
+-- A stale selected row must not purge a job that acquired cleanup obligations.
+function M.claim_expiry(id: string, before: string): (boolean?, error?)
+    local changed, err = db.execute([[UPDATE chestor_autocode_runs SET dispatch_state = 'expiring'
+        WHERE id = $1 AND status = 'queued' AND dispatch_state IN ('waiting', 'expiring')
+        AND pending_status = '' AND created_at <= $2]], {id, before})
+    if err then return nil, err end
+    return changed == 1, nil
 end
 return M

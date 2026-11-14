@@ -117,8 +117,16 @@ local function cases()
             released:release()
             migration("chestor.autocode.migrations:10_pending_runs")
             migration("chestor.autocode.migrations:10_pending_runs")
+            -- The populated 0.1.6 schema is the upgrade input for dispatch fencing.
+            migration("chestor.autocode.migrations:11_queue_dispatch")
+            migration("chestor.autocode.migrations:11_queue_dispatch")
             local upgraded = assert(sql.get("app:upgrade_db"))
-            test.eq(json.encode(assert(upgraded:query("SELECT * FROM chestor_autocode_runs ORDER BY id"))), before_upgrade)
+            local upgraded_rows = assert(upgraded:query("SELECT * FROM chestor_autocode_runs ORDER BY id"))
+            for _, row in ipairs(upgraded_rows) do
+                test.eq(row.dispatch_state, (row.status == "queued" or row.status == "running") and "creating" or "waiting")
+                row.dispatch_state = nil
+            end
+            test.eq(json.encode(upgraded_rows), before_upgrade)
             test.eq(json.encode(assert(upgraded:query("SELECT * FROM chestor_autocode_run_events ORDER BY run_id, seq"))), before_events)
             local account = assert(upgraded:query("SELECT last_used_at, rate_limits FROM chestor_autocode_account_state WHERE account_id = 'legacy-account'"))
             local image = assert(upgraded:query("SELECT status, requested_at FROM chestor_autocode_image_builds WHERE image_id = 'legacy-image'"))
@@ -191,22 +199,17 @@ local function cases()
                 test.eq(repo.stored_run(status).status, status == "succeeded" and "succeeded" or "failed")
                 test.is_nil(state.attached)
             end
-            -- Execute a row created with the released schema and no new runtime bindings.
+            -- Old queued rows have no creation marker. Recover conservatively,
+            -- retaining approved workspace bindings without launching them again.
             for _, workspace in ipairs(published_runs) do
-                local published = repo.stored_run(workspace.run_id)
                 local state = stubs.reset()
-                state.prepared = stubs.preparation(published)
-                state.prepared.image.ref = refs[1]
-                state.prepared.image.extra_args = legacy_images[2].args
-                state.prepared.workspace = {id = workspace.id, host_path = workspace.path, writable = true}
-                state.prepared.workdir = "/workspace"
-                state.prepared.launch = {executable = "sh", argv = {"-c", "printf upgraded > /workspace/upgrade-result; printf '%s\n' '{\"type\":\"result\",\"subtype\":\"success\",\"result\":\"shared upgrade completed\"}'"}, environment = {}, files = {}, readiness = "none"}
-                local outcome = require("docker_runner").main({payload = {run_id = workspace.run_id}})
+                local outcome = runner.main({payload = {run_id = workspace.run_id}})
                 test.is_true(outcome.ok, tostring(outcome.error_native))
                 local completed = repo.stored_run(workspace.run_id)
-                test.eq(completed.status, "succeeded", completed.error)
-                test.eq(completed.result, "shared upgrade completed")
+                test.eq(completed.status, "failed")
+                test.not_nil(completed.error:find("runner stopped", 1, true))
                 test.eq(completed.workspace_id, workspace.id)
+                test.is_nil(state.attached)
             end
             for _, image in ipairs(legacy_images) do
                 if not image.unprojected then

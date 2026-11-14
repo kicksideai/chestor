@@ -143,6 +143,9 @@ entries:
       records: app:records_subject
       scheduled_runs: app:scheduled_runs
       queue_retention: app:retention_cleanup_subject
+      queue_runner: app:queue_run_subject
+      queue_store: chestor.autocode.persist:retention
+      docker: chestor.autocode.infrastructure:docker
       jobs: kickside.core.jobs:jobs
       bounded_events: app:events_subject
       workspace_fence: app:workspace_fence_subject
@@ -296,6 +299,21 @@ entries:
       gateway: chestor.autocode.service:gateway
       drivers: bee.drivers:drivers
       container: chestor.autocode.infrastructure:container
+      repo: chestor.autocode.persist:repo
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
+  - name: queue_expiry_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_queue_expiry, group: Autocode}
+    source: file://../../suites/queue_expiry_test.lua
+    method: run
+    modules: [process, channel, time]
+    imports:
+      test: wippy.test:test
+      identity: app:identity
+      contract_fixture: app:contract_fixture
       repo: chestor.autocode.persist:repo
     security:
       actor: {id: app:test_runner}
