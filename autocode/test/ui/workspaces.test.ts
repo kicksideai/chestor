@@ -6,6 +6,24 @@ import { nextTick } from 'vue'
 import Workspaces from '../../ui/src/app/workspaces.vue'
 
 describe('workspaces', () => {
+  it('shows every approved path conflict for a refused legacy workspace', async () => {
+    normal()
+    mocks.get.mockResolvedValue({ data: { success: true, workspaces: [{ id: 'legacy', name: 'Legacy', host_path: '/srv/team', writable: true, deletable: true, shareable: true, approvable: true, context_revision: 1, conflicts: [{ id: 'first', host_path: '/srv/team/one' }, { id: 'second', host_path: '/srv/team/two' }] }] } })
+    const w = render(Workspaces, { query: '' })
+    await flushPromises()
+    expect(w.text()).toContain('/srv/team/one')
+    expect(w.text()).toContain('/srv/team/two')
+    expect(w.find('[aria-label="Approve workspace"]').exists()).toBe(false)
+  })
+  it('shows the refusal reason and requires registration through the normal admin path', async () => {
+    normal()
+    mocks.get.mockResolvedValue({ data: { success: true, workspaces: [{ id: 'legacy', name: 'Legacy', host_path: '/srv/work/legacy', writable: true, deletable: true, shareable: true, unavailable_reason: 'A current WRITE holder lacks workspace-management authority; re-register through Autocode.' }] } })
+    const w = render(Workspaces, { query: '' })
+    await flushPromises()
+    expect(w.text()).toContain('re-register through Autocode')
+    expect(w.find('[aria-label="Approve workspace"]').exists()).toBe(false)
+    expect(mocks.post).not.toHaveBeenCalled()
+  })
   it('clears an old list error after a successful retry', async () => {
     normal()
     mocks.get.mockRejectedValueOnce(new Error('offline'))

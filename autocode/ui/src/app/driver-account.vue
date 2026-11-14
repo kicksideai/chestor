@@ -108,6 +108,10 @@ async function drop(event: DragEvent) {
   const limit = config.value?.limits?.secret_bytes
   if (limit && file.size > limit) { problem.value = `${file.name} exceeds the ${limit}-byte credential limit.`; return }
   const login = driver.value?.credentials.find(c => c.file && basename(c.file) === file.name)
+  if (account.value && login && login.id !== account.value.credential_kind) {
+    problem.value = 'A different credential kind requires a new account.'
+    return
+  }
   if (login) kind.value = login.id
   const current = ++generation
   try {
@@ -127,6 +131,10 @@ function submit() {
   problem.value = ''
   const selectedDriver = driver.value
   const selectedKind = choice.value
+  if (account.value && kind.value !== account.value.credential_kind) {
+    problem.value = 'A different credential kind requires a new account.'
+    return
+  }
   if (!selectedDriver || !selectedKind || config.value?.busy || Object.keys(validation.value).length || !label.value.trim() || (needsSecret.value && !secret.value.trim())) return
   const endpoint = endpointable.value && baseUrl.value.trim()
     ? { protocol: protocol.value, base_url: baseUrl.value.trim(), model: model.value.trim() || undefined }
@@ -144,7 +152,7 @@ function submit() {
 
     <label class="da-field">
       <span class="da-lbl">Credential</span>
-      <select :disabled="config?.busy" v-model="kind" class="da-input kx-focus-halo"><option v-for="c in driver.credentials" :key="c.id" :value="c.id">{{ c.label }}</option></select>
+      <select :disabled="config?.busy || !!account" v-model="kind" class="da-input kx-focus-halo"><option v-for="c in driver.credentials" :key="c.id" :value="c.id">{{ c.label }}</option></select>
     </label>
 
     <p v-if="choice?.subscription" class="da-notice" role="note">

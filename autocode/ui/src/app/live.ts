@@ -29,15 +29,22 @@ export function serial(task: () => Promise<void>, active: () => boolean = () => 
 }
 
 // Subscribe to discovered IDs before reconciling their current state.
-export async function reconcile<T>(fetch: () => Promise<T>, ids: (data: T) => string[], topics: Ref<string[]>, active: () => boolean): Promise<T> {
+export async function reconcile<T>(fetch: () => Promise<T>, ids: (data: T) => string[], topics: Ref<string[]>, active: () => boolean,
+  publish: (data: T) => void, queue: () => void): Promise<T> {
   let data = await fetch()
-  while (active() && ids(data).some(id => !topics.value.includes(id))) {
-    topics.value = ids(data)
+  const snapshot = async () => {
+    if (!active()) return false
+    const next = ids(data)
+    const discovered = next.some(id => !topics.value.includes(id))
+    topics.value = next
     await nextTick()
-    if (!active()) return data
-    data = await fetch()
+    if (active()) publish(data)
+    return discovered
   }
-  if (active()) topics.value = ids(data)
+  if (await snapshot() && active()) {
+    data = await fetch()
+    if (await snapshot() && active()) queue()
+  }
   return data
 }
 

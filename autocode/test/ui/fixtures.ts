@@ -26,7 +26,14 @@ export function requestContractErrors(method: string, path: string, body?: unkno
   let input: Record<string, unknown> = {}
   const account = route.match(/^\/accounts\/([^/]+)$/)
   const run = route.match(/^\/runs\/([^/]+)(\/cancel)?$/)
-  if (route === '/accounts') {
+  const profile = route.match(/^\/profiles\/([^/]+)$/)
+  if (route === '/profiles') {
+    contract = method === 'get' ? 'list_profiles' : 'add_profile'
+    input = method === 'get' ? {} : body as Record<string, unknown>
+  } else if (profile) {
+    contract = method === 'put' ? 'update_profile' : 'remove_profile'
+    input = { ...(method === 'put' ? body as object : {}), id: decodeURIComponent(profile[1]!) }
+  } else if (route === '/accounts') {
     if (method === 'get') { contract = 'list_accounts'; input = { include_unavailable: true } }
     if (method === 'post') { contract = 'add_account'; input = body as Record<string, unknown> }
   } else if (account) {
@@ -61,16 +68,16 @@ export function requestContractErrors(method: string, path: string, body?: unkno
   return validate(serialized) ? [] : [`${label}: ${ajv.errorsText(validate.errors, { separator: '; ' })}`]
 }
 
-export const driver = { id: 'agent', title: 'Agent', icon: 'tabler:robot', credentials: [{ id: 'key', label: 'Key', hint: '', subscription: false }, { id: 'login', label: 'Login', hint: '', file: 'login.json', subscription: true }], endpoints: ['openai'], capabilities: [], options: [] }
+export const driver = { id: 'agent', title: 'Agent', icon: 'tabler:robot', credentials: [{ id: 'key', label: 'Key', hint: '', format: 'text' as const, subscription: false }, { id: 'login', label: 'Login', hint: '', format: 'text' as const, file: 'login.json', subscription: true }], endpoints: ['openai'], capabilities: [], options: [] }
 export const claudeLike: AgentInfo = { ...driver, id: 'claude-like', title: 'Claude-like', unattended: { permission_mode: 'bypassPermissions' }, options: [
   { name: 'permission_mode', label: 'Permission mode', description: '', section: '', group: '', order: 1, type: 'string', values: ['manual', 'bypassPermissions'], default: 'manual', profiles: ['batch'] },
   { name: 'model', label: 'Model', description: '', section: '', group: '', order: 2, type: 'string', default: 'sonnet' },
 ] }
 export const settings = { memory: '8g', cpus: '3', pids_limit: 512, gpus: '', network: 'none', extra_args: [], allows: [] }
 export const catalog = { agents: [driver], default_image: { ref: 'agent:latest', label: 'Agent', home: '/opt/agent', dockerfile: '', settings }, can_images: false, can_workspaces: false, can_prune: false, build_cache_retention: '48h' }
-export const account = { id: 'a', agent: 'removed', label: 'Orphan', credential_kind: 'key', subscription: false, enabled: true, owner: 'u', mine: true, usable: false, unavailable_reason: 'driver_inactive', writable: true, deletable: false, last_used_at: '', cooldown_until: '', last_error: '', runs_day: 1, failures_day: 0 }
-export const image = { id: 'i', ref: 'agent:latest', label: 'Image', home: '/opt/agent', status: 'ready', usable: true, agents: ['agent'], last_error: '', owner: 'u', writable: true, deletable: false, shareable: false }
-export const run = { id: 'r', agent: 'agent', account_id: 'a', image_id: 'i', options: {}, unattended: false, repo_url: '', prompt: 'Task', status: 'failed', result: 'Partial answer', error: '', usage: { input_tokens: 12, output_tokens: 3, cached_tokens: 0 }, cancel_requested: false, timeout_ms: 1000, workflow: false, created_at: '', started_at: '', finished_at: '' }
+export const account = { id: 'a', agent: 'removed', label: 'Orphan', credential_kind: 'key', subscription: false, enabled: true, owner_user_id: 'u', owner: 'u', mine: true, usable: false, unavailable_reason: 'driver_inactive', writable: true, deletable: false, last_used_at: '', cooldown_until: '', last_error: '', runs_day: 1, failures_day: 0 }
+export const image = { id: 'i', ref: 'agent:latest', label: 'Image', home: '/opt/agent', status: 'ready', usable: true, agents: ['agent'], last_error: '', owner_user_id: 'u', owner: 'u', writable: true, deletable: false, shareable: false }
+export const run = { id: 'r', owner_user_id: 'u', agent: 'agent', account_id: 'a', image_id: 'i', options: {}, unattended: false, repo_url: '', prompt: 'Task', status: 'failed', result: 'Partial answer', error: '', usage: { input_tokens: 12, output_tokens: 3, cached_tokens: 0 }, cancel_requested: false, timeout_ms: 1000, workflow: false, created_at: '', started_at: '', finished_at: '' }
 export const summary = { ...run, prompt_summary: run.prompt }
 export const option = { name: 'config', label: 'Configuration', description: '', section: '', group: '', order: 1, type: 'json', schema: { type: 'object' } }
 const wrappers: { unmount: () => void }[] = []
@@ -81,6 +88,7 @@ export function render<T extends Parameters<typeof mount>[0]>(component: T, prop
 }
 export function respond(path: string) {
   if (path.endsWith('/catalog')) return catalog
+  if (path.endsWith('/profiles')) return { profiles: [] }
   if (path.endsWith('/accounts')) return { accounts: [] }
   if (path.endsWith('/images')) return { images: [image] }
   if (path.endsWith('/workspaces')) return { workspaces: [], roots: [] }

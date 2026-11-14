@@ -52,7 +52,11 @@ function finishRename() {
       <div v-if="!account.usable" class="ac-muted ac-strong"><Icon icon="tabler:lock" /> {{ account.unavailable_reason || 'Account unavailable for tasks' }}</div>
       <div v-else-if="account.subscription" class="ac-muted">Subscription login: personal use only</div>
       <div v-if="account.endpoint" class="ac-muted ac-mono">{{ account.endpoint.protocol }} · {{ account.endpoint.base_url }}{{ account.endpoint.model ? ' · ' + account.endpoint.model : '' }}</div>
-      <div v-if="state === 'cooling'" class="ac-muted">Available at {{ shortTime(account.cooldown_until) }}</div>
+      <div v-if="state === 'cooling' && account.cooldown_until" class="ac-muted">Available at {{ shortTime(account.cooldown_until) }}</div>
+      <div v-for="window in account.rate_limits?.windows ?? []" :key="window.window" class="ac-muted">
+        {{ window.window.replace('seven_day', '7-day').replace('five_hour', '5-hour').replaceAll('_', ' ') }}: {{ window.utilization === undefined ? window.status : `${Math.round(window.utilization * 100)}% used` }}<template v-if="window.resets_at">, resets {{ new Date(window.resets_at * 1000).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' }) }}</template>
+      </div>
+      <div v-if="account.rate_limits?.overage_status" class="ac-muted">Overage: {{ account.rate_limits.overage_status }}{{ account.rate_limits.overage_disabled_reason ? ' · ' + account.rate_limits.overage_disabled_reason : '' }}</div>
       <div v-if="account.last_error" class="kx-err ac-small">{{ account.last_error }}</div>
 
     </div>

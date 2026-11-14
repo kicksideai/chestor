@@ -12,6 +12,26 @@ const hostProps = reactive(mocks.props)
 const button = (w: VueWrapper, label: string) => w.findAll('button').find(b => b.text().includes(label))!
 
 describe('run deep links', () => {
+  it('surfaces refused legacy workspaces without an approval action', async () => {
+    normal()
+    const legacy = { id: 'legacy', name: 'Patched legacy', host_path: '/srv/work/legacy', context_revision: 1, writable: true, deletable: true, shareable: true, approvable: true, unavailable_reason: 'Workspace needs administrator approval' }
+    mocks.get.mockImplementation(async path => ({ data: { success: true, ...(path.endsWith('/catalog')
+      ? { ...respond(path), can_images: true, can_workspaces: true }
+      : path.endsWith('/workspaces') ? { workspaces: [legacy] } : respond(path)) } }))
+    mocks.post.mockResolvedValue({ data: { success: true, id: legacy.id } })
+    const w = render(Admin)
+    await flushPromises()
+    expect(w.get('button.ac-tab[aria-pressed="true"]').text()).toBe('Images')
+    expect(w.get('[role="status"]').text()).toContain('1 workspace needs re-registration')
+    await button(w, 'Review workspaces').trigger('click')
+    await flushPromises()
+    expect(w.get('button.ac-tab[aria-pressed="true"]').text()).toBe('Workspaces')
+    expect(w.text()).toContain(legacy.name)
+    expect(w.text()).toContain(legacy.host_path)
+    expect(w.find('[aria-label="Approve workspace"]').exists()).toBe(false)
+    expect(mocks.post.mock.calls.some(([path]) => path.endsWith("/approve"))).toBe(false)
+  })
+
   it('follows live output through the page scroll owner and respects scrolling away', async () => {
     normal()
     mocks.props.value.route = 'runs/r'

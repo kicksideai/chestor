@@ -1,4 +1,5 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
+<!-- Native dialog stays in this shadow root while the browser top layer handles focus and modality. See docs/reference.md#frontend-dialog-deviation. -->
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 const props = defineProps<{ title: string; wide?: boolean; busy?: boolean }>()

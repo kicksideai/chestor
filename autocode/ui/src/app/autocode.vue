@@ -8,6 +8,7 @@ import { useCatalog } from './catalog.ts'
 import PageHead from './page-head.vue'
 import TasksTab from './tasks.vue'
 import AccountsTab from './accounts.vue'
+import ProfilesTab from './profiles.vue'
 
 const props = useProps<ComponentProps>()
 const emit = useEvents<ComponentEvents>()
@@ -25,9 +26,10 @@ function navigate(to: string) {
   emit('navigate', { path: to })
 }
 
-type Tab = 'tasks' | 'accounts'
+type Tab = 'tasks' | 'accounts' | 'profiles'
 const tabs: { id: Tab; label: string; icon: string }[] = [
   { id: 'tasks', label: 'Tasks', icon: 'tabler:player-play' },
+  { id: 'profiles', label: 'Profiles', icon: 'tabler:robot' },
   { id: 'accounts', label: 'Accounts', icon: 'tabler:key' },
 ]
 
@@ -36,6 +38,7 @@ const { catalog, error, load } = useCatalog()
 const query = ref('')
 const count = ref(0)
 const tasks = ref<InstanceType<typeof TasksTab> | null>(null)
+const profiles = ref<InstanceType<typeof ProfilesTab> | null>(null)
 const accounts = ref<InstanceType<typeof AccountsTab> | null>(null)
 const selectedAgent = ref('')
 async function addAccount(agent?: string) {
@@ -45,12 +48,12 @@ async function addAccount(agent?: string) {
   await nextTick()
   accounts.value?.open()
 }
-function create() { if (tab.value === 'tasks') tasks.value?.open(); else accounts.value?.open() }
+function create() { if (tab.value === 'tasks') tasks.value?.open(); else if (tab.value === 'profiles') profiles.value?.open(); else accounts.value?.open() }
 </script>
 
 <template>
   <div class="ac">
-    <PageHead v-if="!runId && !missingRoute" title="Autocode" subtitle="Run coding agents with your accounts and workspaces." :count="`${count} ${tab === 'tasks' ? 'task' : 'account'}${count === 1 ? '' : 's'}`" :action="tab === 'tasks' ? 'New task' : 'Add account'" v-model:query="query" :placeholder="tab === 'tasks' ? 'Search tasks…' : 'Search accounts…'" @create="create" />
+    <PageHead v-if="!runId && !missingRoute" title="Autocode" subtitle="Run coding agents with your accounts and workspaces." :count="`${count} ${tab === 'tasks' ? 'task' : tab === 'profiles' ? 'profile' : 'account'}${count === 1 ? '' : 's'}`" :action="tab === 'tasks' ? 'New task' : tab === 'profiles' ? 'Create profile' : 'Add account'" v-model:query="query" :placeholder="tab === 'tasks' ? 'Search tasks…' : tab === 'profiles' ? 'Search profiles…' : 'Search accounts…'" @create="create" />
     <div v-if="!runId && !missingRoute" class="ac-bar"><nav class="ac-tabs" aria-label="Autocode views">
       <button v-for="t in tabs" :key="t.id" type="button" class="ac-tab kx-focus-outline" :class="{ active: tab === t.id }" :aria-pressed="tab === t.id" @click="if (tab !== t.id) { tab = t.id; query = ''; count = 0 }"><Icon :icon="t.icon" /> {{ t.label }}</button>
     </nav></div>
@@ -62,6 +65,7 @@ function create() { if (tab.value === 'tasks') tasks.value?.open(); else account
     <main v-else class="ac-body" :class="{ 'ac-detail-page': runId || missingRoute }">
       <div v-if="missingRoute" class="kx-empty"><h1>Run not found</h1><button type="button" class="ac-btn kx-focus-halo" @click="navigate('')">Back to tasks</button></div>
       <TasksTab v-else-if="runId || tab === 'tasks'" ref="tasks" :query="query" :run-id="runId" @open="navigate('runs/' + encodeURIComponent($event))" @close="navigate('')" @count="count = $event" @agent-changed="selectedAgent = $event" @goto="addAccount" />
+      <ProfilesTab v-else-if="tab === 'profiles'" ref="profiles" :query="query" @count="count = $event" />
       <AccountsTab v-else ref="accounts" :query="query" :selected-agent="selectedAgent" @count="count = $event" />
     </main>
   </div>
