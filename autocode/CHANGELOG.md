@@ -1,6 +1,13 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.6](https://github.com/kicksideai/chestor/compare/autocode-v0.1.5...autocode-v0.1.6) (2026-11-14)
+
+
+### Bug Fixes
+
+* **autocode:** bound pending work and preserve UTF-8 output ([#37](https://github.com/kicksideai/chestor/issues/37)) ([9117aea](https://github.com/kicksideai/chestor/commit/9117aeaa0bea1fde3b1712a0a5fb49bb53f6f73a))
+
 ## [0.1.5](https://github.com/kicksideai/chestor/compare/autocode-v0.1.4...autocode-v0.1.5) (2026-11-14)
 
 
