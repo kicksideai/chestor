@@ -18,6 +18,7 @@ function M.start(args)
             data_type = consts.DATA_TYPE.NODE_INPUT, discriminator = "default", content = {task = "input"},
             content_type = consts.CONTENT_TYPE.JSON}}}, {type = "autocode-block-regression"})
     if not id then return nil, create_err end
+    if args.create_only then return {dataflow_id = id, node_id = node_id} end
     local started, start_err = c:start(id)
     if not started then return nil, start_err end
     return {dataflow_id = id, node_id = node_id}

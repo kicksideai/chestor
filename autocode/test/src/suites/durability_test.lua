@@ -1,5 +1,7 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 local test = require("test")
+local prune = require("prune")
+local prune_subject = require("prune_subject")
 local repo = require("repo")
 local jobs = require("jobs")
 local uuid = require("uuid")
@@ -50,7 +52,7 @@ local function cases()
             test.eq(#deliveries, 1)
             test.is_true(deliveries[1].execution_seq >= 6, "delivery survives five infrastructure failures")
             local delivery_id = deliveries[1].id
-            local deleted, prune_err = repo.prune_runs("2999-01-01T00:00:00Z", 1000)
+            local deleted, prune_err = prune.prune_runs("2999-01-01T00:00:00Z", 1000)
             test.is_nil(prune_err)
             test.is_true(deleted >= 1)
             test.is_nil(repo.stored_run(id))

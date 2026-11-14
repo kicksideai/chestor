@@ -7,7 +7,6 @@ import DriverOptions from '../../ui/src/app/driver-options.vue'
 import TaskForm from '../../ui/src/app/task-form.vue'
 import TaskConfig from '../../ui/src/app/task-config.vue'
 import DriverAccount from '../../ui/src/app/driver-account.vue'
-import { driverDefaults } from '../../ui/src/app/defaults.ts'
 
 describe('option drafts', () => {
   it.each([
@@ -116,7 +115,7 @@ describe('workflow option validity', () => {
 })
 
 describe('workflow run timeout', () => {
-  it('emits the run timeout and omits it when the field is cleared', async () => {
+  it('emits the run timeout and preserves explicit clearing', async () => {
     normal()
     mocks.props.value.config = { agent: 'agent', image_id: 'i', prompt: 'Task', run_timeout: '5m' }
     const w = render(TaskConfig)
@@ -132,7 +131,7 @@ describe('workflow run timeout', () => {
     await input.setValue('')
     await input.trigger('change')
     changes = mocks.emit.mock.calls.filter(([name]) => name === 'config-changed')
-    expect(changes.at(-1)?.[1]?.run_timeout).toBeUndefined()
+    expect(changes.at(-1)?.[1]?.run_timeout).toBe('')
   })
 })
 
@@ -172,8 +171,10 @@ describe('web component props', () => {
 
 describe('batch defaults', () => {
   it('does not seed task options from an interactive-only default', () => {
-    const defaults = driverDefaults({ ...driver, options: [{ ...option, name: 'batch', profiles: ['batch'], default: {} }, { ...option, name: 'interactive', profiles: ['interactive'], default: {} }] })
-    expect(defaults).toEqual({ batch: {} })
+    const w = render(DriverOptions, { options: [{ ...option, label: 'Batch only', name: 'batch', profiles: ['batch'], default: {} }, { ...option, label: 'Interactive only', name: 'interactive', profiles: ['interactive'], default: {} }], modelValue: {} })
+    expect(w.text()).toContain('Batch only')
+    expect(w.text()).not.toContain('Interactive only')
+    expect(w.emitted('update:modelValue')).toBeUndefined()
   })
 })
 
@@ -246,13 +247,13 @@ describe('unattended driver options', () => {
       images: [{ ...image, agents: [claudeLike.id, other.id] }], workspaces: [],
     }, [claudeLike, other])
   }
-  it('omits conflicting defaults on task mount and submission', async () => {
+  it('leaves catalog defaults and unattended presets to submission', async () => {
     const w = form()
-    expect(w.getComponent(DriverOptions).props('modelValue')).toEqual({ model: 'sonnet' })
+    expect(w.getComponent(DriverOptions).props('modelValue')).toEqual({})
     await w.get('textarea').setValue('Task')
     await w.get('button.primary').trigger('click')
     await flushPromises()
-    expect(mocks.post.mock.calls.at(-1)?.[1]).toMatchObject({ unattended: true, options: { model: 'sonnet' } })
+    expect(mocks.post.mock.calls.at(-1)?.[1]).toMatchObject({ unattended: true, options: {} })
     expect(mocks.post.mock.calls.at(-1)?.[1].options).not.toHaveProperty('permission_mode')
   })
   it('normalizes a switch between unattended drivers even when the toggle stays on', async () => {
@@ -265,14 +266,18 @@ describe('unattended driver options', () => {
     await flushPromises()
     expect(mocks.post.mock.calls.at(-1)?.[1]).toMatchObject({ agent: other.id, unattended: true, options: {} })
   })
-  it('drops edited options when unattended mode is enabled again', async () => {
+  it('retains explicit options when unattended mode is enabled again', async () => {
     const w = form()
     const toggle = w.get('input[type="checkbox"]')
     await toggle.setValue(false)
     w.getComponent(DriverOptions).vm.$emit('update:modelValue', { permission_mode: 'manual', model: 'custom' })
     await nextTick()
     await toggle.setValue(true)
-    expect(w.getComponent(DriverOptions).props('modelValue')).toEqual({ model: 'custom' })
+    expect(w.getComponent(DriverOptions).props('modelValue')).toEqual({ permission_mode: 'manual', model: 'custom' })
+    await w.get('textarea').setValue('Task')
+    await w.get('button.primary').trigger('click')
+    await flushPromises()
+    expect(mocks.post.mock.calls.at(-1)?.[1]).toMatchObject({ unattended: true, options: { permission_mode: 'manual', model: 'custom' } })
   })
   function workflow(config: Record<string, unknown>) {
     normal()
@@ -281,26 +286,26 @@ describe('unattended driver options', () => {
     mocks.get.mockImplementation(async path => ({ data: { success: true, ...respond(path), ...(path.endsWith('/catalog') ? { agents: [claudeLike, other] } : {}) } }))
     return render(TaskConfig)
   }
-  it('normalizes new workflow defaults before emitting them', async () => {
+  it('leaves new workflow options unset so catalog defaults are resolved at submission', async () => {
     const w = workflow({})
     await flushPromises()
-    expect(w.getComponent(DriverOptions).props('modelValue')).toEqual({ model: 'sonnet' })
-    expect(mocks.emit.mock.calls.at(-1)?.[1].options).toEqual({ model: 'sonnet' })
+    expect(w.getComponent(DriverOptions).props('modelValue')).toEqual({})
+    expect(mocks.emit.mock.calls.at(-1)?.[1].options).toEqual({})
   })
-  it('normalizes saved workflow options on mount and every unattended toggle', async () => {
+  it('preserves explicit workflow options on mount and every unattended toggle', async () => {
     const w = workflow({ agent: claudeLike.id, prompt: 'Task', unattended: true, options: { permission_mode: 'manual', model: 'custom' } })
     await flushPromises()
-    expect(w.getComponent(DriverOptions).props('modelValue')).toEqual({ model: 'custom' })
+    expect(w.getComponent(DriverOptions).props('modelValue')).toEqual({ permission_mode: 'manual', model: 'custom' })
     const toggle = w.get('details input[type="checkbox"]')
     await toggle.setValue(false)
     expect(mocks.emit.mock.calls.at(-1)?.[1].options).toEqual({ permission_mode: 'manual', model: 'custom' })
     await toggle.setValue(true)
-    expect(mocks.emit.mock.calls.at(-1)?.[1].options).toEqual({ model: 'custom' })
+    expect(mocks.emit.mock.calls.at(-1)?.[1].options).toEqual({ permission_mode: 'manual', model: 'custom' })
   })
   it('normalizes workflow driver switches before emitting config', async () => {
     const w = workflow({})
     await flushPromises()
-    await w.get('select').setValue(other.id)
+    await w.get('select[aria-label="Agent"]').setValue(other.id)
     expect(w.getComponent(DriverOptions).props('modelValue')).toEqual({})
     expect(mocks.emit.mock.calls.at(-1)?.[1]).toMatchObject({ agent: other.id, unattended: true, options: {} })
   })
@@ -348,11 +353,23 @@ describe('task advanced settings', () => {
     expect(mocks.emit.mock.calls.at(-1)?.[1]).toMatchObject({ repo_ref: 'feature/test' })
     await input.setValue('')
     await input.trigger('change')
-    expect(mocks.emit.mock.calls.at(-1)?.[1].repo_ref).toBeUndefined()
+    expect(mocks.emit.mock.calls.at(-1)?.[1].repo_ref).toBe('')
   })
 })
 
 describe('credential rotation card', () => {
+  it('keeps the credential kind fixed while editing and rejects a different login file', async () => {
+    mocks.props.value.config = { driver, account: { id: 'a', label: 'Existing', credential_kind: 'key' } }
+    const w = render(DriverAccount)
+    expect(w.get('select').attributes('disabled')).toBeDefined()
+    const file = new File(['{}'], 'login.json')
+    await w.get('.da-drop').trigger('drop', { dataTransfer: { files: [file] } })
+    await flushPromises()
+    expect(w.get('select').element.value).toBe('key')
+    expect(w.text()).toContain('new account')
+    expect(mocks.emit).not.toHaveBeenCalledWith('submit', expect.anything())
+  })
+
   it('prefills editable public fields and permits endpoint-only updates without a secret', async () => {
     mocks.props.value.config = { driver, account: { id: 'a', label: 'Existing', credential_kind: 'key', endpoint: { protocol: 'openai', base_url: 'https://old.example/v1', model: 'old' } } }
     const w = render(DriverAccount)
@@ -367,8 +384,8 @@ describe('credential rotation card', () => {
     await url.setValue('')
     await w.get('button.da-btn').trigger('click')
     expect(mocks.emit.mock.calls.at(-1)?.[1].endpoint).toBeUndefined()
-    await w.get('select').setValue('login')
-    expect(w.get<HTMLButtonElement>('button.da-btn').element.disabled).toBe(true)
+    expect(w.get('select').attributes('disabled')).toBeDefined()
+    expect(w.get('select').element.value).toBe('key')
   })
   it.each(['single_line', 'json_object'])('validates replacement credentials with the same $0 format as Add', async format => {
     mocks.props.value.config = { driver: { ...driver, credentials: [{ ...driver.credentials[0], format }] }, account: { id: 'a', label: 'Existing', credential_kind: 'key' } }
@@ -383,11 +400,11 @@ describe('credential rotation card', () => {
 
 it('keeps task choices and option edits when the active agent chip is clicked again', async () => {
   const w = render(TaskForm, { accounts: [{ ...account, agent: claudeLike.id, usable: true }], images: [{ ...image, agents: [claudeLike.id] }], workspaces: [] }, [claudeLike])
-  await w.findAll('select')[0]!.setValue('a')
+  await w.findAll('select')[1]!.setValue('a')
   w.getComponent(DriverOptions).vm.$emit('update:modelValue', { model: 'edited' })
   await nextTick()
   await w.get('button.ac-chip').trigger('click')
-  expect(w.findAll('select')[0]!.element.value).toBe('a')
+  expect(w.findAll('select')[1]!.element.value).toBe('a')
   expect(w.getComponent(DriverOptions).props('modelValue')).toEqual({ model: 'edited' })
 })
 

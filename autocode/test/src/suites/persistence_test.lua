@@ -1,5 +1,7 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 local test = require("test")
+local prune = require("prune")
+local prune_subject = require("prune_subject")
 local deletion_worker = require("deletion_worker")
 local repo = require("repo")
 local sql = require("sql")
@@ -18,15 +20,418 @@ local identity = {actor_id = "test:actor", actor_context = "{}"}
 local function await_pruned(id)
     local deadline = time.now():add("15s")
     repeat
-        local _, err = repo.prune_runs("2999-01-01T00:00:00Z", 1000)
+        local _, err = prune.prune_runs("2999-01-01T00:00:00Z", 1000)
         test.is_nil(err, tostring(err))
         if not repo.stored_run(id) then return end
         test.is_false(time.now():after(deadline), "retention does not finish after job termination")
         time.sleep("10ms")
     until false
 end
+local function event_run()
+    local id = uuid.v7()
+    local db = assert(sql.get("app:db"))
+    local _, err = db:execute([[INSERT INTO chestor_autocode_runs
+        (id, owner_id, actor_id, actor_context, agent, account_id, image_id, prompt, timeout_ms, status)
+        VALUES ($1, $1, 'test:actor', '{}', 'claude', 'account', 'image', '', 60000, 'running')]], {id})
+    db:release()
+    test.is_nil(err, tostring(err))
+    return id
+end
+
 local function cases()
+    local containers = {}
+    local function create_container(id)
+        local name = "chestor-autocode-" .. id
+        containers[#containers + 1] = name
+        local code, err = require("docker").run({"create", "--name", name, "node:22-bookworm-slim", "true"})
+        test.is_nil(err, tostring(err)); test.eq(code, 0)
+        return name
+    end
+    local function assert_absent(name)
+        local found = {}
+        local code, err = require("docker").run({"ps", "-aq", "--filter", "name=^/" .. name .. "$"},
+            {on_line = function(line) found[#found + 1] = line end})
+        test.is_nil(err, tostring(err)); test.eq(code, 0); test.eq(#found, 0, "recovery leaves no orphan container")
+    end
     test.describe("autocode persistence", function()
+        test.after_each(function()
+            for _, name in ipairs(containers) do test.is_nil(require("docker").ensure_removed(name)) end
+            containers = {}
+        end)
+        test.it("keeps valid multilingual event text through runner and persistence clipping", function()
+            local records = require("records")
+            local id = event_run()
+            local text = records.clip(string.rep("x", 7999) .. "🙂")
+            test.is_nil(repo.append_event(id, "log", text))
+            test.eq(repo.events(id, 0)[1].text, string.rep("x", 7999) .. " [truncated 4 bytes]")
+        end)
+        test.it("refuses pending overflow per owner and globally without allocating more storage", function()
+            local stubs = require("stubs")
+            local state = stubs.reset()
+            state.pending_owner = 2
+            local db = assert(sql.get("app:db"))
+            local baseline = assert(db:query("SELECT COUNT(*) AS n FROM chestor_autocode_runs WHERE status IN ('queued', 'running')"))[1].n
+            db:release()
+            state.pending_global = baseline + 3
+            local store = require("run_store_subject")
+            local owner, other = uuid.v7(), uuid.v7()
+            local ids = {}
+            local function admit(who, key)
+                return store.create_run(who, identity, spec(uuid.v7()), key and {key = key, canonical = "{}"} or nil)
+            end
+            ids[1] = assert(admit(owner, "same"))
+            ids[2] = assert(admit(owner))
+            test.eq(admit(owner, "same"), ids[1], "replay succeeds even at capacity")
+            local refused, err = admit(owner)
+            test.is_nil(refused); test.is_true(errors.is(err, errors.CONFLICT)); test.not_nil(err:message():find("owner", 1, true))
+            ids[3] = assert(admit(other))
+            refused, err = admit(uuid.v7())
+            test.is_nil(refused); test.is_true(errors.is(err, errors.CONFLICT)); test.not_nil(err:message():find("global", 1, true))
+            for _, id in ipairs(ids) do test.is_true(store.finish_run(id, "failed", "", "cleanup", {})) end
+            test.not_nil(admit(owner), "settled runs release capacity")
+        end)
+        test.it("serializes competing submissions at the pending owner budget", function()
+            local state = require("stubs").reset()
+            state.pending_owner = 1
+            local store = require("run_store_subject")
+            local owner, done = uuid.v7(), channel.new(2)
+            for n = 1, 2 do
+                coroutine.spawn(function()
+                    local id, err = store.create_run(owner, identity, spec(uuid.v7()), {key = tostring(n), canonical = "{}"})
+                    done:send({id = id, err = err})
+                end)
+            end
+            local accepted, refused = 0, 0
+            local results = {(done:receive()), (done:receive())}
+            for _, result in ipairs(results) do
+                if result.id then accepted = accepted + 1; test.is_true(store.finish_run(result.id, "failed", "", "cleanup", {}))
+                else refused = refused + 1; test.eq(result.err:details().code, "autocode.pending_budget_exceeded") end
+            end
+            test.eq(accepted, 1); test.eq(refused, 1)
+            local db = assert(sql.get("app:db"))
+            local rows = assert(db:query("SELECT COUNT(*) AS n FROM chestor_autocode_submissions WHERE owner_id = $1", {owner}))
+            db:release()
+            test.eq(rows[1].n, 1, "refused submissions allocate no canonical request row")
+        end)
+        test.it("expires never-dispatched queued runs and purges their Jobs slot before normal retention", function()
+            require("stubs").reset()
+            local id = assert(require("scheduled_runs").create_run(uuid.v7(), identity, spec(uuid.v7())))
+            local db = assert(sql.get("app:db"))
+            assert(db:execute("UPDATE chestor_autocode_runs SET created_at = '2000-01-01T00:00:00Z' WHERE id = $1", {id}))
+            db:release()
+            local result = require("queue_retention").run()
+            test.is_true(result.success, tostring(result.error))
+            local row = assert(repo.stored_run(id))
+            test.eq(row.status, "failed"); test.not_nil(row.error:find("queue", 1, true))
+            test.eq(row.error_native.details.code, "autocode.queue_expired")
+            test.eq(row.pending_status, nil)
+            test.is_nil(require("jobs").get_job(row.job_id), "expired Jobs slot is purged")
+            await_pruned(id)
+        end)
+        test.it("keeps cancellation cleanup and its saved outcome across queue expiry", function()
+            local state = require("stubs").reset()
+            local owner = uuid.v7()
+            local id = assert(require("scheduled_runs").create_run(owner, identity, spec(uuid.v7())))
+            state.run = assert(repo.stored_run(id))
+            state.prepared, state.remove_error = require("stubs").preparation(state.run), true
+            local name
+            state.on_create = function()
+                test.eq(repo.stored_run(id).dispatch_state, "creating", "marker commits before Docker creation")
+                name = create_container(id)
+                test.is_true(repo.request_cancel(owner, id))
+            end
+            local runner = require("queue_runner")
+            test.is_false(runner.main({payload = {run_id = id}}).ok)
+            local saved = assert(repo.stored_run(id))
+            test.eq(saved.status, "queued"); test.eq(saved.started_at, "")
+            test.eq(saved.pending_status, "cancelled")
+            local db = assert(sql.get("app:db"))
+            assert(db:execute("UPDATE chestor_autocode_runs SET created_at = '2000-01-01T00:00:00Z' WHERE id = $1", {id}))
+            db:release()
+            test.is_true(require("queue_retention").run().success)
+            local pending = assert(repo.stored_run(id))
+            test.eq(pending.status, "queued", "expiry must leave cleanup to runner recovery")
+            test.eq(pending.pending_status, "cancelled")
+            test.eq(pending.error, saved.error)
+            test.not_nil(require("jobs").get_job(saved.job_id), "cleanup job survives expiry")
+            state.remove_error, state.on_create = false, nil
+            state.on_remove = function() test.is_nil(require("docker").ensure_removed(name)) end
+            test.is_true(runner.main({payload = {run_id = id}, job = {attempt_no = 2}}).ok)
+            test.eq(repo.stored_run(id).status, "cancelled")
+            test.eq(state.removed, 2, "recovery removes the container before settling")
+            assert_absent(name)
+            test.is_nil(repo.stored_run(id).error_native, "saved cancellation is not replaced by queue expiry")
+        end)
+        test.it("keeps crash-before-outcome cleanup across queue expiry without relaunching", function()
+            local state = require("stubs").reset()
+            local id = assert(require("scheduled_runs").create_run(uuid.v7(), identity, spec(uuid.v7())))
+            state.run = assert(repo.stored_run(id))
+            state.prepared = require("stubs").preparation(state.run)
+            local name
+            state.on_create = function()
+                name = create_container(id)
+                error("crash after Docker accepted creation")
+            end
+            local runner = require("queue_runner")
+            test.is_false(pcall(function() runner.main({payload = {run_id = id}}) end))
+            local saved = assert(repo.stored_run(id))
+            test.is_nil(saved.pending_status); test.eq(saved.started_at, "")
+            local db = assert(sql.get("app:db"))
+            assert(db:execute("UPDATE chestor_autocode_runs SET created_at = '2000-01-01T00:00:00Z' WHERE id = $1", {id}))
+            db:release()
+            test.is_true(require("queue_retention").run().success)
+            test.eq(repo.stored_run(id).status, "queued", "a crash does not prove no container exists")
+            test.not_nil(require("jobs").get_job(saved.job_id))
+            state.on_create, state.prepared_called = nil, false
+            state.on_remove = function() test.is_nil(require("docker").ensure_removed(name)) end
+            test.is_true(runner.main({payload = {run_id = id}, job = {attempt_no = 2}}).ok)
+            local settled = assert(repo.stored_run(id))
+            test.eq(settled.status, "failed")
+            test.not_nil(settled.error:find("runner stopped", 1, true))
+            test.is_false(state.prepared_called, "cleanup recovery does not prepare another execution")
+            test.eq(state.removed, 1)
+            assert_absent(name)
+        end)
+        test.it("fences stale expiry selections against creation in either order", function()
+            require("stubs").reset()
+            local store = require("queue_store")
+            for _, creation_first in ipairs({true, false}) do
+                local id = assert(require("scheduled_runs").create_run(uuid.v7(), identity, spec(uuid.v7())))
+                local before = "2999-01-01T00:00:00Z"
+                if creation_first then
+                    test.is_true(repo.begin_creation(id))
+                    test.is_false(store.claim_expiry(id, before), "stale selection cannot purge a cleanup job")
+                else
+                    test.is_true(store.claim_expiry(id, before))
+                    test.is_false(repo.begin_creation(id), "expiry prevents subsequent Docker creation")
+                    test.is_true(store.claim_expiry(id, before), "interrupted expiry remains eligible")
+                end
+                test.is_true(repo.finish_run(id, "failed", "", "cleanup", {}))
+            end
+        end)
+        test.it("continues bounded Jobs history cleanup before settling queue expiry", function()
+            require("stubs").reset()
+            local id = assert(require("scheduled_runs").create_run(uuid.v7(), identity, spec(uuid.v7())))
+            local run = assert(repo.stored_run(id))
+            local db = assert(sql.get("app:db"))
+            assert(db:execute("UPDATE chestor_autocode_runs SET created_at = '2000-01-01T00:00:00Z' WHERE id = $1", {id}))
+            for n = 1, 101 do
+                assert(db:execute([[INSERT INTO kickside_job_run
+                    (id, job_id, job_type, attempt_no, execution_seq, status, owner_kind, owner_id)
+                    VALUES ($1, $2, 'chestor.autocode.runner:run', $3, $4, 'completed', 'user', $5)]],
+                    {uuid.v7(), run.job_id, n, n, run.owner_user_id}))
+            end
+            db:release()
+            local result = require("queue_retention").run()
+            test.is_true(result.success, tostring(result.error))
+            test.eq(repo.stored_run(id).status, "queued", "settlement waits for the complete purge")
+            test.is_true(result.needs_continue, "remaining bounded history requests another callback")
+            result = require("queue_retention").run()
+            test.is_true(result.success, tostring(result.error))
+            test.eq(repo.stored_run(id).status, "failed")
+            test.is_nil(require("jobs").get_job(run.job_id))
+            await_pruned(id)
+        end)
+        test.it("raises individual persisted event capacity while preserving the total byte budget", function()
+            local state = require("stubs").reset()
+            state.event_text_bytes, state.event_bytes = 16000, 100000
+            local id = event_run()
+            local events = require("bounded_events")
+            local text = string.rep("界", 5000)
+            test.is_nil(events.append_event(id, "log", text))
+            test.eq(events.events(id, 0)[1].text, text)
+        end)
+        test.it("bounds stored event rows and UTF-8 bytes across repeated tail rollovers", function()
+            local stubs = require("stubs")
+            local state = stubs.reset()
+            local events = require("bounded_events")
+            for _, fixture in ipairs({{count = 12, bytes = 100000, text = "line"}, {count = 100, bytes = 2048, text = string.rep("é", 130)}}) do
+                state.event_count, state.event_bytes = fixture.count, fixture.bytes
+                local id = event_run()
+                local first, last = "head", ""
+                local previous_seq = 0
+                for n = 1, 80 do
+                    last = n == 1 and first or (tostring(n) .. fixture.text)
+                    test.is_nil(events.append_event(id, "log", last))
+                    local rows = assert(events.events(id, 0, 200))
+                    local bytes, notices = 0, 0
+                    for _, row in ipairs(rows) do
+                        bytes = bytes + #row.text + #row.kind
+                        if row.text:find("Run event history truncated", 1, true) then notices = notices + 1 end
+                    end
+                    test.is_true(#rows <= fixture.count, "event count is bounded on every append")
+                    test.is_true(bytes <= fixture.bytes, "UTF-8 byte total is bounded on every append")
+                    test.eq(rows[1].text, first)
+                    test.eq(rows[#rows].text, last)
+                    test.is_true(rows[#rows].seq > previous_seq, "tail sequences never repeat")
+                    previous_seq = rows[#rows].seq
+                    if n > fixture.count or (fixture.bytes == 2048 and n > 20) then test.eq(notices, 1, "one truncation notice survives every rollover") end
+                end
+                local answer = string.rep("complete answer", 1000)
+                test.is_true(repo.finish_run(id, "succeeded", answer, "", {input_tokens = 9876, cost_usd = 1.25}))
+                test.eq(repo.stored_run(id).result, answer)
+                test.eq(repo.stored_run(id).usage.input_tokens, 9876)
+                test.eq(repo.stored_run(id).usage.cost_usd, 1.25)
+                local page = assert(events.events(id, previous_seq - 1, 10))
+                test.eq(page[#page].seq, previous_seq)
+                local older = assert(events.events(id, 0, 200, 0))
+                test.eq(older[1].seq, previous_seq)
+            end
+        end)
+        test.it("applies reduced event budgets and clips only the persisted UTF-8 copy", function()
+            local state = require("stubs").reset()
+            local events = require("bounded_events")
+            state.event_count, state.event_bytes = 20, 8192
+            local id = event_run()
+            for n = 1, 18 do test.is_nil(events.append_event(id, "log", string.rep("é", 800))) end
+            state.event_count, state.event_bytes = 4, 1024
+            test.is_nil(events.append_event(id, "log", string.rep("é", 800)))
+            local rows = assert(events.events(id, 0, 100))
+            local bytes = 0
+            for _, row in ipairs(rows) do bytes = bytes + #row.text + #row.kind end
+            test.is_true(#rows <= 4)
+            test.is_true(bytes <= 1024)
+            test.eq(rows[1].text, string.rep("é", 126))
+            test.eq(rows[#rows].text, string.rep("é", 126))
+            local db = assert(sql.get("app:db"))
+            local counter = assert(db:query("SELECT event_count, event_bytes FROM chestor_autocode_runs WHERE id = $1", {id}))[1]
+            db:release()
+            test.eq(counter.event_count, #rows)
+            test.eq(counter.event_bytes, bytes)
+        end)
+        test.it("expires workflow delivery independently of the complete outcome and prunes it normally", function()
+            local request = spec(uuid.v7())
+            request.flow = {dataflow_id = uuid.v7(), signal_id = uuid.v7()}
+            local id = assert(repo.create_run(uuid.v7(), identity, request))
+            test.is_true(repo.finish_run(id, "succeeded", "complete answer", "", {input_tokens = 42}))
+            local db = assert(sql.get("app:db"))
+            test.not_nil(db:execute("UPDATE chestor_autocode_runs SET finished_at = '2000-01-01T00:00:00Z' WHERE id = $1", {id}))
+            db:release()
+            local expired, err = require("funcs").call("chestor.autocode.blocks:resume", {payload = {run_id = id}})
+            test.is_nil(err, tostring(err)); test.not_nil(expired)
+            local stored = assert(repo.stored_run(id))
+            test.eq(stored.workflow_delivered, 2)
+            test.eq(stored.result, "complete answer")
+            test.eq(stored.usage.input_tokens, 42)
+            test.is_nil(repo.acknowledge_delivery(id))
+            test.eq(repo.stored_run(id).workflow_delivered, 2, "expiry cannot become a false success")
+            await_pruned(id)
+        end)
+        test.it("keeps workspace approval serialized with a submission after teardown reads no active run", function()
+            local workspace, owner = uuid.v7(), uuid.v7()
+            test.is_nil(repo.approve_workspace(workspace, "/fence/" .. workspace))
+            local fence = require("fence")
+            fence.arm()
+            local deleted, submitted = channel.new(1), channel.new(1)
+            coroutine.spawn(function() deleted:send({err = require("workspace_fence").delete_workspace(workspace)}) end)
+            fence.await_read()
+            local request = spec(uuid.v7())
+            request.workspace_id = workspace
+            coroutine.spawn(function()
+                local id, err = repo.create_run(owner, identity, request)
+                submitted:send({id = id, err = err})
+            end)
+            -- The vulnerable implementation commits this submission while teardown is paused.
+            time.sleep("50ms")
+            fence.release_read()
+            local removal, submission = deleted:receive(), submitted:receive()
+            if submission.id then
+                test.is_true(errors.is(removal.err, errors.CONFLICT))
+                test.not_nil(repo.admitted_workspace(workspace))
+                test.is_true(repo.finish_run(submission.id, "failed", "", "fixture cleanup", {}))
+            else
+                test.is_nil(removal.err, tostring(removal.err))
+                test.is_true(errors.is(submission.err, errors.CONFLICT), tostring(submission.err))
+                test.is_nil(repo.admitted_workspace(workspace))
+            end
+            test.is_nil(repo.delete_workspace(workspace))
+        end)
+        test.it("refuses run insertion when teardown removed an approval after admission", function()
+            local request = spec(uuid.v7())
+            request.workspace_id = uuid.v7()
+            test.is_nil(repo.approve_workspace(request.workspace_id, "/late/" .. request.workspace_id))
+            test.is_nil(repo.delete_workspace(request.workspace_id))
+            local id, err = repo.create_run(uuid.v7(), identity, request)
+            test.is_nil(id)
+            test.is_true(errors.is(err, errors.CONFLICT), tostring(err))
+        end)
+        test.it("round trips native run failures while preserving the legacy error message", function()
+            local id = assert(repo.create_run(uuid.v7(), identity, spec(uuid.v7())))
+            local native = {kind = errors.CONFLICT, message = "conflict", retryable = false, details = {code = "fixture.conflict"}}
+            test.is_nil(repo.record_run_outcome(id, "failed", "", "conflict", {}, nil, native))
+            local pending = repo.stored_run(id)
+            test.eq(pending.error, "conflict"); test.not_nil(pending.error_native)
+            test.eq(pending.error_native.kind, errors.CONFLICT); test.is_false(pending.error_native.retryable)
+            test.is_true(repo.finish_run(id, "failed", "", pending.error, {}, nil, pending.error_native))
+            test.eq(repo.stored_run(id).error_native.details.code, "fixture.conflict")
+        end)
+        test.it("refuses a partial persisted workflow destination", function()
+            local id = repo.create_run(uuid.v7(), identity, spec(uuid.v7()))
+            for _, column in ipairs({"flow_dataflow_id", "flow_signal_id"}) do
+                local db = sql.get("app:db")
+                test.not_nil(db:execute("UPDATE chestor_autocode_runs SET " .. column .. " = 'orphan' WHERE id = $1", {id}))
+                db:release()
+                local run, err = repo.stored_run(id)
+                test.is_nil(run)
+                test.is_true(errors.is(err, errors.INTERNAL))
+                db = sql.get("app:db")
+                test.not_nil(db:execute("UPDATE chestor_autocode_runs SET " .. column .. " = '' WHERE id = $1", {id}))
+                db:release()
+            end
+        end)
+        test.it("refuses malformed nested run state instead of discarding execution fields", function()
+            local id = repo.create_run(uuid.v7(), identity, spec(uuid.v7()))
+            for _, fixture in ipairs({
+                {column = "endpoint", value = '{"protocol":"anthropic-messages"}'},
+                {column = "endpoint", value = '{"protocol":"anthropic-messages","base_url":"https://example.com","model":42}'},
+                {column = "account_pool", value = '{"not":"an array"}'}}) do
+                local db = sql.get("app:db")
+                local _, err = db:execute("UPDATE chestor_autocode_runs SET " .. fixture.column .. " = $1 WHERE id = $2", {fixture.value, id})
+                db:release()
+                test.is_nil(err)
+                local run, read_err = repo.stored_run(id)
+                test.is_nil(run, fixture.column)
+                test.is_true(errors.is(read_err, errors.INTERNAL), tostring(read_err))
+                db = sql.get("app:db")
+                test.not_nil(db:execute("UPDATE chestor_autocode_runs SET " .. fixture.column .. " = $1 WHERE id = $2", {fixture.column == "account_pool" and "[]" or "{}", id}))
+                db:release()
+            end
+        end)
+        test.it("refuses unknown build modes and object-shaped agent arrays", function()
+            local image = uuid.v7()
+            test.is_nil(repo.request_image_build(image, identity, "initial", uuid.v7()))
+            for _, fixture in ipairs({{column = "agents", value = '{"agent":"claude"}', restore = "[]"},
+                {column = "approved_agents", value = '{"agent":"claude"}', restore = "[]"},
+                {column = "mode", value = "unknown", restore = "initial"}}) do
+                local db = sql.get("app:db")
+                test.not_nil(db:execute("UPDATE chestor_autocode_image_builds SET " .. fixture.column .. " = $1 WHERE image_id = $2", {fixture.value, image}))
+                db:release()
+                local build, err = repo.image_build(image)
+                test.is_nil(build, fixture.column)
+                test.is_true(errors.is(err, errors.INTERNAL), tostring(err))
+                db = sql.get("app:db")
+                test.not_nil(db:execute("UPDATE chestor_autocode_image_builds SET " .. fixture.column .. " = $1 WHERE image_id = $2", {fixture.restore, image}))
+                db:release()
+            end
+        end)
+        test.it("keeps rejected account windows out of balancing after an operator clears cooldown", function()
+            local a, b, owner = uuid.v7(), uuid.v7(), uuid.v7()
+            test.not_nil(repo.create_run(owner, identity, spec(a), nil, {a}))
+            test.not_nil(repo.create_run(owner, identity, spec(b), nil, {b}))
+            test.is_nil(repo.record_account_limits(a, {windows = {{window = "seven_day", utilization = 1,
+                status = "rejected", resets_at = 2000000000}}, is_using_overage = false}))
+            test.is_nil(repo.clear_cooldown(a))
+            local id, err = repo.create_run(owner, identity, spec(a), nil, {a, b})
+            test.is_nil(err, tostring(err))
+            test.eq(repo.stored_run(id).account_id, b)
+            local states = repo.account_states({a})
+            test.eq(states[a].rate_limits.windows[1].utilization, 1)
+            test.is_nil(repo.record_account_limits(a, {windows = {{window = "seven_day", utilization = 1,
+                status = "rejected", resets_at = 1000000000}}}))
+            local reset_id, reset_err = repo.create_run(owner, identity, spec(a), nil, {a})
+            test.is_nil(reset_err, tostring(reset_err))
+            test.eq(repo.stored_run(reset_id).account_id, a)
+        end)
         test.it("enqueues the configured image deadline and rejects invalid bounds", function()
             local state = require("stubs").reset()
             local builds = require("builds_subject")
@@ -57,7 +462,7 @@ local function cases()
             test.is_nil(select(2, db:execute("UPDATE chestor_autocode_runs SET finished_at = $1 WHERE id = $2", {"0001", active})))
             test.is_nil(select(2, db:execute("UPDATE chestor_autocode_runs SET finished_at = $1 WHERE id = $2", {"0002", terminal})))
             db:release()
-            local count, err = require("run_store_subject").prune_runs("0003", 500)
+            local count, err = prune_subject.prune_runs("0003", 500)
             test.is_nil(err, tostring(err))
             test.eq(count, 1)
             test.not_nil(repo.stored_run(active))
@@ -188,12 +593,10 @@ local function cases()
                 local finished, finish_err = deletion_worker.await(account)
                 test.is_nil(finish_err, tostring(finish_err))
                 test.is_true(finished)
-                local emitted = {}
-                account_health.settle(repo.stored_run(id), failed and {outcome = "failed", error = {
+                local intent = account_health.capture(failed and {outcome = "failed", error = {
                     code = "rate_limit", message = "rate limited", retryable = true}} or {outcome = "succeeded"},
-                    failed and "credential refresh failed" or nil, redact.new("key"),
-                    function(_, text) emitted[#emitted + 1] = text end)
-                test.eq(#emitted, 0)
+                    failed and "credential refresh failed" or nil, redact.new("key"))
+                test.is_nil(account_health.apply(repo.stored_run(id), intent))
                 test.is_true(repo.finish_run(id, failed and "failed" or "succeeded", "", "", {}))
                 local db = sql.get("app:db")
                 local rows = db:query("SELECT account_id FROM chestor_autocode_account_state WHERE account_id = $1", {account})
@@ -217,8 +620,8 @@ local function cases()
             local id, err = repo.create_run(uuid.v7(), identity, request)
             test.is_nil(err)
             test.is_true(repo.finish_run(id, "succeeded", "answer", "", {}))
-            test.is_nil(repo.append_event(id, 2, "system", "finished"))
-            local _, prune_err = repo.prune_runs("2999-01-01T00:00:00Z", 1000)
+            test.is_nil(repo.append_event(id, "system", "finished"))
+            local _, prune_err = prune.prune_runs("2999-01-01T00:00:00Z", 1000)
             test.is_nil(prune_err)
             test.not_nil(repo.stored_run(id))
             test.is_nil(repo.acknowledge_delivery(id))
@@ -356,6 +759,27 @@ local function cases()
             test.eq(state.removed, 1)
             test.eq(state.removed_names[1], "retained-box")
         end)
+        test.it("keeps the durable build until its drained cleanup succeeds", function()
+            local image, generation = uuid.v7(), uuid.v7()
+            local state = require("stubs").reset()
+            state.job = {status = "running"}
+            state.job_id = "cleanup-job"
+            local builds = require("builds_subject")
+            test.is_nil(builds.request_image_build(image, identity, "initial", generation))
+            local attempts = 0
+            local function cleanup(build)
+                attempts = attempts + 1
+                test.eq(build.build_id, generation)
+                test.not_nil(repo.image_build(image), "cleanup must retain its durable target")
+                if attempts == 1 then return errors.new({kind = errors.UNAVAILABLE, message = "Docker failure"}) end
+            end
+            test.not_nil(builds.delete_image_build(image, cleanup)); test.eq(attempts, 0)
+            state.job.status = "cancelled"
+            test.is_true(errors.is(builds.delete_image_build(image, cleanup), errors.UNAVAILABLE))
+            test.not_nil(repo.image_build(image)); test.eq(attempts, 1)
+            test.is_nil(builds.delete_image_build(image, cleanup))
+            test.is_nil(repo.image_build(image)); test.eq(attempts, 2)
+        end)
         test.it("retains build rows until the public Jobs cancellation confirms termination", function()
             local image, generation = uuid.v7(), uuid.v7()
             local state = require("stubs").reset()
@@ -379,7 +803,7 @@ local function cases()
             test.is_nil(builds.request_image_build(image, identity, "initial", generation))
             local build, err = builds.image_build(image)
             test.is_nil(err)
-            local projected = require("resource_dto").image({id = image, meta = {status = "preparing"}, owner = "owner", access = 15}, build)
+            local projected = require("resource_dto").image({id = image, meta = {status = "preparing"}, owner_user_id = "owner", owner = "owner", access = 15}, build)
             test.eq(projected.status, "preparing")
             state.job_error = true
             local unavailable, read_err = builds.image_build(image)

@@ -21,6 +21,7 @@ entries:
       builds: chestor.autocode.persist:builds
       runs: chestor.autocode.persist:runs
       events: chestor.autocode.persist:events
+      workspaces: chestor.autocode.persist:workspaces
 
   - name: database
     kind: library.lua
@@ -46,28 +47,33 @@ entries:
       jobs: kickside.core.jobs:jobs
       recipe: chestor.autocode.domain:recipe
       settings: chestor.autocode.domain:settings
+      job_outcome: chestor.autocode.domain:job_outcome
 
   - name: runs
     kind: library.lua
     source: file://runs.lua
     modules: [sql, uuid]
     imports:
+      settings: chestor.autocode.domain:settings
       trace: kickside.execution:trace
       database: chestor.autocode.persist:database
+      limits: chestor.autocode.domain:limits
+      job_outcome: chestor.autocode.domain:job_outcome
       jobs: kickside.core.jobs:jobs
-      slot_purge: kickside.core.jobs.persist:slot_purge
-      retention_notifier: kickside.core.retention:notifier
 
   - name: events
     kind: library.lua
     source: file://events.lua
-    modules: []
+    modules: [sql]
     imports:
+      text: chestor.autocode.domain:text
+      settings: chestor.autocode.domain:settings
       database: chestor.autocode.persist:database
 
   - name: project_account
     kind: function.lua
     source: file://account_state.lua
+    modules: [json]
     method: project
     imports:
       repo: chestor.autocode.persist:repo
@@ -80,3 +86,16 @@ entries:
         - chestor.autocode.security:service_calls
         - chestor.autocode.security:store
         - chestor.autocode.security:account_status
+
+  - name: retention
+    kind: library.lua
+    source: file://retention.lua
+    modules: [sql]
+    imports:
+      database: chestor.autocode.persist:database
+
+  - name: workspaces
+    kind: library.lua
+    source: file://workspaces.lua
+    imports:
+      database: chestor.autocode.persist:database

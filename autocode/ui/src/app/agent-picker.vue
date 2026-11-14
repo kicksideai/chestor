@@ -2,7 +2,7 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import { agentIcon } from './presentation.ts'
-defineProps<{ agents: { id: string; title: string; icon?: string }[]; modelValue: string; disabled?: boolean }>()
+defineProps<{ agents: { id: string; title: string; icon: string }[]; modelValue: string; disabled?: boolean }>()
 defineEmits<{ 'update:modelValue': [id: string] }>()
 </script>
 

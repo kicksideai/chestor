@@ -22,11 +22,9 @@
     },
     "endpoint": {
       "type": "object",
-      "additionalProperties": false,
       "properties": {
         "protocol": {
           "type": "string",
-          "minLength": 1,
           "maxLength": 64
         },
         "base_url": {
@@ -40,7 +38,8 @@
       },
       "required": [
         "base_url"
-      ]
+      ],
+      "additionalProperties": false
     }
   },
   "required": [

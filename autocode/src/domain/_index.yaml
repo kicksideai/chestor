@@ -3,6 +3,10 @@ version: "1.0"
 namespace: chestor.autocode.domain
 
 entries:
+  - name: text
+    kind: library.lua
+    source: file://text.lua
+
   - name: recipe
     kind: library.lua
     source: file://recipe.lua
@@ -37,12 +41,30 @@ entries:
       job_outcome: chestor.autocode.domain:job_outcome
     modules:
       - contract
+      - time
 
 
 
   - name: job_outcome
     kind: library.lua
     source: file://job_outcome.lua
+    modules: [json]
     imports:
       job_types: kickside.core.jobs:types
 
+
+  - name: endpoint
+    kind: library.lua
+    source: file://endpoint.lua
+
+  - name: limits
+    kind: library.lua
+    source: file://limits.lua
+    modules: [time]
+
+  - name: image_state
+    kind: library.lua
+    source: file://image_state.lua
+    modules: [json]
+    imports:
+      recipe: chestor.autocode.domain:recipe

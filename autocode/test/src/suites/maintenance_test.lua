@@ -4,6 +4,14 @@ local subject = require("subject")
 local stubs = require("stubs")
 local function cases()
     test.describe("autocode maintenance", function()
+        test.it("carries one host deadline through maintenance Docker calls", function()
+            local state = stubs.reset()
+            test.not_nil(subject.prune())
+            test.is_true(#state.deadline_calls > 2)
+            local expected = state.deadline_calls[1].deadline
+            test.not_nil(expected)
+            for _, call in ipairs(state.deadline_calls) do test.eq(call.deadline, expected) end
+        end)
         test.it("uses the effective cache retention duration in Docker's filter", function()
             local state = stubs.reset()
             state.cache_retention = "+48h"

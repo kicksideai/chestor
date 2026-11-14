@@ -1,0 +1,14 @@
+-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+local repo = require("repo")
+local records = require("records")
+local settings = require("settings")
+local redact = require("redact")
+local live = require("live")
+local function record(run_id: string, owner_user_id: string, kind: string, text: string, redactor: redact.Redactor): (error?, error?)
+    local limit, setting_err = settings.integer("event_text_bytes")
+    if not limit then return setting_err end
+    local err = repo.append_event(run_id, kind, records.clip(redact.apply(redactor, text), limit))
+    if err then return err end
+    return nil, live.notify(owner_user_id, live.run_topic(run_id))
+end
+return {record = record}

@@ -1,4 +1,5 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+local job_outcome = require("job_outcome")
 local recipe = require("recipe")
 local db = require("database")
 local sql = require("sql")
@@ -26,22 +27,10 @@ local repo = {}
 -- mode it was requested with, then its log once it finished.
 
 local function image_build(row: Columns): ImageBuild
-    local agents: {string} = {}
-    local decoded = json.decode(text(row, "agents"))
-    if type(decoded) ~= "table" then mismatch(row, "agents", "a JSON array")
-    else
-        for _, value in ipairs(decoded) do
-            if type(value) ~= "string" then mismatch(row, "agents", "strings") else agents[#agents + 1] = value end
-        end
-    end
-    local approved_agents: {string} = {}
-    local approved = json.decode(text(row, "approved_agents"))
-    if type(approved) ~= "table" then mismatch(row, "approved_agents", "a JSON array")
-    else
-        for _, value in ipairs(approved) do
-            if type(value) ~= "string" then mismatch(row, "approved_agents", "strings") else approved_agents[#approved_agents + 1] = value end
-        end
-    end
+    local agents = db.strings(row, "agents")
+    local approved_agents = db.strings(row, "approved_agents")
+    local mode = text(row, "mode")
+    if mode ~= "initial" and mode ~= "refresh" then mismatch(row, "mode", "a build mode") end
     local approved_recipe: recipe.Recipe? = nil
     local prior = db.object(row, "approved_recipe")
     if next(prior) ~= nil then
@@ -56,9 +45,11 @@ local function image_build(row: Columns): ImageBuild
         if err then row.problem = err end
         decoded_recipe = value
     end
-    return {approved_recipe = approved_recipe, approved_agents = approved_agents, recipe = decoded_recipe, projected = flag(row, "projected"), build_id = text(row, "build_id"), job_id = text(row, "job_id"), status = text(row, "status"), agents = agents, last_error = text(row, "last_error"),
+    local message, native, native_err = job_outcome.read_error(text(row, "last_error"))
+    if native_err then row.problem = native_err end
+    return {error_native = native, approved_recipe = approved_recipe, approved_agents = approved_agents, recipe = decoded_recipe, projected = flag(row, "projected"), build_id = text(row, "build_id"), job_id = text(row, "job_id"), status = text(row, "status"), agents = agents, last_error = message or "",
         identity = {actor_id = text(row, "actor_id"), actor_context = text(row, "actor_context")},
-        mode = text(row, "mode") == "refresh" and "refresh" or "initial", log = text(row, "log"),
+        mode = mode :: BuildMode, log = text(row, "log"),
         requested_at = text(row, "requested_at"), finished_at = text(row, "finished_at")}
 end
 
@@ -121,14 +112,16 @@ function repo.request_image_build(image_id: string, identity: Identity, mode: Bu
     end)
 end
 
-function repo.finish_image_build(image_id: string, log: string, build_id: string, status: string, agents: {string}, problem: string, recipe: recipe.Recipe?): error?
+function repo.finish_image_build(image_id: string, log: string, build_id: string, status: string, agents: {string}, problem: string, recipe: recipe.Recipe?, native: {[string]: unknown}?): error?
     local agents_json, json_err = encoded(agents, "agents")
     if not agents_json then return json_err end
     local recipe_json, recipe_err = db.encode_object(recipe or {}, "recipe")
     if not recipe_json then return recipe_err end
+    local stored_error, error_err = job_outcome.store_error(problem, native)
+    if not stored_error then return error_err end
     local count, err = execute([[UPDATE chestor_autocode_image_builds SET log = $1, finished_at = $2,
         status = $3, agents = $4, last_error = $5, recipe = $6 WHERE image_id = $7 AND build_id = $8 AND finished_at = '']],
-        {log, db.now(), status, agents_json, problem, recipe_json, image_id, build_id})
+        {log, db.now(), status, agents_json, stored_error, recipe_json, image_id, build_id})
     if err then return err end
     if count ~= 1 then return errors.new({kind = errors.CONFLICT, message = "image build generation is no longer active"}) end
     return nil
@@ -152,10 +145,13 @@ function repo.project_image_build(image_id: string, build_id: string, project: (
     return write_err
 end
 
-function repo.delete_image_build(image_id: string): error?
+function repo.delete_image_build(image_id: string, cleanup: ((ImageBuild?) -> error?)?): error?
     local build, read_err = repo.image_build(image_id)
     if read_err then return read_err end
-    if not build then return nil end
+    if not build then
+        if cleanup then return cleanup(nil) end
+        return nil
+    end
     if build.job_id == "" and (build.finished_at == "" or not build.projected) then
         return errors.new({kind = errors.CONFLICT, message = "image build has no recorded job ID; termination is unconfirmed"})
     end
@@ -168,10 +164,15 @@ function repo.delete_image_build(image_id: string): error?
             return errors.new({kind = errors.UNAVAILABLE, message = "image build cancellation awaits worker termination", retryable = true})
         end
     end
+    if cleanup then
+        local cleanup_err = cleanup(build)
+        if cleanup_err then return cleanup_err end
+    end
     local count, err = execute("DELETE FROM chestor_autocode_image_builds WHERE image_id = $1 AND build_id = $2", {image_id, build.build_id})
     if err then return err end
     if count ~= 1 then return errors.new({kind = errors.CONFLICT, message = "image build changes during teardown"}) end
     return nil
 end
 
+repo.decode_build = image_build
 return repo

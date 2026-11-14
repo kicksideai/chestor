@@ -21,9 +21,9 @@ local function notify(args)
     db:release()
     if write_err or read_err then return nil, write_err or read_err end
     if not allowed then return {success = false, error = "access denied"} end
-    if faults[1] and args.topic == "chestor.autocode.runs" then
+    if faults[1] and (args.topic == "chestor.autocode.runs" or faults[1].mode == "all") then
         if faults[1].mode == "denied" then return {success = false, error = "access denied"} end
-        return nil, errors.new({kind = errors.UNAVAILABLE, message = "injected realtime delivery failure", retryable = true})
+        return nil, errors.new({kind = errors.UNAVAILABLE, message = "injected realtime delivery failure", retryable = true, details = {code = "fixture.realtime_unavailable"}})
     end
     return {success = true}
 end

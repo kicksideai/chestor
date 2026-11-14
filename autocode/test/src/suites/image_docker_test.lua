@@ -5,7 +5,7 @@ local docker = require("docker")
 local image = require("image")
 local maintenance = require("maintenance")
 local stubs = require("stubs")
-local BASE = "chestor-autocode-harness:base"
+local BASE = "chestor-autocode-harness-base:" .. uuid.v7()
 local function output(args, stdin)
     local lines = {}
     local code, err = docker.run(args, {stdin = stdin, on_line = function(line) lines[#lines + 1] = line end})
@@ -23,6 +23,9 @@ local function cases()
         end)
         -- The suite builds its own small base, so it never depends on images other suites create.
         local base_built = false
+        test.after_all(function()
+            if base_built then output({"image", "rm", BASE}) end
+        end)
         local function base()
             if base_built then return BASE end
             output({"build", "-t", BASE, "-"}, [[FROM debian:bookworm-slim
@@ -44,6 +47,175 @@ RUN mkdir -p /opt/agent
             test.is_true(image.main({payload = {image_id = component, build_id = generation}}).ok)
             return state.build
         end
+        test.it("checks both real probes with Docker-parsed recipe limits and harmless labels", function()
+            local state = stubs.reset()
+            local generation = uuid.v7()
+            state.build.build_id = generation
+            state.recipe = stubs.recipe_fixture()
+            state.recipe.ref, state.recipe.home = base(), "/opt/agent"
+            state.recipe.settings.memory, state.recipe.settings.cpus, state.recipe.settings.pids_limit = "96m", "1", 128
+            state.recipe.settings.extra_args = {"--memory=128m", "-m64m", "--cpus=0.25", "--pids-limit=16",
+                "--memory-swap=-1", "--cap-drop=CHOWN", "-c256", "--ulimit=nofile=512:1024", "--oom-kill-disable=false",
+                "--label", "--env-file=/definitely-absent/autocode.env"}
+            state.drivers = {{id = "claude", executable = "sh"}}
+            local probes = 0
+            state.after_probe_create = function(args, options)
+                probes = probes + 1
+                test.not_nil(options.isolation)
+                local name = "autocode-probe-" .. generation
+                local drops = output({"inspect", "--format", "{{json .HostConfig.CapDrop}}", name})
+                for _, cap in ipairs({"NET_RAW", "CHOWN"}) do test.not_nil(drops:find(cap, 1, true), drops) end
+                local actual = output({"inspect", "--format", "{{.State.Status}} {{.HostConfig.Memory}} {{.HostConfig.NanoCpus}} {{.HostConfig.PidsLimit}} {{.HostConfig.MemorySwap}} {{.HostConfig.CpuShares}} {{.HostConfig.OomKillDisable}} {{json .HostConfig.Ulimits}}", name})
+                test.eq(actual:match("^(.-) %[%{"), "created 67108864 250000000 16 -1 256 false")
+                for _, part in ipairs({'"Name":"nofile"', '"Hard":1024', '"Soft":512'}) do test.not_nil(actual:find(part, 1, true), actual) end
+            end
+            references[#references + 1] = "chestor-autocode/limits:" .. generation
+            test.is_true(image.main({payload = {image_id = "limits", build_id = generation}}).ok)
+            test.eq(state.build.status, "ready", state.build.log)
+            test.eq(probes, 2)
+            test.eq(output({"ps", "-aq", "--filter", "name=^autocode-probe-" .. generation .. "$"}), "")
+        end)
+        for _, option in ipairs({"--cpus=1e-1", "--cpus=1/010", "--cpus=1/0o10", "--pids-limit=0100", "--memory=1g",
+            "--cpus=0.0", "--memory=0m", "--pids-limit=00", "--memory-swappiness=00", "--memory-swappiness=60", "empty base settings"}) do
+            test.it("runs and probes with identical Docker limits for " .. option, function()
+                local state, generation = stubs.reset(), uuid.v7()
+                state.build.build_id = generation
+                state.recipe = stubs.recipe_fixture()
+                state.recipe.ref, state.recipe.home = base(), "/opt/agent"
+                state.recipe.settings.memory, state.recipe.settings.cpus, state.recipe.settings.pids_limit = "96m", "0.5", 128
+                state.recipe.settings.extra_args = {option}
+                if option == "--cpus=0.0" then state.recipe.settings.cpus = "" end
+                if option == "--memory=0m" then state.recipe.settings.memory = "" end
+                if option == "--pids-limit=00" then state.recipe.settings.pids_limit = 0 end
+                if option == "empty base settings" then
+                    state.recipe.settings.memory, state.recipe.settings.cpus, state.recipe.settings.pids_limit = "", "", 0
+                    state.recipe.settings.extra_args = {}
+                end
+                local prepared = stubs.preparation(state.run)
+                for key, value in pairs(state.recipe.settings) do prepared.image[key] = value end
+                prepared.image.ref, prepared.image.home = state.recipe.ref, state.recipe.home
+                local format = "{{.HostConfig.Memory}} {{.HostConfig.NanoCpus}} {{.HostConfig.PidsLimit}} {{.HostConfig.MemorySwappiness}}"
+                local limits
+                local swappiness_discarded = false
+                local swappiness_warning = "WARNING: Your kernel does not support memory swappiness capabilities or the cgroup is not mounted. Memory swappiness discarded."
+                for _, shared in ipairs({false, true}) do
+                    if shared then
+                        prepared.workdir = "/workspace"
+                        prepared.workspace = {id = "limits", host_path = "/sys", writable = false}
+                    end
+                    local box = require("run_io").build(uuid.v7(), prepared, {})
+                    containers[#containers + 1] = box.name
+                    local warning_seen = false
+                    local code, err = docker.run(box.create, {isolation = box.isolation, on_line = function(line)
+                        if line == swappiness_warning then warning_seen = true end
+                    end})
+                    test.is_nil(err, tostring(err)); test.eq(code, 0)
+                    if option:match("^%-%-memory%-swappiness=") then
+                        local actual_swappiness = output({"inspect", "--format", "{{json .HostConfig.MemorySwappiness}}", box.name})
+                        test.eq(warning_seen, actual_swappiness == "null")
+                        swappiness_discarded = warning_seen
+                    else
+                        test.is_false(warning_seen)
+                    end
+                    local actual = output({"inspect", "--format", format, box.name})
+                    if limits then test.eq(actual, limits) else limits = actual end
+                    output({"start", "-a", box.name})
+                end
+                state.drivers = {{id = "claude", executable = "sh"}}
+                local probes = 0
+                state.after_probe_create = function()
+                    probes = probes + 1
+                    test.eq(output({"inspect", "--format", format, "autocode-probe-" .. generation}), limits)
+                end
+                references[#references + 1] = "chestor-autocode/parity:" .. generation
+                test.is_true(image.main({payload = {image_id = "parity", build_id = generation}}).ok)
+                test.eq(state.build.status, "ready", state.build.log)
+                test.eq(probes, 2)
+                if swappiness_discarded then
+                    local notices = 0
+                    for line in state.build.log:gmatch("[^\n]+") do if line == swappiness_warning then notices = notices + 1 end end
+                    test.eq(notices, 2, state.build.log)
+                end
+            end)
+        end
+        for _, case in ipairs({
+            {name = "base memory zero", field = "Memory", memory = "0m", cpus = "", pids_limit = 0, args = {}},
+            {name = "base CPU zero", field = "NanoCpus", memory = "", cpus = "0.0", pids_limit = 0, args = {}},
+            {name = "extra memory zero removes settings bound", field = "Memory", memory = "64m", cpus = "", pids_limit = 0, args = {"--memory=0m"}},
+            {name = "extra CPU zero removes settings bound", field = "NanoCpus", memory = "", cpus = "0.25", pids_limit = 0, args = {"--cpus=0.0"}},
+            {name = "extra PID zero removes settings bound", field = "PidsLimit", memory = "", cpus = "", pids_limit = 16, args = {"--pids-limit=00"}},
+        }) do
+            test.it("refuses absent settings bounds in runs and probes for " .. case.name, function()
+                local state, generation = stubs.reset(), uuid.v7()
+                state.build.build_id = generation
+                state.recipe = stubs.recipe_fixture()
+                state.recipe.ref, state.recipe.home = base(), "/opt/agent"
+                state.recipe.settings.memory, state.recipe.settings.cpus, state.recipe.settings.pids_limit = case.memory, case.cpus, case.pids_limit
+                state.recipe.settings.extra_args = case.args
+                local prepared = stubs.preparation(state.run)
+                for key, value in pairs(state.recipe.settings) do prepared.image[key] = value end
+                prepared.image.ref = state.recipe.ref
+                for _, shared in ipairs({false, true}) do
+                    if shared then
+                        prepared.workdir = "/workspace"
+                        prepared.workspace = {id = "limits", host_path = "/sys", writable = false}
+                    end
+                    local box = require("run_io").build(uuid.v7(), prepared, {})
+                    containers[#containers + 1] = box.name
+                    local code, err = docker.run(box.create, {isolation = box.isolation})
+                    test.is_nil(code); test.not_nil(err)
+                    test.not_nil(tostring(err):find("isolation mismatch: " .. case.field, 1, true), tostring(err))
+                    test.eq(output({"ps", "-aq", "--filter", "name=^" .. box.name .. "$"}), "")
+                end
+                state.drivers = {{id = "claude", executable = "sh"}}
+                references[#references + 1] = "chestor-autocode/absent-limits:" .. generation
+                test.is_true(image.main({payload = {image_id = "absent-limits", build_id = generation}}).ok)
+                test.eq(state.build.status, "failed", state.build.log)
+                test.not_nil(state.build.log:find("isolation mismatch: " .. case.field, 1, true), state.build.log)
+                test.eq(output({"ps", "-aq", "--filter", "name=^autocode-probe-" .. generation .. "$"}), "")
+            end)
+        end
+        test.it("verifies Docker base-zero integers and Go memory sizes without changing recipes", function()
+            for _, case in ipairs({
+                {flag = "pids-limit", text = "0100", field = "PidsLimit", number = "64"},
+                {flag = "pids-limit", text = "0o100", field = "PidsLimit", number = "64"},
+                {flag = "pids-limit", text = "0x40", field = "PidsLimit", number = "64"},
+                {flag = "pids-limit", text = "0b1000000", field = "PidsLimit", number = "64"},
+                {flag = "pids-limit", text = "1_000", field = "PidsLimit", number = "1000"},
+                {flag = "pids-limit", text = "+0x_40", field = "PidsLimit", number = "64"},
+                {flag = "cpu-shares", text = "02000", field = "CpuShares", number = "1024"},
+                {flag = "memory", text = "64_000_000b", field = "Memory", number = "64000000"},
+                {flag = "memory", text = "0x1p+6m", field = "Memory", number = "67108864"},
+                {flag = "memory", text = "0x1_0p+2MiB", field = "Memory", number = "67108864"},
+                {flag = "memory", text = "0100000000", field = "Memory", number = "100000000"},
+                {flag = "memory", text = "6.4e1 mB", field = "Memory", number = "67108864"},
+            }) do
+                local name, ref = "autocode-numeric-" .. uuid.v7(), base()
+                containers[#containers + 1] = name
+                local code, err = docker.run({"create", "--name", name, "--cap-drop=NET_RAW", "--cgroupns=private",
+                    "--network=none", "--" .. case.flag .. "=" .. case.text, ref, "sh"},
+                    {isolation = {name = name, image = ref, network = "none", mounts = {}}})
+                test.is_nil(err, case.flag .. "=" .. case.text .. ": " .. tostring(err)); test.eq(code, 0)
+                test.eq(output({"inspect", "--format", "{{.State.Status}} {{.HostConfig." .. case.field .. "}}", name}), "created " .. case.number)
+                output({"rm", name})
+            end
+        end)
+        test.it("refuses unsafe extra arguments on real image probes before starting them", function()
+            for _, args in ipairs({{"--network", "NAME=HOST"}, {"--privileged=true"}, {"--cap-add=SYS_ADMIN"}, {"--cap-add", "NET_RAW"}, {"--security-opt=systempaths=unconfined"}}) do
+                local state = stubs.reset()
+                local generation = uuid.v7()
+                state.build.build_id = generation
+                state.recipe = stubs.recipe_fixture()
+                state.recipe.ref, state.recipe.home, state.recipe.settings.network = base(), "/opt/agent", ""
+                state.recipe.settings.extra_args = args
+                state.drivers = {{id = "claude", executable = "sh"}}
+                references[#references + 1] = "chestor-autocode/reject:" .. generation
+                test.is_true(image.main({payload = {image_id = "reject", build_id = generation}}).ok)
+                test.eq(state.build.status, "failed")
+                test.not_nil(state.build.log:find("Docker isolation mismatch:", 1, true), state.build.log)
+                test.eq(output({"ps", "-aq", "--filter", "name=^autocode-probe-" .. generation .. "$"}), "")
+            end
+        end)
         test.it("clones branches, tags and the default branch in real containers", function()
             local container = require("container")
             local generation, component = uuid.v7(), uuid.v7()
@@ -59,8 +231,7 @@ RUN mkdir /opt/agent/source && cd /opt/agent/source && git init -b main && git c
                 local launch = {executable = "sh", argv = {"-c", 'test "$(cat chosen)" = ' .. (branch == "" and "main" or "selected")}, environment = {}, files = {}, readiness = "none"}
                 local script = container.script({id = "env:KEY", variable = "KEY"}, "fixture", "/opt/agent", "/opt/agent/work", "/opt/agent/source", launch, 60, branch)
                 local args = {"run", "--rm", "--name", name, "--network", "none", "--entrypoint", "sh"}
-                for variable in pairs(script.env) do args[#args + 1] = "-e"; args[#args + 1] = variable end
-                for _, arg in ipairs({built.recipe.ref, "-c", 'eval "$AUTOCODE_SCRIPT"'}) do args[#args + 1] = arg end
+                for _, arg in ipairs({built.recipe.ref, "-c", container.entrypoint}) do args[#args + 1] = arg end
                 local lines = {}
                 local code, err = docker.run(args, {env = script.env, on_line = function(line) lines[#lines + 1] = line end})
                 test.is_nil(err, tostring(err))

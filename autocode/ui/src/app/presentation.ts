@@ -5,6 +5,7 @@ import { onUnmounted, readonly, ref } from 'vue'
 export type AccountState = 'ready' | 'cooling' | 'disabled' | 'unavailable'
 export function accountState(a: Account, now = Date.now()): AccountState {
   if (!a.enabled) return 'disabled'
+  if (a.rate_limits?.windows.some(w => w.status === 'rejected' && w.resets_at !== undefined && w.resets_at * 1000 > now)) return 'cooling'
   if (a.cooldown_until && Date.parse(a.cooldown_until) > now) return 'cooling'
   return a.usable ? 'ready' : 'unavailable'
 }

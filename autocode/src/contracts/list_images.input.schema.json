@@ -11,6 +11,17 @@
       "type": "boolean",
       "default": true,
       "description": "Only images with a runnable approved generation, including during refresh or after a failed refresh."
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "Bounded page size. Discovery tools default to 25; omitted on older service callers preserves their existing response."
+    },
+    "offset": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
     }
   },
   "required": []

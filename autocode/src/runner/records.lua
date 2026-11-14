@@ -3,6 +3,7 @@
 -- completion pieces share segment state across reader steps. Retained text
 -- passes the filter before the log and result limits apply.
 local credentials = require("credentials")
+local canonical_json = require("canonical_json")
 local drivers = require("drivers")
 
 type Kind = "assistant" | "reasoning" | "tool" | "tool_result" | "tool_error" | "system" | "error"
@@ -10,8 +11,8 @@ type Event = {kind: Kind, text: string}
 type Text = {text: string, dropped: integer}
 type Segment = {channel: string, text: string, dropped: integer, answer: Text?, done: boolean, ordinal: integer, message: integer,
     answer_message: integer?, answer_start: integer?, answer_dropped: integer?}
-type Folder = {segments: {[string]: Segment}, order: {string}, filter: (string) -> string,
-    answer: Text?, answer_ordinal: integer, partial: Text?, partial_ordinal: integer, ordinal: integer, step: integer, message: integer}
+type Folder = {rate_limits: {[string]: unknown}?, segments: {[string]: Segment}, order: {string}, filter: (string) -> string,
+    result_bytes: integer, event_text_bytes: integer, answer: Text?, answer_ordinal: integer, partial: Text?, partial_ordinal: integer, ordinal: integer, step: integer, message: integer}
 
 local M = {}
 
@@ -22,24 +23,20 @@ local MAX_TEXT = 8000
 local CREDENTIAL_BOUND = credentials.MAX_BYTES
 local MAX_OPEN_SEGMENTS = 64
 
-local function clipped(text: string, limit: integer, dropped: integer): string
-    local lost = math.max(#text - limit, 0) + dropped
-    local head = text:sub(1, limit)
-    if lost > 0 then return head .. " [truncated " .. tostring(lost) .. " bytes]" end
-    return head
+local text_bytes = require("text")
+local clipped = text_bytes.clipped
+
+function M.clip(text: string, limit: integer?): string
+    return clipped(text, limit or MAX_TEXT, 0)
 end
 
-function M.clip(text: string): string
-    return clipped(text, MAX_TEXT, 0)
-end
-
-function M.new(filter: (string) -> string): Folder
+function M.new(filter: (string) -> string, result_bytes: integer?, event_text_bytes: integer?): Folder
     return {segments = {}, order = {}, filter = filter, ordinal = 0, answer_ordinal = 0, partial_ordinal = 0,
-        step = 0, message = 0}
+        step = 0, message = 0, result_bytes = result_bytes or M.MAX_RESULT_BYTES, event_text_bytes = event_text_bytes or MAX_TEXT}
 end
 
 local function shown(folder: Folder, text: string): string
-    return M.clip(folder.filter(text))
+    return M.clip(folder.filter(text), folder.event_text_bytes)
 end
 
 local function content_text(content: {text: string?, artifact_ref: string?}): string
@@ -50,8 +47,9 @@ end
 
 local function grow(segment: Text, text: string, limit: integer)
     local room = limit + CREDENTIAL_BOUND - #segment.text
-    if room > 0 then segment.text = segment.text .. text:sub(1, room) end
-    segment.dropped = segment.dropped + math.max(#text - math.max(room, 0), 0)
+    local head = text_bytes.head(text, math.max(room, 0))
+    segment.text = segment.text .. head
+    segment.dropped = segment.dropped + #text - #head
 end
 
 local function remember(folder: Folder, segment: Segment)
@@ -65,13 +63,13 @@ local function remember(folder: Folder, segment: Segment)
         end
         local combined: Text = folder.answer or {text = "", dropped = 0}
         if segment.answer_message ~= segment.message then
-            if combined.text ~= "" then grow(combined, "\n", M.MAX_RESULT_BYTES) end
+            if combined.text ~= "" then grow(combined, "\n", folder.result_bytes) end
             segment.answer_message = segment.message
             segment.answer_start, segment.answer_dropped = #combined.text, combined.dropped
         end
         combined.text = combined.text:sub(1, segment.answer_start or 0)
         combined.dropped = segment.answer_dropped or 0
-        grow(combined, answer.text, M.MAX_RESULT_BYTES)
+        grow(combined, answer.text, folder.result_bytes)
         combined.dropped = combined.dropped + answer.dropped
         folder.answer = combined
     elseif segment.ordinal >= folder.partial_ordinal then
@@ -82,7 +80,7 @@ end
 
 local function event_of(folder: Folder, segment: Segment): Event
     return {kind = segment.channel == "reasoning_summary" and "reasoning" or "assistant",
-        text = clipped(folder.filter(segment.text), MAX_TEXT, segment.dropped)}
+        text = clipped(folder.filter(segment.text), folder.event_text_bytes, segment.dropped)}
 end
 
 local function forget(folder: Folder, id: string, out: {Event})
@@ -139,8 +137,8 @@ local function text_observation(folder: Folder, data: {segment_id: string, opera
             folder.answer.dropped = segment.answer_dropped or 0
         end
     end
-    grow(segment, data.text, MAX_TEXT)
-    if segment.answer then grow(segment.answer, data.text, M.MAX_RESULT_BYTES) end
+    grow(segment, data.text, folder.event_text_bytes)
+    if segment.answer then grow(segment.answer, data.text, folder.result_bytes) end
     if data.operation == "complete" then
         if folder.message == 0 then folder.message = segment.done and segment.message or folder.step end
         segment.message = folder.message
@@ -155,10 +153,10 @@ function M.result(folder: Folder, terminal: drivers.Terminal?): string
     if final and final ~= "" then
         -- A bounded terminal copy can be a prefix of the complete stream.
         if #answer.text <= #final or answer.text:sub(1, #final) ~= final then
-            return clipped(folder.filter(final), M.MAX_RESULT_BYTES, 0)
+            return clipped(folder.filter(final), folder.result_bytes, 0)
         end
     end
-    return clipped(folder.filter(answer.text), M.MAX_RESULT_BYTES, answer.dropped)
+    return clipped(folder.filter(answer.text), folder.result_bytes, answer.dropped)
 end
 
 -- step folds one reader step: frames the reader could not decode, then its
@@ -172,7 +170,10 @@ function M.step(folder: Folder, step: drivers.Step): {Event}
     end
     for _, observation in ipairs(step.observations) do
         local data = observation.data
-        if data.type == "text" then
+        if data.type == "rate_limit" then
+            local raw = (data :: {[string]: unknown}).limits
+            if type(raw) == "table" then folder.rate_limits = raw end
+        elseif data.type == "text" then
             text_observation(folder, data, out)
         else
             flush(folder, out)
@@ -206,14 +207,33 @@ function M.terminal(folder: Folder, terminal: drivers.Terminal?): {Event}
     return out
 end
 
+function M.limits(folder: Folder, terminal: drivers.Terminal?): {[string]: unknown}?
+    local latest = terminal and (terminal :: {[string]: unknown}).rate_limits
+    if type(latest) == "table" then return latest end
+    return folder.rate_limits
+end
+
 -- usage reports the terminal's token usage as stored run usage.
 function M.usage(terminal: drivers.Terminal?): {[string]: unknown}
     local result: {[string]: unknown} = {}
     local usage = terminal and terminal.usage
     if not usage then return result end
-    if usage.input_tokens then result.input_tokens = usage.input_tokens end
-    if usage.output_tokens then result.output_tokens = usage.output_tokens end
-    if usage.cached_tokens then result.cached_tokens = usage.cached_tokens end
+    local function copy(value: {[string]: unknown}): {[string]: unknown}
+        local projected: {[string]: unknown} = {}
+        for _, field in ipairs({"input_tokens", "output_tokens", "cached_tokens", "cache_write_tokens", "reasoning_tokens", "cost_usd", "cost_decimal", "currency"}) do
+            if value[field] ~= nil then projected[field] = value[field] end
+        end
+        return canonical_json.object(projected) :: {[string]: unknown}
+    end
+    result = copy(usage :: {[string]: unknown})
+    local by_model = (usage :: {[string]: unknown}).models
+    if type(by_model) == "table" then
+        local models: {[string]: unknown} = {}
+        for name, model in pairs(by_model) do
+            if type(name) == "string" and type(model) == "table" then models[name] = copy(model) end
+        end
+        result.models = canonical_json.object(models)
+    end
     return result
 end
 

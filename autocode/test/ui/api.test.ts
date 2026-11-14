@@ -4,6 +4,13 @@ import { describe, expect, it } from 'vitest'
 import { autocode } from '../../ui/src/app/api.ts'
 
 describe('api', () => {
+  it.each(['icon', 'format'])('rejects catalog entries missing required %s metadata', async field => {
+    const malformed = JSON.parse(JSON.stringify(driver)) as Record<string, unknown>
+    if (field === 'icon') delete malformed.icon
+    else delete (malformed.credentials as Record<string, unknown>[])[0]!.format
+    mocks.get.mockResolvedValue({ data: { success: true, ...respond('/catalog'), agents: [malformed] } })
+    await expect(autocode.catalog()).rejects.toThrow()
+  })
   it('preserves committed account updates and exposes cooldown partial failure without retrying', async () => {
     const health_error = { message: 'Health unavailable', kind: 'Unavailable', retryable: true, details: { code: 'health_down' } }
     mocks.put.mockResolvedValue({ data: { success: true, id: 'a', health_error } })

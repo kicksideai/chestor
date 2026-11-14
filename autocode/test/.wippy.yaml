@@ -8,9 +8,13 @@ override:
   "kickside.core.retention.service:sweeper.service:lifecycle.auto_start": false
   "kickside.core.jobs:policy:meta.slot_retry.retry_after_ms": 100
   "kickside.core.jobs:policy:meta.slot_retry.max_delay_ms": 1000
+  "chestor.autocode:runtime_config:meta.workspace_roots": "${workspace_roots}"
+  "app:upgrade_db:file": "${upgrade_sqlite_path}"
   "app:db:file": "${sqlite_path}"
   "app:gateway:addr": ":${http_port}"
 vars:
+  upgrade_sqlite_path: ./.wippy/upgrade.db
+  workspace_roots: /
   sqlite_path: ./.wippy/autocode-test.db
   http_port: 19347
   pg_host: 127.0.0.1
@@ -30,5 +34,12 @@ profiles:
       "app:db:options.sslmode": disable
       "app:db:pool.max_open": 16
       "app:db:pool.max_idle": 8
+      "app:upgrade_db:kind": db.sql.postgres
+      "app:upgrade_db:host": "${pg_host}"
+      "app:upgrade_db:port": "${pg_port}"
+      "app:upgrade_db:database": "${pg_database}_upgrade"
+      "app:upgrade_db:username": "${pg_username}"
+      "app:upgrade_db:password": "${pg_password}"
+      "app:upgrade_db:options.sslmode": disable
 registry:
   dispatch_internal_kinds: [registry.entry, ns.requirement, ns.dependency, ns.definition, security.scope]

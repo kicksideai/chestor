@@ -27,6 +27,49 @@ end
 
 local function cases()
     test.describe("autocode wiring", function()
+        test.it("publishes validated admission, queue and output settings with release defaults", function()
+            for _, setting in ipairs({
+                {key = "pending_runs_per_owner", default = 128, minimum = 1, maximum = 100000},
+                {key = "pending_runs_global", default = 4096, minimum = 1, maximum = 1000000},
+                {key = "result_bytes", default = 1048576, minimum = 1024, maximum = 67108864},
+                {key = "event_text_bytes", default = 8000, minimum = 256, maximum = 1048576},
+                {key = "build_log_bytes", default = 65536, minimum = 1024, maximum = 16777216},
+                {key = "clone_depth", default = 50, minimum = 0, maximum = 1000000},
+            }) do
+                local entry = registry.get("chestor.autocode:setting." .. setting.key)
+                test.not_nil(entry, setting.key)
+                test.eq(entry.data.default, setting.default)
+                for _, value in ipairs({setting.minimum, setting.maximum}) do
+                    local valid, err = funcs.call("chestor.autocode:validate_duration", {key = setting.key, value = value})
+                    test.is_nil(err, tostring(err)); test.is_true(valid)
+                end
+                for _, value in ipairs({setting.minimum - 1, setting.maximum + 1, 1.5, "50"}) do
+                    local valid, err = funcs.call("chestor.autocode:validate_duration", {key = setting.key, value = value})
+                    test.is_nil(valid); test.not_nil(err)
+                end
+            end
+            local entry = registry.get("chestor.autocode:setting.queue_timeout")
+            test.not_nil(entry); test.eq(entry.data.default, "24h")
+        end)
+        test.it("enforces the configured queue window before dispatch", function()
+            local err = require("settings").check_queue("2000-01-01T00:00:00Z")
+            test.not_nil(err); test.eq(err:details().code, "autocode.queue_expired")
+            test.is_nil(require("settings").check_queue("2999-01-01T00:00:00Z"))
+            for _, key in ipairs({"result_bytes", "event_text_bytes", "build_log_bytes", "clone_depth", "pending_runs_per_owner", "pending_runs_global"}) do
+                local value, read_err = require("settings").integer(key)
+                test.is_nil(read_err, tostring(read_err)); test.not_nil(value)
+            end
+        end)
+        test.it("uses an active workspace index for the deletion predicate", function()
+            local db = assert(sql.get("app:db"))
+            local pg = db:type() == "postgres"
+            if pg then assert(db:execute("SET enable_seqscan = off")) end
+            local rows = assert(db:query((pg and "EXPLAIN " or "EXPLAIN QUERY PLAN ") ..
+                "SELECT id FROM chestor_autocode_runs WHERE workspace_id = 'unused' AND status IN ('queued', 'running') LIMIT 1"))
+            if pg then assert(db:execute("RESET enable_seqscan")) end
+            db:release()
+            test.not_nil(json.encode(rows):find("chestor_autocode_runs_workspace_active", 1, true), json.encode(rows))
+        end)
         test.it("groups and orders the published settings for runs then images and Docker", function()
             local expected = {
                 {key = "run_timeout", title = "Run timeout", category = "Runs", order = 10},

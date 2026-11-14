@@ -8,6 +8,7 @@ local credentials = require("credentials")
 local runs = require("runs")
 local security = require("security")
 local live = require("live")
+local json = require("json")
 
 type Object = {[string]: unknown}
 type Endpoint = {protocol: string, base_url: string, model: string?}
@@ -47,7 +48,7 @@ end
 function M.list(request: Object): (Object?, error?)
     local actor = security.actor()
     if not actor then return nil, boundary.error(errors.PERMISSION_DENIED, "autocode.access_denied", "authentication required") end
-    local all, err = resources.list("account")
+    local all, err, next_offset = resources.list("account", request.limit :: integer?, request.offset :: integer?)
     if not all then return nil, boundary.native(err) end
     local views: {Object} = table.create(1, 0)
     for _, account in ipairs(all) do
@@ -58,9 +59,8 @@ function M.list(request: Object): (Object?, error?)
             if driver_err and not errors.is(driver_err, errors.NOT_FOUND) then return nil, boundary.native(driver_err) end
             local admitted, reason = nil, "select an agent"
             if driver then admitted, reason = runs.usable(driver, account) end
-            local state = {last_used_at = text(meta.last_used_at), cooldown_until = text(meta.cooldown_until),
-                last_error = text(meta.last_error), runs_day = math.floor(tonumber(meta.runs_day) or 0),
-                failures_day = math.floor(tonumber(meta.failures_day) or 0)}
+            local state = {last_used_at = text(meta.last_used_at), cooldown_until = text(meta.cooldown_until), last_error = text(meta.last_error),
+                runs_day = math.floor(tonumber(meta.runs_day) or 0), failures_day = math.floor(tonumber(meta.failures_day) or 0)}
             local base_url = text(meta.endpoint_base_url)
             local model = text(meta.endpoint_model)
             local reach: Endpoint? = nil
@@ -68,14 +68,15 @@ function M.list(request: Object): (Object?, error?)
             if admitted or request.include_unavailable == true then
                 views[#views + 1] = {id = account.id, agent = agent, label = text(meta.title), credential_kind = text(meta.credential_kind),
                     subscription = resources.flag(meta.subscription, false), enabled = resources.flag(meta.enabled, true), endpoint = reach,
-                    owner = account.owner, mine = account.owner == actor:id(), usable = admitted ~= nil,
+                    owner_user_id = account.owner_user_id, owner = account.owner_user_id, mine = account.owner_user_id == actor:id(), usable = admitted ~= nil,
                     unavailable_reason = not admitted and reason or nil, writable = resources.has(account.access, resources.ACCESS.WRITE),
                     deletable = resources.has(account.access, resources.ACCESS.DELETE), last_used_at = state.last_used_at,
+                    rate_limits = type(meta.rate_limits) == "string" and meta.rate_limits ~= "" and json.decode(meta.rate_limits) or nil,
                     cooldown_until = state.cooldown_until, last_error = state.last_error, runs_day = state.runs_day, failures_day = state.failures_day}
             end
         end
     end
-    return {accounts = views}, nil
+    return {accounts = views, next_offset = next_offset}, nil
 end
 function M.add_account(args: unknown): (Object?, error?)
     local body, input_err = boundary.input("chestor.autocode:accounts", "add_account", args)
@@ -95,7 +96,7 @@ function M.add_account(args: unknown): (Object?, error?)
     local reach, reach_err = endpoint(body, driver, kind)
     if reach_err then return nil, reach_err end
     local id, err = resources.register("account", {title = label, agent = driver.id, credential_kind = kind.id,
-        subscription = kind.subscription, enabled = true, endpoint_protocol = reach and reach.protocol or "",
+        subscription = kind.subscription, enabled = true, runs_day = 0, failures_day = 0, endpoint_protocol = reach and reach.protocol or "",
         endpoint_base_url = reach and reach.base_url or "", endpoint_model = reach and reach.model or ""}, {credential = credential})
     if not id then return nil, boundary.native(err) end
     return {id = id}, nil

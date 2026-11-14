@@ -3,6 +3,14 @@ local time = require("time")
 local settings = require("settings")
 type Input = {key: string, value: unknown}
 local function validate(input: Input): (boolean?, error?)
+    local bounds = settings.INTEGER_BOUNDS[input.key]
+    if bounds then
+        local minimum, maximum = bounds[1], bounds[2]
+        if type(input.value) ~= "number" or input.value % 1 ~= 0 or input.value < minimum or input.value > maximum then
+            return nil, errors.new({kind = errors.INVALID, message = input.key .. " must be an integer between " .. tostring(minimum) .. " and " .. tostring(maximum)})
+        end
+        return true, nil
+    end
     if type(input.value) ~= "string" then
         return nil, errors.new({kind = errors.INVALID, message = "setting must be a duration"})
     end

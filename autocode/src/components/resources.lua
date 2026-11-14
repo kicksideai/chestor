@@ -10,9 +10,9 @@ local component_types = require("component_types")
 local recipe = require("recipe")
 
 type Object = {[string]: unknown}
-type Kind = "account" | "image" | "workspace"
--- access: the caller's effective mask on the resource; owner: the creating user.
-type Resource = {id: string, kind: Kind, meta: Object, access: integer, owner: string}
+type Kind = "account" | "image" | "workspace" | "profile"
+-- access: the caller's effective mask on the resource; owner_user_id: the creating user (owner is the legacy DTO alias).
+type Resource = {id: string, kind: Kind, meta: Object, access: integer, owner_user_id: string, owner: string}
 -- revision: the private context revision a compare-and-set write expects.
 type Context = {values: Object, revision: integer, access: integer}
 
@@ -21,6 +21,7 @@ local M = {}
 M.ACCESS = component.ACCESS
 
 M.KINDS = {
+    profile = "chestor.autocode.components:profile",
     account = "chestor.autocode.components:account",
     image = "chestor.autocode.components:image",
     workspace = "chestor.autocode.components:workspace",
@@ -51,9 +52,9 @@ end
 
 local function resource(kind: Kind, row: component_types.ComponentRow): Resource
     local meta = object(row.meta)
-    local owner = meta.owner
+    local owner_user_id = meta.owner
     return {id = tostring(row.component_id), kind = kind, meta = meta, access = math.floor(tonumber(row.access_level) or 0),
-        owner = type(owner) == "string" and owner or ""}
+        owner_user_id = type(owner_user_id) == "string" and owner_user_id or "", owner = type(owner_user_id) == "string" and owner_user_id or ""}
 end
 
 -- Public meta stores flat strings: a boolean reads back as "true" or
@@ -84,7 +85,17 @@ function M.has(access: integer, required: integer): boolean
 end
 
 -- list returns every resource of the kind the caller can read.
-function M.list(kind: Kind): ({Resource}?, error?)
+function M.list(kind: Kind, limit: integer?, start: integer?): ({Resource}?, error?, integer?)
+    if limit then
+        local rows, err = component.query({impl_ids = {M.KINDS[kind]}, include = {meta = true, access = true},
+            order_by = {field = "created_at", direction = "ASC"}, limit = limit + 1, offset = start or 0})
+        if not rows then return nil, err end
+        local more = #rows > limit
+        if more then table.remove(rows) end
+        local page: {Resource} = table.create(1, 0)
+        for _, row in ipairs(rows) do page[#page + 1] = resource(kind, row) end
+        return page, nil, more and ((start or 0) + limit) or nil
+    end
     local result: {Resource} = {}
     local offset = 0
     while true do
@@ -104,6 +115,9 @@ function M.get(kind: Kind, id: string, required: integer): (Resource?, error?)
     if err then return nil, err end
     local row = rows and rows[1]
     if not row then return nil, errors.new({kind = errors.NOT_FOUND, message = kind .. " not found"}) end
+    if kind == "workspace" and row.deleting_at and row.deleting_at ~= "" then
+        return nil, errors.new({kind = errors.CONFLICT, message = "workspace is deleting"})
+    end
     return resource(kind, row), nil
 end
 
@@ -118,6 +132,9 @@ function M.context(kind: Kind, id: string, required: integer): (Context?, error?
     if call_err then return nil, envelope.call_error(call_err, "get_access_context") end
     local result_err = envelope.error_of(result :: component_types.ServiceEnvelope, "get_access_context")
     if result_err then return nil, result_err end
+    if kind == "workspace" and result.deleting_at and result.deleting_at ~= "" then
+        return nil, errors.new({kind = errors.CONFLICT, message = "workspace is deleting"})
+    end
     return {values = object(result.context), revision = math.floor(tonumber(result.context_revision) or 0),
         access = math.floor(tonumber(result.access_level) or 0)}, nil
 end
@@ -169,10 +186,10 @@ function M.replace(id: string, fields: Object, patch: Object?, revision: integer
 end
 
 -- delete removes a resource the caller may delete, running its teardown.
-function M.delete(id: string): (error?, Object?)
+function M.delete(id: string, options: Object?): (error?, Object?)
     local svc, svc_err = service()
     if not svc then return svc_err end
-    local result, call_err = svc:delete({component_id = id})
+    local result, call_err = svc:delete({component_id = id, delete_options = options})
     if call_err then return envelope.call_error(call_err, "delete_component") end
     local err = envelope.error_of(result :: component_types.ServiceEnvelope, "delete_component")
     if err then return err, nil end

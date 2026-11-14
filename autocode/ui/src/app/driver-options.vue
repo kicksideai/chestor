@@ -6,7 +6,7 @@ import addFormats from 'ajv-formats'
 import { batchOptions } from './defaults.ts'
 import type { DriverOption } from './api.ts'
 
-const props = defineProps<{ options: DriverOption[]; modelValue: Record<string, unknown>; locked?: Record<string, unknown> }>()
+const props = defineProps<{ options: DriverOption[]; modelValue: Record<string, unknown>; defaults?: Record<string, unknown> }>()
 const emit = defineEmits<{ 'update:modelValue': [value: Record<string, unknown>]; invalid: [count: number] }>()
 const filter = ref('')
 const drafts = ref<Record<string, string>>({})
@@ -27,9 +27,9 @@ const visible = computed(() => {
 const setCount = computed(() => Object.keys(props.modelValue).length)
 
 // Snapshots distinguish authoritative changes from edits to another option.
-watch(() => Object.fromEntries(props.options.map(o => [o.name, JSON.stringify([props.modelValue[o.name], props.locked?.[o.name], o])])), (next, previous) => {
+watch(() => Object.fromEntries(props.options.map(o => [o.name, JSON.stringify([props.modelValue[o.name], o])])), (next, previous) => {
   for (const name of Object.keys(drafts.value)) {
-    if (next[name] !== previous?.[name] || (props.locked && name in props.locked) || !(name in next)) {
+    if (next[name] !== previous?.[name] || !(name in next)) {
       delete drafts.value[name]
       delete invalid.value[name]
     }
@@ -96,7 +96,8 @@ function selected(option: DriverOption): string {
   return value === undefined ? '' : String(value)
 }
 function fallback(option: DriverOption): string {
-  return option.default === undefined || option.default === null ? 'CLI default' : `default: ${JSON.stringify(option.default)}`
+  const value = props.defaults?.[option.name] ?? option.default
+  return value === undefined || value === null ? 'CLI default' : `default: ${JSON.stringify(value)}`
 }
 </script>
 
@@ -110,8 +111,7 @@ function fallback(option: DriverOption): string {
         <span class="ac-mono">{{ o.name }}</span>
         <small class="ac-muted">{{ o.label }}<template v-if="o.description && o.description !== o.label"> — {{ o.description }}</template></small>
       </div>
-      <small v-if="locked && o.name in locked" class="ac-muted ac-mono">{{ JSON.stringify(locked[o.name]) }} · set by unattended mode</small>
-      <select v-else-if="o.type === 'boolean' || o.type === 'enum'" class="kx-focus-halo" :aria-label="o.label || o.name" :aria-invalid="!!invalid[o.name]" :aria-describedby="invalid[o.name] ? `${prefix}-${o.name}-error` : undefined" :value="selected(o)" @change="choose(o, $event)">
+      <select v-if="o.type === 'boolean' || o.type === 'enum'" class="kx-focus-halo" :aria-label="o.label || o.name" :aria-invalid="!!invalid[o.name]" :aria-describedby="invalid[o.name] ? `${prefix}-${o.name}-error` : undefined" :value="selected(o)" @change="choose(o, $event)">
         <option value="">{{ fallback(o) }}</option>
         <template v-if="o.type === 'boolean'"><option value="true">on</option><option value="false">off</option></template>
         <template v-else><option v-for="v in o.values ?? []" :key="String(v)" :value="String(v)">{{ v }}</option></template>

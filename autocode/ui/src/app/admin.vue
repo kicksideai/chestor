@@ -22,7 +22,10 @@ const { catalog, error, load } = useCatalog()
 const allowedTabs = computed(() => tabs.filter(t => t.id === 'images' ? catalog.value?.can_images : t.id === 'workspaces' ? catalog.value?.can_workspaces : catalog.value?.can_prune))
 watch(allowedTabs, list => { if (!list.some(t => t.id === tab.value)) tab.value = list[0]?.id }, { immediate: true })
 const query = ref('')
-const count = ref(0)
+const imageCount = ref(0)
+const workspaceCount = ref(0)
+const registrationNeeded = ref(0)
+const count = computed(() => tab.value === 'images' ? imageCount.value : workspaceCount.value)
 const images = ref<InstanceType<typeof ImagesTab> | null>(null)
 const workspaces = ref<InstanceType<typeof WorkspacesTab> | null>(null)
 function create() { if (tab.value === 'images') images.value?.open(); else workspaces.value?.open() }
@@ -33,21 +36,25 @@ function create() { if (tab.value === 'images') images.value?.open(); else works
     <PageHead title="Autocode" subtitle="Manage agent images, workspaces and Docker." :count="tab && tab !== 'docker' ? `${count} ${count === 1 ? tab.slice(0, -1) : tab}` : undefined" :action="tab === 'images' ? 'Add image' : tab === 'workspaces' ? 'Add workspace' : undefined" v-model:query="query" :placeholder="tab === 'docker' ? undefined : 'Search resources…'" @create="create" />
     <div class="ac-bar">
       <nav class="ac-tabs" aria-label="Autocode management">
-        <button v-for="t in allowedTabs" :key="t.id" type="button" class="ac-tab kx-focus-outline" :class="{ active: tab === t.id }" :aria-pressed="tab === t.id" @click="if (tab !== t.id) { tab = t.id; query = ''; count = 0 }">
+        <button v-for="t in allowedTabs" :key="t.id" type="button" class="ac-tab kx-focus-outline" :class="{ active: tab === t.id }" :aria-pressed="tab === t.id" @click="if (tab !== t.id) { tab = t.id; query = '' }">
           <Icon :icon="t.icon" /> {{ t.label }}
         </button>
       </nav>
     </div>
 
+    <p v-if="catalog?.can_workspaces && registrationNeeded" class="ac-hint" role="status">
+      {{ registrationNeeded }} {{ registrationNeeded === 1 ? 'workspace needs' : 'workspaces need' }} re-registration. Review the refusal reason, settle any active runs, then delete the old workspace and add it through Autocode. Update saved references to the new workspace.
+      <button type="button" class="ac-link kx-focus-outline" @click="tab = 'workspaces'; query = ''">Review workspaces</button>
+    </p>
     <p v-if="error && !catalog" class="kx-err">
       {{ error }} <button class="ac-link kx-focus-outline" type="button" @click="load">Retry</button>
     </p>
     <div v-else-if="!catalog" class="kx-loading"><Icon icon="tabler:loader-2" class="spin" /> Loading…</div>
     <main v-else class="ac-body">
-      <ImagesTab v-if="tab === 'images'" ref="images" :query="query" @count="count = $event" />
-      <WorkspacesTab v-else-if="tab === 'workspaces'" ref="workspaces" :query="query" @count="count = $event" />
-      <MaintenanceTab v-else-if="tab === 'docker'" />
-      <p v-else class="ac-muted">No management areas are available.</p>
+      <ImagesTab v-if="tab === 'images'" ref="images" :query="query" @count="imageCount = $event" />
+      <WorkspacesTab v-if="catalog.can_workspaces" v-show="tab === 'workspaces'" ref="workspaces" :query="query" @count="workspaceCount = $event" @registration-needed="registrationNeeded = $event" />
+      <MaintenanceTab v-if="tab === 'docker'" />
+      <p v-if="!tab" class="ac-muted">No management areas are available.</p>
     </main>
   </div>
 </template>

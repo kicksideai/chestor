@@ -1,6 +1,6 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 -- Core continues full pages and wakes again at the next run expiry.
-local repo = require("repo")
+local prune = require("prune")
 local settings = require("settings")
 local time = require("time")
 
@@ -16,8 +16,17 @@ local function run(): {[string]: unknown}
     if duration:seconds() <= 0 then
         return {success = false, error = errors.new({kind = errors.INVALID, message = "run_retention must be positive: " .. retention})}
     end
+    local queue_window, queue_err = settings.get("queue_timeout")
+    if not queue_window then return {success = false, error = queue_err} end
+    local queue_duration, queue_parse_err = time.parse_duration(queue_window)
+    if not queue_duration or queue_duration:nanoseconds() <= 0 then
+        return {success = false, error = queue_parse_err or errors.new({kind = errors.INVALID, message = "queue_timeout must be a positive duration"})}
+    end
+    local queue_before = time.now():add(-queue_duration:nanoseconds()):utc():format_rfc3339()
+    local queue_more, expire_err, next_queued = prune.expire_queued(queue_before, BATCH)
+    if expire_err then return {success = false, error = expire_err} end
     local before = time.now():add(-duration:nanoseconds()):utc():format_rfc3339()
-    local deleted, err, progress = repo.prune_runs(before, BATCH)
+    local deleted, err, progress = prune.prune_runs(before, BATCH)
     if err then return {success = false, error = err} end
     if deleted == nil or not progress then
         return {success = false, error = errors.new({kind = errors.INTERNAL, message = "run retention returns no progress"})}
@@ -31,7 +40,13 @@ local function run(): {[string]: unknown}
         -- Stored run timestamps and the strict cutoff have second precision.
         deadline_ms = (finished:unix() * 1000 + duration:milliseconds() + 1000) :: integer
     end
-    return {success = true, deleted = deleted, needs_continue = progress.needs_continue,
+    if next_queued then
+        local created, created_err = time.parse(time.RFC3339, next_queued)
+        if not created then return {success = false, error = created_err} end
+        local queue_deadline = (created:unix() * 1000 + queue_duration:milliseconds() + 1000) :: integer
+        deadline_ms = deadline_ms and math.min(deadline_ms, queue_deadline) or queue_deadline
+    end
+    return {success = true, deleted = deleted, needs_continue = progress.needs_continue or queue_more,
         deadline_ms = deadline_ms}
 end
 

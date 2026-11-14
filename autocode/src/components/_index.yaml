@@ -2,10 +2,10 @@
 version: "1.0"
 namespace: chestor.autocode.components
 
-# Agent accounts, Docker images and host workspaces are Kickside components:
+# Agent profiles, accounts, Docker images and host workspaces are Kickside components:
 # owner and group grants decide who sees and uses each one, private context
 # holds what a run needs, and deleting one runs the
-# module's teardown. All three are standalone kinds listed on the Autocode
+# module's teardown. All four are standalone kinds listed on the Autocode
 # pages, never placed in the workspace tree.
 
 entries:
@@ -33,6 +33,7 @@ entries:
   - name: image
     kind: contract.binding
     meta:
+      mutation: closed
       title: Agent image
       comment: A Docker image with agent CLIs and its container run settings. READ lets a member run tasks in it.
       icon: tabler:brand-docker
@@ -53,6 +54,7 @@ entries:
   - name: workspace
     kind: contract.binding
     meta:
+      mutation: closed
       title: Agent workspace
       comment: A host directory runs mount at /workspace. READ mounts it read-only, WRITE mounts it read-write.
       icon: tabler:folder
@@ -104,6 +106,7 @@ entries:
     imports:
       repo: chestor.autocode.persist:repo
       image_tags: chestor.autocode.infrastructure:image_tags
+      docker_image: chestor.autocode.infrastructure:docker_image
     security:
       policies: [chestor.autocode.security:store]
 
@@ -111,13 +114,14 @@ entries:
   - name: delete_image
     kind: function.lua
     meta:
-      comment: Image teardown - drains its build and releases its generation tags; the user reference stays unless the administrator removes it.
+      comment: Image teardown drains its build, releases generation tags and applies requested reference removal.
     source: file://teardown.lua
     method: delete_image
     modules: [ctx]
     imports:
       repo: chestor.autocode.persist:repo
       image_tags: chestor.autocode.infrastructure:image_tags
+      docker_image: chestor.autocode.infrastructure:docker_image
     security:
       policies: [chestor.autocode.security:store, chestor.autocode.security:docker_commands]
 
@@ -125,12 +129,36 @@ entries:
   - name: delete_workspace
     kind: function.lua
     meta:
-      comment: Workspace teardown - a workspace owns no module rows, and its host directory is never removed.
+      comment: Remove workspace admission; leave its host directory in place.
     source: file://teardown.lua
     method: delete_workspace
     modules: [ctx]
     imports:
       repo: chestor.autocode.persist:repo
       image_tags: chestor.autocode.infrastructure:image_tags
+      docker_image: chestor.autocode.infrastructure:docker_image
     security:
       policies: [chestor.autocode.security:store]
+
+  - name: profile
+    kind: contract.binding
+    meta:
+      title: Agent profile
+      comment: Named harness defaults without credentials. READ permits selection; referenced resources retain their own grants.
+      icon: tabler:robot
+      class: [chestor.autocode.profile]
+      placement:
+        parents: [root]
+        fixed: true
+    contracts:
+      - contract: kickside.contract:component
+        methods:
+          get_status: chestor.autocode.components:status
+      - contract: kickside.contract:deletable
+        methods:
+          delete: chestor.autocode.components:delete_profile
+
+  - name: delete_profile
+    kind: function.lua
+    source: 'return {delete = function() return {success = true} end}'
+    method: delete

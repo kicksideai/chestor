@@ -17,20 +17,20 @@ dev: ui-kit
 lint:
 	cd test && wippy install $(WIPPY_INSTALL_ARGS) $(RUNTIME_ARGS) && wippy lint $(WIPPY_LINT_ARGS) $(RUNTIME_ARGS) --ns 'chestor.autocode' --ns 'chestor.autocode.*'
 test:
-	@cd test; wippy install $(WIPPY_INSTALL_ARGS) $(RUNTIME_ARGS); mkdir -p .wippy; \
+	@cd test; wippy install $(WIPPY_INSTALL_ARGS) $(RUNTIME_ARGS); mkdir -p .wippy/workspaces; \
 	db=.wippy/run-$$(date +%s%N).db; \
-	trap 'rm -f "$$db" "$$db-wal" "$$db-shm"' EXIT; \
-	wippy test $(WIPPY_TEST_ARGS) $(RUNTIME_ARGS) $(TEST_ARGS) --set vars.sqlite_path=./$$db 2>&1 | tee .wippy/last-test-run.log; \
+	trap 'rm -f "$$db" "$$db-wal" "$$db-shm" "$$db-upgrade" "$$db-upgrade-wal" "$$db-upgrade-shm"' EXIT; \
+	wippy test --set vars.upgrade_sqlite_path=./$$db-upgrade $(WIPPY_TEST_ARGS) $(RUNTIME_ARGS) $(TEST_ARGS) --set vars.sqlite_path=./$$db 2>&1 | tee .wippy/last-test-run.log; \
 	sed -E 's/\x1B\[[0-9;?]*[[:alpha:]]//g' .wippy/last-test-run.log | \
 	awk '/No tests found/ { empty=1 } /^[[:space:]]*FAILED([[:space:]]|$$)/ { failed=1 } /^[[:space:]]*PASSED([[:space:]]|$$)/ { passed=1 } END { exit(empty || failed || !passed) }'
 # A dedicated database per run keeps tests independent of other applications.
 test-pg:
-	@cd test; wippy install $(WIPPY_INSTALL_ARGS) $(RUNTIME_ARGS); mkdir -p .wippy; \
+	@cd test; wippy install $(WIPPY_INSTALL_ARGS) $(RUNTIME_ARGS); mkdir -p .wippy/workspaces; \
 	db=chestor_autocode_test_$$(date +%s%N); \
-	psql "$(PG_URL)" -qc "CREATE DATABASE $$db"; \
-	trap 'psql "$(PG_URL)" -qc "DROP DATABASE $$db WITH (FORCE)"' EXIT; \
+	psql "$(PG_URL)" -qc "CREATE DATABASE $$db"; psql "$(PG_URL)" -qc "CREATE DATABASE $${db}_upgrade"; \
+	trap 'psql "$(PG_URL)" -qc "DROP DATABASE $$db WITH (FORCE)"; psql "$(PG_URL)" -qc "DROP DATABASE $${db}_upgrade WITH (FORCE)"' EXIT; \
 	wippy lint $(WIPPY_LINT_ARGS) --ns 'chestor.autocode' --ns 'chestor.autocode.*' --profile postgres --set vars.pg_database=$$db $(RUNTIME_ARGS); \
-	wippy test $(WIPPY_TEST_ARGS) --profile postgres --set vars.pg_database=$$db $(RUNTIME_ARGS) $(TEST_ARGS) 2>&1 | tee .wippy/last-test-pg-run.log; \
+	wippy test --set vars.upgrade_sqlite_path=./$$db-upgrade $(WIPPY_TEST_ARGS) --profile postgres --set vars.pg_database=$$db $(RUNTIME_ARGS) $(TEST_ARGS) 2>&1 | tee .wippy/last-test-pg-run.log; \
 	sed -E 's/\x1B\[[0-9;?]*[[:alpha:]]//g' .wippy/last-test-pg-run.log | \
 	awk '/No tests found/ { empty=1 } /^[[:space:]]*FAILED([[:space:]]|$$)/ { failed=1 } /^[[:space:]]*PASSED([[:space:]]|$$)/ { passed=1 } END { exit(empty || failed || !passed) }'
 typecheck: ui-kit
@@ -50,6 +50,12 @@ ui-kit:
 ui-test: ui-kit
 	cd ui && npm test
 check:
+	python3 scripts/mount-alias.test.py
+	python3 scripts/client-boundary.test.py
+	node scripts/materialize-contracts.mjs --check
+	node scripts/module-rules.test.mjs
+	node scripts/materialize-contracts.test.mjs
+	node scripts/least-privilege.test.mjs
 	node scripts/check-module.mjs
 verify:
 	$(MAKE) lint

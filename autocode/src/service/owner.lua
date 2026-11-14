@@ -4,12 +4,15 @@
 -- owner's current grants and reading the account credential, keeping a login
 -- file the CLI refreshed, and reading an image's recipe.
 -- A grant lost since submission refuses the work here.
+local image_state = require("image_state")
 local repo = require("repo")
+local limits = require("limits")
 local runs = require("runs")
 local resources = require("resources")
 local security = require("security")
 local transport = require("transport")
 local credentials = require("credentials")
+local gateway = require("gateway")
 local drivers = require("drivers")
 
 type Recipe = transport.Recipe
@@ -21,9 +24,9 @@ local function owner(): (string?, error?)
 end
 
 local function prepare(args: {run_id: string}): ({[string]: unknown}?, error?)
-    local owner_id, owner_err = owner()
-    if not owner_id then return nil, owner_err end
-    local run, run_err = repo.run(owner_id, args.run_id)
+    local owner_user_id, owner_err = owner()
+    if not owner_user_id then return nil, owner_err end
+    local run, run_err = repo.run(owner_user_id, args.run_id)
     if run_err then return nil, run_err end
     if not run then return nil, errors.new({kind = errors.NOT_FOUND, message = "run not found"}) end
     local request = runs.request(run)
@@ -33,15 +36,21 @@ local function prepare(args: {run_id: string}): ({[string]: unknown}?, error?)
         if not account then return nil, account_err end
         local states, state_err = repo.account_states({run.account_id})
         if not states then return nil, state_err end
-        rebalance = not resources.flag(account.meta.enabled, true) or states[run.account_id].cooldown_until > repo.now()
-        if rebalance then request.account_id = nil end
+        rebalance = not resources.flag(account.meta.enabled, true) or states[run.account_id].cooldown_until > repo.now() or limits.blocked(states[run.account_id].rate_limits, repo.now())
+        if rebalance then
+            request.account_id = nil
+            if run.account_endpoint then request.endpoint = nil end
+        end
     end
     local admitted, admit_err = runs.admit(request, true)
     if not admitted then return nil, admit_err end
     if rebalance then
-        local selected, reserve_err = repo.rebalance_run(run.id, admitted.candidates)
+        local selected, reserve_err = repo.rebalance_run(run.id, admitted.candidates, run.account_endpoint and admitted.spec.account_endpoints or nil)
         if not selected then return nil, reserve_err end
-        request.account_id = selected
+        local reserved, read_err = repo.run(owner_user_id, run.id)
+        if read_err then return nil, read_err end
+        if not reserved then return nil, errors.new({kind = errors.NOT_FOUND, message = "reserved run not found", details = {code = "autocode.run_not_found"}}) end
+        request = runs.request(reserved)
         admitted, admit_err = runs.admit(request, true)
         if not admitted then return nil, admit_err end
     end
@@ -53,7 +62,17 @@ local function prepare(args: {run_id: string}): ({[string]: unknown}?, error?)
         return nil, errors.new({kind = errors.INVALID, message = "account " .. admitted.account.label .. " holds no credential"})
     end
     local image = admitted.image
-    return {agent = admitted.driver.id, account_id = admitted.account.id, kind = {id = admitted.account.kind.id},
+    local gateway_token: string? = nil
+    if admitted.surface and #admitted.surface.tools > 0 then
+        local binding, binding_err = gateway.issue(run.id, admitted.surface, run.timeout_ms)
+        if not binding then return nil, binding_err end
+        gateway_token = binding.token
+        admitted.launch_request.gateway = binding.gateway
+        local launch, launch_err = drivers.launch(admitted.driver.id, admitted.launch_request)
+        if not launch then return nil, launch_err end
+        admitted.launch = launch
+    end
+    return {gateway_token = gateway_token, agent = admitted.driver.id, account_id = admitted.account.id, kind = {id = admitted.account.kind.id},
         image = {id = image.id, ref = image.ref, home = image.home, memory = image.memory, cpus = image.cpus,
             pids_limit = image.pids_limit, gpus = image.gpus, network = image.network, extra_args = image.extra_args},
         workspace = admitted.workspace, workdir = admitted.workdir, launch = admitted.launch,
@@ -63,9 +82,9 @@ end
 -- keep_credential stores a login file the CLI refreshed during the run, only
 -- while the stored credential is still the revision the run started with.
 local function keep_credential(args: {run_id: string, account_id: string, credential: string, credential_kind: string, revision: integer}): (boolean?, error?)
-    local owner_id, owner_err = owner()
-    if not owner_id then return nil, owner_err end
-    local run, run_err = repo.run(owner_id, args.run_id)
+    local owner_user_id, owner_err = owner()
+    if not owner_user_id then return nil, owner_err end
+    local run, run_err = repo.run(owner_user_id, args.run_id)
     if not run then return nil, run_err or errors.new({kind = errors.NOT_FOUND, message = "run not found"}) end
     if run.account_id ~= args.account_id or run.status ~= "running" then
         return nil, errors.new({kind = errors.CONFLICT, message = "run no longer maintains this account"})
@@ -109,7 +128,7 @@ local function image_ready(args: {image_id: string, build_id: string}): (boolean
     if build.build_id ~= args.build_id or build.status ~= "ready" or not build.recipe then
         return nil, errors.new({kind = errors.CONFLICT, message = "image build is no longer ready"})
     end
-    local write_err = resources.replace(args.image_id, {status = "ready", agents = build.agents, last_error = build.last_error}, nil, build.recipe.revision)
+    local write_err = resources.replace(args.image_id, image_state.fields(build, true), nil, build.recipe.revision)
     if write_err then return nil, write_err end
     return true, nil
 end

@@ -13,7 +13,7 @@ import AppDialog from './app-dialog.vue'
 const alive = useAlive()
 const topicIds = ref<string[]>([])
 const props = defineProps<{ query: string }>()
-const emit = defineEmits<{ count: [value: number] }>()
+const emit = defineEmits<{ count: [value: number]; 'registration-needed': [value: number] }>()
 const adding = ref(false)
 defineExpose({ open: () => { adding.value = true } })
 const workspaces = ref<Workspace[]>([])
@@ -35,12 +35,12 @@ watch(hostPath, path => {
 
 const refresh = serial(async () => {
   try {
-    const data = await reconcile(autocode.workspaces, data => data.workspaces.map(w => w.id), topicIds, alive)
-    if (!alive()) return
-    workspaces.value = data.workspaces
-    roots.value = data.roots ?? []
-    loaded.value = true
-    error.value = ''
+    await reconcile(autocode.workspaces, data => data.workspaces.map(w => w.id), topicIds, alive, data => {
+      workspaces.value = data.workspaces
+      roots.value = data.roots ?? []
+      loaded.value = true
+      error.value = ''
+    }, () => { void refresh() })
   } catch (e) {
     if (alive()) error.value = errorText(e, 'Could not load workspaces.')
   }
@@ -85,7 +85,7 @@ async function remove(w: Workspace) {
   }
 }
 const filtered = computed(() => workspaces.value.filter(w => [w.name, w.host_path].join(' ').toLowerCase().includes(props.query.toLowerCase())))
-watch(workspaces, value => emit('count', value.length))
+watch(workspaces, value => { emit('count', value.length); emit('registration-needed', value.filter(w => w.unavailable_reason).length) })
 </script>
 
 <template>
@@ -99,7 +99,7 @@ watch(workspaces, value => emit('count', value.length))
     <ul class="ac-list ac-resource-list">
       <li v-for="w in filtered" :key="w.id" class="ac-row ac-resource">
         <span class="ac-resource-icon"><Icon icon="tabler:folder" /></span>
-        <div class="ac-account-main"><div class="ac-row-title">{{ w.name }}<span class="kx-tag-sm ac-tone">{{ w.writable ? 'read-write' : 'read-only' }}</span></div><div v-if="w.host_path" class="ac-muted ac-mono">{{ w.host_path }}</div></div>
+        <div class="ac-account-main"><div class="ac-row-title">{{ w.name }}<span class="kx-tag-sm ac-tone">{{ w.writable ? 'read-write' : 'read-only' }}</span></div><div v-if="w.unavailable_reason" class="ac-muted">{{ w.unavailable_reason }}</div><div v-for="conflict in w.conflicts" :key="conflict.id" class="ac-muted">Conflicts with {{ conflict.id }}: <span class="ac-mono">{{ conflict.host_path }}</span></div><div v-if="w.host_path" class="ac-muted ac-mono">{{ w.host_path }}</div></div>
         <div class="ac-row-actions"><ShareControl v-if="w.shareable" :id="w.id" :title="w.name" /><button v-if="w.deletable" type="button" class="ac-icon-btn kx-focus-outline" title="Delete workspace" aria-label="Delete workspace" @click="remove(w)"><Icon icon="tabler:trash" /></button></div>
       </li>
     </ul>

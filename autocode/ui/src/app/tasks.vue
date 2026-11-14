@@ -49,11 +49,9 @@ const refreshAll = serial(async () => {
   generation++
   refreshing.value = true
   try {
-    const [a, i, r, w] = await reconcile(
+    await reconcile(
       () => Promise.all([autocode.accounts(), autocode.images(), refreshRuns(), autocode.workspaces()]),
-      ([a, i, , w]) => [...a, ...i, ...w.workspaces].map(item => item.id), topicIds, alive,
-    )
-    if (!alive()) return
+      ([a, i, , w]) => [...a, ...i, ...w.workspaces].map(item => item.id), topicIds, alive, ([a, i, r, w]) => {
     accounts.value = a
     images.value = i
     runs.value = r.runs
@@ -61,6 +59,7 @@ const refreshAll = serial(async () => {
     workspaces.value = w.workspaces
     loaded.value = true
     error.value = ''
+    }, () => { void refreshAll() })
   } catch (e) {
     if (alive()) error.value = errorText(e, 'Could not load tasks.')
   } finally { if (alive()) refreshing.value = false }

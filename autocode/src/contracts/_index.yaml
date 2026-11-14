@@ -137,3 +137,59 @@ entries:
       add_account: chestor.autocode.service:add_account
       update_account: chestor.autocode.service:update_account
       remove_account: chestor.autocode.service:remove_account
+
+- name: profiles
+  kind: contract.definition
+  meta: {title: Autocode profiles}
+  methods:
+  - name: list_profiles
+    description: List caller-readable profiles without credentials.
+    input_schemas:
+    - format: application/schema+json
+      definition: file://list_profiles.input.schema.json
+    output_schemas:
+    - format: application/schema+json
+      definition: file://list_profiles.output.schema.json
+  - name: get_profile
+    description: Read one caller-readable profile with its complete configuration.
+    input_schemas:
+    - format: application/schema+json
+      definition: file://get_profile.input.schema.json
+    output_schemas:
+    - format: application/schema+json
+      definition: file://get_profile.output.schema.json
+  - name: add_profile
+    description: Add an owned profile using the harness option catalog.
+    input_schemas:
+    - format: application/schema+json
+      definition: file://add_profile.input.schema.json
+    output_schemas:
+    - format: application/schema+json
+      definition: file://add_profile.output.schema.json
+  - name: update_profile
+    description: Update a WRITE-authorized profile.
+    input_schemas:
+    - format: application/schema+json
+      definition: file://update_profile.input.schema.json
+    output_schemas:
+    - format: application/schema+json
+      definition: file://update_profile.output.schema.json
+  - name: remove_profile
+    description: Remove a DELETE-authorized profile through component deletion.
+    input_schemas:
+    - format: application/schema+json
+      definition: file://remove_profile.input.schema.json
+    output_schemas:
+    - format: application/schema+json
+      definition: file://remove_profile.output.schema.json
+- name: profiles_binding
+  kind: contract.binding
+  contracts:
+  - contract: chestor.autocode:profiles
+    default: true
+    methods:
+      list_profiles: chestor.autocode.service:list_profiles
+      get_profile: chestor.autocode.service:get_profile
+      add_profile: chestor.autocode.service:add_profile
+      update_profile: chestor.autocode.service:update_profile
+      remove_profile: chestor.autocode.service:remove_profile

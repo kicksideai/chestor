@@ -63,9 +63,12 @@ export async function principalLabels(ids: string[]): Promise<Record<string, str
 }
 
 const idResponse = z.object({ id: z.string() })
-const cleanupResult = success.extend({ docker_error: errorFields.extend({ message: z.string() }).optional() })
 const imageCreated = idResponse.extend({ build_error: errorFields.extend({ message: z.string() }).optional() })
 export const autocode = {
+  profiles: () => call('get', '/profiles', z.object({ profiles: z.array(dto.profile) })).then(r => r.profiles),
+  createProfile: (body: dto.ProfileInput) => call('post', '/profiles', idResponse, body),
+  updateProfile: (id: string, body: Partial<dto.ProfileInput>) => call('put', `/profiles/${encodeURIComponent(id)}`, idResponse, body),
+  deleteProfile: (id: string) => call('delete', `/profiles/${encodeURIComponent(id)}`, success),
   catalog: () => call('get', '/catalog', dto.catalog),
   accounts: () => call('get', '/accounts', z.object({ accounts: z.array(dto.account) })).then(r => r.accounts),
   createAccount: (body: DriverAccountSubmit) => call('post', '/accounts', idResponse, body),
@@ -75,14 +78,14 @@ export const autocode = {
   image: (id: string) => call('get', `/images/${encodeURIComponent(id)}`, dto.imageDetail),
   createImage: (body: ImageSettings & { ref: string; dockerfile: string }) => call('post', '/images', imageCreated, body),
   updateImage: (id: string, body: ImageSettings & { ref: string; dockerfile: string }) => call('put', `/images/${encodeURIComponent(id)}`, imageCreated, body),
-  deleteImage: (id: string, removeFromDocker: boolean) => call('delete', `/images/${encodeURIComponent(id)}${removeFromDocker ? '?remove=1' : ''}`, cleanupResult),
+  deleteImage: (id: string, removeFromDocker: boolean) => call('delete', `/images/${encodeURIComponent(id)}${removeFromDocker ? '?remove=1' : ''}`, success),
   prepareImage: (id: string) => call('post', `/images/${encodeURIComponent(id)}/prepare`, success),
   prune: () => call('post', '/maintenance/prune', z.object({ output: z.string() })).then(r => r.output),
   workspaces: () => call('get', '/workspaces', z.object({ workspaces: z.array(dto.workspace), roots: z.array(z.string()).optional() })),
-  createWorkspace: (body: { name: string; host_path: string }) => call('post', '/workspaces', idResponse, body),
+  createWorkspace: (body: { name: string; host_path: string; }) => call('post', '/workspaces', idResponse, body),
   deleteWorkspace: (id: string) => call('delete', `/workspaces/${encodeURIComponent(id)}`, success),
   runs: (cursor?: string) => call('get', `/runs${cursor ? '?cursor=' + encodeURIComponent(cursor) : ''}`, z.object({ runs: z.array(dto.runSummary), next_cursor: z.string().optional() })),
   run: (id: string, afterSeq?: number, beforeSeq?: number) => call('get', `/runs/${encodeURIComponent(id)}?${beforeSeq === undefined ? `after_seq=${afterSeq ?? 0}` : `before_seq=${beforeSeq}`}`, dto.runPage),
-  startRun: (body: { idempotency_key?: string; agent: string; account_id: string; image_id: string; workspace_id: string; repo_url: string; repo_ref?: string; timeout?: string; prompt: string; options: Record<string, unknown>; unattended: boolean }) => call('post', '/runs', z.object({ run_id: z.string() }), body),
+  startRun: (body: { tools?: dto.ProfileInput['tools']; idempotency_key?: string; profile_id?: string; agent?: string; account_id?: string; account_pool?: string[]; endpoint?: dto.Endpoint; image_id?: string; workspace_id?: string; repo_url?: string; repo_ref?: string; timeout?: string; prompt: string; options: Record<string, unknown>; unattended?: boolean }) => call('post', '/runs', z.object({ run_id: z.string(), notification_error: dto.nativeError.optional() }), body),
   cancelRun: (id: string) => call('post', `/runs/${encodeURIComponent(id)}/cancel`, success),
 }

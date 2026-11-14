@@ -70,6 +70,21 @@ local function cases()
                 test.eq(response.status, 400, response.body)
             end
         end)
+        test.it("validates event budgets and the workflow delivery window through Settings", function()
+            local admin = track(identity.admin())
+            for _, setting in ipairs({{key = "run_event_count", good = 4, bad = {3, 100001, 4.5}},
+                {key = "run_event_bytes", good = 1024, bad = {1023, 1073741825, 2048.5}},
+                {key = "workflow_delivery_timeout", good = "1h", bad = {"0s", "-1s", "invalid"}}}) do
+                local accepted = identity.request(admin, "PUT", "/settings", {namespace = "chestor.autocode", key = setting.key, value = setting.good})
+                identity.request(admin, "PUT", "/settings", {namespace = "chestor.autocode", key = setting.key})
+                test.eq(accepted.status, 200, accepted.body)
+                for _, value in ipairs(setting.bad) do
+                    local rejected = identity.request(admin, "PUT", "/settings", {namespace = "chestor.autocode", key = setting.key, value = value})
+                    identity.request(admin, "PUT", "/settings", {namespace = "chestor.autocode", key = setting.key})
+                    test.eq(rejected.status, 400, rejected.body)
+                end
+            end
+        end)
         test.it("bounds the run timeout setting at seven days", function()
             local admin = track(identity.admin())
             local accepted = identity.request(admin, "PUT", "/settings", {namespace = "chestor.autocode", key = "run_timeout", value = "168h"})

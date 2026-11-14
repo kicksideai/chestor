@@ -132,8 +132,8 @@ async function save() {
       </div>
     </div>
     <label class="ac-field">
-      <span>Extra docker run arguments</span>
-      <textarea v-model="form.extra" rows="3" class="ac-mono kx-focus-halo" placeholder="One argument per line, e.g.&#10;--device=/dev/dri&#10;--shm-size=2g" />
+      <span>Docker host aliases</span>
+      <textarea v-model="form.extra" rows="3" class="ac-mono kx-focus-halo" placeholder="One argument per line, e.g.&#10;--add-host&#10;host.docker.internal:host-gateway" />
     </label>
     <footer class="ac-dialog-foot"><button type="button" class="ac-btn kx-focus-halo" @click="emit('cancel')">Cancel</button>
     <button type="button" class="ac-btn primary kx-focus-halo" :disabled="saving || !capabilities || !form.ref" @click="save">

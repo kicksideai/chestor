@@ -61,7 +61,6 @@
         },
         "usage": {
           "type": "object",
-          "additionalProperties": false,
           "properties": {
             "input_tokens": {
               "type": "number",
@@ -74,9 +73,66 @@
             "cached_tokens": {
               "type": "number",
               "minimum": 0
+            },
+            "cache_write_tokens": {
+              "type": "number",
+              "minimum": 0
+            },
+            "reasoning_tokens": {
+              "type": "number",
+              "minimum": 0
+            },
+            "cost_usd": {
+              "type": "number",
+              "minimum": 0
+            },
+            "cost_decimal": {
+              "type": "string"
+            },
+            "currency": {
+              "type": "string"
+            },
+            "models": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "input_tokens": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "output_tokens": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "cached_tokens": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "cache_write_tokens": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "reasoning_tokens": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "cost_usd": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "cost_decimal": {
+                    "type": "string"
+                  },
+                  "currency": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
             }
           },
-          "required": []
+          "additionalProperties": false
         },
         "cancel_requested": {
           "type": "boolean"
@@ -88,6 +144,54 @@
           "type": "string"
         },
         "finished_at": {
+          "type": "string"
+        },
+        "endpoint": {
+          "type": "object",
+          "properties": {
+            "protocol": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "base_url": {
+              "type": "string",
+              "maxLength": 512
+            },
+            "model": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          "required": [
+            "protocol",
+            "base_url"
+          ],
+          "additionalProperties": false
+        },
+        "error_native": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            },
+            "retryable": {
+              "type": "boolean"
+            },
+            "details": {
+              "type": "object",
+              "additionalProperties": {}
+            }
+          },
+          "required": [
+            "kind",
+            "message"
+          ],
+          "additionalProperties": false
+        },
+        "owner_user_id": {
           "type": "string"
         }
       },
@@ -109,7 +213,8 @@
         "cancel_requested",
         "created_at",
         "started_at",
-        "finished_at"
+        "finished_at",
+        "owner_user_id"
       ]
     },
     "events": {
@@ -132,7 +237,9 @@
               "tool_error",
               "system",
               "error",
-              "log"
+              "log",
+              "tool_call",
+              "hook"
             ]
           },
           "text": {

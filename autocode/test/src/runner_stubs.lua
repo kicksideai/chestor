@@ -1,7 +1,10 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 local time = require("time")
+local image_state = require("image_state")
+local events = require("events")
 local uuid = require("uuid")
 local M = {state = {}}
+M.workspace_host = {run = function(args) return args[#args] end, probe = function(path) return path end}
 local repo = {}
 local component = {}
 local execution_identity = {}
@@ -16,18 +19,25 @@ local jobs = {}
 local runs = {}
 local live = {}
 local deferred = {}
+local retention_notifier = {}
+function retention_notifier.notify(change)
+    M.state.retention_change = change
+    M.state.retention_committed = M.state.created ~= nil
+    return true, M.state.retention_error
+end
 local resources = {}
 local funcs = {}
 local exec = {}
 local settings = {MAX_RUN_TIMEOUT_MS = 604800000}
 function M.reset()
     M.state = {commands = {}, resumes = 0, projects = 0, fetches = 0, stopped = 0, removed = 0, events = {},
-        run = {agent = "claude", image_id = "image", id = "run", owner_id = "owner", account_id = "account", identity = {actor_id = "owner", actor_context = "{}"},
-            status = "queued", cancel_requested = false, repo_url = "", timeout_ms = 60000, started_at = ""},
+        run = {agent = "claude", image_id = "image", id = "run", owner_user_id = "owner", owner_id = "owner", account_id = "account", identity = {actor_id = "owner", actor_context = "{}"},
+            status = "queued", cancel_requested = false, repo_url = "", timeout_ms = 60000, started_at = "", finished_at = time.now():utc():format_rfc3339()},
         build = {build_id = "generation", job_id = "build-job", identity = {actor_id = "owner", actor_context = "{}"}, mode = "initial",
             finished_at = "", status = "preparing", agents = {}, last_error = "", projected = false}}
     return M.state
 end
+function repo.workspace_paths() return M.state.workspace_paths or {} end
 function repo.stored_run(id)
     if M.state.streaming then M.state.full_reads_during_stream = (M.state.full_reads_during_stream or 0) + 1 end
     if M.state.read_error then return nil, errors.new({kind = errors.UNAVAILABLE, message = "read failed"}) end
@@ -39,9 +49,11 @@ function repo.request_cancel()
     return true
 end
 function repo.cancel_requested()
+    if M.state.streaming then M.state.stream_cancel_reads = (M.state.stream_cancel_reads or 0) + 1 end
     M.state.cancel_reads = (M.state.cancel_reads or 0) + 1
     return M.state.run.cancel_requested
 end
+function repo.expire_delivery() M.state.expired = true; return nil end
 function repo.acknowledge_delivery() M.state.delivered = true; return nil end
 function funcs.call(entry, args)
     if entry == "chestor.autocode.persist:project_account" then return true, M.state.account_projection_error end
@@ -52,8 +64,9 @@ function funcs.call(entry, args)
     return true
 end
 function repo.image_build() return M.state.build end
-function repo.finish_image_build(_, log, generation, status, agents, problem, recipe)
+function repo.finish_image_build(_, log, generation, status, agents, problem, recipe, native)
     local build = M.state.build
+    build.error_native = native
     build.log = log
     build.recipe = recipe
     build.finished_at, build.status, build.agents, build.last_error = "finished", status, agents, problem
@@ -68,6 +81,7 @@ function repo.project_image_build(_, _, project)
 end
 function component.set_runtime_meta(_, fields)
     M.state.projects = M.state.projects + 1
+    if M.state.projection_cause then return false, M.state.projection_cause end
     if M.state.projection_error then return false, errors.new({kind = errors.UNAVAILABLE, message = "projection failed"}) end
     M.state.public = fields
     if M.state.on_meta then M.state.on_meta() end
@@ -82,10 +96,11 @@ end
 function execution_identity.from_row() return {} end
 function execution_identity.bind()
     return {call = function(_, entry)
-        if entry == "chestor.autocode.service:image_ready" then return component.set_runtime_meta("image", {status = "ready"}) end
-        if entry == "chestor.autocode.service:image_recipe" then return M.state.recipe or M.recipe_fixture() end
+        if entry == "chestor.autocode.service:image_ready" then return component.set_runtime_meta("image", image_state.fields(M.state.build, true)) end
+        if entry == "chestor.autocode.service:image_recipe" then return M.state.recipe or M.recipe_fixture(), M.state.recipe_error end
         if entry ~= "chestor.autocode.service:prepare" then error("unexpected owner call: " .. entry) end
-        return M.state.prepared
+        M.state.prepared_called = true
+        return M.state.prepared, M.state.prepare_error
     end}
 end
 function drivers.list() return M.state.drivers or {} end
@@ -110,6 +125,7 @@ function docker.run(args, opts)
         for _, line in ipairs(step.lines or {}) do if opts.on_line then opts.on_line(line) end end
         return step.code or 0, step.err
     end
+    if args[1] == "image" and args[2] == "ls" and args[5] == "{{.ID}}" then return 0 end
     if args[1] == "image" and args[2] == "inspect" and args[4] == "{{.Id}} {{len .RepoDigests}}" then
         opts.on_line("sha256:" .. string.rep("a", 64) .. " 0")
         return 0
@@ -130,20 +146,43 @@ function docker.run(args, opts)
         M.state.blanket_prune = true
         return 0
     elseif args[1] == "create" then
+        for _, line in ipairs(M.state.create_lines or {}) do if opts.on_line then opts.on_line(line) end end
+        if M.state.on_create then M.state.on_create(opts) end
+        if table.concat(args, " "):find("autocode-probe-", 1, true) then
+            M.state.probe_options = opts
+            if M.state.probe_create_error then return nil, M.state.probe_create_error end
+            return 0
+        end
         if M.state.cancel_on_create then M.state.run.cancel_requested = true end
         if M.state.create_error then return nil, M.state.create_error end
         return 0
     elseif args[1] == "start" then
+        if args[#args]:find("autocode-probe-", 1, true) then
+            M.state.fetches = M.state.fetches + 1
+            if M.state.runtime_missing then return 127 end
+            return 0
+        end
+        M.state.stop_signal = channel.new(1)
+        if M.state.on_attach then M.state.on_attach() end
         M.state.attached = true
         M.state.streaming = true
-        if M.state.cancel_on_attach then M.state.run.cancel_requested = true end
+        if M.state.idle_stream then time.sleep(M.state.idle_stream) end
+        if M.state.cancel_on_attach then M.state.run.cancel_requested = true; assert(events.send("chestor.autocode", "cancel.container", "container")) end
         if M.state.cancel_silently then
             M.state.run.cancel_requested = true
+            assert(events.send("chestor.autocode", "cancel.container", "container"))
             for i = 1, M.state.output_lines or 0 do if opts.on_line then opts.on_line("line " .. tostring(i)) end end
-            time.sleep("750ms")
-        elseif opts.on_line then opts.on_line("log line"); time.sleep("300ms") end
+        elseif opts.on_line then
+            opts.on_line(M.state.log_line or "log line")
+            if M.state.after_output then M.state.after_output() end
+        end
+        if M.state.run.cancel_requested then
+            local received = channel.select({M.state.stop_signal:case_receive(), time.after("5s"):case_receive()})
+            if received.channel ~= M.state.stop_signal then error("attachment never received Docker stop") end
+        end
+        M.state.stop_signal = nil
         M.state.streaming = false
-        return 0
+        return M.state.stream_code or 0
     end
     if args[1] == "run" and M.state.runtime_missing then return 127 end
     if args[1] ~= "run" and args[1] ~= "build" and args[1] ~= "pull"
@@ -155,18 +194,27 @@ function docker.run(args, opts)
     return 0
 end
 function repo.now() return "now" end
-function repo.record_account_error() end
-function repo.next_seq() if M.state.seq_error then return nil, M.state.seq_error end; return 1 end
-function repo.append_event(_, _, kind, text) table.insert(M.state.events, {kind = kind, text = text}) end
-function repo.finish_run(_, status, result, reason, usage)
+function repo.record_account_error(_, message)
+    if M.state.account_error_write_error then return M.state.account_error_write_error end
+    M.state.account_error = message
+end
+function repo.append_event(_, kind, text) if M.state.event_error then return M.state.event_error end; table.insert(M.state.events, {kind = kind, text = text}) end
+function repo.finish_run(_, status, result, reason, usage, _, native)
     M.state.run.status, M.state.run.result, M.state.run.error, M.state.run.usage = status, result, reason, usage
     M.state.settlements = (M.state.settlements or 0) + 1
     return true
 end
-function repo.record_run_outcome(_, status, result, reason, usage)
+function repo.record_run_outcome(_, status, result, reason, usage, health, native)
+    M.state.run.account_health = health
     if not M.state.run.pending_status then
         M.state.run.pending_status, M.state.run.result, M.state.run.error, M.state.run.usage = status, result, reason, usage
     end
+end
+function repo.begin_creation()
+    if M.state.marker_error then return nil, M.state.marker_error end
+    if M.state.run.dispatch_state == "expiring" then return false end
+    M.state.run.dispatch_state = "creating"
+    return true
 end
 function repo.start_run()
     if M.state.cancel_on_reserve then M.state.run.cancel_requested = true end
@@ -174,8 +222,12 @@ function repo.start_run()
     M.state.run.status = "running"
     return true
 end
-function docker.stop(_, deadline) record_deadline("stop", deadline); M.state.stopped = M.state.stopped + 1 end
+function docker.stop(_, deadline)
+    record_deadline("stop", deadline); M.state.stopped = M.state.stopped + 1
+    if M.state.stop_signal then M.state.stop_signal:send(true) end
+end
 function docker.remove(name, deadline)
+    if M.state.on_remove then M.state.on_remove() end
     record_deadline("remove", deadline)
     M.state.removed = M.state.removed + 1
     M.state.removed_names = M.state.removed_names or {}
@@ -207,6 +259,7 @@ end
 function live.account(id)
     M.state.health_topics = M.state.health_topics or {}
     table.insert(M.state.health_topics, "component." .. id)
+    if M.state.on_health then M.state.on_health() end
     return M.state.notify_error
 end
 live.RUNS_TOPIC = "runs"
@@ -234,25 +287,52 @@ function repo.create_run(owner, _, spec)
     M.state.created = {owner = owner, spec = spec}
     return "queued-run"
 end
-function repo.settle_account() end
+function repo.record_account_limits(_, value)
+    if M.state.account_limits_error then return M.state.account_limits_error end
+    M.state.account_limits = value
+end
+function repo.settle_account(_, refusal, cooldown) M.state.account_settlement = {refusal = refusal, cooldown = cooldown}; return M.state.account_health_error end
 function component.query(options)
     M.state.query_options = options
     if M.state.query_error then return nil, M.state.query_error end
     return M.state.rows or {}
 end
-function repo.delete_image_build() return M.state.teardown_error end
+function repo.delete_image_build(_, cleanup)
+    if M.state.teardown_error then return M.state.teardown_error end
+    if cleanup then
+        local err = cleanup(M.state.build)
+        if err then return err end
+    end
+    if M.state.delete_build_error then return M.state.delete_build_error end
+    M.state.build = nil
+    return nil
+end
+function repo.expire_queued(before, limit) M.state.queue_before, M.state.queue_batch = before, limit; return false, nil, M.state.next_queued end
 function repo.run() return M.state.run end
 function registry.get(id)
     if id ~= "chestor.autocode:runtime_config" then error("unexpected registry entry: " .. id) end
     if M.state.registry_error then return nil, M.state.registry_error end
-    return {meta = {workspace_roots = M.state.roots, docker_executor = M.state.executor or "chestor.autocode:docker", docker_context = M.state.docker_context or ""}}
+    return {meta = {workspace_roots = M.state.roots or "", docker_executor = M.state.executor or "chestor.autocode:docker", docker_context = M.state.docker_context or ""}}
 end
 function resources.get(kind, id)
     if kind == "account" then return M.state.account end
     if kind ~= "image" then error("unexpected component kind: " .. kind) end
-    return {id = id, meta = {ref = M.state.image_ref or "image", home = M.state.image_home or "/opt/agent", status = M.state.image_status or "ready"}, access = 15, owner = "owner"}
+    return {id = id, meta = {ref = M.state.image_ref or "image", home = M.state.image_home or "/opt/agent", status = M.state.image_status or "ready"}, access = 15, owner_user_id = "owner", owner = "owner"}
 end
+function settings.check_queue() return M.state.queue_error end
+function settings.integer(key)
+    if key == "pending_runs_per_owner" then return M.state.pending_owner or 128 end
+    if key == "pending_runs_global" then return M.state.pending_global or 4096 end
+    if key == "result_bytes" then return M.state.result_bytes or 1048576 end
+    if key == "event_text_bytes" then return M.state.event_text_bytes or 8000 end
+    if key == "build_log_bytes" then return M.state.build_log_bytes or 65536 end
+    if key == "clone_depth" then return M.state.clone_depth or 50 end
+    error("unexpected integer setting: " .. key)
+end
+function settings.event_limits() return M.state.event_count or 12, M.state.event_bytes or 2048 end
 function settings.get(id)
+    if id == "queue_timeout" then return M.state.queue_timeout or "24h" end
+    if id == "workflow_delivery_timeout" then return M.state.delivery_timeout or "24h" end
     if id == "image_build_timeout" then return M.state.build_timeout or "30m" end
     if id == "account_cooldown" then return M.state.cooldown or "1m" end
     if id == "build_cache_retention" then return M.state.cache_retention or "24h" end
@@ -275,6 +355,7 @@ function exec.get(id)
         local step = M.state.exec_steps and table.remove(M.state.exec_steps, 1)
         if M.state.exec_steps and not step then error("unexpected executor call: " .. command) end
         local chunks = step and step.chunks or M.state.chunks or {}
+        if M.state.host_deadline then chunks = {"\n" .. options.env.AUTOCODE_HOST_TIMEOUT_MARKER .. "\n"} end
         local index = 0
         return {stdout_stream = function() return {close = function() end, read = function()
             if M.state.read_delay then time.sleep(M.state.read_delay) end
@@ -286,7 +367,7 @@ function exec.get(id)
 end
 function drivers.reader()
     return {feed = function() return {problems = {}, observations = {}} end,
-        finish = function() return {problems = {}, observations = {}, terminal = M.state.terminal or {outcome = "succeeded"}} end}
+        finish = function() return {problems = {}, observations = M.state.observations or {}, terminal = M.state.terminal or {outcome = "succeeded"}} end}
 end
 function resources.text(value) return type(value) == "string" and value or "" end
 function resources.patch_context(_, values, revision)
@@ -313,7 +394,8 @@ function resources.image_recipe(id, access)
     value.settings, value.dockerfile = snapshot.context.values.settings, snapshot.context.values.dockerfile
     return value
 end
-function resources.delete(id)
+function resources.delete(id, options)
+    M.state.delete_options = options
     if M.state.on_delete then M.state.on_delete() end
     if M.state.delete_error then return M.state.delete_error end
     M.state.deleted = id
@@ -322,6 +404,8 @@ end
 function component.set_meta() M.state.meta_written = true end
 function resources.replace(id, fields, patch, revision)
     M.state.replaced = {id = id, fields = fields, patch = patch, revision = revision}
+    M.state.replacements = M.state.replacements or {}
+    table.insert(M.state.replacements, M.state.replaced)
     if M.state.replace_conflict then return errors.new({kind = errors.CONFLICT, message = "revision changed"}) end
     if patch and patch.credential then M.state.credential = patch.credential end
     if M.state.on_replace then M.state.on_replace() end
@@ -358,6 +442,7 @@ function M.recipe_fixture()
     return {ref = "image", home = "/home/agent", dockerfile = "", revision = 1,
         settings = {memory = "", cpus = "", pids_limit = 0, gpus = "", network = "none", extra_args = {}, allows = {}}}
 end
+
 M.repo = repo
 M.component = component
 M.execution_identity = execution_identity
@@ -368,6 +453,7 @@ M.jobs = jobs
 M.runs = runs
 M.live = live
 M.deferred = deferred
+M.retention_notifier = retention_notifier
 M.resources = resources
 M.funcs = funcs
 M.exec = exec
