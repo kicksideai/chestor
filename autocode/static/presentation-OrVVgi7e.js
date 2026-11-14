@@ -1,7 +1,7 @@
 import { api as b, on as g } from "@wippy-fe/proxy";
-import { o as s, r as E, g as R, f as A, s as c, i as P, l as _, j as S, h as u, k as M, w as j, m as q, p as N, q as F, v as L, x as W, y as B } from "./dto-BNKl23sa.js";
-import { watch as O, onUnmounted as y, nextTick as z, ref as G, readonly as H } from "vue";
-const J = "/api/v1/autocode", m = s({ kind: c().optional(), code: c().optional(), retryable: A().optional(), details: E(R()).optional() }), K = m.extend({ success: _(!1), error: P([c(), m.extend({ message: c() })]) });
+import { o as s, f as E, s as c, d as u, g as A, w as P, i as S, h as M, p as j, r as q, u as R, c as N, l as _, j as F, k as L, m as W, q as B } from "./dto-BsFogJu_.js";
+import { onUnmounted as y, watch as O, nextTick as z, readonly as G, ref as H } from "vue";
+const J = "/api/v1/autocode", m = s({ kind: c().optional(), code: c().optional(), retryable: N().optional(), details: q(R()).optional() }), K = m.extend({ success: _(!1), error: F([c(), m.extend({ message: c() })]) });
 class v extends Error {
   kind;
   code;
@@ -44,28 +44,28 @@ async function ee(e) {
   return Object.fromEntries(n.principals.map((t) => [t.id, t.label]));
 }
 const d = s({ id: c() }), k = d.extend({ build_error: m.extend({ message: c() }).optional() }), te = {
-  profiles: () => o("get", "/profiles", s({ profiles: u(F) })).then((e) => e.profiles),
+  profiles: () => o("get", "/profiles", s({ profiles: u(j) })).then((e) => e.profiles),
   createProfile: (e) => o("post", "/profiles", d, e),
   updateProfile: (e, n) => o("put", `/profiles/${encodeURIComponent(e)}`, d, n),
   deleteProfile: (e) => o("delete", `/profiles/${encodeURIComponent(e)}`, l),
   catalog: () => o("get", "/catalog", B),
-  accounts: () => o("get", "/accounts", s({ accounts: u(N) })).then((e) => e.accounts),
+  accounts: () => o("get", "/accounts", s({ accounts: u(M) })).then((e) => e.accounts),
   createAccount: (e) => o("post", "/accounts", d, e),
   updateAccount: (e, n) => o("put", `/accounts/${encodeURIComponent(e)}`, d.extend({ health_error: m.extend({ message: c() }).optional() }), n),
   deleteAccount: (e) => o("delete", `/accounts/${encodeURIComponent(e)}`, l),
-  images: () => o("get", "/images", s({ images: u(q) })).then((e) => e.images),
+  images: () => o("get", "/images", s({ images: u(S) })).then((e) => e.images),
   image: (e) => o("get", `/images/${encodeURIComponent(e)}`, W),
   createImage: (e) => o("post", "/images", k, e),
   updateImage: (e, n) => o("put", `/images/${encodeURIComponent(e)}`, k, n),
   deleteImage: (e, n) => o("delete", `/images/${encodeURIComponent(e)}${n ? "?remove=1" : ""}`, l),
   prepareImage: (e) => o("post", `/images/${encodeURIComponent(e)}/prepare`, l),
   prune: () => o("post", "/maintenance/prune", s({ output: c() })).then((e) => e.output),
-  workspaces: () => o("get", "/workspaces", s({ workspaces: u(j), roots: u(c()).optional() })),
+  workspaces: () => o("get", "/workspaces", s({ workspaces: u(P), roots: u(c()).optional() })),
   createWorkspace: (e) => o("post", "/workspaces", d, e),
   deleteWorkspace: (e) => o("delete", `/workspaces/${encodeURIComponent(e)}`, l),
-  runs: (e) => o("get", `/runs${e ? "?cursor=" + encodeURIComponent(e) : ""}`, s({ runs: u(M), next_cursor: c().optional() })),
+  runs: (e) => o("get", `/runs${e ? "?cursor=" + encodeURIComponent(e) : ""}`, s({ runs: u(A), next_cursor: c().optional() })),
   run: (e, n, t) => o("get", `/runs/${encodeURIComponent(e)}?${t === void 0 ? `after_seq=${n ?? 0}` : `before_seq=${t}`}`, L),
-  startRun: (e) => o("post", "/runs", s({ run_id: c(), notification_error: S.optional() }), e),
+  startRun: (e) => o("post", "/runs", s({ run_id: c(), notification_error: E.optional() }), e),
   cancelRun: (e) => o("post", `/runs/${encodeURIComponent(e)}/cancel`, l)
 }, V = {
   runs: (e) => g("chestor.autocode.runs", e),
@@ -89,8 +89,8 @@ async function oe(e, n, t, r, a, i) {
   let p = await e();
   const $ = async () => {
     if (!r()) return !1;
-    const I = n(p), D = I.some((U) => !t.value.includes(U));
-    return t.value = I, await z(), r() && a(p), D;
+    const I = n(p), U = I.some((x) => !t.value.includes(x));
+    return t.value = I, await z(), r() && a(p), U;
   };
   return await $() && r() && (p = await e(), await $() && r() && i()), p;
 }
@@ -124,14 +124,14 @@ function ie(e) {
 function ce(e, n) {
   return e instanceof Error && e.message ? e.message : n;
 }
-const w = G(Date.now());
+const w = H(Date.now());
 let h = 0, f;
 function ue() {
   return h++, f === void 0 && (w.value = Date.now(), f = setInterval(() => {
     w.value = Date.now();
   }, 1e3)), y(() => {
     h--, h || (clearInterval(f), f = void 0);
-  }), H(w);
+  }), G(w);
 }
 function le(e, n) {
   return n.find((t) => t.id === e)?.icon || "tabler:terminal-2";
@@ -140,7 +140,7 @@ function pe(e, n = Date.now()) {
   const t = Math.max(0, Math.floor((n - Date.parse(e)) / 1e3));
   return Number.isFinite(t) ? t < 60 ? "just now" : t < 3600 ? `${Math.floor(t / 60)}m ago` : t < 86400 ? `${Math.floor(t / 3600)}h ago` : `${Math.floor(t / 86400)}d ago` : "";
 }
-function x(e) {
+function D(e) {
   if (!Number.isFinite(e) || e < 0) return "—";
   const n = Math.round(e / 1e3);
   if (n < 60) return `${n}s`;
@@ -150,10 +150,10 @@ function x(e) {
 function de(e, n = Date.now()) {
   if (!e.started_at) return "—";
   const r = e.status === "running" || e.status === "queued" ? n - Date.parse(e.started_at) : Date.parse(e.finished_at) - Date.parse(e.started_at);
-  return x(r);
+  return D(r);
 }
 function fe(e) {
-  return `${x(e).replace(/ 00[ms]$/, "")} timeout`;
+  return `${D(e).replace(/ 00[ms]$/, "")} timeout`;
 }
 export {
   v as A,

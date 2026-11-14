@@ -1,6 +1,6 @@
 import { defineComponent as Z, ref as F, watch as pe, nextTick as ye, onMounted as Je, onBeforeUnmount as _e, openBlock as l, createElementBlock as d, withModifiers as V, createElementVNode as i, normalizeStyle as q, Fragment as S, renderList as N, normalizeClass as U, toDisplayString as x, createVNode as K, unref as P, createTextVNode as ie, createCommentVNode as O, withKeys as ve, computed as M, createBlock as oe } from "vue";
 import { Icon as j } from "@iconify/vue";
-import { a as Tt } from "./wc-runtime-CNDpK4lj.js";
+import { a as Tt } from "./wc-runtime-f54Bo-yJ.js";
 import { api as ke, on as Nt } from "@wippy-fe/proxy";
 const At = ["disabled", "onClick"], Lt = /* @__PURE__ */ Z({
   __name: "ContextMenu",
@@ -2284,4 +2284,4 @@ const xs = { class: "rm-top" }, Is = { class: "rm-brand" }, Ds = {
 export {
   Gs as mountConfig
 };
-//# sourceMappingURL=lazy-mount-DDASHL6X.js.map
+//# sourceMappingURL=lazy-mount-Co7Jh1ur.js.map

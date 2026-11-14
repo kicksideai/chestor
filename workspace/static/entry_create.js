@@ -1,4 +1,4 @@
-import { W as t, u as o } from "./wc-runtime-CNDpK4lj.js";
+import { W as t, u as o } from "./wc-runtime-BIZwvF6q.js";
 import { l as r, s as n } from "./styles-DP-xQddr.js";
 import "@iconify/vue";
 import { define as s } from "@wippy-fe/proxy";
@@ -9,7 +9,7 @@ const i = {
     "parent-id": { type: "string" }
   }
 }, a = r(
-  () => import("./EntryCreate-CTKS4C8f.js"),
+  () => import("./EntryCreate-C7anMRIl.js"),
   { loading: "Loading the create form…", failed: "Could not load the create form. Reload the page to try again." },
   o
 );

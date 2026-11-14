@@ -1,4 +1,4 @@
-import { W as p, u as s } from "./wc-runtime-KO3cNuNo.js";
+import { W as p, u as s } from "./wc-runtime-B9Mj-WDp.js";
 import "@iconify/vue";
 import { defineComponent as d, h as l, onMounted as c } from "vue";
 import { define as g } from "@wippy-fe/proxy";
@@ -51,7 +51,7 @@ class i extends p {
   static get vueConfig() {
     return {
       lazyConfig: m(
-        () => import("./lazy-mount-DATng9HN.js").then((r) => r.mountConfig),
+        () => import("./lazy-mount-SzD34Ysf.js").then((r) => r.mountConfig),
         "Could not load the journal. Reload the page to try again.",
         s
       )

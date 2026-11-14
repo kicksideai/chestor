@@ -1,4 +1,4 @@
-import { W as l, u as i } from "./wc-runtime-CNDpK4lj.js";
+import { W as l, u as i } from "./wc-runtime-f54Bo-yJ.js";
 import "@iconify/vue";
 import { defineComponent as s, h as p, onMounted as c } from "vue";
 import { define as f } from "@wippy-fe/proxy";
@@ -32,7 +32,7 @@ class a extends l {
   static get vueConfig() {
     return {
       lazyConfig: _(
-        () => import("./lazy-mount-Dfmr6iP3.js").then((e) => e.mountConfig),
+        () => import("./lazy-mount-B7Px_LAy.js").then((e) => e.mountConfig),
         "Could not load the database schema. Reload the page to try again.",
         i
       )

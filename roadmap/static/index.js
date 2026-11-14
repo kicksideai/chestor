@@ -1,4 +1,4 @@
-import { W as n, u as l } from "./wc-runtime-CNDpK4lj.js";
+import { W as n, u as l } from "./wc-runtime-f54Bo-yJ.js";
 import "@iconify/vue";
 import { defineComponent as d, h as s, onMounted as p } from "vue";
 import { define as c } from "@wippy-fe/proxy";
@@ -50,7 +50,7 @@ class i extends n {
   static get vueConfig() {
     return {
       lazyConfig: f(
-        () => import("./lazy-mount-DDASHL6X.js").then((r) => r.mountConfig),
+        () => import("./lazy-mount-Co7Jh1ur.js").then((r) => r.mountConfig),
         "Could not load the roadmap. Reload the page to try again.",
         l
       )

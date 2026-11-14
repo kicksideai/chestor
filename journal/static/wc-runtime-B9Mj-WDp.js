@@ -1,81 +1,80 @@
-import { ref as f, createApp as A, inject as S } from "vue";
-import { addCollection as I } from "@iconify/vue";
-import { config as g, addIcons as O, on as L, applyThemeMode as b, host as T, hostCss as N, loadCss as $ } from "@wippy-fe/proxy";
-import { getActivePinia as H, createPinia as U, setActivePinia as x } from "pinia";
-var y = "data-wippy-visible";
-function C(t) {
-  const e = t.getAttribute(y);
+import { hasInjectionContext as T, inject as m, effectScope as H, ref as f, markRaw as N, createApp as $, onMounted as U, onUnmounted as x, watch as j } from "vue";
+import { addCollection as D } from "@iconify/vue";
+import { config as C, addIcons as W, on as B, applyThemeMode as b, host as z, hostCss as F, loadCss as M } from "@wippy-fe/proxy";
+var g = "data-wippy-visible";
+function E(t) {
+  const e = t.getAttribute(g);
   return e === "true" ? !0 : e === "false" ? !1 : null;
 }
-var D = Object.defineProperty, W = (t, e, s) => e in t ? D(t, e, { enumerable: !0, configurable: !0, writable: !0, value: s }) : t[e] = s, l = (t, e, s) => W(t, typeof e != "symbol" ? e + "" : e, s), j = [
+var K = Object.defineProperty, Y = (t, e, s) => e in t ? K(t, e, { enumerable: !0, configurable: !0, writable: !0, value: s }) : t[e] = s, h = (t, e, s) => Y(t, typeof e != "symbol" ? e + "" : e, s), J = [
   "themeConfigUrl",
   "primeVueCssUrl",
   "markdownCssUrl",
   "iframeCssUrl"
-], B = [
+], k = [
   ":where([data-wippy-theme-root]).w-theme-light",
   ":where([data-wippy-theme-root]).w-theme-dark"
 ].join(`,
 `);
-function E(t) {
+function w(t) {
   const e = t.startsWith("--") ? t : `--${t}`;
   return /^--[-\w\u0080-\uFFFF]+$/.test(e) ? e : null;
 }
-function z(...t) {
+function q(...t) {
   const e = /* @__PURE__ */ new Set();
   for (const s of t)
     if (s)
       for (const [i, r] of Object.entries(s)) {
         if ((i === "@light" || i === "@dark") && r && typeof r == "object") {
-          for (const [h, c] of Object.entries(r)) {
-            const a = typeof c == "string" ? E(h) : null;
-            a && e.add(a);
+          for (const [o, a] of Object.entries(r)) {
+            const c = typeof a == "string" ? w(o) : null;
+            c && e.add(c);
           }
           continue;
         }
-        const n = typeof r == "string" ? E(i) : null;
+        const n = typeof r == "string" ? w(i) : null;
         n && e.add(n);
       }
   return [...e].sort();
 }
-function F(t) {
+function G(t) {
   if (t.length === 0)
     return "";
   const e = t.map((s) => `  ${s}: inherit;`).join(`
 `);
-  return `${B} {
+  return `${k} {
 ${e}
 }`;
 }
-function K(t, e) {
-  const s = F(e);
-  s && w(t, s, "@wippy-fe/css-variables-bridge");
+function Q(t, e) {
+  const s = G(e);
+  s && S(t, s, "@wippy-fe/css-variables-bridge");
 }
-function M(t, e) {
-  const i = (e ?? j).map(async (r) => {
-    const n = N[r];
+function X(t, e) {
+  const i = (e ?? J).map(async (r) => {
+    const n = F[r];
     if (!n)
       return console.warn(`[wippy-fe/webcomponent-core] hostCss key "${r}" is undefined — skipping. Remove it from hostCssKeys if the CSS was removed.`), null;
     try {
-      return await $(n);
-    } catch (h) {
-      return console.warn(`[wippy-fe/webcomponent-core] Failed to load hostCss "${r}" (${n}):`, h), null;
+      return await M(n);
+    } catch (o) {
+      return console.warn(`[wippy-fe/webcomponent-core] Failed to load hostCss "${r}" (${n}):`, o), null;
     }
   });
   return Promise.all(i).then((r) => {
     for (const n of r) {
       if (!n)
         continue;
-      const h = document.createElement("style");
-      h.textContent = n, h.setAttribute("role", "@wippy-fe/host-css"), t.appendChild(h);
+      const o = document.createElement("style");
+      o.textContent = n, o.setAttribute("role", "@wippy-fe/host-css"), t.appendChild(o);
     }
   });
 }
-function Y(t, e) {
+function Z(t, e) {
   const s = document.createElement("style");
   s.textContent = e, t.appendChild(s);
 }
-function w(t, e, s) {
+function S(t, e, s) {
   if (typeof CSSStyleSheet < "u" && "replaceSync" in CSSStyleSheet.prototype) {
     const r = new CSSStyleSheet();
     r.replaceSync(e), t.adoptedStyleSheets = [...t.adoptedStyleSheets, r];
@@ -84,16 +83,16 @@ function w(t, e, s) {
   const i = document.createElement("style");
   i.setAttribute("role", s), i.textContent = e, t.appendChild(i);
 }
-function J(t, e) {
-  w(t, e, "@wippy-fe/custom-css");
+function tt(t, e) {
+  S(t, e, "@wippy-fe/custom-css");
 }
 function V(t) {
   return t.__wippyHost ?? null;
 }
-function q(t) {
+function et(t) {
   return t.replace(/-([a-z])/g, (e, s) => s.toUpperCase());
 }
-function G(t, e, s) {
+function st(t, e, s) {
   switch (s.type) {
     case "string":
       return { value: e };
@@ -119,22 +118,22 @@ function G(t, e, s) {
       return { value: e };
   }
 }
-function v(t, e) {
+function y(t, e) {
   const s = {}, i = [];
   for (const [r, n] of Object.entries(e.properties)) {
-    const h = t.getAttribute(r), c = q(r);
-    if (h === null) {
-      n.default !== void 0 && (s[c] = n.default);
+    const o = t.getAttribute(r), a = et(r);
+    if (o === null) {
+      n.default !== void 0 && (s[a] = n.default);
       continue;
     }
-    const a = G(r, h, n);
-    a.error ? i.push(a.error) : s[c] = a.value;
+    const c = st(r, o, n);
+    c.error ? i.push(c.error) : s[a] = c.value;
   }
   return { props: s, errors: i };
 }
-var k = class {
+var it = class {
   constructor(t, e) {
-    l(this, "_props"), l(this, "_errors"), l(this, "_content"), l(this, "_hostVisibility"), l(this, "_propsListeners", /* @__PURE__ */ new Set()), l(this, "_contentListeners", /* @__PURE__ */ new Set()), l(this, "_hostVisibilityListeners", /* @__PURE__ */ new Set()), l(this, "_disposed", !1), l(this, "_emitToDom"), l(this, "props"), l(this, "events"), l(this, "content"), l(this, "hostVisibility"), this._props = t.props, this._errors = t.errors, this._content = t.content, this._hostVisibility = t.hostVisibility, this._emitToDom = e;
+    h(this, "_props"), h(this, "_errors"), h(this, "_content"), h(this, "_hostVisibility"), h(this, "_propsListeners", /* @__PURE__ */ new Set()), h(this, "_contentListeners", /* @__PURE__ */ new Set()), h(this, "_hostVisibilityListeners", /* @__PURE__ */ new Set()), h(this, "_disposed", !1), h(this, "_emitToDom"), h(this, "props"), h(this, "events"), h(this, "content"), h(this, "hostVisibility"), this._props = t.props, this._errors = t.errors, this._content = t.content, this._hostVisibility = t.hostVisibility, this._emitToDom = e;
     const s = this;
     this.props = {
       get value() {
@@ -224,9 +223,9 @@ var k = class {
     };
     return e?.signal?.addEventListener("abort", s, { once: !0 }), s;
   }
-}, Q = class extends HTMLElement {
+}, rt = class extends HTMLElement {
   constructor() {
-    super(), l(this, "_internals"), l(this, "_contentObserver", null), l(this, "_initialized", !1), l(this, "_container", null), l(this, "_reactive", null), l(this, "_lastProps", null), l(this, "_lastErrors", []), l(this, "_lastContent", null), l(this, "_themeUnsub", null), l(this, "_hostVisible", null), this._internals = this.attachInternals(), this._hostVisible = C(this);
+    super(), h(this, "_internals"), h(this, "_contentObserver", null), h(this, "_initialized", !1), h(this, "_container", null), h(this, "_reactive", null), h(this, "_lastProps", null), h(this, "_lastErrors", []), h(this, "_lastContent", null), h(this, "_themeUnsub", null), h(this, "_hostVisible", null), this._internals = this.attachInternals(), this._hostVisible = E(this);
   }
   /**
    * Override to provide the component's configuration.
@@ -245,7 +244,7 @@ var k = class {
    */
   static get observedAttributes() {
     const t = this.wippyConfig, e = Object.keys(t.propsSchema.properties), s = t.extraObservedAttributes ?? [];
-    return [.../* @__PURE__ */ new Set([...e, ...s, y])];
+    return [.../* @__PURE__ */ new Set([...e, ...s, g])];
   }
   /**
    * Host-owned logical activity. `null` means no host manages this element.
@@ -309,11 +308,11 @@ var k = class {
       if (this._lastProps !== null)
         s = this._lastProps, i = this._lastErrors;
       else {
-        const n = v(this, t.propsSchema);
+        const n = y(this, t.propsSchema);
         t.validateProps && n.errors.push(...t.validateProps(n.props)), s = n.props, i = n.errors, this._lastProps = s, this._lastErrors = i;
       }
       const r = e ? this._lastContent ?? this._extractContent(t.contentTemplate) : null;
-      e && this._lastContent === null && (this._lastContent = r), this._reactive = new k(
+      e && this._lastContent === null && (this._lastContent = r), this._reactive = new it(
         { props: s, errors: i, content: r, hasContent: e, hostVisibility: this._hostVisible },
         this.emitEvent.bind(this)
       );
@@ -329,40 +328,40 @@ var k = class {
       if (e)
         i = this._container;
       else {
-        this.onInit(s), t.inlineCss && Y(s, t.inlineCss);
+        this.onInit(s), t.inlineCss && Z(s, t.inlineCss);
         try {
-          const o = g?.theming, u = z(
-            o?.global?.cssVariables,
-            o?.children?.cssVariables
+          const l = C?.theming, p = q(
+            l?.global?.cssVariables,
+            l?.children?.cssVariables
           );
-          K(s, u);
+          Q(s, p);
         } catch {
         }
         if (t.customCss !== !1)
           try {
-            const o = g?.theming, u = [o?.global?.customCSS, o?.children?.customCSS].filter(Boolean).join(`
+            const l = C?.theming, p = [l?.global?.customCSS, l?.children?.customCSS].filter(Boolean).join(`
 `);
-            u && J(s, u);
+            p && tt(s, p);
           } catch {
           }
-        (t.hostCssKeys === void 0 || t.hostCssKeys.length > 0) && M(s, t.hostCssKeys), i = document.createElement("div"), i.setAttribute("data-wippy-theme-root", "");
-        const a = t.containerClasses ?? [];
-        a.length > 0 && i.classList.add(...a), s.appendChild(i), this._container = i, O(I);
+        (t.hostCssKeys === void 0 || t.hostCssKeys.length > 0) && X(s, t.hostCssKeys), i = document.createElement("div"), i.setAttribute("data-wippy-theme-root", "");
+        const c = t.containerClasses ?? [];
+        c.length > 0 && i.classList.add(...c), s.appendChild(i), this._container = i, W(D);
       }
-      this._applyTheme(), this._themeUnsub || (this._themeUnsub = L("@theme", (a) => this._applyTheme(a)));
-      const { props: r, errors: n } = v(this, t.propsSchema);
+      this._applyTheme(), this._themeUnsub || (this._themeUnsub = B("@theme", (c) => this._applyTheme(c)));
+      const { props: r, errors: n } = y(this, t.propsSchema);
       t.validateProps && n.push(...t.validateProps(r));
-      const h = r;
-      this._lastProps = h, this._lastErrors = n;
-      let c = null;
-      t.contentTemplate && (c = this._extractContent(t.contentTemplate), this._lastContent = c, this._contentObserver = new MutationObserver(() => {
-        const a = this._extractContent(t.contentTemplate);
-        this._lastContent = a, this._reactive?.notifyContent(a), this.onContentChanged(a);
+      const o = r;
+      this._lastProps = o, this._lastErrors = n;
+      let a = null;
+      t.contentTemplate && (a = this._extractContent(t.contentTemplate), this._lastContent = a, this._contentObserver = new MutationObserver(() => {
+        const c = this._extractContent(t.contentTemplate);
+        this._lastContent = c, this._reactive?.notifyContent(c), this.onContentChanged(c);
       }), this._contentObserver.observe(this, {
         childList: !0,
         characterData: !0,
         subtree: !0
-      })), this.onMount(s, i, h, n, c, e), this._internals.states.delete("loading"), this._internals.states.add("ready"), e || (this._initialized = !0), this.onReady(), this.emitEvent("load");
+      })), this.onMount(s, i, o, n, a, e), this._internals.states.delete("loading"), this._internals.states.add("ready"), e || (this._initialized = !0), this.onReady(), this.emitEvent("load");
     } catch (t) {
       this.onError(t), this._internals.states.delete("loading"), this._internals.states.add("error"), this.emitEvent("error", {
         message: t instanceof Error ? t.message : String(t),
@@ -380,7 +379,7 @@ var k = class {
    * No-op for an older proxy without `getThemeMode` — `applyThemeMode` clamps
    * `undefined` to 'auto'.
    */
-  _applyTheme(t = T.getThemeMode?.()) {
+  _applyTheme(t = z.getThemeMode?.()) {
     b(t, this), this._container && b(t, this._container);
   }
   disconnectedCallback() {
@@ -389,17 +388,17 @@ var k = class {
   attributeChangedCallback(t, e, s) {
     if (e === s)
       return;
-    if (t === y) {
-      const c = this._hostVisible, a = C(this);
-      if (a === c)
+    if (t === g) {
+      const a = this._hostVisible, c = E(this);
+      if (c === a)
         return;
-      this._hostVisible = a, this.isConnected && this._initialized && (this._reactive?.notifyHostVisibility(a, c), this.onHostVisibilityChanged(a, c));
+      this._hostVisible = c, this.isConnected && this._initialized && (this._reactive?.notifyHostVisibility(c, a), this.onHostVisibilityChanged(c, a));
       return;
     }
-    const i = this.constructor.wippyConfig, { props: r, errors: n } = v(this, i.propsSchema);
+    const i = this.constructor.wippyConfig, { props: r, errors: n } = y(this, i.propsSchema);
     i.validateProps && n.push(...i.validateProps(r));
-    const h = r;
-    this._lastProps = h, this._lastErrors = n, this._reactive?.notifyProps(h, n), this.onPropsChanged(h, n);
+    const o = r;
+    this._lastProps = o, this._lastErrors = n, this._reactive?.notifyProps(o, n), this.onPropsChanged(o, n);
   }
   // ── Hooks ──────────────────────────────────────────────────
   /** Called right after shadow DOM is attached, before CSS or container. */
@@ -432,26 +431,85 @@ var k = class {
   onContentChanged(t) {
   }
 };
-function X(t) {
+function nt(t) {
   return t.__wippyHostBus ?? null;
 }
-function Z(t) {
+function ot(t) {
   return t.dataset.wippyPanelId ?? null;
 }
-var tt = Object.defineProperty, et = (t, e, s) => e in t ? tt(t, e, { enumerable: !0, configurable: !0, writable: !0, value: s }) : t[e] = s, _ = (t, e, s) => et(t, typeof e != "symbol" ? e + "" : e, s), P = /* @__PURE__ */ Symbol("wippy:emit"), R = /* @__PURE__ */ Symbol("wippy:props"), st = /* @__PURE__ */ Symbol("wippy:props_error"), it = /* @__PURE__ */ Symbol("wippy:content"), rt = /* @__PURE__ */ Symbol("wippy:panel-id"), nt = /* @__PURE__ */ Symbol("wippy:layout-bus"), ot = /* @__PURE__ */ Symbol("wippy:host"), at = /* @__PURE__ */ Symbol("wippy:host-visibility");
-function ut() {
-  const t = S(R);
+/*!
+ * pinia v4.0.3
+ * (c) 2026 Eduardo San Martin Morote
+ * @license MIT
+ */
+let P;
+const R = (t) => P = t, at = () => T() && m(I) || P, I = (
+  /* istanbul ignore next */
+  Symbol()
+);
+function lt() {
+  const t = H(!0), e = t.run(() => f({}));
+  let s = [], i = [];
+  const r = N({
+    install(n) {
+      R(r), r._a = n, n.provide(I, r), n.config.globalProperties.$pinia = r, i.forEach((o) => s.push(o)), i = [];
+    },
+    use(n) {
+      return this._a ? s.push(n) : i.push(n), this;
+    },
+    _p: s,
+    _a: null,
+    _e: t,
+    _s: /* @__PURE__ */ new Map(),
+    state: e
+  });
+  return r;
+}
+var ct = Object.defineProperty, ht = (t, e, s) => e in t ? ct(t, e, { enumerable: !0, configurable: !0, writable: !0, value: s }) : t[e] = s, _ = (t, e, s) => ht(t, typeof e != "symbol" ? e + "" : e, s), A = /* @__PURE__ */ Symbol("wippy:emit"), O = /* @__PURE__ */ Symbol("wippy:props"), ut = /* @__PURE__ */ Symbol("wippy:props_error"), pt = /* @__PURE__ */ Symbol("wippy:content"), dt = /* @__PURE__ */ Symbol("wippy:panel-id"), _t = /* @__PURE__ */ Symbol("wippy:layout-bus"), ft = /* @__PURE__ */ Symbol("wippy:host"), L = /* @__PURE__ */ Symbol("wippy:host-visibility");
+function gt() {
+  const t = m(O);
   if (!t)
     throw new Error("useProps() must be called inside a WippyVueElement");
   return t;
 }
-function dt() {
-  const t = S(P);
+function Ct() {
+  const t = m(A);
   if (!t)
     throw new Error("useEvents() must be called inside a WippyVueElement");
   return t;
 }
-var _t = class extends Q {
+function bt() {
+  const t = m(L);
+  if (!t)
+    throw new Error("useHostVisibility() must be called inside a WippyVueElement");
+  return t;
+}
+function Et(t) {
+  const e = bt();
+  let s = !1, i = null, r = !1;
+  function n() {
+    if (i)
+      return r = !0, i;
+    let o;
+    try {
+      o = Promise.resolve(t());
+    } catch (c) {
+      o = Promise.reject(c);
+    }
+    const a = o.finally(() => {
+      if (i === a && (i = null, s && r))
+        return r = !1, n();
+    });
+    return i = a, a;
+  }
+  return U(() => (s = !0, n())), x(() => {
+    s = !1, r = !1;
+  }), j(e, (o, a) => {
+    if (s && a === !1 && o === !0)
+      return n();
+  }), e;
+}
+var wt = class extends rt {
   constructor() {
     super(...arguments), _(this, "_vueApp", null), _(this, "_propsRef", f({})), _(this, "_errorsRef", f([])), _(this, "_contentRef", f(null)), _(this, "_hostVisibilityRef", f(null)), _(this, "_bridgeAbort", null);
   }
@@ -462,45 +520,45 @@ var _t = class extends Q {
     throw new Error("WippyVueElement subclass must override static get vueConfig()");
   }
   onMount(t, e, s, i, r, n) {
-    const h = this.constructor.vueConfig;
+    const o = this.constructor.vueConfig;
     this._propsRef.value = s, this._errorsRef.value = i, this._contentRef.value = r ?? null, this._hostVisibilityRef.value = this.hostVisible;
-    for (const o of i)
-      this.emitEvent("invalid", { message: o });
-    const c = new AbortController();
-    this._bridgeAbort = c, this.reactive.props.subscribe((o, u) => {
-      this._propsRef.value = o, this._errorsRef.value = [...u];
-      for (const p of u)
-        this.emitEvent("invalid", { message: p });
-    }, { signal: c.signal }), this.reactive.content && this.reactive.content.subscribe((o) => {
-      this._contentRef.value = o;
-    }, { signal: c.signal }), this.reactive.hostVisibility.subscribe((o) => {
-      this._hostVisibilityRef.value = o;
-    }, { signal: c.signal });
-    const a = (o) => {
-      if (c.signal.aborted)
+    for (const l of i)
+      this.emitEvent("invalid", { message: l });
+    const a = new AbortController();
+    this._bridgeAbort = a, this.reactive.props.subscribe((l, p) => {
+      this._propsRef.value = l, this._errorsRef.value = [...p];
+      for (const u of p)
+        this.emitEvent("invalid", { message: u });
+    }, { signal: a.signal }), this.reactive.content && this.reactive.content.subscribe((l) => {
+      this._contentRef.value = l;
+    }, { signal: a.signal }), this.reactive.hostVisibility.subscribe((l) => {
+      this._hostVisibilityRef.value = l;
+    }, { signal: a.signal });
+    const c = (l) => {
+      if (a.signal.aborted)
         return;
-      const u = H(), p = A(o.rootComponent);
-      this._vueApp = p;
-      const d = U();
-      if (o.piniaPlugins)
-        for (const m of o.piniaPlugins)
-          d.use(m);
-      if (p.use(d), o.plugins)
-        for (const m of o.plugins)
-          p.use(m);
-      p.provide(R, this._propsRef), p.provide(st, this._errorsRef), p.provide(P, this.emitEvent.bind(this)), p.provide(it, this._contentRef), p.provide(at, this._hostVisibilityRef), p.provide(rt, Z(this)), p.provide(nt, X(this)), p.provide(ot, V(this)), o.providers && o.providers(p, this), p.mount(e), u && x(u);
+      const p = at(), u = $(l.rootComponent);
+      this._vueApp = u;
+      const d = lt();
+      if (l.piniaPlugins)
+        for (const v of l.piniaPlugins)
+          d.use(v);
+      if (u.use(d), l.plugins)
+        for (const v of l.plugins)
+          u.use(v);
+      u.provide(O, this._propsRef), u.provide(ut, this._errorsRef), u.provide(A, this.emitEvent.bind(this)), u.provide(pt, this._contentRef), u.provide(L, this._hostVisibilityRef), u.provide(dt, ot(this)), u.provide(_t, nt(this)), u.provide(ft, V(this)), l.providers && l.providers(u, this), u.mount(e), p && R(p);
     };
-    if (h.rootComponent)
-      a(h);
-    else if (h.lazyConfig) {
-      const o = document.createElement("wippy-loading");
-      o.setAttribute("no-bg", ""), e.appendChild(o), h.lazyConfig().then((u) => {
-        c.signal.aborted || (o.remove(), a(u));
-      }).catch((u) => {
-        if (c.signal.aborted)
+    if (o.rootComponent)
+      c(o);
+    else if (o.lazyConfig) {
+      const l = document.createElement("wippy-loading");
+      l.setAttribute("no-bg", ""), e.appendChild(l), o.lazyConfig().then((p) => {
+        a.signal.aborted || (l.remove(), c(p));
+      }).catch((p) => {
+        if (a.signal.aborted)
           return;
-        const p = u instanceof Error ? u.message : String(u), d = document.createElement("wippy-error");
-        d.setAttribute("title", "Failed to load"), d.setAttribute("message", p), o.replaceWith(d), this.emitEvent("error", { message: p });
+        const u = p instanceof Error ? p.message : String(p), d = document.createElement("wippy-error");
+        d.setAttribute("title", "Failed to load"), d.setAttribute("message", u), l.replaceWith(d), this.emitEvent("error", { message: u });
       });
     } else
       throw new Error("WippyVueElement vueConfig must provide rootComponent or lazyConfig");
@@ -510,8 +568,9 @@ var _t = class extends Q {
   }
 };
 export {
-  _t as W,
-  ut as a,
-  dt as u
+  wt as W,
+  gt as a,
+  Et as b,
+  Ct as u
 };
-//# sourceMappingURL=wc-runtime-CNDpK4lj.js.map
+//# sourceMappingURL=wc-runtime-B9Mj-WDp.js.map

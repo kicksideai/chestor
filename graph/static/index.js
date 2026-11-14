@@ -1,4 +1,4 @@
-import { W as g, u as l } from "./wc-runtime-CNDpK4lj.js";
+import { W as g, u as l } from "./wc-runtime-f54Bo-yJ.js";
 import "@iconify/vue";
 import { defineComponent as s, h as d, onMounted as p } from "vue";
 import { define as c } from "@wippy-fe/proxy";
@@ -51,7 +51,7 @@ class a extends g {
   static get vueConfig() {
     return {
       lazyConfig: k(
-        () => import("./lazy-mount-C1QiUI1k.js").then((e) => e.mountConfig),
+        () => import("./lazy-mount-CZ17x2Ih.js").then((e) => e.mountConfig),
         "Could not load the graph. Reload the page to try again.",
         l
       )

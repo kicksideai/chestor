@@ -1,4 +1,4 @@
-import { W as o, u as r } from "./wc-runtime-CNDpK4lj.js";
+import { W as o, u as r } from "./wc-runtime-BIZwvF6q.js";
 import { s, a as n } from "./styles-DP-xQddr.js";
 import "@iconify/vue";
 import { define as i } from "@wippy-fe/proxy";
@@ -13,7 +13,7 @@ class e extends o {
   static get vueConfig() {
     return {
       lazyConfig: n(
-        () => import("./lazy-mount-7Ngh6sAC.js").then((t) => t.mountConfig),
+        () => import("./lazy-mount-B9iUyzXB.js").then((t) => t.mountConfig),
         "Could not load the workspace. Reload the page to try again.",
         r
       )

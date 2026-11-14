@@ -7,6 +7,7 @@ import { hostExternals, wcRuntimeChunk } from '../../wc-build'
 export default defineConfig({
   plugins: [vue(), wippyComponentPlugin()],
   base: '',
+  define: { 'process.env.NODE_ENV': JSON.stringify('production'), 'process.env': '{}' },
   build: {
     target: 'esnext',
     lib: {
