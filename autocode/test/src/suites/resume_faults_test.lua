@@ -5,6 +5,18 @@ local json = require("json")
 local resume = require("resume_subject")
 local function cases()
     test.describe("autocode resume failures", function()
+        test.it("records expiry and stops delivery after the configured window", function()
+            local state = stubs.reset()
+            state.run.status, state.run.flow = "succeeded", {dataflow_id = "flow", signal_id = "signal"}
+            state.run.finished_at = "2000-01-01T00:00:00Z"
+            state.resume_error = true
+            local delivered, err = resume.run({payload = {run_id = "run"}})
+            test.is_nil(err, tostring(err))
+            test.not_nil(delivered)
+            test.is_true(state.expired)
+            test.is_nil(state.resume_args, "no call is made after the window")
+            test.is_nil(state.delivered, "expiry is not successful delivery")
+        end)
         test.it("returns a native resume failure and acknowledges only successful delivery", function()
             local state = stubs.reset()
             state.run.status, state.run.flow = "succeeded", {dataflow_id = "flow", signal_id = "signal"}

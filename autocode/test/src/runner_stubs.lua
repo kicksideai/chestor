@@ -26,7 +26,7 @@ local settings = {MAX_RUN_TIMEOUT_MS = 604800000}
 function M.reset()
     M.state = {commands = {}, resumes = 0, projects = 0, fetches = 0, stopped = 0, removed = 0, events = {},
         run = {agent = "claude", image_id = "image", id = "run", owner_user_id = "owner", owner_id = "owner", account_id = "account", identity = {actor_id = "owner", actor_context = "{}"},
-            status = "queued", cancel_requested = false, repo_url = "", timeout_ms = 60000, started_at = ""},
+            status = "queued", cancel_requested = false, repo_url = "", timeout_ms = 60000, started_at = "", finished_at = time.now():utc():format_rfc3339()},
         build = {build_id = "generation", job_id = "build-job", identity = {actor_id = "owner", actor_context = "{}"}, mode = "initial",
             finished_at = "", status = "preparing", agents = {}, last_error = "", projected = false}}
     return M.state
@@ -47,6 +47,7 @@ function repo.cancel_requested()
     M.state.cancel_reads = (M.state.cancel_reads or 0) + 1
     return M.state.run.cancel_requested
 end
+function repo.expire_delivery() M.state.expired = true; return nil end
 function repo.acknowledge_delivery() M.state.delivered = true; return nil end
 function funcs.call(entry, args)
     if entry == "chestor.autocode.persist:project_account" then return true, M.state.account_projection_error end
@@ -305,7 +306,9 @@ function resources.get(kind, id)
     if kind ~= "image" then error("unexpected component kind: " .. kind) end
     return {id = id, meta = {ref = M.state.image_ref or "image", home = M.state.image_home or "/opt/agent", status = M.state.image_status or "ready"}, access = 15, owner_user_id = "owner", owner = "owner"}
 end
+function settings.event_limits() return M.state.event_count or 12, M.state.event_bytes or 2048 end
 function settings.get(id)
+    if id == "workflow_delivery_timeout" then return M.state.delivery_timeout or "24h" end
     if id == "image_build_timeout" then return M.state.build_timeout or "30m" end
     if id == "account_cooldown" then return M.state.cooldown or "1m" end
     if id == "build_cache_retention" then return M.state.cache_retention or "24h" end

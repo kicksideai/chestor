@@ -86,8 +86,9 @@ entries:
   - name: resume_subject
     kind: library.lua
     source: file://../resume_subject.lua
-    modules: [security]
+    modules: [security, time]
     imports:
+      settings: app:stub_settings
       funcs: app:stub_funcs
       repo: app:stub_repo
       canonical_json: kickside.contract:canonical_json
@@ -341,8 +342,9 @@ entries:
   - name: durable_resume_subject
     kind: library.lua
     source: file://../resume_subject.lua
-    modules: [security]
+    modules: [security, time]
     imports:
+      settings: app:stub_settings
       repo: chestor.autocode.persist:repo
       funcs: app:stub_funcs
       canonical_json: kickside.contract:canonical_json
@@ -447,3 +449,11 @@ entries:
     kind: library.lua
     source: file://../redact_subject.lua
     modules: [json]
+
+  - name: events_subject
+    kind: library.lua
+    source: file://../events_subject.lua
+    modules: [sql]
+    imports:
+      database: chestor.autocode.persist:database
+      settings: app:stub_settings

@@ -90,3 +90,11 @@ entries:
     modules: [sql]
     imports: {migration: 'wippy.migration:migration'}
     method: migrate
+
+  - name: 09_bounded_run_history
+    kind: function.lua
+    meta: {type: migration, timestamp: "2026-11-14T00:00:00Z"}
+    source: file://09_bounded_run_history.lua
+    modules: [sql]
+    imports: {migration: 'wippy.migration:migration'}
+    method: migrate

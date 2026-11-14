@@ -440,3 +440,11 @@ entries:
       resources: kickside.blocks:authorize_arm
       actions: funcs.call
       effect: allow
+
+  - name: settings_read
+    kind: security.policy
+    meta: {private: true, comment: Run event writers and workflow delivery read the configured storage and delivery budgets.}
+    policy:
+      resources: [kickside.settings:settings, kickside.settings:settings_binding, kickside.settings:get, get]
+      actions: [contract.get, contract.open, contract.call, funcs.call]
+      effect: allow

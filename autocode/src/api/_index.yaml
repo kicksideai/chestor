@@ -290,6 +290,7 @@ entries:
       policies:
         - chestor.autocode.security:worker_runtime
         - chestor.autocode.security:store
+        - chestor.autocode.security:settings_read
         - chestor.autocode.security:run_notify
 
   - name: run_mcp.endpoint

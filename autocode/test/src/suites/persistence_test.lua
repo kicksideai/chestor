@@ -27,8 +27,95 @@ local function await_pruned(id)
         time.sleep("10ms")
     until false
 end
+local function event_run()
+    local id = uuid.v7()
+    local db = assert(sql.get("app:db"))
+    local _, err = db:execute([[INSERT INTO chestor_autocode_runs
+        (id, owner_id, actor_id, actor_context, agent, account_id, image_id, prompt, timeout_ms, status)
+        VALUES ($1, $1, 'test:actor', '{}', 'claude', 'account', 'image', '', 60000, 'running')]], {id})
+    db:release()
+    test.is_nil(err, tostring(err))
+    return id
+end
+
 local function cases()
     test.describe("autocode persistence", function()
+        test.it("bounds stored event rows and UTF-8 bytes across repeated tail rollovers", function()
+            local stubs = require("stubs")
+            local state = stubs.reset()
+            local events = require("bounded_events")
+            for _, fixture in ipairs({{count = 12, bytes = 100000, text = "line"}, {count = 100, bytes = 2048, text = string.rep("é", 130)}}) do
+                state.event_count, state.event_bytes = fixture.count, fixture.bytes
+                local id = event_run()
+                local first, last = "head", ""
+                local previous_seq = 0
+                for n = 1, 80 do
+                    last = n == 1 and first or (tostring(n) .. fixture.text)
+                    test.is_nil(events.append_event(id, "log", last))
+                    local rows = assert(events.events(id, 0, 200))
+                    local bytes, notices = 0, 0
+                    for _, row in ipairs(rows) do
+                        bytes = bytes + #row.text + #row.kind
+                        if row.text:find("Run event history truncated", 1, true) then notices = notices + 1 end
+                    end
+                    test.is_true(#rows <= fixture.count, "event count is bounded on every append")
+                    test.is_true(bytes <= fixture.bytes, "UTF-8 byte total is bounded on every append")
+                    test.eq(rows[1].text, first)
+                    test.eq(rows[#rows].text, last)
+                    test.is_true(rows[#rows].seq > previous_seq, "tail sequences never repeat")
+                    previous_seq = rows[#rows].seq
+                    if n > fixture.count or (fixture.bytes == 2048 and n > 20) then test.eq(notices, 1, "one truncation notice survives every rollover") end
+                end
+                local answer = string.rep("complete answer", 1000)
+                test.is_true(repo.finish_run(id, "succeeded", answer, "", {input_tokens = 9876, cost_usd = 1.25}))
+                test.eq(repo.stored_run(id).result, answer)
+                test.eq(repo.stored_run(id).usage.input_tokens, 9876)
+                test.eq(repo.stored_run(id).usage.cost_usd, 1.25)
+                local page = assert(events.events(id, previous_seq - 1, 10))
+                test.eq(page[#page].seq, previous_seq)
+                local older = assert(events.events(id, 0, 200, 0))
+                test.eq(older[1].seq, previous_seq)
+            end
+        end)
+        test.it("applies reduced event budgets and clips only the persisted UTF-8 copy", function()
+            local state = require("stubs").reset()
+            local events = require("bounded_events")
+            state.event_count, state.event_bytes = 20, 8192
+            local id = event_run()
+            for n = 1, 18 do test.is_nil(events.append_event(id, "log", string.rep("é", 800))) end
+            state.event_count, state.event_bytes = 4, 1024
+            test.is_nil(events.append_event(id, "log", string.rep("é", 800)))
+            local rows = assert(events.events(id, 0, 100))
+            local bytes = 0
+            for _, row in ipairs(rows) do bytes = bytes + #row.text + #row.kind end
+            test.is_true(#rows <= 4)
+            test.is_true(bytes <= 1024)
+            test.eq(rows[1].text, string.rep("é", 126))
+            test.eq(rows[#rows].text, string.rep("é", 126))
+            local db = assert(sql.get("app:db"))
+            local counter = assert(db:query("SELECT event_count, event_bytes FROM chestor_autocode_runs WHERE id = $1", {id}))[1]
+            db:release()
+            test.eq(counter.event_count, #rows)
+            test.eq(counter.event_bytes, bytes)
+        end)
+        test.it("expires workflow delivery independently of the complete outcome and prunes it normally", function()
+            local request = spec(uuid.v7())
+            request.flow = {dataflow_id = uuid.v7(), signal_id = uuid.v7()}
+            local id = assert(repo.create_run(uuid.v7(), identity, request))
+            test.is_true(repo.finish_run(id, "succeeded", "complete answer", "", {input_tokens = 42}))
+            local db = assert(sql.get("app:db"))
+            test.not_nil(db:execute("UPDATE chestor_autocode_runs SET finished_at = '2000-01-01T00:00:00Z' WHERE id = $1", {id}))
+            db:release()
+            local expired, err = require("funcs").call("chestor.autocode.blocks:resume", {payload = {run_id = id}})
+            test.is_nil(err, tostring(err)); test.not_nil(expired)
+            local stored = assert(repo.stored_run(id))
+            test.eq(stored.workflow_delivered, 2)
+            test.eq(stored.result, "complete answer")
+            test.eq(stored.usage.input_tokens, 42)
+            test.is_nil(repo.acknowledge_delivery(id))
+            test.eq(repo.stored_run(id).workflow_delivered, 2, "expiry cannot become a false success")
+            await_pruned(id)
+        end)
         test.it("keeps workspace approval serialized with a submission after teardown reads no active run", function()
             local workspace, owner = uuid.v7(), uuid.v7()
             test.is_nil(repo.approve_workspace(workspace, "/fence/" .. workspace))

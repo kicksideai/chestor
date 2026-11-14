@@ -111,3 +111,51 @@ entries:
     modules: [time]
     imports:
       settings: chestor.autocode.domain:settings
+
+  - name: setting.run_event_count
+    kind: registry.entry
+    meta: {type: kickside.settings:definition}
+    namespace: chestor.autocode
+    key: run_event_count
+    value_type: int
+    default: 4096
+    title: Run event count
+    category: Runs
+    order: 31
+    description: "Maximum stored events per run, including the head and one truncation notice (4 to 100000)."
+    scope: global
+    validate_func: chestor.autocode:validate_duration
+    editable: true
+    visible: true
+
+  - name: setting.run_event_bytes
+    kind: registry.entry
+    meta: {type: kickside.settings:definition}
+    namespace: chestor.autocode
+    key: run_event_bytes
+    value_type: int
+    default: 8388608
+    title: Run event bytes
+    category: Runs
+    order: 32
+    description: "Maximum UTF-8 bytes of stored event kinds and text per run (1024 to 1073741824)."
+    scope: global
+    validate_func: chestor.autocode:validate_duration
+    editable: true
+    visible: true
+
+  - name: setting.workflow_delivery_timeout
+    kind: registry.entry
+    meta: {type: kickside.settings:definition}
+    namespace: chestor.autocode
+    key: workflow_delivery_timeout
+    value_type: duration
+    default: 24h
+    title: Workflow delivery window
+    category: Runs
+    order: 33
+    description: "How long workflow delivery retries after run settlement; expiry records an outcome and releases normal run retention."
+    scope: global
+    validate_func: chestor.autocode:validate_duration
+    editable: true
+    visible: true
