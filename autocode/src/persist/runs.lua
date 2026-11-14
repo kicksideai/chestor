@@ -38,7 +38,7 @@ local SETTLE_MARGIN_MS = 600000
 
 local RUN_COLUMNS = [[workflow_delivered, account_health, tools, gateway, id, owner_id, actor_id, actor_context, agent, account_id, account_pinned, input, repo_ref, image_id, workspace_id, flow_dataflow_id,
     flow_signal_id, account_pool, endpoint, resolved, options, unattended, repo_url, prompt, timeout_ms, status, result, error, usage, cancel_requested,
-    created_at, started_at, finished_at, pending_status, job_id]]
+    created_at, started_at, finished_at, pending_status, job_id, dispatch_state]]
 
 local function run(row: Columns): Run
     local status = text(row, "status")
@@ -77,7 +77,7 @@ local function run(row: Columns): Run
         unattended = flag(row, "unattended"), repo_url = text(row, "repo_url"), prompt = text(row, "prompt"),
         timeout_ms = int(row, "timeout_ms"), status = status, result = text(row, "result"), error = message or "",
         usage = object(row, "usage"), cancel_requested = flag(row, "cancel_requested"), created_at = text(row, "created_at"),
-        started_at = text(row, "started_at"), finished_at = text(row, "finished_at")}
+        started_at = text(row, "started_at"), finished_at = text(row, "finished_at"), dispatch_state = text(row, "dispatch_state")}
 end
 
 type RunSummary = {id: string, agent: string, account_id: string, image_id: string, workspace_id: string?,
@@ -291,6 +291,14 @@ function repo.acknowledge_delivery(id: string): error?
     local _, err = execute("UPDATE chestor_autocode_runs SET workflow_delivered = 1 WHERE id = $1 AND workflow_delivered = 0 AND status IN ('succeeded', 'failed', 'cancelled')", {id})
     if err then return err end
     return nil
+end
+
+-- Commit before Docker creation. Expiry claims the same state before purging.
+function repo.begin_creation(id: string): (boolean?, error?)
+    local changed, err = execute([[UPDATE chestor_autocode_runs SET dispatch_state = 'creating'
+        WHERE id = $1 AND status = 'queued' AND dispatch_state = 'waiting' AND pending_status = '']], {id})
+    if err then return nil, err end
+    return changed == 1, nil
 end
 
 function repo.start_run(id: string): (boolean?, error?)

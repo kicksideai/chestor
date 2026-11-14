@@ -49,6 +49,8 @@ entries:
 
 - name: submit_task
   kind: function.lua
+  security:
+    policies: [kickside.core.retention:notify_access]
   source: file://../tasks.lua
   method: submit_task
   modules: *task_modules

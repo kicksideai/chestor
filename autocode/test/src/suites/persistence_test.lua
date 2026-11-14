@@ -39,7 +39,25 @@ local function event_run()
 end
 
 local function cases()
+    local containers = {}
+    local function create_container(id)
+        local name = "chestor-autocode-" .. id
+        containers[#containers + 1] = name
+        local code, err = require("docker").run({"create", "--name", name, "node:22-bookworm-slim", "true"})
+        test.is_nil(err, tostring(err)); test.eq(code, 0)
+        return name
+    end
+    local function assert_absent(name)
+        local found = {}
+        local code, err = require("docker").run({"ps", "-aq", "--filter", "name=^/" .. name .. "$"},
+            {on_line = function(line) found[#found + 1] = line end})
+        test.is_nil(err, tostring(err)); test.eq(code, 0); test.eq(#found, 0, "recovery leaves no orphan container")
+    end
     test.describe("autocode persistence", function()
+        test.after_each(function()
+            for _, name in ipairs(containers) do test.is_nil(require("docker").ensure_removed(name)) end
+            containers = {}
+        end)
         test.it("keeps valid multilingual event text through runner and persistence clipping", function()
             local records = require("records")
             local id = event_run()
@@ -109,6 +127,87 @@ local function cases()
             test.eq(row.pending_status, nil)
             test.is_nil(require("jobs").get_job(row.job_id), "expired Jobs slot is purged")
             await_pruned(id)
+        end)
+        test.it("keeps cancellation cleanup and its saved outcome across queue expiry", function()
+            local state = require("stubs").reset()
+            local owner = uuid.v7()
+            local id = assert(require("scheduled_runs").create_run(owner, identity, spec(uuid.v7())))
+            state.run = assert(repo.stored_run(id))
+            state.prepared, state.remove_error = require("stubs").preparation(state.run), true
+            local name
+            state.on_create = function()
+                test.eq(repo.stored_run(id).dispatch_state, "creating", "marker commits before Docker creation")
+                name = create_container(id)
+                test.is_true(repo.request_cancel(owner, id))
+            end
+            local runner = require("queue_runner")
+            test.is_false(runner.main({payload = {run_id = id}}).ok)
+            local saved = assert(repo.stored_run(id))
+            test.eq(saved.status, "queued"); test.eq(saved.started_at, "")
+            test.eq(saved.pending_status, "cancelled")
+            local db = assert(sql.get("app:db"))
+            assert(db:execute("UPDATE chestor_autocode_runs SET created_at = '2000-01-01T00:00:00Z' WHERE id = $1", {id}))
+            db:release()
+            test.is_true(require("queue_retention").run().success)
+            local pending = assert(repo.stored_run(id))
+            test.eq(pending.status, "queued", "expiry must leave cleanup to runner recovery")
+            test.eq(pending.pending_status, "cancelled")
+            test.eq(pending.error, saved.error)
+            test.not_nil(require("jobs").get_job(saved.job_id), "cleanup job survives expiry")
+            state.remove_error, state.on_create = false, nil
+            state.on_remove = function() test.is_nil(require("docker").ensure_removed(name)) end
+            test.is_true(runner.main({payload = {run_id = id}, job = {attempt_no = 2}}).ok)
+            test.eq(repo.stored_run(id).status, "cancelled")
+            test.eq(state.removed, 2, "recovery removes the container before settling")
+            assert_absent(name)
+            test.is_nil(repo.stored_run(id).error_native, "saved cancellation is not replaced by queue expiry")
+        end)
+        test.it("keeps crash-before-outcome cleanup across queue expiry without relaunching", function()
+            local state = require("stubs").reset()
+            local id = assert(require("scheduled_runs").create_run(uuid.v7(), identity, spec(uuid.v7())))
+            state.run = assert(repo.stored_run(id))
+            state.prepared = require("stubs").preparation(state.run)
+            local name
+            state.on_create = function()
+                name = create_container(id)
+                error("crash after Docker accepted creation")
+            end
+            local runner = require("queue_runner")
+            test.is_false(pcall(function() runner.main({payload = {run_id = id}}) end))
+            local saved = assert(repo.stored_run(id))
+            test.is_nil(saved.pending_status); test.eq(saved.started_at, "")
+            local db = assert(sql.get("app:db"))
+            assert(db:execute("UPDATE chestor_autocode_runs SET created_at = '2000-01-01T00:00:00Z' WHERE id = $1", {id}))
+            db:release()
+            test.is_true(require("queue_retention").run().success)
+            test.eq(repo.stored_run(id).status, "queued", "a crash does not prove no container exists")
+            test.not_nil(require("jobs").get_job(saved.job_id))
+            state.on_create, state.prepared_called = nil, false
+            state.on_remove = function() test.is_nil(require("docker").ensure_removed(name)) end
+            test.is_true(runner.main({payload = {run_id = id}, job = {attempt_no = 2}}).ok)
+            local settled = assert(repo.stored_run(id))
+            test.eq(settled.status, "failed")
+            test.not_nil(settled.error:find("runner stopped", 1, true))
+            test.is_false(state.prepared_called, "cleanup recovery does not prepare another execution")
+            test.eq(state.removed, 1)
+            assert_absent(name)
+        end)
+        test.it("fences stale expiry selections against creation in either order", function()
+            require("stubs").reset()
+            local store = require("queue_store")
+            for _, creation_first in ipairs({true, false}) do
+                local id = assert(require("scheduled_runs").create_run(uuid.v7(), identity, spec(uuid.v7())))
+                local before = "2999-01-01T00:00:00Z"
+                if creation_first then
+                    test.is_true(repo.begin_creation(id))
+                    test.is_false(store.claim_expiry(id, before), "stale selection cannot purge a cleanup job")
+                else
+                    test.is_true(store.claim_expiry(id, before))
+                    test.is_false(repo.begin_creation(id), "expiry prevents subsequent Docker creation")
+                    test.is_true(store.claim_expiry(id, before), "interrupted expiry remains eligible")
+                end
+                test.is_true(repo.finish_run(id, "failed", "", "cleanup", {}))
+            end
         end)
         test.it("continues bounded Jobs history cleanup before settling queue expiry", function()
             require("stubs").reset()

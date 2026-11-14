@@ -177,6 +177,7 @@ entries:
     repo: chestor.autocode.persist:repo
     deferred: chestor.autocode.service:deferred
     live: chestor.autocode.domain:live
+    retention_notifier: kickside.core.retention:notifier
 
 - name: docker_maintenance
   kind: library.lua

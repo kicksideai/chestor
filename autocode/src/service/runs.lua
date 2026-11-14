@@ -4,6 +4,7 @@ local admission = require("admission")
 local repo = require("repo")
 local security = require("security")
 local deferred = require("deferred")
+local retention_notifier = require("retention_notifier")
 local canonical_json = require("canonical_json")
 local logger = require("logger")
 local live = require("live")
@@ -47,6 +48,9 @@ function M.submit(request: Request, flow: repo.FlowSignal?, idempotency_key: str
     admitted.spec.flow = flow
     local id, create_err = repo.create_run(owner_user_id, row, admitted.spec, submission, admitted.candidates)
     if not id then return nil, create_err end
+    -- Core recomputes the owner's next queue deadline after the committed admission.
+    local _, retention_err = retention_notifier.notify({kind = "autocode_queue", owner_locator = {kind = "user", id = owner_user_id}})
+    if retention_err then logger:warn("autocode committed queue awaits retention recovery", {run_id = id, error = tostring(retention_err)}) end
     local notify_err = live.notify(owner_user_id, live.RUNS_TOPIC)
     local nudge_err = deferred.nudge()
     if nudge_err then logger:warn("autocode committed run awaits jobs reconciliation", {run_id = id, error = tostring(nudge_err)}) end

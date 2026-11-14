@@ -399,6 +399,22 @@ local function cases()
             test.eq(state.run.status, "succeeded")
             test.eq(state.run.pending_status, "succeeded")
         end)
+        test.it("does not create a container when the durable creation marker fails", function()
+            local state = stubs.reset()
+            state.prepared = stubs.preparation(state.run)
+            state.marker_error = errors.new({kind = errors.UNAVAILABLE, message = "marker write failed"})
+            test.is_false(runner.main({payload = {run_id = "run"}}).ok)
+            test.is_nil(state.run.pending_status)
+            for _, command in ipairs(state.commands) do test.is_nil(command:find("create ", 1, true)) end
+        end)
+        test.it("does not create a container after expiry wins the dispatch fence", function()
+            local state = stubs.reset()
+            state.prepared, state.run.dispatch_state = stubs.preparation(state.run), "expiring"
+            test.is_true(runner.main({payload = {run_id = "run"}}).ok)
+            test.eq(state.run.status, "failed")
+            test.eq(state.run.error_native.details.code, "autocode.queue_expired")
+            for _, command in ipairs(state.commands) do test.is_nil(command:find("create ", 1, true)) end
+        end)
         test.it("retries cleanup after cancellation during container creation", function()
             local state = stubs.reset()
             state.prepared, state.cancel_on_create, state.remove_error = stubs.preparation(state.run), true, true
