@@ -35,7 +35,7 @@ local SETTLE_MARGIN_MS = 600000
 -- Runs. Status moves queued -> running -> one terminal status; each
 -- transition names the status it moves from.
 
-local RUN_COLUMNS = [[account_health, tools, gateway, id, owner_id, actor_id, actor_context, agent, account_id, account_pinned, input, repo_ref, image_id, workspace_id, flow_dataflow_id,
+local RUN_COLUMNS = [[workflow_delivered, account_health, tools, gateway, id, owner_id, actor_id, actor_context, agent, account_id, account_pinned, input, repo_ref, image_id, workspace_id, flow_dataflow_id,
     flow_signal_id, account_pool, endpoint, resolved, options, unattended, repo_url, prompt, timeout_ms, status, result, error, usage, cancel_requested,
     created_at, started_at, finished_at, pending_status, job_id]]
 
@@ -67,7 +67,7 @@ local function run(row: Columns): Run
     end
     local message, native, error_err = job_outcome.read_error(text(row, "error"))
     if error_err then row.problem = error_err end
-    return {error_native = native, account_health = object(row, "account_health"), account_endpoint = reach.account_endpoint == true, tools = next(tools) and tools or nil, gateway = next(gateway) and gateway or nil, account_pool = pool,
+    return {workflow_delivered = int(row, "workflow_delivered"), error_native = native, account_health = object(row, "account_health"), account_endpoint = reach.account_endpoint == true, tools = next(tools) and tools or nil, gateway = next(gateway) and gateway or nil, account_pool = pool,
         endpoint = endpoint,
         resolved = flag(row, "resolved"), account_pinned = flag(row, "account_pinned"), input = text(row, "input"), repo_ref = text(row, "repo_ref"), pending_status = pending_status, job_id = text(row, "job_id"), id = text(row, "id"), owner_user_id = text(row, "owner_id"), owner_id = text(row, "owner_id"),
         identity = {actor_id = text(row, "actor_id"), actor_context = text(row, "actor_context")},
@@ -262,8 +262,13 @@ function repo.cancel_requested(id: string): (boolean?, error?)
     return requested, nil
 end
 
+function repo.expire_delivery(id: string): error?
+    local _, err = execute("UPDATE chestor_autocode_runs SET workflow_delivered = 2 WHERE id = $1 AND workflow_delivered = 0 AND status IN ('succeeded', 'failed', 'cancelled')", {id})
+    return err
+end
+
 function repo.acknowledge_delivery(id: string): error?
-    local _, err = execute("UPDATE chestor_autocode_runs SET workflow_delivered = 1 WHERE id = $1 AND status IN ('succeeded', 'failed', 'cancelled')", {id})
+    local _, err = execute("UPDATE chestor_autocode_runs SET workflow_delivered = 1 WHERE id = $1 AND workflow_delivered = 0 AND status IN ('succeeded', 'failed', 'cancelled')", {id})
     if err then return err end
     return nil
 end

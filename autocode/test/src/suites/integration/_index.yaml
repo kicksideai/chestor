@@ -137,8 +137,9 @@ entries:
     meta: {type: test, suite: autocode_persistence, group: Autocode}
     source: file://../../suites/persistence_test.lua
     method: run
-    modules: [json, sql, uuid, time]
+    modules: [json, sql, uuid, time, funcs]
     imports:
+      bounded_events: app:events_subject
       workspace_fence: app:workspace_fence_subject
       fence: app:workspace_fence_database
       prune: chestor.autocode.runner:prune

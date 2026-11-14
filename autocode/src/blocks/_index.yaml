@@ -254,9 +254,10 @@ entries:
         run's result as the node's output.
     source: file://../service/workflow_resume.lua
     method: run
-    modules: [ funcs, security ]
+    modules: [ funcs, security, time ]
     imports:
       repo: chestor.autocode.persist:repo
+      settings: chestor.autocode.domain:settings
       canonical_json: kickside.contract:canonical_json
     security:
       actor:
@@ -264,6 +265,7 @@ entries:
       policies:
         - chestor.autocode.security:worker_runtime
         - chestor.autocode.security:store
+        - chestor.autocode.security:settings_read
         - chestor.autocode.security:flow_resume
         - chestor.autocode.security:flow_resume_arm
         - chestor.autocode.security:flow_identity

@@ -77,7 +77,7 @@ local function cases()
                 malformed[#malformed + 1] = assert(identity.call(admin, "app:fixture_register", "workspace",
                     {title = "malformed value"}, {host_path = value}))
             end
-            -- 44e804a (released main): exact 01 schema, before migrations 03-08.
+            -- 44e804a (released main): exact 01 schema, before migrations 03-09.
             migration("app:previous_schema")
             local db = assert(sql.get("app:upgrade_db"))
             for _, status in ipairs({"queued", "running", "succeeded"}) do
@@ -102,8 +102,9 @@ local function cases()
             end
             assert(db:execute("INSERT INTO chestor_autocode_run_events (run_id, seq, kind, text) VALUES ('succeeded', 1, 'result', 'kept result')"))
             assert(db:execute("INSERT INTO chestor_autocode_submissions (owner_id, key, canonical, run_id) VALUES ('legacy-owner', 'key', '{}', 'succeeded')"))
+            assert(db:execute("INSERT INTO chestor_autocode_run_events (run_id, seq, kind, text) VALUES ('succeeded', 2, 'log', 'é🙂')"))
             db:release()
-            for _, id in ipairs({"02_run_retention_index", "03_profiles_and_limits", "04_run_gateway", "05_run_account_health", "06_workspace_admission", "07_image_snapshots", "08_workspace_provenance"}) do
+            for _, id in ipairs({"02_run_retention_index", "03_profiles_and_limits", "04_run_gateway", "05_run_account_health", "06_workspace_admission", "07_image_snapshots", "08_workspace_provenance", "09_bounded_run_history"}) do
                 migration("chestor.autocode.migrations:" .. id)
                 migration("chestor.autocode.migrations:" .. id) -- restart/reapplication is a no-op
             end
@@ -114,6 +115,13 @@ local function cases()
             test.eq(image[1].status, "ready"); test.eq(image[1].requested_at, "2026-10-01T00:00:00Z")
             test.eq(assert(upgraded:query("SELECT text FROM chestor_autocode_run_events WHERE run_id = 'succeeded'"))[1].text, "kept result")
             test.eq(assert(upgraded:query("SELECT run_id FROM chestor_autocode_submissions WHERE key = 'key'"))[1].run_id, "succeeded")
+            local accounting = assert(upgraded:query("SELECT event_count, event_bytes, event_notice_seq FROM chestor_autocode_runs WHERE id = 'succeeded'"))[1]
+            test.eq(accounting.event_count, 2)
+            test.eq(accounting.event_bytes, #"result" + #"kept result" + #"log" + #"é🙂")
+            test.eq(accounting.event_notice_seq, 0)
+            local cursor = assert(upgraded:query("SELECT retention_finished_at, retention_id FROM chestor_autocode_admission_lock WHERE id = 1"))[1]
+            test.eq(cursor.retention_finished_at, "")
+            test.eq(cursor.retention_id, "")
             upgraded:release()
             local manager, manager_err = workspace_store.admitted_workspace(admin_id)
             test.is_nil(manager_err, tostring(manager_err)); test.not_nil(manager)

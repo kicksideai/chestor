@@ -34,7 +34,7 @@ type Submission = {key: string, canonical: string}
 type FlowSignal = {dataflow_id: string, signal_id: string}
 type RunSpec = { account_endpoints: {[string]: Object}?, tools: Object?, account_pool: {string}?, endpoint: {protocol: string, base_url: string, model: string?}?, resolved: boolean?, agent: string, account_id: string, account_pinned: boolean?, input: string?, repo_ref: string?, image_id: string, workspace_id: string?, flow: FlowSignal?,
     options: Object, unattended: boolean, repo_url: string, prompt: string, timeout_ms: integer, trace_context: Object?}
-type Run = { account_health: Object?, account_endpoint: boolean?, tools: Object?, gateway: Object?, account_pool: {string}?, endpoint: {protocol: string, base_url: string, model: string?}?, resolved: boolean?, account_pinned: boolean, input: string, repo_ref: string, id: string, owner_user_id: string, owner_id: string, identity: Identity, agent: string, account_id: string, image_id: string,
+type Run = { workflow_delivered: integer?, account_health: Object?, account_endpoint: boolean?, tools: Object?, gateway: Object?, account_pool: {string}?, endpoint: {protocol: string, base_url: string, model: string?}?, resolved: boolean?, account_pinned: boolean, input: string, repo_ref: string, id: string, owner_user_id: string, owner_id: string, identity: Identity, agent: string, account_id: string, image_id: string,
     workspace_id: string?, flow: FlowSignal?, options: Object, unattended: boolean, repo_url: string, prompt: string,
     timeout_ms: integer, status: RunStatus, pending_status: RunStatus?, job_id: string?, result: string, error: string, error_native: Object?, usage: Object, cancel_requested: boolean,
     created_at: string, started_at: string, finished_at: string}

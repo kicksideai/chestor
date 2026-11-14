@@ -158,7 +158,7 @@ local function cases()
                 for _, kind in ipairs(agent.credentials) do test.not_nil(kind.format) end
             end
         end)
-        test.it("publishes one named Autocode section and its five settings through platform settings", function()
+        test.it("publishes one named Autocode section and its eight settings through platform settings", function()
             local admin = identity.admin()
             users[#users + 1] = admin
             local blocks = identity.request(admin, "GET", "/settings/blocks")
@@ -177,9 +177,12 @@ local function cases()
             test.eq(count, 1)
             local response = identity.request(admin, "GET", "/settings?namespace=chestor.autocode")
             test.eq(response.status, 200, response.body)
-            test.eq(#response.json.settings, 5)
+            test.eq(#response.json.settings, 8)
             local by_key = {}
             for _, setting in ipairs(response.json.settings) do by_key[setting.key] = setting end
+            test.eq(by_key.run_event_count.value_type, "int")
+            test.eq(by_key.run_event_bytes.value_type, "int")
+            test.eq(by_key.workflow_delivery_timeout.value_type, "duration")
             test.eq(by_key.run_retention.title, "Run and log retention")
             test.eq(by_key.run_retention.category, "Runs")
             test.eq(by_key.image_build_timeout.category, "Images and Docker")

@@ -38,6 +38,7 @@ repo.find_submission = runs.find_submission
 repo.bind_gateway = runs.bind_gateway
 repo.create_run = runs.create_run
 repo.acknowledge_delivery = runs.acknowledge_delivery
+repo.expire_delivery = runs.expire_delivery
 repo.rebalance_run = runs.rebalance_run
 repo.cancel_requested = runs.cancel_requested
 repo.start_run = runs.start_run

@@ -11,6 +11,8 @@ entries:
     targets:
       - entry: chestor.autocode.migrations:01_create_tables
         path: .meta.target_db
+      - entry: chestor.autocode.migrations:09_bounded_run_history
+        path: .meta.target_db
       - entry: chestor.autocode.migrations:08_workspace_provenance
         path: .meta.target_db
       - entry: chestor.autocode.migrations:07_image_snapshots

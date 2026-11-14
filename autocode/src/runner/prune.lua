@@ -11,6 +11,8 @@ local function prune_runs(before: string, limit: integer): (integer?, error?, Pr
     local needs_continue = false
     local rows, err = store.candidates(before, limit)
     if err then return nil, err end
+    local retry_position: {finished_at: string, id: string}? = nil
+    local previous = {finished_at = "", id = ""}
     for _, row in ipairs(rows) do
         local active = false
         if type(row.job_id) == "string" and row.job_id ~= "" then
@@ -28,6 +30,7 @@ local function prune_runs(before: string, limit: integer): (integer?, error?, Pr
                 if purge_err then
                     if errors.is(purge_err, errors.CONFLICT) and purge_err:details().cleanup_pending == true then
                         needs_continue = needs_continue or purge_err:details().needs_continue == true
+                        if purge_err:details().needs_continue == true and not retry_position then retry_position = previous end
                         active = true
                         break
                     end
@@ -39,12 +42,17 @@ local function prune_runs(before: string, limit: integer): (integer?, error?, Pr
                 if prune_err then return nil, prune_err end
                 deleted = deleted + (count :: integer)
                 needs_continue = needs_continue or more == true
+                if more and not retry_position then retry_position = previous end
             end
         end
+        previous = {finished_at = row.finished_at, id = row.id}
     end
+    local last = retry_position or (#rows == limit and rows[#rows] or nil)
+    local cursor_err = store.advance_cursor(last and last.finished_at or "", last and last.id or "")
+    if cursor_err then return nil, cursor_err end
     local next_finished_at, deadline_err = store.next_finished(before)
     if deadline_err then return nil, deadline_err end
-    return deleted, nil, {needs_continue = (deleted > 0 and #rows == limit) or needs_continue, next_finished_at = next_finished_at}
+    return deleted, nil, {needs_continue = #rows == limit or needs_continue, next_finished_at = next_finished_at}
 end
 
 return {prune_runs = prune_runs}

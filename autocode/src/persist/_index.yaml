@@ -65,6 +65,7 @@ entries:
     source: file://events.lua
     modules: [sql]
     imports:
+      settings: chestor.autocode.domain:settings
       database: chestor.autocode.persist:database
 
   - name: project_account
