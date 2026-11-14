@@ -1,6 +1,13 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.7](https://github.com/kicksideai/chestor/compare/autocode-v0.1.6...autocode-v0.1.7) (2026-11-14)
+
+
+### Bug Fixes
+
+* **autocode:** preserve cleanup and schedule queue expiry ([#39](https://github.com/kicksideai/chestor/issues/39)) ([db44bcc](https://github.com/kicksideai/chestor/commit/db44bcc806b1c29878cb4599c0204cdce9ae9115))
+
 ## [0.1.6](https://github.com/kicksideai/chestor/compare/autocode-v0.1.5...autocode-v0.1.6) (2026-11-14)
 
 
