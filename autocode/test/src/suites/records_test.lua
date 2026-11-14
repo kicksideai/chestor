@@ -15,6 +15,31 @@ end
 
 local function cases()
     test.describe("autocode run records", function()
+        test.it("retains normalized terminal cost, cache writes and per-model usage without inventing fields", function()
+            local usage = records.usage({outcome = "succeeded", usage = {input_tokens = 3, output_tokens = 4,
+                cached_tokens = 0, cache_write_tokens = 7, reasoning_tokens = 2, cost_usd = 0.125,
+                cost_decimal = "0.125", currency = "USD", models = {deepseek = {input_tokens = 3, cost_usd = 0}}}})
+            test.eq(usage.cost_usd, 0.125)
+            test.eq(usage.cache_write_tokens, 7)
+            test.eq(usage.reasoning_tokens, 2)
+            test.eq(usage.cached_tokens, 0)
+            test.eq(usage.models.deepseek.cost_usd, 0)
+            test.eq(usage.currency, "USD")
+            test.is_nil(records.usage({outcome = "succeeded"}).cost_usd)
+        end)
+        test.it("keeps the latest recorded limit observation and prefers the terminal snapshot", function()
+            local folder = records.new(identity)
+            for _, utilization in ipairs({0.12, 0.45}) do
+                records.step(folder, {problems = {}, observations = {{type = "rate_limit", event_key = "window",
+                    data = {type = "rate_limit", limits = {windows = {{window = "seven_day", utilization = utilization,
+                        status = "allowed", resets_at = 2000000000}}, is_using_overage = false}}}}})
+            end
+            test.eq(records.limits(folder, nil).windows[1].utilization, 0.45)
+            local terminal = {outcome = "failed", rate_limits = {windows = {{window = "primary", utilization = 1,
+                status = "rejected", resets_at = 2000000001}}, overage_status = "rejected"}}
+            test.eq(records.limits(folder, terminal).windows[1].window, "primary")
+            test.eq(records.limits(folder, terminal).overage_status, "rejected")
+        end)
         test.it("redacts JSON escapes in both stored events and the final result", function()
             for _, value in ipairs({
                 {secret = 'credential-quote"-0123456789', encoded = 'credential-quote\\"-0123456789'},

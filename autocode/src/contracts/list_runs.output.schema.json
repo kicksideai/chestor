@@ -52,6 +52,81 @@
           },
           "prompt_summary": {
             "type": "string"
+          },
+          "usage": {
+            "type": "object",
+            "properties": {
+              "input_tokens": {
+                "type": "number",
+                "minimum": 0
+              },
+              "output_tokens": {
+                "type": "number",
+                "minimum": 0
+              },
+              "cached_tokens": {
+                "type": "number",
+                "minimum": 0
+              },
+              "cache_write_tokens": {
+                "type": "number",
+                "minimum": 0
+              },
+              "reasoning_tokens": {
+                "type": "number",
+                "minimum": 0
+              },
+              "cost_usd": {
+                "type": "number",
+                "minimum": 0
+              },
+              "cost_decimal": {
+                "type": "string"
+              },
+              "currency": {
+                "type": "string"
+              },
+              "models": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "input_tokens": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "output_tokens": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "cached_tokens": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "cache_write_tokens": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "reasoning_tokens": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "cost_usd": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "cost_decimal": {
+                      "type": "string"
+                    },
+                    "currency": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
           }
         },
         "required": [

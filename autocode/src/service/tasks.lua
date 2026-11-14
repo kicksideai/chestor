@@ -199,6 +199,7 @@ function M.list_runs(args: unknown): (Object?, error?)
         local last = page[#page]
         next_cursor = last.created_at .. "|" .. last.id
     end
+    for _, summary in ipairs(page) do summary.usage = values.object(summary.usage) or {} end
     return {runs = values.array(page), next_cursor = next_cursor}, nil
 end
 function M.cancel_run(args: unknown): (Object?, error?)

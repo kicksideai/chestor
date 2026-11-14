@@ -68,6 +68,7 @@ entries:
   - name: project_account
     kind: function.lua
     source: file://account_state.lua
+    modules: [json]
     method: project
     imports:
       repo: chestor.autocode.persist:repo

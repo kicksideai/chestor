@@ -430,6 +430,7 @@ entries:
     kind: library.lua
     source: file://../records_subject.lua
     imports:
+      canonical_json: kickside.contract:canonical_json
       credentials: chestor.autocode.domain:credentials
       drivers: bee.drivers:drivers
 
