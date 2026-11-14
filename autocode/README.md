@@ -124,6 +124,12 @@ wippy publish --version "<released-version>" --create --module-visibility public
 - [Module authoring](https://github.com/kicksideai/docs/blob/main/building-modules/index.md)
 - [Wippy documentation](https://wippy.ai)
 
+Administrators can bound unfinished work per owner and globally, expire queued work,
+and configure result, event text, build log and clone depth limits through the existing
+Autocode Settings page. Defaults preserve the released output and checkout limits;
+see [admission and limit settings](docs/reference.md#spec-pending-admission-and-queue-expiry).
+
+
 ## License
 
 [KickSide Community License 1.0](LICENSE). Dependencies retain their own licenses.

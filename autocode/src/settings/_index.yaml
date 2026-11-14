@@ -159,3 +159,115 @@ entries:
     validate_func: chestor.autocode:validate_duration
     editable: true
     visible: true
+
+  - name: setting.pending_runs_per_owner
+    kind: registry.entry
+    meta: {type: kickside.settings:definition}
+    namespace: chestor.autocode
+    key: pending_runs_per_owner
+    value_type: int
+    default: 128
+    title: Pending runs per owner
+    category: Runs
+    order: 11
+    description: "Maximum unfinished runs admitted for one owner (1 to 100000). Settled runs release capacity."
+    scope: global
+    validate_func: chestor.autocode:validate_duration
+    editable: true
+    visible: true
+
+  - name: setting.pending_runs_global
+    kind: registry.entry
+    meta: {type: kickside.settings:definition}
+    namespace: chestor.autocode
+    key: pending_runs_global
+    value_type: int
+    default: 4096
+    title: Pending runs globally
+    category: Runs
+    order: 12
+    description: "Maximum unfinished runs across all owners (1 to 1000000). Matching idempotency replays reuse capacity."
+    scope: global
+    validate_func: chestor.autocode:validate_duration
+    editable: true
+    visible: true
+
+  - name: setting.queue_timeout
+    kind: registry.entry
+    meta: {type: kickside.settings:definition}
+    namespace: chestor.autocode
+    key: queue_timeout
+    value_type: duration
+    default: 24h
+    title: Queue expiry window
+    category: Runs
+    order: 13
+    description: "Maximum time a run may remain queued without starting. Expiry purges its inactive Jobs slot and records a failed outcome; an active lease defers expiry until release."
+    scope: global
+    validate_func: chestor.autocode:validate_duration
+    editable: true
+    visible: true
+
+  - name: setting.result_bytes
+    kind: registry.entry
+    meta: {type: kickside.settings:definition}
+    namespace: chestor.autocode
+    key: result_bytes
+    value_type: int
+    default: 1048576
+    title: Result bytes
+    category: Runs
+    order: 14
+    description: "Maximum UTF-8 bytes in the result head (1024 to 67108864), followed by a truncation notice when needed."
+    scope: global
+    validate_func: chestor.autocode:validate_duration
+    editable: true
+    visible: true
+
+  - name: setting.event_text_bytes
+    kind: registry.entry
+    meta: {type: kickside.settings:definition}
+    namespace: chestor.autocode
+    key: event_text_bytes
+    value_type: int
+    default: 8000
+    title: Event text bytes
+    category: Runs
+    order: 15
+    description: "Maximum UTF-8 bytes in each event text head (256 to 1048576), followed by a truncation notice. The total run event byte budget also applies."
+    scope: global
+    validate_func: chestor.autocode:validate_duration
+    editable: true
+    visible: true
+
+  - name: setting.build_log_bytes
+    kind: registry.entry
+    meta: {type: kickside.settings:definition}
+    namespace: chestor.autocode
+    key: build_log_bytes
+    value_type: int
+    default: 65536
+    title: Build log bytes
+    category: Images and Docker
+    order: 41
+    description: "Maximum retained UTF-8 build log bytes (1024 to 16777216). Keeps a rolling tail of lines; oversized lines keep their head."
+    scope: global
+    validate_func: chestor.autocode:validate_duration
+    editable: true
+    visible: true
+
+  - name: setting.clone_depth
+    kind: registry.entry
+    meta: {type: kickside.settings:definition}
+    namespace: chestor.autocode
+    key: clone_depth
+    value_type: int
+    default: 50
+    title: Git clone depth
+    category: Runs
+    order: 16
+    description: "Repository clone depth (0 to 1000000); zero clones full history."
+    scope: global
+    validate_func: chestor.autocode:validate_duration
+    editable: true
+    visible: true

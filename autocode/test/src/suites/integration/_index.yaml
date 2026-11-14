@@ -46,6 +46,7 @@ entries:
     method: run
     modules: [registry, sql, json, funcs]
     imports:
+      settings: chestor.autocode.domain:settings
       test: wippy.test:test
     security:
       actor: { id: app:test_runner }
@@ -139,6 +140,10 @@ entries:
     method: run
     modules: [json, sql, uuid, time, funcs]
     imports:
+      records: app:records_subject
+      scheduled_runs: app:scheduled_runs
+      queue_retention: app:retention_cleanup_subject
+      jobs: kickside.core.jobs:jobs
       bounded_events: app:events_subject
       workspace_fence: app:workspace_fence_subject
       fence: app:workspace_fence_database

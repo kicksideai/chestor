@@ -3,6 +3,10 @@ version: "1.0"
 namespace: chestor.autocode.domain
 
 entries:
+  - name: text
+    kind: library.lua
+    source: file://text.lua
+
   - name: recipe
     kind: library.lua
     source: file://recipe.lua
@@ -37,6 +41,7 @@ entries:
       job_outcome: chestor.autocode.domain:job_outcome
     modules:
       - contract
+      - time
 
 
 

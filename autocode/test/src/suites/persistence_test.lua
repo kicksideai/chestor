@@ -40,6 +40,108 @@ end
 
 local function cases()
     test.describe("autocode persistence", function()
+        test.it("keeps valid multilingual event text through runner and persistence clipping", function()
+            local records = require("records")
+            local id = event_run()
+            local text = records.clip(string.rep("x", 7999) .. "🙂")
+            test.is_nil(repo.append_event(id, "log", text))
+            test.eq(repo.events(id, 0)[1].text, string.rep("x", 7999) .. " [truncated 4 bytes]")
+        end)
+        test.it("refuses pending overflow per owner and globally without allocating more storage", function()
+            local stubs = require("stubs")
+            local state = stubs.reset()
+            state.pending_owner = 2
+            local db = assert(sql.get("app:db"))
+            local baseline = assert(db:query("SELECT COUNT(*) AS n FROM chestor_autocode_runs WHERE status IN ('queued', 'running')"))[1].n
+            db:release()
+            state.pending_global = baseline + 3
+            local store = require("run_store_subject")
+            local owner, other = uuid.v7(), uuid.v7()
+            local ids = {}
+            local function admit(who, key)
+                return store.create_run(who, identity, spec(uuid.v7()), key and {key = key, canonical = "{}"} or nil)
+            end
+            ids[1] = assert(admit(owner, "same"))
+            ids[2] = assert(admit(owner))
+            test.eq(admit(owner, "same"), ids[1], "replay succeeds even at capacity")
+            local refused, err = admit(owner)
+            test.is_nil(refused); test.is_true(errors.is(err, errors.CONFLICT)); test.not_nil(err:message():find("owner", 1, true))
+            ids[3] = assert(admit(other))
+            refused, err = admit(uuid.v7())
+            test.is_nil(refused); test.is_true(errors.is(err, errors.CONFLICT)); test.not_nil(err:message():find("global", 1, true))
+            for _, id in ipairs(ids) do test.is_true(store.finish_run(id, "failed", "", "cleanup", {})) end
+            test.not_nil(admit(owner), "settled runs release capacity")
+        end)
+        test.it("serializes competing submissions at the pending owner budget", function()
+            local state = require("stubs").reset()
+            state.pending_owner = 1
+            local store = require("run_store_subject")
+            local owner, done = uuid.v7(), channel.new(2)
+            for n = 1, 2 do
+                coroutine.spawn(function()
+                    local id, err = store.create_run(owner, identity, spec(uuid.v7()), {key = tostring(n), canonical = "{}"})
+                    done:send({id = id, err = err})
+                end)
+            end
+            local accepted, refused = 0, 0
+            local results = {(done:receive()), (done:receive())}
+            for _, result in ipairs(results) do
+                if result.id then accepted = accepted + 1; test.is_true(store.finish_run(result.id, "failed", "", "cleanup", {}))
+                else refused = refused + 1; test.eq(result.err:details().code, "autocode.pending_budget_exceeded") end
+            end
+            test.eq(accepted, 1); test.eq(refused, 1)
+            local db = assert(sql.get("app:db"))
+            local rows = assert(db:query("SELECT COUNT(*) AS n FROM chestor_autocode_submissions WHERE owner_id = $1", {owner}))
+            db:release()
+            test.eq(rows[1].n, 1, "refused submissions allocate no canonical request row")
+        end)
+        test.it("expires never-dispatched queued runs and purges their Jobs slot before normal retention", function()
+            require("stubs").reset()
+            local id = assert(require("scheduled_runs").create_run(uuid.v7(), identity, spec(uuid.v7())))
+            local db = assert(sql.get("app:db"))
+            assert(db:execute("UPDATE chestor_autocode_runs SET created_at = '2000-01-01T00:00:00Z' WHERE id = $1", {id}))
+            db:release()
+            local result = require("queue_retention").run()
+            test.is_true(result.success, tostring(result.error))
+            local row = assert(repo.stored_run(id))
+            test.eq(row.status, "failed"); test.not_nil(row.error:find("queue", 1, true))
+            test.eq(row.error_native.details.code, "autocode.queue_expired")
+            test.eq(row.pending_status, nil)
+            test.is_nil(require("jobs").get_job(row.job_id), "expired Jobs slot is purged")
+            await_pruned(id)
+        end)
+        test.it("continues bounded Jobs history cleanup before settling queue expiry", function()
+            require("stubs").reset()
+            local id = assert(require("scheduled_runs").create_run(uuid.v7(), identity, spec(uuid.v7())))
+            local run = assert(repo.stored_run(id))
+            local db = assert(sql.get("app:db"))
+            assert(db:execute("UPDATE chestor_autocode_runs SET created_at = '2000-01-01T00:00:00Z' WHERE id = $1", {id}))
+            for n = 1, 101 do
+                assert(db:execute([[INSERT INTO kickside_job_run
+                    (id, job_id, job_type, attempt_no, execution_seq, status, owner_kind, owner_id)
+                    VALUES ($1, $2, 'chestor.autocode.runner:run', $3, $4, 'completed', 'user', $5)]],
+                    {uuid.v7(), run.job_id, n, n, run.owner_user_id}))
+            end
+            db:release()
+            local result = require("queue_retention").run()
+            test.is_true(result.success, tostring(result.error))
+            test.eq(repo.stored_run(id).status, "queued", "settlement waits for the complete purge")
+            test.is_true(result.needs_continue, "remaining bounded history requests another callback")
+            result = require("queue_retention").run()
+            test.is_true(result.success, tostring(result.error))
+            test.eq(repo.stored_run(id).status, "failed")
+            test.is_nil(require("jobs").get_job(run.job_id))
+            await_pruned(id)
+        end)
+        test.it("raises individual persisted event capacity while preserving the total byte budget", function()
+            local state = require("stubs").reset()
+            state.event_text_bytes, state.event_bytes = 16000, 100000
+            local id = event_run()
+            local events = require("bounded_events")
+            local text = string.rep("界", 5000)
+            test.is_nil(events.append_event(id, "log", text))
+            test.eq(events.events(id, 0)[1].text, text)
+        end)
         test.it("bounds stored event rows and UTF-8 bytes across repeated tail rollovers", function()
             local stubs = require("stubs")
             local state = stubs.reset()

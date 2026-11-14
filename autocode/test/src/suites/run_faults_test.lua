@@ -7,6 +7,38 @@ local health = require("health")
 local redact = require("redact")
 local function cases()
     test.describe("autocode run failures", function()
+        test.it("settles an expired queue entry before preparation or Docker effects", function()
+            local state = stubs.reset()
+            state.queue_error = errors.new({kind = errors.UNAVAILABLE, message = "run queue window expired before execution started",
+                retryable = false, details = {code = "autocode.queue_expired"}})
+            local outcome = require("run_subject").main({payload = {run_id = "run"}})
+            test.is_true(outcome.ok)
+            test.eq(state.run.status, "failed")
+            test.eq(state.run.error_native.details.code, "autocode.queue_expired")
+            test.is_nil(state.attached)
+            for _, command in ipairs(state.commands) do test.is_nil(command:find("create ", 1, true)) end
+        end)
+        test.it("applies the configured result capacity to the actual reader output", function()
+            local state = stubs.reset()
+            state.prepared = stubs.preparation(state.run)
+            state.result_bytes = 2048
+            state.terminal = {outcome = "succeeded", answer = string.rep("x", 3000)}
+            local outcome = runner.main({payload = {run_id = "run"}})
+            test.is_true(outcome.ok)
+            test.eq(state.run.result, string.rep("x", 2048) .. " [truncated 952 bytes]")
+        end)
+        test.it("uses the configured event capacity for plain container log lines", function()
+            local state = stubs.reset()
+            state.prepared = stubs.preparation(state.run)
+            state.event_text_bytes = 16000
+            state.log_line = string.rep("界", 4000)
+            test.is_true(runner.main({payload = {run_id = "run"}}).ok)
+            local found = false
+            for _, event in ipairs(state.events) do
+                if event.kind == "log" then test.eq(event.text, state.log_line); found = true end
+            end
+            test.is_true(found)
+        end)
         test.it("settles unattached cancellation before preparation or recovery can fail", function()
             for _, status in ipairs({"queued", "running"}) do
                 local state = stubs.reset()

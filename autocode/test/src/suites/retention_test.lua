@@ -14,6 +14,20 @@ local function cases()
             local cutoff = time.parse(time.RFC3339, state.before)
             test.is_true(math.abs(cutoff:unix() - (started - 3600)) < 3)
         end)
+        test.it("reports the next queue expiry and refuses invalid queue windows", function()
+            local state = stubs.reset()
+            state.next_queued = time.now():utc():format_rfc3339()
+            local result = subject.run()
+            test.is_true(result.success)
+            local expected = time.parse(time.RFC3339, state.next_queued):unix() * 1000 + 86400000 + 1000
+            test.eq(result.deadline_ms, expected)
+            test.eq(state.queue_batch, 500)
+            for _, value in ipairs({"0s", "-1h", "invalid"}) do
+                state = stubs.reset(); state.queue_timeout = value
+                test.is_false(subject.run().success)
+                test.is_nil(state.queue_before)
+            end
+        end)
         test.it("rejects zero and negative retention before deleting runs", function()
             for _, value in ipairs({"0s", "-1h"}) do
                 local state = stubs.reset()

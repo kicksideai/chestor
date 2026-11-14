@@ -6,6 +6,24 @@ local resource_dto = require("resource_dto")
 local json = require("json")
 local function cases()
     test.describe("autocode image failures", function()
+        test.it("preserves UTF-8 at the build log byte ceiling", function()
+            local state = stubs.reset()
+            local prefix = "runtime prerequisites: require dirname, mkdir, git, timeout -k, and a writable configured HOME/work: "
+            local line = string.rep("x", 65535 - #prefix) .. "🙂"
+            state.probe_create_error = errors.new({kind = errors.INVALID, message = line})
+            test.is_true(image.main({payload = {image_id = "image", build_id = "generation"}}).ok)
+            test.is_nil(state.build.log:find(string.char(240), 1, true), "no partial emoji survives clipping")
+        end)
+        test.it("uses the configured build log capacity above and below the release default", function()
+            for _, limit in ipairs({1024, 100000}) do
+                local state = stubs.reset()
+                state.build_log_bytes = limit
+                state.probe_create_error = errors.new({kind = errors.INVALID, message = string.rep("x", 80000)})
+                test.is_true(image.main({payload = {image_id = "image", build_id = "generation"}}).ok)
+                test.is_true(#state.build.log <= limit)
+                if limit == 100000 then test.is_true(#state.build.log > 65536) end
+            end
+        end)
         test.it("renders images solely from the public component snapshot", function()
             local state = stubs.reset()
             local row = {id = "image", owner_user_id = "owner", owner = "owner", access = 15, meta = {title = "public", ref = "public:tag", home = "/home/agent",

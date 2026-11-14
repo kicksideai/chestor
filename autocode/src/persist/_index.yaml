@@ -54,6 +54,7 @@ entries:
     source: file://runs.lua
     modules: [sql, uuid]
     imports:
+      settings: chestor.autocode.domain:settings
       trace: kickside.execution:trace
       database: chestor.autocode.persist:database
       limits: chestor.autocode.domain:limits
@@ -65,6 +66,7 @@ entries:
     source: file://events.lua
     modules: [sql]
     imports:
+      text: chestor.autocode.domain:text
       settings: chestor.autocode.domain:settings
       database: chestor.autocode.persist:database
 

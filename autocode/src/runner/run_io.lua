@@ -2,6 +2,7 @@
 local credentials = require("credentials")
 local runs = require("runs")
 local records = require("records")
+local settings = require("settings")
 local drivers = require("drivers")
 local redact = require("redact")
 local docker = require("docker")
@@ -57,7 +58,11 @@ local function stream(prepared: Prepared, box: Container, redactor: redact.Redac
     if not reader then
         return nil, reader_err
     end
-    local folder = records.new(function(text: string): string return redact.apply(redactor, text) end)
+    local result_bytes, result_err = settings.integer("result_bytes")
+    if not result_bytes then return nil, result_err end
+    local event_bytes, event_err = settings.integer("event_text_bytes")
+    if not event_bytes then return nil, event_err end
+    local folder = records.new(function(text: string): string return redact.apply(redactor, text) end, result_bytes, event_bytes)
     local terminal: drivers.Terminal? = nil
     local stream_err: string? = nil
     local native: error? = nil
@@ -105,7 +110,7 @@ local function stream(prepared: Prepared, box: Container, redactor: redact.Redac
             if line:match("^%s*{") then
                 settle(reader:feed(line .. "\n"))
             elseif line ~= "" then
-                last_log = records.clip(redact.apply(redactor, line))
+                last_log = records.clip(redact.apply(redactor, line), event_bytes)
                 emit("log", last_log)
             end
             if not stopped and persist_error() then

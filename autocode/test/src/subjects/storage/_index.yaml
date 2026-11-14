@@ -7,6 +7,7 @@ entries:
     kind: library.lua
     source: file://../../records_subject.lua
     imports:
+      text: chestor.autocode.domain:text
       canonical_json: kickside.contract:canonical_json
       credentials: chestor.autocode.domain:credentials
       drivers: bee.drivers:drivers
@@ -103,6 +104,7 @@ entries:
     source: file://../../run_store_subject.lua
     modules: [sql, uuid]
     imports:
+      settings: app:stub_settings
       trace: kickside.execution:trace
       database: chestor.autocode.persist:database
       limits: chestor.autocode.domain:limits
@@ -129,6 +131,7 @@ entries:
     source: file://../../run_subject.lua
     modules: [logger, json]
     imports:
+      settings: app:stub_settings
       repo: chestor.autocode.persist:repo
       runs: app:stub_runs
       container: chestor.autocode.infrastructure:container
@@ -174,6 +177,7 @@ entries:
     kind: library.lua
     source: file://../../event_log_subject.lua
     imports:
+      settings: app:stub_settings
       repo: app:stub_repo
       records: chestor.autocode.runner:records
       redact: chestor.autocode.runner:redact
@@ -204,6 +208,8 @@ entries:
     kind: library.lua
     source: file://../../prune_subject.lua
     imports:
+      runs: chestor.autocode.persist:runs
+      job_outcome: chestor.autocode.domain:job_outcome
       store: chestor.autocode.persist:retention
       jobs: app:stub_jobs
       slot_purge: kickside.core.jobs.persist:slot_purge
@@ -226,6 +232,7 @@ entries:
     source: file://../../run_store_subject.lua
     modules: [sql, uuid]
     imports:
+      settings: app:stub_settings
       trace: kickside.execution:trace
       database: chestor.autocode.persist:database
       limits: chestor.autocode.domain:limits
@@ -284,6 +291,7 @@ entries:
     - sql
     - uuid
     imports:
+      settings: app:stub_settings
       database: app:upgrade_database
       trace: kickside.execution:trace
       limits: chestor.autocode.domain:limits
@@ -301,6 +309,7 @@ entries:
     - logger
     - json
     imports:
+      settings: app:stub_settings
       repo: app:upgrade_runs
       runs: app:stub_runs
       container: chestor.autocode.infrastructure:container
@@ -360,6 +369,7 @@ entries:
     - logger
     - json
     imports:
+      settings: app:stub_settings
       repo: app:upgrade_execution_repo
       runs: chestor.autocode.service:runs
       container: chestor.autocode.infrastructure:container

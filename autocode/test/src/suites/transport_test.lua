@@ -3,6 +3,15 @@ local test = require("test")
 local transport = require("transport")
 local function cases()
     test.describe("autocode transported preparation", function()
+        test.it("supports configured shallow and full-history clones", function()
+            local container = require("container")
+            local launch = {executable = "agent", argv = {}, environment = {}, files = {}, readiness = "none"}
+            for _, depth in ipairs({0, 123}) do
+                local script = assert(container.script({id = "env:KEY", variable = "KEY"}, "key", "/home", "/work", "repo", launch, 60, nil, depth))
+                if depth == 0 then test.is_nil(script.env.AUTOCODE_SCRIPT:find("--depth", 1, true))
+                else test.not_nil(script.env.AUTOCODE_SCRIPT:find("--depth 123", 1, true)) end
+            end
+        end)
         test.it("keeps gateway secret injection in the container's named environment", function()
             local launch = {executable = "agent", argv = {}, environment = {}, readiness = "none", files = {{path = "mcp.json", content = '{"headers":{}}', secret_fields = {{path = {"headers", "Authorization"}, environment = "AUTOCODE_GATEWAY_TOKEN", prefix = "Bearer "}}}}}
             local script, err = require("container").script({id = "env:KEY", variable = "KEY"}, "account", "/opt/agent", "/work", "", launch, 60)
@@ -16,7 +25,7 @@ local function cases()
             local launch = {executable = "agent", argv = {}, environment = {}, files = {}, readiness = "none"}
             local script, err = container.script({id = "env:KEY", variable = "KEY"}, "key", "/opt/agent", "/work", "https://example.com/repo", launch, 60, "release/v1")
             test.is_nil(err)
-            test.eq(container.CLONE_DEPTH, 50)
+            test.not_nil(script.env.AUTOCODE_SCRIPT:find("--depth 50", 1, true))
             test.eq(script.env.AUTOCODE_REPO_REF, "release/v1")
             test.not_nil(script.env.AUTOCODE_SCRIPT:find('--branch "$AUTOCODE_REPO_REF"', 1, true))
         end)

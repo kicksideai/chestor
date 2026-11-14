@@ -15,6 +15,24 @@ end
 
 local function cases()
     test.describe("autocode run records", function()
+        test.it("preserves multilingual character boundaries in event and result clipping", function()
+            for _, char in ipairs({"é", "界", "🙂"}) do
+                local head = string.rep("x", 7999)
+                test.eq(records.clip(head .. char), head .. " [truncated " .. tostring(#char) .. " bytes]")
+                local folder = records.new(identity)
+                local answer = string.rep("x", records.MAX_RESULT_BYTES - 1)
+                text(folder, "answer", "complete", answer .. char)
+                test.is_true(records.result(folder, nil) == answer .. " [truncated " .. tostring(#char) .. " bytes]", "result ends at a character boundary")
+            end
+        end)
+        test.it("uses configured result and event text ceilings", function()
+            local folder = records.new(identity, 1200000, 12000)
+            local answer = string.rep("x", 1100000)
+            text(folder, "answer", "complete", answer)
+            test.is_true(records.result(folder, nil) == answer, "raised result limit retains the complete answer")
+            local events = records.terminal(folder, nil)
+            test.eq(events[1].text:sub(1, 12000), string.rep("x", 12000))
+        end)
         test.it("retains normalized terminal cost, cache writes and per-model usage without inventing fields", function()
             local usage = records.usage({outcome = "succeeded", usage = {input_tokens = 3, output_tokens = 4,
                 cached_tokens = 0, cache_write_tokens = 7, reasoning_tokens = 2, cost_usd = 0.125,

@@ -2,6 +2,8 @@
 local store = require("store")
 local jobs = require("jobs")
 local slot_purge = require("slot_purge")
+local runs = require("runs")
+local job_outcome = require("job_outcome")
 type PruneProgress = {needs_continue: boolean, next_finished_at: string?}
 
 -- Each run transaction removes at most one page from each child table. The
@@ -55,4 +57,30 @@ local function prune_runs(before: string, limit: integer): (integer?, error?, Pr
     return deleted, nil, {needs_continue = #rows == limit or needs_continue, next_finished_at = next_finished_at}
 end
 
-return {prune_runs = prune_runs}
+-- Purge first: Jobs atomically refuses a running lease. A crash between purge
+-- and settlement leaves the queued row eligible for the next callback.
+local function expire_queued(before: string, limit: integer): (boolean?, error?, string?)
+    local rows, err = store.queued(before, limit)
+    if not rows then return nil, err end
+    local purged = 0
+    local needs_continue = false
+    for _, row in ipairs(rows) do
+        local _, purge_err = slot_purge.purge_slot({namespace = "chestor.autocode", scope = row.id, key = "run"})
+        if purge_err then
+            if not errors.is(purge_err, errors.CONFLICT) or purge_err:details().cleanup_pending ~= true then return nil, purge_err end
+            needs_continue = needs_continue or purge_err:details().needs_continue == true
+        else
+            local expired = errors.new({kind = errors.UNAVAILABLE, message = "run queue window expired before execution started",
+                retryable = false, details = {code = "autocode.queue_expired"}})
+            local _, finish_err = runs.finish_run(row.id, "failed", "", expired:message(), {}, nil,
+                job_outcome.data(expired))
+            if finish_err then return nil, finish_err end
+            purged = purged + 1
+        end
+    end
+    local next_created, next_err = store.next_queued(before)
+    if next_err then return nil, next_err end
+    -- A page held entirely by leases parks until Jobs activity wakes retention.
+    return needs_continue or (#rows == limit and purged > 0), nil, next_created
+end
+return {prune_runs = prune_runs, expire_queued = expire_queued}

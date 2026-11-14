@@ -108,7 +108,18 @@ local function cases()
                 migration("chestor.autocode.migrations:" .. id)
                 migration("chestor.autocode.migrations:" .. id) -- restart/reapplication is a no-op
             end
+            -- The complete 0.1.5 schema is now populated, including event accounting,
+            -- retained submissions, pending outcomes and workflow delivery state.
+            local released = assert(sql.get("app:upgrade_db"))
+            assert(released:execute("UPDATE chestor_autocode_runs SET pending_status = 'failed', result = '界🙂', error = 'retained failure', workflow_delivered = 2 WHERE id = 'queued'"))
+            local before_upgrade = json.encode(assert(released:query("SELECT * FROM chestor_autocode_runs ORDER BY id")))
+            local before_events = json.encode(assert(released:query("SELECT * FROM chestor_autocode_run_events ORDER BY run_id, seq")))
+            released:release()
+            migration("chestor.autocode.migrations:10_pending_runs")
+            migration("chestor.autocode.migrations:10_pending_runs")
             local upgraded = assert(sql.get("app:upgrade_db"))
+            test.eq(json.encode(assert(upgraded:query("SELECT * FROM chestor_autocode_runs ORDER BY id"))), before_upgrade)
+            test.eq(json.encode(assert(upgraded:query("SELECT * FROM chestor_autocode_run_events ORDER BY run_id, seq"))), before_events)
             local account = assert(upgraded:query("SELECT last_used_at, rate_limits FROM chestor_autocode_account_state WHERE account_id = 'legacy-account'"))
             local image = assert(upgraded:query("SELECT status, requested_at FROM chestor_autocode_image_builds WHERE image_id = 'legacy-image'"))
             test.eq(account[1].last_used_at, "2026-10-01T00:00:00Z"); test.eq(account[1].rate_limits, "{}")
