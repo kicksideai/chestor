@@ -1,6 +1,16 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.5](https://github.com/kicksideai/chestor/compare/autocode-v0.1.4...autocode-v0.1.5) (2026-11-14)
+
+
+### Features
+
+* **autocode:** bound run events and workflow delivery ([#36](https://github.com/kicksideai/chestor/issues/36)) ([6439cc6](https://github.com/kicksideai/chestor/commit/6439cc688edfbc115a6875402ef599513200f2df))
+* **autocode:** freeze execution settings and enforce workspace isolation ([#33](https://github.com/kicksideai/chestor/issues/33)) ([d3841ac](https://github.com/kicksideai/chestor/commit/d3841ac1a10f6eaa2713a9d46ac3c47f5e5a0213))
+* **autocode:** manage execution profiles and resource status in the interface ([#34](https://github.com/kicksideai/chestor/issues/34)) ([e858b9a](https://github.com/kicksideai/chestor/commit/e858b9a93d7187bc2bb39636278900f968e5d13a))
+* **autocode:** retain account limit windows and normalized run usage ([#32](https://github.com/kicksideai/chestor/issues/32)) ([80502d3](https://github.com/kicksideai/chestor/commit/80502d3c7d354801b47babd7bbb6048dbf2d5e8f))
+
 ## [0.1.4](https://github.com/kicksideai/chestor/compare/autocode-v0.1.3...autocode-v0.1.4) (2026-11-10)
 
 
