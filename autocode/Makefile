@@ -9,7 +9,7 @@ SHELL := bash
 .SHELLFLAGS := -o pipefail -ec
 PG_URL ?= postgresql://kickside:kickside@127.0.0.1:5433/postgres
 
-.PHONY: check build dev lint test test-pg typecheck lockrefresh ui-kit ui-test verify release-check publish
+.PHONY: check build dev lint test test-pg typecheck lockrefresh ui-kit ui-test test-upgrade verify release-check publish
 build: ui-kit
 	cd ui && npm run build
 dev: ui-kit
@@ -57,11 +57,16 @@ check:
 	node scripts/materialize-contracts.test.mjs
 	node scripts/least-privilege.test.mjs
 	node scripts/check-module.mjs
+test-upgrade:
+	@for release in 015 016 017; do \
+		$(MAKE) $(TEST_TARGET) TEST_ARGS="$(TEST_ARGS) --profile upgrade$$release test upgrade_runtime_test"; \
+	done
 verify:
 	$(MAKE) lint
 	$(MAKE) lint WIPPY_LINT_ARGS=--strict-any
 	$(MAKE) typecheck build check ui-test
 	$(MAKE) $(TEST_TARGET)
+	$(MAKE) test-upgrade
 release-check: verify
 	wippy auth status
 	wippy publish --version "$(VERSION)" --dry-run --create --module-visibility $(VIS) --module-type $(TYPE) $(EMBED)
