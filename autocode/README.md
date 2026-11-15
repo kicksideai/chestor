@@ -26,7 +26,7 @@ and start tasks. Account grants allow grantees to run with the stored credential
 including subscription logins. Use official API keys or your own endpoints for
 production or multiple users.
 
-Upgrade automatically preserves a valid workspace when every current WRITE or ADMIN holder has workspace-management authority, resolving direct and group grants through Component and the directory, regardless of context revision. Other workspaces stay refused with a reason; an administrator re-registers them through the normal workspace path and updates saved references. Approved workspaces need no upgrade action; existing unfinished runs follow conservative cleanup recovery on the 0.1.7 upgrade; see the [upgrade rules](docs/reference.md#spec-workspace-approval).
+Upgrade automatically preserves a valid workspace when every current WRITE or ADMIN holder has workspace-management authority, resolving direct and group grants through Component and the directory, regardless of context revision. Other workspaces stay refused with a reason; an administrator re-registers them through the normal workspace path and updates saved references. Approved workspaces need no upgrade action; upgraded approval-parked runs remain eligible for queue expiry, and possibly-created runs receive automatic cleanup recovery; see the [upgrade rules](docs/reference.md#spec-workspace-approval).
 A member who changed a legacy workspace and later lost WRITE is not detected.
 
 ## Requirements
@@ -94,6 +94,8 @@ make test-pg
 the maintenance connection and `RUNTIME_ARGS` for harness profile variables
 when using a different server. The default test server is local PostgreSQL
 on port 5433. Both engines run the same suites.
+
+Populated release recovery regressions boot the real Jobs and Core services, including a real container created before the dispatch upgrade. `make test-upgrade` runs the 0.1.5, 0.1.6 and 0.1.7 fixtures separately; use `make test-upgrade TEST_TARGET=test-pg` with the PostgreSQL connection settings for that engine. `make verify` includes these regressions, so CI's release checks run them on both engines. The profiles populate the released schema before migration 10 (0.1.5), after it (0.1.6), or after migration 11 (0.1.7), then apply the remaining migrations during normal boot.
 
 Edit frontend source under `ui/` and commit regenerated `static/` assets.
 `build-inputs/` resolves the published `kickside/ui-kit` package; `make ui-kit`

@@ -394,3 +394,42 @@ entries:
     source: file://../idle_retention_probe.lua
     method: run
     modules: [process]
+
+  - name: upgrade_fixture
+    kind: registry.entry
+    meta: {release: ''}
+
+  - name: upgrade_fixture_015
+    kind: function.lua
+    meta: {type: migration, timestamp: '2026-11-14T00:30:00Z', target_db: 'app:db'}
+    source: file://../upgrade_runtime_fixture.lua
+    method: main
+    modules: [registry, uuid]
+    imports:
+      migration: wippy.migration:migration
+      jobs: kickside.core.jobs:jobs
+      docker: chestor.autocode.infrastructure:docker
+    security: {policies: [app:test_runtime]}
+
+  - name: upgrade_fixture_016
+    kind: function.lua
+    meta: {type: migration, timestamp: '2026-11-14T01:30:00Z', target_db: 'app:db'}
+    source: file://../upgrade_runtime_fixture.lua
+    method: main
+    modules: [registry, uuid]
+    imports:
+      migration: wippy.migration:migration
+      jobs: kickside.core.jobs:jobs
+      docker: chestor.autocode.infrastructure:docker
+    security: {policies: [app:test_runtime]}
+  - name: upgrade_fixture_017
+    kind: function.lua
+    meta: {type: migration, timestamp: '2026-11-14T02:30:00Z', target_db: 'app:db'}
+    source: file://../upgrade_runtime_fixture.lua
+    method: main
+    modules: [registry, uuid]
+    imports:
+      migration: wippy.migration:migration
+      jobs: kickside.core.jobs:jobs
+      docker: chestor.autocode.infrastructure:docker
+    security: {policies: [app:test_runtime]}

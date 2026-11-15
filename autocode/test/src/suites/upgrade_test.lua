@@ -7,8 +7,6 @@ local json = require("json")
 local repo = require("repo")
 local identity = require("identity")
 local workspace_store = require("workspace_store")
-local runner = require("runner")
-local stubs = require("stubs")
 local docker = require("docker")
 local registry = require("registry")
 local component = require("component")
@@ -192,24 +190,12 @@ local function cases()
                 test.eq(row.workspace_id, "legacy-workspace")
                 test.eq(#row.account_pool, 0)
                 test.is_nil(row.tools); test.is_nil(row.gateway)
-                local state = stubs.reset()
-                -- Recovery must settle old active rows without decoding failures or relaunching them.
-                local outcome = runner.main({payload = {run_id = status}, job = {attempt_no = 2}})
-                test.is_true(outcome.ok, tostring(outcome.error))
-                test.eq(repo.stored_run(status).status, status == "succeeded" and "succeeded" or "failed")
-                test.is_nil(state.attached)
             end
-            -- Old queued rows have no creation marker. Recover conservatively,
-            -- retaining approved workspace bindings without launching them again.
+            -- Runtime recovery is exercised by upgrade_runtime_test through Jobs.
             for _, workspace in ipairs(published_runs) do
-                local state = stubs.reset()
-                local outcome = runner.main({payload = {run_id = workspace.run_id}})
-                test.is_true(outcome.ok, tostring(outcome.error_native))
-                local completed = repo.stored_run(workspace.run_id)
-                test.eq(completed.status, "failed")
-                test.not_nil(completed.error:find("runner stopped", 1, true))
-                test.eq(completed.workspace_id, workspace.id)
-                test.is_nil(state.attached)
+                local stored = assert(repo.stored_run(workspace.run_id))
+                test.eq(stored.status, "queued")
+                test.eq(stored.workspace_id, workspace.id)
             end
             for _, image in ipairs(legacy_images) do
                 if not image.unprojected then

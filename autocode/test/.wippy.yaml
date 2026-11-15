@@ -23,6 +23,18 @@ vars:
   pg_username: kickside
   pg_password: kickside
 profiles:
+  upgrade015:
+    override:
+      "app:upgrade_fixture:meta.release": '015'
+      "app:upgrade_runtime_test:meta.type": test
+  upgrade016:
+    override:
+      "app:upgrade_fixture:meta.release": '016'
+      "app:upgrade_runtime_test:meta.type": test
+  upgrade017:
+    override:
+      "app:upgrade_fixture:meta.release": '017'
+      "app:upgrade_runtime_test:meta.type": test
   postgres:
     override:
       "app:db:kind": db.sql.postgres

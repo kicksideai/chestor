@@ -11,6 +11,8 @@ entries:
     targets:
       - entry: chestor.autocode.migrations:01_create_tables
         path: .meta.target_db
+      - entry: chestor.autocode.migrations:12_upgrade_recovery
+        path: .meta.target_db
       - entry: chestor.autocode.migrations:11_queue_dispatch
         path: .meta.target_db
       - entry: chestor.autocode.migrations:10_pending_runs
