@@ -116,6 +116,7 @@ entries:
     modules: [logger, json]
     imports:
       settings: app:stub_settings
+      retention_notifier: app:stub_retention_notifier
       repo: app:stub_repo
       runs: app:stub_runs
       container: chestor.autocode.infrastructure:container
@@ -308,6 +309,7 @@ entries:
     source: file://../run_subject.lua
     modules: [logger, json]
     imports:
+      retention_notifier: app:stub_retention_notifier
       settings: app:stub_settings
       repo: app:delivery_repo
       runs: app:stub_runs

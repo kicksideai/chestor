@@ -24,6 +24,7 @@ local deferred = require("deferred")
 local job_outcome = require("job_outcome")
 local logger = require("logger")
 local transport = require("transport")
+local retention_notifier = require("retention_notifier")
 
 -- The resource whose kickside.execution.defer grant lets the runner resolve
 -- a run owner's stored identity.
@@ -140,6 +141,20 @@ local function execute(run: repo.Run, job: {[string]: unknown}, trace_context: {
     local requested, cancel_read_err = repo.cancel_requested(run_id)
     if cancel_read_err then return failure("cancellation read", errors.UNAVAILABLE, cancel_read_err) end
     if requested then return finish("cancelled", "", "cancelled by user", {}) end
+    if run.dispatch_state == "creating" and run.status == "queued" and run.started_at == "" then
+        local present, inspect_err = docker.present(runs.container_name(run_id), deadline)
+        if inspect_err then return failure("container recovery inspection", errors.UNAVAILABLE, inspect_err) end
+        if present == false then
+            local waiting, wait_err = repo.wait_after_recovery(run_id)
+            if wait_err then return failure("container recovery marker", errors.UNAVAILABLE, wait_err) end
+            if waiting then
+                -- Core may have booted while this row still required recovery.
+                local _, retention_err = retention_notifier.notify({kind = "autocode_queue", owner_locator = {kind = "user", id = run.owner_user_id}})
+                if retention_err then logger:warn("autocode recovered queue awaits retention recovery", {run_id = run_id, error = tostring(retention_err)}) end
+                return {ok = true, output = {park = true, run_id = run_id, status = "queued"}}
+            end
+        end
+    end
     if run.dispatch_state == "creating" or (attempt > 1 and run.status ~= "queued") then return fail("the runner stopped before the run settled") end
 
     if run.status == "queued" then

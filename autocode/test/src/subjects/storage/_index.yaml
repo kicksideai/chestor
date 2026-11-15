@@ -131,6 +131,7 @@ entries:
     source: file://../../run_subject.lua
     modules: [logger, json]
     imports:
+      retention_notifier: app:stub_retention_notifier
       settings: app:stub_settings
       repo: chestor.autocode.persist:repo
       runs: app:stub_runs
@@ -312,6 +313,7 @@ entries:
     - logger
     - json
     imports:
+      retention_notifier: app:stub_retention_notifier
       settings: app:stub_settings
       repo: app:upgrade_runs
       runs: app:stub_runs
@@ -372,6 +374,7 @@ entries:
     - logger
     - json
     imports:
+      retention_notifier: app:stub_retention_notifier
       settings: app:stub_settings
       repo: app:upgrade_execution_repo
       runs: chestor.autocode.service:runs
@@ -418,6 +421,7 @@ entries:
     source: file://../../run_subject.lua
     modules: [logger, json]
     imports:
+      retention_notifier: app:stub_retention_notifier
       settings: app:stub_settings
       repo: chestor.autocode.persist:repo
       runs: app:stub_runs

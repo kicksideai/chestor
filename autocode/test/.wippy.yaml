@@ -35,6 +35,10 @@ profiles:
     override:
       "app:upgrade_fixture:meta.release": '017'
       "app:upgrade_runtime_test:meta.type": test
+  upgrade018:
+    override:
+      "app:upgrade_fixture:meta.release": '018'
+      "app:upgrade_runtime_test:meta.type": test
   postgres:
     override:
       "app:db:kind": db.sql.postgres

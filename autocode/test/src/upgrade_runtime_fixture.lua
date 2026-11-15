@@ -1,6 +1,6 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 -- Populate the released schema during boot, before dispatch migrations and
--- before Jobs workers start. The upgrade profile selects 0.1.5 or 0.1.6.
+-- before Jobs workers start. The upgrade profile selects the populated released schema.
 local registry = require("registry")
 local jobs = require("jobs")
 local docker = require("docker")
@@ -16,7 +16,7 @@ return function(options)
                 database(engine, function()
                     up(function(tx)
                         if selected ~= stage then return end
-                        for _, kind in ipairs({"parked", "created", "started", "pending", "running", "approved"}) do
+                        for _, kind in ipairs({"parked", "inherited", "created", "started", "pending", "running", "approved"}) do
                             local id = uuid.v7()
                             local _, err = tx:execute([[INSERT INTO chestor_autocode_runs
                                 (id, owner_id, actor_id, actor_context, agent, account_id, image_id,
@@ -32,8 +32,12 @@ return function(options)
                             if not job then error(job_err) end
                             local _, write_err = tx:execute("UPDATE chestor_autocode_runs SET job_id = $1 WHERE id = $2", {job.id, id})
                             if write_err then error(write_err) end
-                            if stage == "017" then
+                            if stage == "017" or stage == "018" then
                                 assert(tx:execute("UPDATE chestor_autocode_runs SET dispatch_state = 'creating' WHERE id = $1", {id}))
+                            end
+                            if stage == "018" and (kind == "parked" or kind == "inherited") then
+                                -- Migration 12 mistook absent approval for proof of no creation.
+                                assert(tx:execute("UPDATE chestor_autocode_runs SET dispatch_state = 'waiting' WHERE id = $1", {id}))
                             end
                             -- Exact published approval-park result: pending, no schedule,
                             -- and wake disabled. SQL here only constructs the old fixture.
@@ -49,7 +53,9 @@ return function(options)
                                 assert(tx:execute("UPDATE chestor_autocode_runs SET status = 'running' WHERE id = $1", {id}))
                             end
                             if kind ~= "parked" then
-                                -- The released runner could crash after Docker create and before start_run.
+                                -- Inherited: 0.1.4 created before approvals existed, crashed
+                                -- before start_run, migration 06 refused the workspace, and
+                                -- 0.1.5+ parked on missing approval. No row field proves absence.
                                 local name = "chestor-autocode-" .. id
                                 local code, create_err = docker.run({"create", "--cap-drop=NET_RAW", "--name", name, "--network", "none", "node:22-bookworm-slim", "true"},
                                     {isolation = {name = name, image = "node:22-bookworm-slim", network = "none", mounts = {}}})

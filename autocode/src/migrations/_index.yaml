@@ -123,3 +123,11 @@ entries:
       migration: wippy.migration:migration
       jobs: kickside.core.jobs:jobs
     method: migrate
+  - name: 13_inherited_recovery
+    kind: function.lua
+    meta: {type: migration, timestamp: "2026-11-15T00:00:00Z"}
+    source: file://13_inherited_recovery.lua
+    imports:
+      migration: wippy.migration:migration
+      jobs: kickside.core.jobs:jobs
+    method: migrate

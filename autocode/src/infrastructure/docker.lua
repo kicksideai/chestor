@@ -477,15 +477,23 @@ function M.remove(name: string, deadline: string?): error?
     return err
 end
 
--- A failed removal succeeds only when Docker confirms exact-name absence.
-function M.ensure_removed(name: string, deadline: string?): error?
-    local err = M.remove(name, deadline)
-    if not err then return nil end
+-- Reuse the cleanup inspection: command failure is never evidence of absence.
+function M.present(name: string, deadline: string?): (boolean?, error?)
     local present = false
     local filter = (#name == 64 and name:match("^[a-f0-9]+$")) and ("id=" .. name) or ("name=^" .. name .. "$")
     local code, inspect_err = M.run({"ps", "-aq", "--filter", filter},
         {deadline = deadline, on_line = function(line: string) if line ~= "" then present = true end end})
-    if not inspect_err and code == 0 and not present then return nil end
+    if inspect_err then return nil, inspect_err end
+    if code ~= 0 then return nil, fail("Docker container inspection failed") end
+    return present, nil
+end
+
+-- A failed removal succeeds only when Docker confirms exact-name absence.
+function M.ensure_removed(name: string, deadline: string?): error?
+    local err = M.remove(name, deadline)
+    if not err then return nil end
+    local present, inspect_err = M.present(name, deadline)
+    if not inspect_err and present == false then return nil end
     return err
 end
 

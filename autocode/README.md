@@ -95,7 +95,7 @@ the maintenance connection and `RUNTIME_ARGS` for harness profile variables
 when using a different server. The default test server is local PostgreSQL
 on port 5433. Both engines run the same suites.
 
-Populated release recovery regressions boot the real Jobs and Core services, including a real container created before the dispatch upgrade. `make test-upgrade` runs the 0.1.5, 0.1.6 and 0.1.7 fixtures separately; use `make test-upgrade TEST_TARGET=test-pg` with the PostgreSQL connection settings for that engine. `make verify` includes these regressions, so CI's release checks run them on both engines. The profiles populate the released schema before migration 10 (0.1.5), after it (0.1.6), or after migration 11 (0.1.7), then apply the remaining migrations during normal boot.
+Populated release recovery regressions boot the real Jobs and Core services, including an unapproved, never-started run carrying a real container from before approvals existed. Docker-confirmed absence returns a genuinely parked inherited run to waiting before Core expires it on its deadline. `make test-upgrade` runs the 0.1.5, 0.1.6, 0.1.7 and 0.1.8 fixtures separately; use `make test-upgrade TEST_TARGET=test-pg` with the PostgreSQL connection settings for that engine. `make verify` includes these regressions, so CI's release checks run them on both engines. The profiles populate the released schema before migration 10 (0.1.5), after it (0.1.6), after migration 11 (0.1.7), or after migration 12 (0.1.8), then apply the remaining migrations during normal boot.
 
 Edit frontend source under `ui/` and commit regenerated `static/` assets.
 `build-inputs/` resolves the published `kickside/ui-kit` package; `make ui-kit`
