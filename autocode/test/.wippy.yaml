@@ -9,11 +9,9 @@ override:
   "kickside.core.jobs:policy:meta.slot_retry.retry_after_ms": 100
   "kickside.core.jobs:policy:meta.slot_retry.max_delay_ms": 1000
   "chestor.autocode:runtime_config:meta.workspace_roots": "${workspace_roots}"
-  "app:upgrade_db:file": "${upgrade_sqlite_path}"
   "app:db:file": "${sqlite_path}"
   "app:gateway:addr": ":${http_port}"
 vars:
-  upgrade_sqlite_path: ./.wippy/upgrade.db
   workspace_roots: /
   sqlite_path: ./.wippy/autocode-test.db
   http_port: 19347
@@ -23,22 +21,6 @@ vars:
   pg_username: kickside
   pg_password: kickside
 profiles:
-  upgrade015:
-    override:
-      "app:upgrade_fixture:meta.release": '015'
-      "app:upgrade_runtime_test:meta.type": test
-  upgrade016:
-    override:
-      "app:upgrade_fixture:meta.release": '016'
-      "app:upgrade_runtime_test:meta.type": test
-  upgrade017:
-    override:
-      "app:upgrade_fixture:meta.release": '017'
-      "app:upgrade_runtime_test:meta.type": test
-  upgrade018:
-    override:
-      "app:upgrade_fixture:meta.release": '018'
-      "app:upgrade_runtime_test:meta.type": test
   postgres:
     override:
       "app:db:kind": db.sql.postgres
@@ -50,12 +32,5 @@ profiles:
       "app:db:options.sslmode": disable
       "app:db:pool.max_open": 16
       "app:db:pool.max_idle": 8
-      "app:upgrade_db:kind": db.sql.postgres
-      "app:upgrade_db:host": "${pg_host}"
-      "app:upgrade_db:port": "${pg_port}"
-      "app:upgrade_db:database": "${pg_database}_upgrade"
-      "app:upgrade_db:username": "${pg_username}"
-      "app:upgrade_db:password": "${pg_password}"
-      "app:upgrade_db:options.sslmode": disable
 registry:
   dispatch_internal_kinds: [registry.entry, ns.requirement, ns.dependency, ns.definition, security.scope]

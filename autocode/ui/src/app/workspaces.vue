@@ -13,7 +13,7 @@ import AppDialog from './app-dialog.vue'
 const alive = useAlive()
 const topicIds = ref<string[]>([])
 const props = defineProps<{ query: string }>()
-const emit = defineEmits<{ count: [value: number]; 'registration-needed': [value: number] }>()
+const emit = defineEmits<{ count: [value: number] }>()
 const adding = ref(false)
 defineExpose({ open: () => { adding.value = true } })
 const workspaces = ref<Workspace[]>([])
@@ -85,7 +85,7 @@ async function remove(w: Workspace) {
   }
 }
 const filtered = computed(() => workspaces.value.filter(w => [w.name, w.host_path].join(' ').toLowerCase().includes(props.query.toLowerCase())))
-watch(workspaces, value => { emit('count', value.length); emit('registration-needed', value.filter(w => w.unavailable_reason).length) })
+watch(workspaces, value => { emit('count', value.length) })
 </script>
 
 <template>

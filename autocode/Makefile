@@ -9,7 +9,7 @@ SHELL := bash
 .SHELLFLAGS := -o pipefail -ec
 PG_URL ?= postgresql://kickside:kickside@127.0.0.1:5433/postgres
 
-.PHONY: check build dev lint test test-pg typecheck lockrefresh ui-kit ui-test test-upgrade verify release-check publish
+.PHONY: check build dev lint test test-pg typecheck lockrefresh ui-kit ui-test verify release-check publish
 build: ui-kit
 	cd ui && npm run build
 dev: ui-kit
@@ -19,18 +19,18 @@ lint:
 test:
 	@cd test; wippy install $(WIPPY_INSTALL_ARGS) $(RUNTIME_ARGS); mkdir -p .wippy/workspaces; \
 	db=.wippy/run-$$(date +%s%N).db; \
-	trap 'rm -f "$$db" "$$db-wal" "$$db-shm" "$$db-upgrade" "$$db-upgrade-wal" "$$db-upgrade-shm"' EXIT; \
-	wippy test --set vars.upgrade_sqlite_path=./$$db-upgrade $(WIPPY_TEST_ARGS) $(RUNTIME_ARGS) $(TEST_ARGS) --set vars.sqlite_path=./$$db 2>&1 | tee .wippy/last-test-run.log; \
+	trap 'rm -f "$$db" "$$db-wal" "$$db-shm"' EXIT; \
+	wippy test $(WIPPY_TEST_ARGS) $(RUNTIME_ARGS) $(TEST_ARGS) --set vars.sqlite_path=./$$db 2>&1 | tee .wippy/last-test-run.log; \
 	sed -E 's/\x1B\[[0-9;?]*[[:alpha:]]//g' .wippy/last-test-run.log | \
 	awk '/No tests found/ { empty=1 } /^[[:space:]]*FAILED([[:space:]]|$$)/ { failed=1 } /^[[:space:]]*PASSED([[:space:]]|$$)/ { passed=1 } END { exit(empty || failed || !passed) }'
 # A dedicated database per run keeps tests independent of other applications.
 test-pg:
 	@cd test; wippy install $(WIPPY_INSTALL_ARGS) $(RUNTIME_ARGS); mkdir -p .wippy/workspaces; \
 	db=chestor_autocode_test_$$(date +%s%N); \
-	psql "$(PG_URL)" -qc "CREATE DATABASE $$db"; psql "$(PG_URL)" -qc "CREATE DATABASE $${db}_upgrade"; \
-	trap 'psql "$(PG_URL)" -qc "DROP DATABASE $$db WITH (FORCE)"; psql "$(PG_URL)" -qc "DROP DATABASE $${db}_upgrade WITH (FORCE)"' EXIT; \
+	psql "$(PG_URL)" -qc "CREATE DATABASE $$db"; \
+	trap 'psql "$(PG_URL)" -qc "DROP DATABASE $$db WITH (FORCE)"' EXIT; \
 	wippy lint $(WIPPY_LINT_ARGS) --ns 'chestor.autocode' --ns 'chestor.autocode.*' --profile postgres --set vars.pg_database=$$db $(RUNTIME_ARGS); \
-	wippy test --set vars.upgrade_sqlite_path=./$$db-upgrade $(WIPPY_TEST_ARGS) --profile postgres --set vars.pg_database=$$db $(RUNTIME_ARGS) $(TEST_ARGS) 2>&1 | tee .wippy/last-test-pg-run.log; \
+	wippy test $(WIPPY_TEST_ARGS) --profile postgres --set vars.pg_database=$$db $(RUNTIME_ARGS) $(TEST_ARGS) 2>&1 | tee .wippy/last-test-pg-run.log; \
 	sed -E 's/\x1B\[[0-9;?]*[[:alpha:]]//g' .wippy/last-test-pg-run.log | \
 	awk '/No tests found/ { empty=1 } /^[[:space:]]*FAILED([[:space:]]|$$)/ { failed=1 } /^[[:space:]]*PASSED([[:space:]]|$$)/ { passed=1 } END { exit(empty || failed || !passed) }'
 typecheck: ui-kit
@@ -57,16 +57,11 @@ check:
 	node scripts/materialize-contracts.test.mjs
 	node scripts/least-privilege.test.mjs
 	node scripts/check-module.mjs
-test-upgrade:
-	@for release in 015 016 017 018; do \
-		$(MAKE) $(TEST_TARGET) TEST_ARGS="$(TEST_ARGS) --profile upgrade$$release test upgrade_runtime_test"; \
-	done
 verify:
 	$(MAKE) lint
 	$(MAKE) lint WIPPY_LINT_ARGS=--strict-any
 	$(MAKE) typecheck build check ui-test
 	$(MAKE) $(TEST_TARGET)
-	$(MAKE) test-upgrade
 release-check: verify
 	wippy auth status
 	wippy publish --version "$(VERSION)" --dry-run --create --module-visibility $(VIS) --module-type $(TYPE) $(EMBED)

@@ -85,15 +85,3 @@ entries:
       resources: chestor.autocode.components:image
       actions: [component.kind.create, component.kind.update]
       effect: allow
-
-  - name: workspace_upgrade_status
-    kind: security.policy
-    meta: {private: true, comment: Upgrade publishes legacy workspace refusal reasons through Component runtime metadata.}
-    policy:
-      resources: '*'
-      actions: component.runtime_meta.write
-      effect: allow
-      conditions:
-        - field: meta.impl_id
-          operator: eq
-          value: chestor.autocode.components:workspace

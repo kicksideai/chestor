@@ -163,12 +163,6 @@ local function execute(run: repo.Run, job: {[string]: unknown}, trace_context: {
     end
     local prepared, owner, prepare_err = prepare(run)
     if not prepared or not owner then
-        if run.status == "queued" and prepare_err and (prepare_err:details() or {}).code == "autocode.workspace_approval_required" then
-            local cancelled, cancel_err = repo.cancel_requested(run_id)
-            if cancel_err then return failure("approval wait cancellation read", errors.UNAVAILABLE, cancel_err) end
-            if cancelled then return finish("cancelled", "", "cancelled by user", {}) end
-            return {ok = true, output = {park = true, run_id = run_id, status = "queued"}}
-        end
         return fail(tostring(prepare_err), prepare_err)
     end
     if attempt > 1 then return fail("the runner stopped before the run settled") end

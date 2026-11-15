@@ -192,29 +192,6 @@ local function cases()
                 test.is_nil(state.run.error:find("timeout", 1, true))
             end
         end)
-        test.it("keeps unapproved workspace runs queued without creating a container or losing the job", function()
-            local state = stubs.reset()
-            state.run.workspace_id = "legacy"
-            state.workspace_unapproved = true
-            state.prepare_error = errors.new({kind = errors.CONFLICT, message = "workspace needs approval", details = {code = "autocode.workspace_approval_required"}})
-            local waiting = runner.main({payload = {run_id = "run"}})
-            test.is_true(waiting.ok)
-            test.is_true(waiting.output.park)
-            test.eq(state.run.status, "queued")
-            test.is_true(state.prepared_called)
-            test.eq(#state.commands, 0)
-
-        end)
-        test.it("retains approval waiting across recovery and accepts cancellation while waiting", function()
-            local state = stubs.reset()
-            state.run.workspace_id = "legacy"
-            state.prepare_error = errors.new({kind = errors.CONFLICT, message = "workspace needs approval", details = {code = "autocode.workspace_approval_required"}})
-            local waiting = runner.main({payload = {run_id = "run"}, job = {attempt_no = 2}})
-            test.is_true(waiting.ok); test.is_true(waiting.output.park); test.eq(state.run.status, "queued")
-            state.run.cancel_requested = true
-            test.is_true(runner.main({payload = {run_id = "run"}}).ok)
-            test.eq(state.run.status, "cancelled")
-        end)
         test.it("waits for cancellation signals without reading the database during an idle stream", function()
             local state = stubs.reset()
             state.prepared, state.idle_stream = stubs.preparation(state.run), "700ms"
