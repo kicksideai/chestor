@@ -114,9 +114,6 @@ function M.admit_build(image_id: string): (string?, error?)
     local current, read_err = repo.image_build(image_id)
     if read_err then return nil, read_err end
     if not current or (current.finished_at ~= "" and current.projected) then return nil, nil end
-    if current.job_id == "" then
-        return nil, errors.new({kind = errors.CONFLICT, message = "image build has no recorded job ID; termination is unconfirmed"})
-    end
     local job, job_err = jobs.get_job(current.job_id)
     if job_err then return nil, job_err end
     if job and (job.status == "pending" or job.status == "running") then

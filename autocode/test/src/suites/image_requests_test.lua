@@ -58,12 +58,6 @@ local function cases()
                 else test.eq(decoded.settings[key], value) end
             end
         end)
-        test.it("fences upgraded unfinished builds without a recorded job ID", function()
-            local state = stubs.reset()
-            state.build.job_id = ""
-            test.is_true(errors.is(subject.request_build("image", "refresh"), errors.CONFLICT))
-            test.is_nil(state.requested_build)
-        end)
     end)
 end
 local run_cases = test.run_cases(cases)

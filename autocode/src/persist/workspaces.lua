@@ -66,4 +66,4 @@ local function remove(id: string): error?
         return err
     end)
 end
-return {workspace_paths = paths, workspace_conflict = check, admitted_workspace = admitted, workspace_overlap = overlap, approve_workspace = approve, delete_workspace = remove}
+return {workspace_paths = paths, admitted_workspace = admitted, workspace_overlap = overlap, approve_workspace = approve, delete_workspace = remove}

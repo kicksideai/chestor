@@ -119,65 +119,6 @@ local function cases()
             end
         end
 
-        test.it("cancels refused legacy work and runs with a normally re-registered workspace", function()
-            local image_ref = "chestor-autocode-harness:claude"
-            local output = {}
-            local code, err = docker.run({"build", "-t", image_ref, "-"}, {stdin = [[
-FROM node:22-bookworm-slim
-RUN npm install -g @anthropic-ai/claude-code@2.1.307
-RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
-RUN mkdir -p /opt/agent && chown node:node /opt/agent
-USER node
-]], on_line = function(line) output[#output + 1] = line end})
-            test.is_nil(err)
-            test.eq(code, 0, table.concat(output, "\n"))
-            local member, image_id, account_id = setup(image_ref, {protocol = "anthropic-messages",
-                base_url = "http://invalid.invalid", model = "claude-sonnet-4-6"}, true)
-            local changed = identity.request(member, "PUT", "/autocode/accounts/" .. account_id,
-                {secret = "stale-credential"})
-            test.eq(changed.status, 200, changed.body)
-            local rotated = identity.request(member, "PUT", "/autocode/accounts/" .. account_id,
-                {secret = SECRET, endpoint = {protocol = "anthropic-messages", base_url = identity.container_url() .. "/mock", model = "claude-sonnet-4-6"}})
-            test.eq(rotated.status, 200, rotated.body)
-            local admin = users[1]
-            local path = identity.directory(admin, "legacy-real-run")
-            local legacy = identity.call(admin, "app:fixture_register", "workspace", {title = "legacy"}, {host_path = path})
-            test.is_true(identity.call(admin, "app:fixture_patch", {kind = "workspace", id = legacy, context = {note = "administrator edit"}}))
-            local shared = identity.request(admin, "POST", "/component-access/share/" .. legacy,
-                {subject_id = member.id, subject_type = "user", access_mask = 3})
-            test.eq(shared.status, 200, shared.body)
-            local submitted, submit_err = identity.call(member, "app:queue_legacy", {
-                agent = "claude", image_id = image_id, account_id = account_id, workspace_id = legacy,
-                prompt = "Return the fixture answer.", repo_url = "", options = {}, timeout_ms = 60000})
-            test.is_nil(submit_err, tostring(submit_err))
-            local waiting = repo.stored_run(submitted.run_id)
-            local ceiling = time.now():add("30s")
-            while true do
-                local job = require("jobs").get_job(waiting.job_id)
-                if job.status == "pending" and job.scheduled_at == nil then break end
-                test.is_true(time.now():before(ceiling), "queued run must park while awaiting approval")
-                time.sleep("100ms")
-            end
-            test.eq(repo.stored_run(submitted.run_id).status, "queued")
-            local cancelled = identity.request(member, "POST", "/autocode/runs/" .. submitted.run_id .. "/cancel")
-            test.eq(cancelled.status, 200, cancelled.body)
-            test.eq(settled(member, submitted.run_id, true).json.run.status, "cancelled")
-            local registered = identity.request(admin, "POST", "/autocode/workspaces", {name = "registered", host_path = path})
-            test.eq(registered.status, 201, registered.body)
-            local current = registered.json.id
-            test.is_true(current ~= legacy)
-            test.eq(identity.request(admin, "POST", "/component-access/share/" .. current,
-                {subject_id = member.id, subject_type = "user", access_mask = 3}).status, 200)
-            local fresh = identity.request(member, "POST", "/autocode/runs", {
-                agent = "claude", image_id = image_id, account_id = account_id, workspace_id = current,
-                prompt = "Return the fixture answer.", unattended = false})
-            test.eq(fresh.status, 201, fresh.body)
-            local done = settled(member, fresh.json.run_id, true)
-            test.eq(done.json.run.status, "succeeded", done.body)
-            test.eq(done.json.run.result, anthropic.answer())
-            test.eq(done.json.run.workspace_id, current)
-        end)
-
         test.it("re-prepares local settings under the saving manager and refreshes without a pull", function()
             local owner = track(identity.user({identity.SIGNED_IN, identity.MEMBERS, "app:autocode_managers"}))
             local manager = track(identity.user({identity.SIGNED_IN, identity.MEMBERS, "app:autocode_managers"}))

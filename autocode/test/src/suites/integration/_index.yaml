@@ -21,7 +21,7 @@ entries:
     meta: {type: test, suite: autocode_retention_cleanup, group: Autocode}
     source: file://../../suites/retention_cleanup_test.lua
     method: run
-    modules: [sql, uuid, time, funcs, process, channel]
+    modules: [sql, uuid, time, process, channel]
     imports:
       prune: chestor.autocode.runner:prune
       prune_subject: app:prune_subject
@@ -101,8 +101,6 @@ entries:
     modules: [sql, json, channel]
     imports:
       host: app:host_commands
-      component: kickside.component:component
-      image_state: chestor.autocode.domain:image_state
       test: wippy.test:test
       identity: app:identity
       build_fixture: app:build_fixture
@@ -261,7 +259,7 @@ entries:
     meta: {type: test, suite: autocode_flow, group: Autocode}
     source: file://../../suites/flow_test.lua
     method: run
-    modules: [sql, time, json, uuid]
+    modules: [sql, time, json]
     imports:
       test: wippy.test:test
       identity: app:identity

@@ -287,26 +287,6 @@ entries:
       api: app:gateway_api_subject
       stub: app:gateway_http_stub
 
-  - name: upgrade_test
-    kind: function.lua
-    meta: {type: test, suite: autocode_populated_upgrade, group: Autocode}
-    source: file://../../suites/upgrade_test.lua
-    method: run
-    modules: [sql, funcs, uuid, json, registry]
-    imports:
-      host: app:host_commands
-      component: kickside.component:component
-      test: wippy.test:test
-      repo: app:upgrade_runs
-      identity: app:identity
-      contract_fixture: app:contract_fixture
-      workspace_store: app:upgrade_workspace_store
-      docker_runner: app:upgrade_docker_runner
-      docker: chestor.autocode.infrastructure:docker
-    security:
-      actor: {id: app:test_runner}
-      policies: [app:test_runtime]
-
   - name: mount_test
     kind: function.lua
     meta: {type: test, suite: autocode_mount_isolation, group: Autocode}
@@ -336,22 +316,6 @@ entries:
       docker: chestor.autocode.infrastructure:docker
       quote: chestor.autocode.infrastructure:quote
       stubs: app:runner_stubs
-    security:
-      actor: {id: app:test_runner}
-      policies: [app:test_runtime]
-
-  - name: upgrade_runtime_test
-    kind: function.lua
-    meta: {type: disabled, suite: autocode_upgrade_runtime, group: Autocode}
-    source: file://../../suites/upgrade_runtime_test.lua
-    method: run
-    modules: [sql, time, process]
-    imports:
-      test: wippy.test:test
-      repo: chestor.autocode.persist:repo
-      jobs: kickside.core.jobs:jobs
-      identity: app:identity
-      docker: chestor.autocode.infrastructure:docker
     security:
       actor: {id: app:test_runner}
       policies: [app:test_runtime]
