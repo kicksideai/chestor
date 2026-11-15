@@ -58,7 +58,7 @@ check:
 	node scripts/least-privilege.test.mjs
 	node scripts/check-module.mjs
 test-upgrade:
-	@for release in 015 016 017; do \
+	@for release in 015 016 017 018; do \
 		$(MAKE) $(TEST_TARGET) TEST_ARGS="$(TEST_ARGS) --profile upgrade$$release test upgrade_runtime_test"; \
 	done
 verify:

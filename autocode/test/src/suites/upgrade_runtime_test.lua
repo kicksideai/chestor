@@ -26,9 +26,18 @@ local function cases()
         end)
         test.it("expires the upgraded approval-parked run on Core's deadline", function()
             local run = fixture("parked")
+            local job = assert(jobs.get_job(run.job_id))
+            local recovered_by = time.now():add("10s")
+            -- The marker commits before the worker returns its park outcome.
+            while (run.dispatch_state ~= "waiting" or job.status ~= "pending" or job.scheduled_at ~= nil
+                or job.wake_enabled == true or job.wake_enabled == 1) and time.now():before(recovered_by) do
+                time.sleep("100ms")
+                run = assert(repo.stored_run(run.id))
+                job = assert(jobs.get_job(run.job_id))
+            end
             test.eq(run.dispatch_state, "waiting")
             test.eq(run.status, "queued")
-            local job = assert(jobs.get_job(run.job_id))
+            test.is_true(tonumber(job.execution_seq) >= 1, "the real Jobs worker established Docker absence")
             test.eq(job.status, "pending")
             test.is_nil(job.scheduled_at)
             test.is_false(job.wake_enabled == true or job.wake_enabled == 1)
@@ -54,7 +63,7 @@ local function cases()
             test.eq(#assert(jobs.get_jobs({run.job_id})), 0)
         end)
         test.it("recovers an upgraded possibly-created run through Jobs and removes its container", function()
-            for _, kind in ipairs({"created", "started", "pending", "running", "approved"}) do
+            for _, kind in ipairs({"inherited", "created", "started", "pending", "running", "approved"}) do
                 local run = fixture(kind)
                 local deadline = time.now():add("10s")
                 while (run.status == "queued" or run.status == "running") and time.now():before(deadline) do
