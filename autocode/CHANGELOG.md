@@ -1,6 +1,13 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.9](https://github.com/kicksideai/chestor/compare/autocode-v0.1.8...autocode-v0.1.9) (2026-11-15)
+
+
+### Bug Fixes
+
+* **autocode:** recover inherited runs using Docker evidence ([#43](https://github.com/kicksideai/chestor/issues/43)) ([fb6c29e](https://github.com/kicksideai/chestor/commit/fb6c29e5e73550521099c10602292cc49f021fdc))
+
 ## [0.1.8](https://github.com/kicksideai/chestor/compare/autocode-v0.1.7...autocode-v0.1.8) (2026-11-15)
 
 
