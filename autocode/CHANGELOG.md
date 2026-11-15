@@ -1,6 +1,13 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.10](https://github.com/kicksideai/chestor/compare/autocode-v0.1.9...autocode-v0.1.10) (2026-11-15)
+
+
+### Code Refactoring
+
+* **autocode:** create the greenfield schema without legacy upgrades ([#45](https://github.com/kicksideai/chestor/issues/45)) ([03e5f09](https://github.com/kicksideai/chestor/commit/03e5f09c02e71ed08e26945b9f4c65a98e23e063))
+
 ## [0.1.9](https://github.com/kicksideai/chestor/compare/autocode-v0.1.8...autocode-v0.1.9) (2026-11-15)
 
 
