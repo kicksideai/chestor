@@ -1,6 +1,13 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.8](https://github.com/kicksideai/chestor/compare/autocode-v0.1.7...autocode-v0.1.8) (2026-11-15)
+
+
+### Bug Fixes
+
+* **autocode:** recover parked runs during upgrades ([#41](https://github.com/kicksideai/chestor/issues/41)) ([636310f](https://github.com/kicksideai/chestor/commit/636310f8fc5ad7c4c49f8d1bb7a738f27d877268))
+
 ## [0.1.7](https://github.com/kicksideai/chestor/compare/autocode-v0.1.6...autocode-v0.1.7) (2026-11-14)
 
 
