@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/kicksideai/chestor/compare/roadmap-v0.2.3...roadmap-v0.2.4) (2026-11-16)
+
+
+### Bug Fixes
+
+* preserve web component host contracts and eager bundles ([#18](https://github.com/kicksideai/chestor/issues/18)) ([825ff94](https://github.com/kicksideai/chestor/commit/825ff945467715e4d7613667719e6e7173c558df))
+
 ## [0.2.3](https://github.com/kicksideai/chestor/compare/roadmap-v0.2.2...roadmap-v0.2.3) (2026-11-10)
 
 
