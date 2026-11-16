@@ -377,6 +377,22 @@ entries:
     policy:
       resources:
         - chestor.autocode.traits:coding_tasks
+        - chestor.autocode.traits:coding_admin
+        - chestor.autocode.traits:list_coding_runs
+        - chestor.autocode.traits:read_coding_image
+        - chestor.autocode.traits:add_coding_account
+        - chestor.autocode.traits:update_coding_account
+        - chestor.autocode.traits:remove_coding_account
+        - chestor.autocode.traits:add_coding_profile
+        - chestor.autocode.traits:update_coding_profile
+        - chestor.autocode.traits:remove_coding_profile
+        - chestor.autocode.traits:create_coding_image
+        - chestor.autocode.traits:update_coding_image
+        - chestor.autocode.traits:prepare_coding_image
+        - chestor.autocode.traits:delete_coding_image
+        - chestor.autocode.traits:create_coding_workspace
+        - chestor.autocode.traits:delete_coding_workspace
+        - chestor.autocode.traits:prune_coding_images
         - chestor.autocode.traits:submit_coding_task
         - chestor.autocode.traits:read_coding_run
         - chestor.autocode.traits:list_coding_agents

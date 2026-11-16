@@ -44,6 +44,7 @@ entries:
         - chestor.autocode.api:workspaces_create
         - chestor.autocode.api:workspaces_delete
         - chestor.autocode.api:maintenance_prune
+        - kickside.component:notify_access
         - kickside.core.jobs.persist:pool_nudge
         - kickside.component:component_service
         - kickside.component.binding:component_service_impl

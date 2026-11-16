@@ -5,23 +5,25 @@
     "agent": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 64
+      "maxLength": 64,
+      "description": "Activated agent ID from ListCodingAgents; use that tool to discover credential kinds, capabilities, endpoints and supported driver options."
     },
     "ready_only": {
       "type": "boolean",
       "default": true,
-      "description": "Only images with a runnable approved generation, including during refresh or after a failed refresh."
+      "description": "Only return runnable approved images by default. Set false to discover unprepared/failed images before using ReadCodingImage or administration tools."
     },
     "limit": {
       "type": "integer",
       "minimum": 1,
       "maximum": 100,
-      "description": "Bounded page size. Discovery tools default to 25; omitted on older service callers preserves their existing response."
+      "description": "Maximum results per page, 1–100. Discovery tools default to 25. Follow next_offset with offset to continue."
     },
     "offset": {
       "type": "integer",
       "minimum": 0,
-      "maximum": 1000000
+      "maximum": 1000000,
+      "description": "Zero-based discovery offset; use the preceding response next_offset to continue (maximum 1000000)."
     }
   },
   "required": []

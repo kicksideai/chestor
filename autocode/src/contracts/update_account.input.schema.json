@@ -5,39 +5,47 @@
     "id": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 64
+      "maxLength": 64,
+      "description": "Account ID from ListCodingAccounts; update requires WRITE and removal requires DELETE."
     },
     "label": {
       "type": "string",
-      "maxLength": 200
+      "maxLength": 200,
+      "description": "Human-readable account label; use it to distinguish credentials without exposing the secret."
     },
     "enabled": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Whether the account can be selected for tasks. Explicitly enabling it clears cooldown and the last reported error."
     },
     "secret": {
       "type": "string",
-      "maxLength": 65536
+      "maxLength": 65536,
+      "description": "Credential contents in the format declared by ListCodingAgents for credential_kind. Stored privately and never returned by reads. Update omission preserves the current credential."
     },
     "endpoint": {
       "type": "object",
       "properties": {
         "protocol": {
           "type": "string",
-          "maxLength": 64
+          "maxLength": 64,
+          "description": "Endpoint protocol supported by the selected ListCodingAgents entry."
         },
         "base_url": {
           "type": "string",
-          "maxLength": 512
+          "maxLength": 512,
+          "description": "Custom endpoint base URL. An empty value clears an account or task override."
         },
         "model": {
           "type": "string",
-          "maxLength": 200
+          "maxLength": 200,
+          "description": "Driver-native model identifier for this custom endpoint."
         }
       },
       "required": [
         "base_url"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Optional custom endpoint supported by the selected agent; task values override profile/account defaults."
     }
   },
   "required": [

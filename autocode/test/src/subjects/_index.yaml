@@ -474,3 +474,29 @@ entries:
     kind: library.lua
     source: 'return require("stubs").retention_notifier'
     imports: {stubs: 'app:runner_stubs'}
+
+  - name: prune_tool_subject
+    kind: function.lua
+    source: file://../management_tool_subject.lua
+    method: prune_coding_images
+    modules: [security, json, registry]
+    imports:
+      boundary: chestor.autocode.service:boundary
+      images: chestor.autocode.service:image_management
+      workspaces: chestor.autocode.service:workspace_management
+      maintenance: app:prune_tool_maintenance
+
+  - name: prune_tool_maintenance
+    kind: library.lua
+    source: |
+      -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+      local stubs = require("stubs")
+      local maintenance = require("maintenance")
+      return {prune = function()
+          local state = stubs.reset()
+          state.cache_retention = "48h"
+          return maintenance.prune()
+      end}
+    imports:
+      stubs: app:runner_stubs
+      maintenance: app:maintenance_subject

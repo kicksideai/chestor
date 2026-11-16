@@ -5,7 +5,8 @@
     "id": {
       "type": "string",
       "maxLength": 64,
-      "minLength": 1
+      "minLength": 1,
+      "description": "Caller-readable profile ID from ListCodingProfiles."
     }
   },
   "required": [

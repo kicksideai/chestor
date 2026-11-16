@@ -6,6 +6,7 @@ local gateway = require("gateway")
 local json = require("json")
 local sql = require("sql")
 local drivers = require("drivers")
+local configuration = require("configuration")
 local container = require("container")
 local http_client = require("http_client")
 local function cases()
@@ -81,6 +82,39 @@ local function cases()
             test.not_nil(submitted.run_id)
             local prepared_id, prepared = run_for(user, declaration(128))
             test.eq(#repo.stored_run(prepared_id).gateway.tools, 128)
+        end)
+        test.it("counts administration and use tools in the driver-owned trait union bound", function()
+            local user = identity.admin()
+            f.users[#f.users + 1] = user
+            local image = f.image_for(user)
+            f.call(user, "add_account", {agent = "claude", label = "key", credential_kind = "env:ANTHROPIC_API_KEY", secret = "key"}, "chestor.autocode:accounts")
+            local traits = {"chestor.autocode.traits:coding_admin", "chestor.autocode.traits:coding_tasks"}
+            local base, base_err = identity.call(user, "app:gateway_resolve", {traits = traits})
+            test.is_nil(base_err, tostring(base_err)); test.eq(#base.tools, 24)
+            test.is_true(#base.tools <= configuration.MAX_GATEWAY_TOOLS)
+            local function declaration(count)
+                return {traits = {traits[1], traits[2], "app.bound:trait"}, context = {count = count}}
+            end
+            local remaining = configuration.MAX_GATEWAY_TOOLS - #base.tools
+            local rejected, err = f.call(user, "submit_task", {agent = "claude", image_id = image, prompt = "task", tools = declaration(remaining + 1)})
+            test.is_nil(rejected); test.is_true(errors.is(err, errors.INVALID), tostring(err))
+            test.is_false(err:retryable()); test.eq(err:details().code, "autocode.tool_limit_exceeded")
+            test.eq(err:details().limit, configuration.MAX_GATEWAY_TOOLS)
+            test.eq(err:details().count, configuration.MAX_GATEWAY_TOOLS + 1)
+            test.eq(#f.call(user, "list_runs", {}).runs, 0)
+            local submitted, submit_err = f.call(user, "submit_task", {agent = "claude", image_id = image, prompt = "task", tools = declaration(remaining)})
+            test.is_nil(submit_err, tostring(submit_err)); test.not_nil(submitted.run_id)
+            local id, prepared = run_for(user, declaration(remaining))
+            local tools = repo.stored_run(id).gateway.tools
+            test.eq(#tools, configuration.MAX_GATEWAY_TOOLS); test.not_nil(prepared.launch)
+            local found = {}
+            for _, tool in ipairs(tools) do
+                found[tool.id] = true
+                if tool.id:sub(1, #"chestor.autocode.traits:") == "chestor.autocode.traits:" then
+                    test.is_nil(tool.context.count)
+                end
+            end
+            for _, tool in ipairs(base.tools) do test.is_true(found[tool.id], tool.id) end
         end)
         test.it("ignores member-written gateway destinations on shared images and workspaces", function()
             local victim, attacker = identity.admin(), f.member()

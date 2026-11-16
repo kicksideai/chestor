@@ -151,22 +151,26 @@
           "properties": {
             "protocol": {
               "type": "string",
-              "maxLength": 64
+              "maxLength": 64,
+              "description": "Endpoint protocol supported by the selected ListCodingAgents entry."
             },
             "base_url": {
               "type": "string",
-              "maxLength": 512
+              "maxLength": 512,
+              "description": "Custom endpoint base URL. An empty value clears an account or task override."
             },
             "model": {
               "type": "string",
-              "maxLength": 200
+              "maxLength": 200,
+              "description": "Driver-native model identifier for this custom endpoint."
             }
           },
           "required": [
             "protocol",
             "base_url"
           ],
-          "additionalProperties": false
+          "additionalProperties": false,
+          "description": "Optional custom endpoint supported by the selected agent; task values override profile/account defaults."
         },
         "error_native": {
           "type": "object",
