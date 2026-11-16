@@ -36,6 +36,7 @@ entry with Docker on the executor's own PATH, a POSIX shell, coreutils, awk and 
 - **`chestor.autocode:api_router`**: Authenticated HTTP router.
 - **`chestor.autocode:ui_server`**: HTTP server for the built UI.
 - **`chestor.autocode:settings_path`**: Actual mounted settings-tab URL; empty hides the link.
+- **`chestor.autocode:limits_path`**: Actual mounted Autocode section of shared Settings for run limits and retention; empty hides the link from management. Bind both paths in the host so Tasks, Profiles and Accounts link to Images/Workspaces/Docker, which links to limits and retention. For a shell mounting management at `/system/autocode` and shared Settings at `/system/settings`, use those respective URLs. A host that supports selecting a Settings section by URL may bind that section URL instead.
 - **`chestor.autocode:docker_executor`**: Host `exec.native` entry that runs the Docker CLI.
 - **`chestor.autocode:docker_context`**: Optional Docker CLI context override; empty preserves the executor’s environment and selected context, authentication and plugins.
 - **`chestor.autocode:gateway_endpoint`**: Host and port reachable from run containers for the bearer-authenticated run gateway.

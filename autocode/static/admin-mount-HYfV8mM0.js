@@ -1,10 +1,10 @@
 import { a as le, P as pe } from "./wc-runtime-6vw183jT.js";
-import { defineComponent as K, ref as v, watch as O, openBlock as t, createElementBlock as o, Fragment as j, createElementVNode as e, createVNode as $, unref as m, createCommentVNode as k, toDisplayString as b, createTextVNode as I, withDirectives as P, vModelText as T, normalizeClass as z, createStaticVNode as me, renderList as M, vModelCheckbox as ke, computed as J, onUnmounted as fe, createBlock as H, withCtx as Y, vShow as be } from "vue";
+import { defineComponent as K, ref as m, watch as O, openBlock as t, createElementBlock as o, Fragment as R, createElementVNode as e, createVNode as $, unref as v, createCommentVNode as p, toDisplayString as g, createTextVNode as I, withDirectives as E, vModelText as P, normalizeClass as z, createStaticVNode as me, renderList as M, vModelCheckbox as ke, computed as J, onUnmounted as fe, createBlock as H, withCtx as Y, withModifiers as be, vShow as ge } from "vue";
 import { Icon as L } from "@iconify/vue";
-import { u as ee, _ as Z, a as ge, b as ye } from "./app-dialog.vue_vue_type_script_setup_true_lang-I9Vp8pUI.js";
-import { loadByTagName as he, host as X } from "@wippy-fe/proxy";
-import { e as q, a as E, u as oe, b as _e, s as ne, r as ie, p as we, c as xe } from "./presentation-Dx9dN_rC.js";
-const $e = {
+import { loadByTagName as he, host as Q } from "@wippy-fe/proxy";
+import { u as ee, _ as Z, a as ye, b as _e } from "./app-dialog.vue_vue_type_script_setup_true_lang-DPnDfcrz.js";
+import { e as T, a as q, u as oe, b as we, s as ne, r as ie, p as xe, c as $e } from "./presentation-C75LgO9q.js";
+const Ce = {
   key: 1,
   class: "kx-err",
   role: "alert"
@@ -15,15 +15,15 @@ const $e = {
     title: {}
   },
   setup(A) {
-    const N = A, u = v(!1), g = v(null), w = v("");
+    const N = A, u = m(!1), k = m(null), w = m("");
     function V() {
       u.value = !1;
     }
-    return O(g, async (s) => {
+    return O(k, async (s) => {
       if (s) {
         w.value = "";
         try {
-          if (customElements.get("kickside-share") || await he("kickside-share", { timeoutMs: 8e3 }), g.value !== s) return;
+          if (customElements.get("kickside-share") || await he("kickside-share", { timeoutMs: 8e3 }), k.value !== s) return;
           const r = document.createElement("kickside-share");
           r.setAttribute("config", JSON.stringify({
             resource_id: N.id,
@@ -32,10 +32,10 @@ const $e = {
             share_url: `/api/v1/component-access/share/${encodeURIComponent(N.id)}`
           })), r.style.display = "block", r.addEventListener("close", V), s.appendChild(r);
         } catch (r) {
-          w.value = q(r, "Could not open sharing.");
+          w.value = T(r, "Could not open sharing.");
         }
       }
-    }), (s, r) => (t(), o(j, null, [
+    }), (s, r) => (t(), o(R, null, [
       e("button", {
         type: "button",
         class: "ac-icon-btn kx-focus-outline",
@@ -43,33 +43,33 @@ const $e = {
         "aria-label": "Share",
         onClick: r[0] || (r[0] = (D) => u.value = !0)
       }, [
-        $(m(L), { icon: "tabler:share" })
+        $(v(L), { icon: "tabler:share" })
       ]),
       u.value ? (t(), o("div", {
         key: 0,
         ref_key: "shareHost",
-        ref: g
-      }, null, 512)) : k("", !0),
-      w.value ? (t(), o("span", $e, b(w.value), 1)) : k("", !0)
+        ref: k
+      }, null, 512)) : p("", !0),
+      w.value ? (t(), o("span", Ce, g(w.value), 1)) : p("", !0)
     ], 64));
   }
-}), Ce = {
+}), De = {
   key: 0,
   class: "kx-err",
   role: "alert"
-}, De = ["disabled"], Ue = { class: "ac-card-head" }, Le = { class: "ac-muted" }, Ae = { class: "ac-field" }, Ie = { class: "ac-seg" }, Ve = {
+}, Ue = ["disabled"], Le = { class: "ac-card-head" }, Ae = { class: "ac-muted" }, Ie = { class: "ac-field" }, Ve = { class: "ac-seg" }, Se = {
   key: 0,
   class: "ac-field"
-}, Se = {
+}, Ne = {
   key: 1,
   class: "ac-muted"
-}, Ne = { class: "ac-field" }, Be = { class: "ac-field" }, Pe = { class: "ac-row-fields" }, Te = { class: "ac-field" }, qe = ["placeholder"], Ee = { class: "ac-field" }, je = ["placeholder"], Re = { class: "ac-field" }, Me = { class: "ac-row-fields" }, Oe = { class: "ac-field" }, He = { class: "ac-field" }, Ge = ["placeholder"], Ke = {
+}, Be = { class: "ac-field" }, Ee = { class: "ac-field" }, Pe = { class: "ac-row-fields" }, Te = { class: "ac-field" }, qe = ["placeholder"], Re = { class: "ac-field" }, je = ["placeholder"], Me = { class: "ac-field" }, Oe = { class: "ac-row-fields" }, He = { class: "ac-field" }, Ge = { class: "ac-field" }, Ke = ["placeholder"], We = {
   key: 2,
   class: "ac-field"
-}, We = { class: "ac-checks" }, Fe = ["value"], ze = { class: "ac-field" }, Je = { class: "ac-dialog-foot" }, Qe = ["disabled"], Xe = {
+}, Fe = { class: "ac-checks" }, ze = ["value"], Je = { class: "ac-field" }, Qe = { class: "ac-dialog-foot" }, Xe = ["disabled"], Ye = {
   key: 3,
   class: "kx-err"
-}, Ye = /* @__PURE__ */ K({
+}, Ze = /* @__PURE__ */ K({
   __name: "image-form",
   props: {
     edit: {},
@@ -77,7 +77,7 @@ const $e = {
   },
   emits: ["saved", "cancel", "busy"],
   setup(A, { emit: N }) {
-    const u = A, g = N, w = ee();
+    const u = A, k = N, w = ee();
     function V(l = w.value.default_image.settings) {
       return l ? {
         ref: "",
@@ -91,11 +91,11 @@ const $e = {
         extra: ""
       } : null;
     }
-    const s = v(V()), r = v(!1);
+    const s = m(V()), r = m(!1);
     O(() => s.value?.ref, (l) => {
       s.value && !u.edit && !r.value && l !== void 0 && (s.value.label = l);
     });
-    const D = v(!1), x = v("");
+    const D = m(!1), x = m("");
     O(() => u.edit, (l) => {
       if (x.value = "", r.value = !!l, !l) {
         s.value = V();
@@ -142,21 +142,21 @@ const $e = {
     }
     async function U() {
       if (!(!s.value || D.value)) {
-        x.value = "", D.value = !0, g("busy", !0);
+        x.value = "", D.value = !0, k("busy", !0);
         try {
           let l;
           if (u.edit) {
-            const a = await E.updateImage(u.edit.image.id, { ..._(), ref: s.value.ref, dockerfile: s.value.mode === "build" ? s.value.dockerfile : "" });
+            const a = await q.updateImage(u.edit.image.id, { ..._(), ref: s.value.ref, dockerfile: s.value.mode === "build" ? s.value.dockerfile : "" });
             a.build_error && (l = `Settings saved. Build preparation has not started: ${a.build_error.message}. Use Prepare image to retry.`);
           } else {
-            const a = s.value, n = await E.createImage({ ..._(), ref: a.ref, dockerfile: a.mode === "build" ? a.dockerfile : "" });
+            const a = s.value, n = await q.createImage({ ..._(), ref: a.ref, dockerfile: a.mode === "build" ? a.dockerfile : "" });
             n.build_error && (l = `Image created. Build preparation has not started: ${n.build_error.message}. Use Prepare image to retry.`), s.value = V();
           }
-          g("saved", l);
+          k("saved", l);
         } catch (l) {
-          x.value = q(l, "Could not save the image.");
+          x.value = T(l, "Could not save the image.");
         } finally {
-          D.value = !1, g("busy", !1);
+          D.value = !1, k("busy", !1);
         }
       }
     }
@@ -165,29 +165,29 @@ const $e = {
       class: "ac-form",
       disabled: D.value
     }, [
-      e("div", Ue, [
-        e("span", Le, b(A.edit ? "Container settings" : "Use an image reference or the default agent recipe."), 1),
-        A.edit ? k("", !0) : (t(), o("button", {
+      e("div", Le, [
+        e("span", Ae, g(A.edit ? "Container settings" : "Use an image reference or the default agent recipe."), 1),
+        A.edit ? p("", !0) : (t(), o("button", {
           key: 0,
           type: "button",
           class: "ac-btn kx-focus-halo",
           onClick: C
         }, [
-          $(m(L), { icon: "tabler:sparkles" }),
+          $(v(L), { icon: "tabler:sparkles" }),
           a[15] || (a[15] = I(" Default agent image", -1))
         ]))
       ]),
-      e("label", Ae, [
+      e("label", Ie, [
         a[16] || (a[16] = e("span", null, "Image reference", -1)),
-        P(e("input", {
+        E(e("input", {
           "onUpdate:modelValue": a[0] || (a[0] = (n) => s.value.ref = n),
           class: "ac-mono kx-focus-halo",
           placeholder: "registry/name:tag"
         }, null, 512), [
-          [T, s.value.ref]
+          [P, s.value.ref]
         ])
       ]),
-      e("div", Ie, [
+      e("div", Ve, [
         e("button", {
           type: "button",
           class: z(["kx-focus-outline", { active: s.value.mode === "pull" }]),
@@ -199,68 +199,68 @@ const $e = {
           onClick: a[2] || (a[2] = (n) => s.value.mode = "build")
         }, "Build from Dockerfile", 2)
       ]),
-      s.value.mode === "build" ? (t(), o("label", Ve, [
+      s.value.mode === "build" ? (t(), o("label", Se, [
         a[17] || (a[17] = e("span", null, "Dockerfile", -1)),
-        P(e("textarea", {
+        E(e("textarea", {
           "onUpdate:modelValue": a[3] || (a[3] = (n) => s.value.dockerfile = n),
           rows: "9",
           class: "ac-mono kx-focus-halo"
         }, null, 512), [
-          [T, s.value.dockerfile]
+          [P, s.value.dockerfile]
         ]),
         a[18] || (a[18] = me('<small class="ac-hint">Include <code>sh</code>, <code>git</code>, <code>mkdir</code>, <code>dirname</code>, a <code>timeout</code> that supports <code>-k</code>, and the agent CLIs. The image user needs writable home and work directories.</small>', 1))
-      ])) : k("", !0),
-      A.edit ? (t(), o("p", Se, "Saving container settings prepares the image automatically.")) : k("", !0),
-      e("label", Ne, [
+      ])) : p("", !0),
+      A.edit ? (t(), o("p", Ne, "Saving container settings prepares the image automatically.")) : p("", !0),
+      e("label", Be, [
         a[19] || (a[19] = e("span", null, "Label", -1)),
-        P(e("input", {
+        E(e("input", {
           "onUpdate:modelValue": a[4] || (a[4] = (n) => s.value.label = n),
           class: "kx-focus-halo",
           onInput: a[5] || (a[5] = (n) => r.value = !0)
         }, null, 544), [
-          [T, s.value.label]
+          [P, s.value.label]
         ])
       ]),
-      e("label", Be, [
+      e("label", Ee, [
         a[20] || (a[20] = e("span", null, "Home directory in the image", -1)),
-        P(e("input", {
+        E(e("input", {
           "onUpdate:modelValue": a[6] || (a[6] = (n) => s.value.home = n),
           class: "ac-mono kx-focus-halo"
         }, null, 512), [
-          [T, s.value.home]
+          [P, s.value.home]
         ])
       ]),
       e("div", Pe, [
         e("label", Te, [
           a[21] || (a[21] = e("span", null, "Memory", -1)),
-          P(e("input", {
+          E(e("input", {
             "onUpdate:modelValue": a[7] || (a[7] = (n) => s.value.memory = n),
             class: "ac-mono kx-focus-halo",
-            placeholder: m(w).default_image.settings?.memory
+            placeholder: v(w).default_image.settings?.memory
           }, null, 8, qe), [
-            [T, s.value.memory]
-          ])
-        ]),
-        e("label", Ee, [
-          a[22] || (a[22] = e("span", null, "CPUs", -1)),
-          P(e("input", {
-            "onUpdate:modelValue": a[8] || (a[8] = (n) => s.value.cpus = n),
-            class: "ac-mono kx-focus-halo",
-            placeholder: m(w).default_image.settings?.cpus
-          }, null, 8, je), [
-            [T, s.value.cpus]
+            [P, s.value.memory]
           ])
         ]),
         e("label", Re, [
+          a[22] || (a[22] = e("span", null, "CPUs", -1)),
+          E(e("input", {
+            "onUpdate:modelValue": a[8] || (a[8] = (n) => s.value.cpus = n),
+            class: "ac-mono kx-focus-halo",
+            placeholder: v(w).default_image.settings?.cpus
+          }, null, 8, je), [
+            [P, s.value.cpus]
+          ])
+        ]),
+        e("label", Me, [
           a[23] || (a[23] = e("span", null, "PIDs limit", -1)),
-          P(e("input", {
+          E(e("input", {
             "onUpdate:modelValue": a[9] || (a[9] = (n) => s.value.pids_limit = n),
             type: "number",
             min: "0",
             class: "ac-mono kx-focus-halo"
           }, null, 512), [
             [
-              T,
+              P,
               s.value.pids_limit,
               void 0,
               { number: !0 }
@@ -268,50 +268,50 @@ const $e = {
           ])
         ])
       ]),
-      e("div", Me, [
-        e("label", Oe, [
+      e("div", Oe, [
+        e("label", He, [
           a[24] || (a[24] = e("span", null, "GPUs", -1)),
-          P(e("input", {
+          E(e("input", {
             "onUpdate:modelValue": a[10] || (a[10] = (n) => s.value.gpus = n),
             class: "ac-mono kx-focus-halo",
             placeholder: "all, or device=0"
           }, null, 512), [
-            [T, s.value.gpus]
+            [P, s.value.gpus]
           ])
         ]),
-        e("label", He, [
+        e("label", Ge, [
           a[25] || (a[25] = e("span", null, "Network", -1)),
-          P(e("input", {
+          E(e("input", {
             "onUpdate:modelValue": a[11] || (a[11] = (n) => s.value.network = n),
             class: "ac-mono kx-focus-halo",
-            placeholder: m(w).default_image.settings?.network
-          }, null, 8, Ge), [
-            [T, s.value.network]
+            placeholder: v(w).default_image.settings?.network
+          }, null, 8, Ke), [
+            [P, s.value.network]
           ])
         ])
       ]),
-      A.capabilities?.length ? (t(), o("div", Ke, [
+      A.capabilities?.length ? (t(), o("div", We, [
         a[26] || (a[26] = e("span", null, "Agents may", -1)),
-        e("div", We, [
-          (t(!0), o(j, null, M(A.capabilities, (n) => (t(), o("label", {
+        e("div", Fe, [
+          (t(!0), o(R, null, M(A.capabilities, (n) => (t(), o("label", {
             key: n,
             class: "ac-check ac-mono"
           }, [
-            P(e("input", {
-              "onUpdate:modelValue": a[12] || (a[12] = (h) => s.value.allows = h),
+            E(e("input", {
+              "onUpdate:modelValue": a[12] || (a[12] = (y) => s.value.allows = y),
               type: "checkbox",
               class: "kx-focus-outline",
               value: n
-            }, null, 8, Fe), [
+            }, null, 8, ze), [
               [ke, s.value.allows]
             ]),
-            I(" " + b(n), 1)
+            I(" " + g(n), 1)
           ]))), 128))
         ])
-      ])) : k("", !0),
-      e("label", ze, [
-        a[27] || (a[27] = e("span", null, "Docker host aliases", -1)),
-        P(e("textarea", {
+      ])) : p("", !0),
+      e("label", Je, [
+        a[27] || (a[27] = e("span", null, "Extra Docker arguments", -1)),
+        E(e("textarea", {
           "onUpdate:modelValue": a[13] || (a[13] = (n) => s.value.extra = n),
           rows: "3",
           class: "ac-mono kx-focus-halo",
@@ -319,14 +319,22 @@ const $e = {
 --add-host
 host.docker.internal:host-gateway`
         }, null, 512), [
-          [T, s.value.extra]
+          [P, s.value.extra]
         ])
       ]),
-      e("footer", Je, [
+      a[28] || (a[28] = e("p", { class: "ac-hint" }, [
+        e("a", {
+          class: "ac-link kx-focus-outline",
+          href: "https://github.com/kicksideai/chestor/blob/main/autocode/docs/docker-options.md#settings-limits-and-docker-warnings",
+          target: "_blank",
+          rel: "noopener noreferrer"
+        }, "Container limits and isolation")
+      ], -1)),
+      e("footer", Qe, [
         e("button", {
           type: "button",
           class: "ac-btn kx-focus-halo",
-          onClick: a[14] || (a[14] = (n) => g("cancel"))
+          onClick: a[14] || (a[14] = (n) => k("cancel"))
         }, "Cancel"),
         e("button", {
           type: "button",
@@ -334,111 +342,111 @@ host.docker.internal:host-gateway`
           disabled: D.value || !A.capabilities || !s.value.ref,
           onClick: U
         }, [
-          $(m(L), { icon: "tabler:box" }),
-          I(" " + b(D.value ? "Saving…" : A.edit ? "Save settings" : s.value.mode === "build" ? "Build image" : "Add image"), 1)
-        ], 8, Qe)
+          $(v(L), { icon: "tabler:box" }),
+          I(" " + g(D.value ? "Saving…" : A.edit ? "Save settings" : s.value.mode === "build" ? "Build image" : "Add image"), 1)
+        ], 8, Xe)
       ]),
-      x.value ? (t(), o("p", Xe, b(x.value), 1)) : k("", !0)
-    ], 8, De)) : (t(), o("p", Ce, b(A.edit ? "Image settings are unavailable." : "Image defaults are unavailable.") + " Ask an administrator to update the image configuration.", 1));
+      x.value ? (t(), o("p", Ye, g(x.value), 1)) : p("", !0)
+    ], 8, Ue)) : (t(), o("p", De, g(A.edit ? "Image settings are unavailable." : "Image defaults are unavailable.") + " Ask an administrator to update the image configuration.", 1));
   }
-}), Ze = { class: "ac-stack" }, ea = {
+}), ea = { class: "ac-stack" }, aa = {
   key: 0,
   class: "kx-err",
   role: "alert"
-}, aa = {
+}, ta = {
   key: 1,
   class: "kx-loading"
-}, ta = {
+}, sa = {
   key: 2,
   class: "kx-empty"
-}, sa = { class: "kx-empty-ico" }, la = {
+}, la = { class: "kx-empty-ico" }, oa = {
   key: 3,
   class: "kx-empty"
-}, oa = { class: "ac-list ac-resource-list" }, na = { class: "ac-resource-icon" }, ia = { class: "ac-account-main" }, ra = { class: "ac-row-title" }, ua = {
+}, na = { class: "ac-list ac-resource-list" }, ia = { class: "ac-resource-icon" }, ra = { class: "ac-account-main" }, ua = { class: "ac-row-title" }, ca = {
   key: 0,
   class: "kx-tag-sm ac-tone ready"
-}, ca = { class: "ac-muted ac-mono" }, da = { class: "ac-chips" }, va = { class: "ac-muted" }, pa = {
+}, da = { class: "ac-muted ac-mono" }, va = { class: "ac-chips" }, pa = { class: "ac-muted" }, ma = {
   key: 0,
   class: "kx-err ac-small"
-}, ma = { class: "ac-row-actions" }, ka = ["disabled", "onClick"], fa = ["onClick"], ba = ["onClick"], ga = ["onClick"], ya = { class: "ac-form" }, ha = { class: "ac-mono" }, _a = { class: "ac-pre ac-build-log" }, wa = /* @__PURE__ */ K({
+}, ka = { class: "ac-row-actions" }, fa = ["disabled", "onClick"], ba = ["onClick"], ga = ["onClick"], ha = ["onClick"], ya = { class: "ac-form" }, _a = { class: "ac-mono" }, wa = { class: "ac-pre ac-build-log" }, xa = /* @__PURE__ */ K({
   __name: "images",
   props: {
     query: {}
   },
   emits: ["count"],
   setup(A, { expose: N, emit: u }) {
-    const g = ee(), w = A, V = u, s = v(!1), r = v(!1), D = v({});
+    const k = ee(), w = A, V = u, s = m(!1), r = m(!1), D = m({});
     N({ open: ae });
-    const x = v([]), C = v([]), _ = v(""), U = v(null), l = v(null), a = J(() => [...new Set(g.value.agents.flatMap((c) => c.capabilities))].sort()), n = v(!1);
-    let h = !0, B = 0, R = 0, W = 0;
+    const x = m([]), C = m([]), _ = m(""), U = m(null), l = m(null), a = J(() => [...new Set(k.value.agents.flatMap((c) => c.capabilities))].sort()), n = m(!1);
+    let y = !0, B = 0, j = 0, W = 0;
     fe(() => {
-      h = !1, B++, R++;
+      y = !1, B++, j++;
     });
-    async function Q(c) {
-      const f = B, i = await E.image(c);
-      !h || f !== B || l.value?.id !== c || (l.value = { id: c, ref: i.image.ref, text: i.build_log || "(empty)" });
+    async function X(c) {
+      const b = B, i = await q.image(c);
+      !y || b !== B || l.value?.id !== c || (l.value = { id: c, ref: i.image.ref, text: i.build_log || "(empty)" });
     }
-    const y = ne(async () => {
+    const h = ne(async () => {
       try {
-        const c = await ie(E.images, (f) => f.map((i) => i.id), C, () => h, (f) => {
-          x.value = f, n.value = !0, _.value = "";
+        const c = await ie(q.images, (b) => b.map((i) => i.id), C, () => y, (b) => {
+          x.value = b, n.value = !0, _.value = "";
         }, () => {
-          y();
+          h();
         });
-        if (!h) return;
-        x.value = c, d(c, ++W), l.value && c.some((f) => f.id === l.value?.id) && await Q(l.value.id), n.value = !0, _.value = "";
+        if (!y) return;
+        x.value = c, d(c, ++W), l.value && c.some((b) => b.id === l.value?.id) && await X(l.value.id), n.value = !0, _.value = "";
       } catch (c) {
-        _.value = q(c, "Could not load images.");
+        _.value = T(c, "Could not load images.");
       }
     });
-    async function d(c, f) {
+    async function d(c, b) {
       try {
-        const i = await we([...new Set(c.map((S) => S.owner_user_id))]);
-        if (!h || f !== W) return;
+        const i = await xe([...new Set(c.map((S) => S.owner_user_id))]);
+        if (!y || b !== W) return;
         D.value = Object.fromEntries(c.map((S) => [S.id, `Owner: ${i[S.owner_user_id] || S.owner_user_id}`]));
       } catch (i) {
-        h && f === W && (_.value = q(i, "Could not load image owners."));
+        y && b === W && (_.value = T(i, "Could not load image owners."));
       }
     }
     oe(() => C.value, () => {
-      y();
-    }), le(y);
-    async function p(c, f) {
+      h();
+    }), le(h);
+    async function f(c, b) {
       _.value = "";
       try {
-        await c(), await y();
+        await c(), await h();
       } catch (i) {
-        _.value = q(i, f);
+        _.value = T(i, b);
       }
     }
     async function G(c) {
-      const f = ++R;
+      const b = ++j;
       _.value = "";
       try {
-        const i = await E.image(c.id);
-        h && f === R && (U.value = i);
+        const i = await q.image(c.id);
+        y && b === j && (U.value = i);
       } catch (i) {
-        h && f === R && (_.value = q(i, "Could not load the image settings."));
+        y && b === j && (_.value = T(i, "Could not load the image settings."));
       }
     }
     function F() {
-      R++, s.value = !1, U.value = null;
+      j++, s.value = !1, U.value = null;
     }
     function ae() {
       F(), s.value = !0;
     }
-    const ue = (c) => p(() => E.prepareImage(c.id), "Could not start the image preparation.");
+    const ue = (c) => f(() => q.prepareImage(c.id), "Could not start the image preparation.");
     function ce(c) {
-      B++, l.value = { id: c.id, ref: c.ref, text: "Loading…" }, y();
+      B++, l.value = { id: c.id, ref: c.ref, text: "Loading…" }, h();
     }
     function te() {
       B++, l.value = null;
     }
     async function de(c) {
-      F(), await y(), c && (_.value = c);
+      F(), await h(), c && (_.value = c);
     }
     async function ve(c) {
-      if (!await X.confirm({
+      if (!await Q.confirm({
         header: "Delete image",
         message: `Delete image "${c.label}"? Tasks keep their history.`,
         icon: "tabler:trash",
@@ -446,7 +454,7 @@ host.docker.internal:host-gateway`
         rejectLabel: "Cancel",
         acceptClass: "p-button-danger"
       })) return;
-      const i = await X.confirm({
+      const i = await Q.confirm({
         header: "Docker image",
         message: `Also remove ${c.ref} from Docker on the host? Keeping it lets a later image with the same reference reuse it.`,
         icon: "tabler:brand-docker",
@@ -454,77 +462,77 @@ host.docker.internal:host-gateway`
         rejectLabel: "Keep in Docker",
         acceptClass: "p-button-danger"
       });
-      R++, U.value?.image.id === c.id && F(), l.value?.id === c.id && te(), _.value = "";
+      j++, U.value?.image.id === c.id && F(), l.value?.id === c.id && te(), _.value = "";
       try {
-        await E.deleteImage(c.id, i), await y();
+        await q.deleteImage(c.id, i), await h();
       } catch (S) {
-        _.value = q(S, "Could not delete the image.");
+        _.value = T(S, "Could not delete the image.");
       }
     }
     const se = J(() => x.value.filter((c) => [c.label, c.ref, ...c.agents].join(" ").toLowerCase().includes(w.query.toLowerCase())));
-    return O(x, (c) => V("count", c.length)), (c, f) => (t(), o("div", Ze, [
-      f[7] || (f[7] = e("p", { class: "ac-hint" }, "Share ready images to make them available for tasks.", -1)),
-      _.value ? (t(), o("p", ea, [
-        I(b(_.value) + " ", 1),
+    return O(x, (c) => V("count", c.length)), (c, b) => (t(), o("div", ea, [
+      b[7] || (b[7] = e("p", { class: "ac-hint" }, "Ready means preparation finished. Usable means you can run tasks with the image. Share ready images to make them available to others.", -1)),
+      _.value ? (t(), o("p", aa, [
+        I(g(_.value) + " ", 1),
         e("button", {
           type: "button",
           class: "ac-link kx-focus-outline",
-          onClick: f[0] || (f[0] = //@ts-ignore
-          (...i) => m(y) && m(y)(...i))
+          onClick: b[0] || (b[0] = //@ts-ignore
+          (...i) => v(h) && v(h)(...i))
         }, "Retry")
-      ])) : k("", !0),
-      !n.value && !_.value ? (t(), o("div", aa, "Loading images…")) : k("", !0),
-      n.value && !x.value.length ? (t(), o("div", ta, [
-        e("div", sa, [
-          $(m(L), { icon: "tabler:box" })
+      ])) : p("", !0),
+      !n.value && !_.value ? (t(), o("div", ta, "Loading images…")) : p("", !0),
+      n.value && !x.value.length ? (t(), o("div", sa, [
+        e("div", la, [
+          $(v(L), { icon: "tabler:box" })
         ]),
-        f[4] || (f[4] = e("div", { class: "kx-empty-title" }, "No images yet", -1)),
-        f[5] || (f[5] = e("div", { class: "kx-empty-sub" }, "Start with the default agent recipe or use an existing image.", -1)),
+        b[4] || (b[4] = e("div", { class: "kx-empty-title" }, "No images yet", -1)),
+        b[5] || (b[5] = e("div", { class: "kx-empty-sub" }, "Start with the default agent recipe or use an existing image.", -1)),
         e("button", {
           class: "ac-btn primary kx-focus-halo",
           onClick: ae
         }, "Add image")
-      ])) : n.value && !se.value.length ? (t(), o("div", la, [...f[6] || (f[6] = [
+      ])) : n.value && !se.value.length ? (t(), o("div", oa, [...b[6] || (b[6] = [
         e("div", { class: "kx-empty-title" }, "No matches", -1),
         e("div", { class: "kx-empty-sub" }, "Try another image, reference or agent.", -1)
-      ])])) : k("", !0),
-      e("ul", oa, [
-        (t(!0), o(j, null, M(se.value, (i) => (t(), o("li", {
+      ])])) : p("", !0),
+      e("ul", na, [
+        (t(!0), o(R, null, M(se.value, (i) => (t(), o("li", {
           key: i.id,
           class: "ac-row ac-resource"
         }, [
-          e("span", na, [
-            $(m(L), { icon: "tabler:box" })
+          e("span", ia, [
+            $(v(L), { icon: "tabler:box" })
           ]),
-          e("div", ia, [
-            e("div", ra, [
-              I(b(i.label), 1),
+          e("div", ra, [
+            e("div", ua, [
+              I(g(i.label), 1),
               e("span", {
                 class: z(["kx-tag-sm ac-tone", i.status])
-              }, b(i.status === "unprepared" ? "Needs preparation" : i.status.charAt(0).toUpperCase() + i.status.slice(1)), 3),
-              i.usable ? (t(), o("span", ua, "Usable")) : k("", !0)
+              }, g(i.status === "unprepared" ? "Needs preparation" : i.status.charAt(0).toUpperCase() + i.status.slice(1)), 3),
+              i.usable ? (t(), o("span", ca, "Usable")) : p("", !0)
             ]),
-            e("div", ca, b(i.ref) + " · " + b(i.home), 1),
-            e("div", da, [
-              (t(!0), o(j, null, M(i.agents, (S) => (t(), o("span", {
+            e("div", da, g(i.ref) + " · " + g(i.home), 1),
+            e("div", va, [
+              (t(!0), o(R, null, M(i.agents, (S) => (t(), o("span", {
                 key: S,
                 class: "kx-tag-sm ac-tone"
               }, [
-                $(m(L), {
-                  icon: m(_e)(S, m(g).agents)
+                $(v(L), {
+                  icon: v(we)(S, v(k).agents)
                 }, null, 8, ["icon"]),
-                I(b(S), 1)
+                I(g(S), 1)
               ]))), 128))
             ]),
-            e("div", va, b(D.value[i.id]), 1),
-            i.last_error ? (t(), o("div", pa, b(i.last_error), 1)) : k("", !0)
+            e("div", pa, g(D.value[i.id]), 1),
+            i.last_error ? (t(), o("div", ma, g(i.last_error), 1)) : p("", !0)
           ]),
-          e("div", ma, [
+          e("div", ka, [
             i.shareable ? (t(), H(re, {
               key: 0,
               id: i.id,
               title: i.label
-            }, null, 8, ["id", "title"])) : k("", !0),
+            }, null, 8, ["id", "title"])) : p("", !0),
             i.writable ? (t(), o("button", {
               key: 1,
               type: "button",
@@ -534,8 +542,8 @@ host.docker.internal:host-gateway`
               disabled: i.status === "preparing",
               onClick: (S) => ue(i)
             }, [
-              $(m(L), { icon: "tabler:refresh" })
-            ], 8, ka)) : k("", !0),
+              $(v(L), { icon: "tabler:refresh" })
+            ], 8, fa)) : p("", !0),
             e("button", {
               type: "button",
               class: "ac-icon-btn kx-focus-outline",
@@ -543,8 +551,8 @@ host.docker.internal:host-gateway`
               "aria-label": "Build log",
               onClick: (S) => ce(i)
             }, [
-              $(m(L), { icon: "tabler:file-text" })
-            ], 8, fa),
+              $(v(L), { icon: "tabler:file-text" })
+            ], 8, ba),
             i.writable ? (t(), o("button", {
               key: 2,
               type: "button",
@@ -553,8 +561,8 @@ host.docker.internal:host-gateway`
               "aria-label": "Edit settings",
               onClick: (S) => G(i)
             }, [
-              $(m(L), { icon: "tabler:pencil" })
-            ], 8, ba)) : k("", !0),
+              $(v(L), { icon: "tabler:pencil" })
+            ], 8, ga)) : p("", !0),
             i.deletable ? (t(), o("button", {
               key: 3,
               type: "button",
@@ -563,8 +571,8 @@ host.docker.internal:host-gateway`
               "aria-label": "Delete image",
               onClick: (S) => ve(i)
             }, [
-              $(m(L), { icon: "tabler:trash" })
-            ], 8, ga)) : k("", !0)
+              $(v(L), { icon: "tabler:trash" })
+            ], 8, ha)) : p("", !0)
           ])
         ]))), 128))
       ]),
@@ -573,19 +581,19 @@ host.docker.internal:host-gateway`
         title: U.value ? "Edit image" : "Add image",
         busy: r.value,
         wide: "",
-        onClose: f[3] || (f[3] = (i) => F())
+        onClose: b[3] || (b[3] = (i) => F())
       }, {
         default: Y(() => [
-          $(Ye, {
-            onBusy: f[1] || (f[1] = (i) => r.value = i),
+          $(Ze, {
+            onBusy: b[1] || (b[1] = (i) => r.value = i),
             edit: U.value,
             capabilities: a.value,
             onSaved: de,
-            onCancel: f[2] || (f[2] = (i) => F())
+            onCancel: b[2] || (b[2] = (i) => F())
           }, null, 8, ["edit", "capabilities"])
         ]),
         _: 1
-      }, 8, ["title", "busy"])) : k("", !0),
+      }, 8, ["title", "busy"])) : p("", !0),
       l.value ? (t(), H(Z, {
         key: 5,
         title: "Build log",
@@ -594,184 +602,184 @@ host.docker.internal:host-gateway`
       }, {
         default: Y(() => [
           e("div", ya, [
-            e("strong", ha, b(l.value.ref), 1),
-            e("pre", _a, b(l.value.text), 1)
+            e("strong", _a, g(l.value.ref), 1),
+            e("pre", wa, g(l.value.text), 1)
           ])
         ]),
         _: 1
-      })) : k("", !0)
+      })) : p("", !0)
     ]));
   }
-}), xa = { class: "ac-stack" }, $a = {
+}), $a = { class: "ac-stack" }, Ca = {
   key: 0,
   class: "kx-err",
   role: "alert"
-}, Ca = {
+}, Da = {
   key: 1,
   class: "kx-loading"
-}, Da = {
+}, Ua = {
   key: 2,
   class: "ac-chips"
-}, Ua = {
+}, La = {
   key: 3,
   class: "kx-empty"
-}, La = { class: "kx-empty-ico" }, Aa = {
+}, Aa = { class: "kx-empty-ico" }, Ia = {
   key: 4,
   class: "kx-empty"
-}, Ia = { class: "ac-list ac-resource-list" }, Va = { class: "ac-resource-icon" }, Sa = { class: "ac-account-main" }, Na = { class: "ac-row-title" }, Ba = { class: "kx-tag-sm ac-tone" }, Pa = {
+}, Va = { class: "ac-list ac-resource-list" }, Sa = { class: "ac-resource-icon" }, Na = { class: "ac-account-main" }, Ba = { class: "ac-row-title" }, Ea = { class: "kx-tag-sm ac-tone" }, Pa = {
   key: 0,
   class: "ac-muted"
 }, Ta = { class: "ac-mono" }, qa = {
   key: 1,
   class: "ac-muted ac-mono"
-}, Ea = { class: "ac-row-actions" }, ja = ["onClick"], Ra = ["disabled"], Ma = {
+}, Ra = { class: "ac-row-actions" }, ja = ["onClick"], Ma = ["disabled"], Oa = {
   key: 0,
   class: "ac-muted"
-}, Oa = {
+}, Ha = {
   key: 1,
   class: "ac-field"
-}, Ha = { class: "ac-chips" }, Ga = ["onClick"], Ka = { class: "ac-field" }, Wa = { class: "ac-field" }, Fa = ["placeholder"], za = {
+}, Ga = { class: "ac-chips" }, Ka = ["onClick"], Wa = { class: "ac-field" }, Fa = { class: "ac-field" }, za = ["placeholder"], Ja = {
   key: 2,
   class: "kx-err",
   role: "alert"
-}, Ja = { class: "ac-dialog-foot" }, Qa = ["disabled"], Xa = ["disabled"], Ya = /* @__PURE__ */ K({
+}, Qa = { class: "ac-dialog-foot" }, Xa = ["disabled"], Ya = ["disabled"], Za = /* @__PURE__ */ K({
   __name: "workspaces",
   props: {
     query: {}
   },
   emits: ["count"],
   setup(A, { expose: N, emit: u }) {
-    const g = xe(), w = v([]), V = A, s = u, r = v(!1);
+    const k = $e(), w = m([]), V = A, s = u, r = m(!1);
     N({ open: () => {
       r.value = !0;
     } });
-    const D = v([]), x = v([]), C = v(""), _ = v(!1), U = v(""), l = v(!1), a = v(""), n = v(!1);
-    function h(y) {
-      return y.replace(/\/+$/, "") + "/";
+    const D = m([]), x = m([]), C = m(""), _ = m(!1), U = m(""), l = m(!1), a = m(""), n = m(!1);
+    function y(h) {
+      return h.replace(/\/+$/, "") + "/";
     }
     O([r, x], () => {
-      r.value && !a.value && x.value.length && (a.value = h(x.value[0]));
-    }), O(a, (y) => {
-      l.value || (U.value = y.trim().split("/").filter(Boolean).pop() ?? "");
+      r.value && !a.value && x.value.length && (a.value = y(x.value[0]));
+    }), O(a, (h) => {
+      l.value || (U.value = h.trim().split("/").filter(Boolean).pop() ?? "");
     });
     const B = ne(async () => {
       try {
-        await ie(E.workspaces, (y) => y.workspaces.map((d) => d.id), w, g, (y) => {
-          D.value = y.workspaces, x.value = y.roots ?? [], n.value = !0, C.value = "";
+        await ie(q.workspaces, (h) => h.workspaces.map((d) => d.id), w, k, (h) => {
+          D.value = h.workspaces, x.value = h.roots ?? [], n.value = !0, C.value = "";
         }, () => {
           B();
         });
-      } catch (y) {
-        g() && (C.value = q(y, "Could not load workspaces."));
+      } catch (h) {
+        k() && (C.value = T(h, "Could not load workspaces."));
       }
-    }, g);
+    }, k);
     oe(() => w.value, () => {
       B();
     }), le(B);
-    async function R() {
+    async function j() {
       C.value = "", _.value = !0;
       try {
-        if (await E.createWorkspace({ name: U.value, host_path: a.value }), !g()) return;
+        if (await q.createWorkspace({ name: U.value, host_path: a.value }), !k()) return;
         l.value = !1, U.value = "", a.value = "", r.value = !1, await B();
-      } catch (y) {
-        g() && (C.value = q(y, "Could not save the workspace."));
+      } catch (h) {
+        k() && (C.value = T(h, "Could not save the workspace."));
       } finally {
-        g() && (_.value = !1);
+        k() && (_.value = !1);
       }
     }
-    async function W(y) {
-      const d = await X.confirm({
+    async function W(h) {
+      const d = await Q.confirm({
         header: "Delete workspace",
-        message: `Delete workspace "${y.name}"? The host directory stays untouched.`,
+        message: `Delete workspace "${h.name}"? The host directory stays untouched.`,
         icon: "tabler:trash",
         acceptLabel: "Delete",
         rejectLabel: "Cancel",
         acceptClass: "p-button-danger"
       });
-      if (!(!g() || !d)) {
+      if (!(!k() || !d)) {
         C.value = "";
         try {
-          await E.deleteWorkspace(y.id), await B();
-        } catch (p) {
-          g() && (C.value = q(p, "Could not delete the workspace."));
+          await q.deleteWorkspace(h.id), await B();
+        } catch (f) {
+          k() && (C.value = T(f, "Could not delete the workspace."));
         }
       }
     }
-    const Q = J(() => D.value.filter((y) => [y.name, y.host_path].join(" ").toLowerCase().includes(V.query.toLowerCase())));
-    return O(D, (y) => {
-      s("count", y.length);
-    }), (y, d) => (t(), o("div", xa, [
+    const X = J(() => D.value.filter((h) => [h.name, h.host_path].join(" ").toLowerCase().includes(V.query.toLowerCase())));
+    return O(D, (h) => {
+      s("count", h.length);
+    }), (h, d) => (t(), o("div", $a, [
       d[15] || (d[15] = e("p", { class: "ac-hint" }, "Tasks use shared workspaces with the access you grant.", -1)),
-      C.value && !r.value ? (t(), o("p", $a, [
-        I(b(C.value) + " ", 1),
+      C.value && !r.value ? (t(), o("p", Ca, [
+        I(g(C.value) + " ", 1),
         e("button", {
           type: "button",
           class: "ac-link kx-focus-outline",
           onClick: d[0] || (d[0] = //@ts-ignore
-          (...p) => m(B) && m(B)(...p))
+          (...f) => v(B) && v(B)(...f))
         }, "Retry")
-      ])) : k("", !0),
-      !n.value && !C.value ? (t(), o("div", Ca, "Loading workspaces…")) : k("", !0),
-      x.value.length ? (t(), o("div", Da, [
+      ])) : p("", !0),
+      !n.value && !C.value ? (t(), o("div", Da, "Loading workspaces…")) : p("", !0),
+      x.value.length ? (t(), o("div", Ua, [
         d[7] || (d[7] = e("span", { class: "ac-muted" }, "Allowed roots", -1)),
-        (t(!0), o(j, null, M(x.value, (p) => (t(), o("span", {
-          key: p,
+        (t(!0), o(R, null, M(x.value, (f) => (t(), o("span", {
+          key: f,
           class: "ac-hint-chip ac-mono"
-        }, b(p), 1))), 128))
-      ])) : k("", !0),
-      n.value && !D.value.length ? (t(), o("div", Ua, [
-        e("div", La, [
-          $(m(L), { icon: "tabler:folder" })
+        }, g(f), 1))), 128))
+      ])) : p("", !0),
+      n.value && !D.value.length ? (t(), o("div", La, [
+        e("div", Aa, [
+          $(v(L), { icon: "tabler:folder" })
         ]),
         d[8] || (d[8] = e("div", { class: "kx-empty-title" }, "No workspaces yet", -1)),
         d[9] || (d[9] = e("div", { class: "kx-empty-sub" }, "Add a host directory, or let tasks use a scratch directory.", -1)),
         e("button", {
           class: "ac-btn primary kx-focus-halo",
-          onClick: d[1] || (d[1] = (p) => r.value = !0)
+          onClick: d[1] || (d[1] = (f) => r.value = !0)
         }, "Add workspace")
-      ])) : n.value && !Q.value.length ? (t(), o("div", Aa, [...d[10] || (d[10] = [
+      ])) : n.value && !X.value.length ? (t(), o("div", Ia, [...d[10] || (d[10] = [
         e("div", { class: "kx-empty-title" }, "No matches", -1),
         e("div", { class: "kx-empty-sub" }, "Try another workspace name or path.", -1)
-      ])])) : k("", !0),
-      e("ul", Ia, [
-        (t(!0), o(j, null, M(Q.value, (p) => (t(), o("li", {
-          key: p.id,
+      ])])) : p("", !0),
+      e("ul", Va, [
+        (t(!0), o(R, null, M(X.value, (f) => (t(), o("li", {
+          key: f.id,
           class: "ac-row ac-resource"
         }, [
-          e("span", Va, [
-            $(m(L), { icon: "tabler:folder" })
+          e("span", Sa, [
+            $(v(L), { icon: "tabler:folder" })
           ]),
-          e("div", Sa, [
-            e("div", Na, [
-              I(b(p.name), 1),
-              e("span", Ba, b(p.writable ? "read-write" : "read-only"), 1)
+          e("div", Na, [
+            e("div", Ba, [
+              I(g(f.name), 1),
+              e("span", Ea, g(f.writable ? "read-write" : "read-only"), 1)
             ]),
-            p.unavailable_reason ? (t(), o("div", Pa, b(p.unavailable_reason), 1)) : k("", !0),
-            (t(!0), o(j, null, M(p.conflicts, (G) => (t(), o("div", {
+            f.unavailable_reason ? (t(), o("div", Pa, g(f.unavailable_reason), 1)) : p("", !0),
+            (t(!0), o(R, null, M(f.conflicts, (G) => (t(), o("div", {
               key: G.id,
               class: "ac-muted"
             }, [
-              I("Conflicts with " + b(G.id) + ": ", 1),
-              e("span", Ta, b(G.host_path), 1)
+              I("Conflicts with " + g(G.id) + ": ", 1),
+              e("span", Ta, g(G.host_path), 1)
             ]))), 128)),
-            p.host_path ? (t(), o("div", qa, b(p.host_path), 1)) : k("", !0)
+            f.host_path ? (t(), o("div", qa, g(f.host_path), 1)) : p("", !0)
           ]),
-          e("div", Ea, [
-            p.shareable ? (t(), H(re, {
+          e("div", Ra, [
+            f.shareable ? (t(), H(re, {
               key: 0,
-              id: p.id,
-              title: p.name
-            }, null, 8, ["id", "title"])) : k("", !0),
-            p.deletable ? (t(), o("button", {
+              id: f.id,
+              title: f.name
+            }, null, 8, ["id", "title"])) : p("", !0),
+            f.deletable ? (t(), o("button", {
               key: 1,
               type: "button",
               class: "ac-icon-btn kx-focus-outline",
               title: "Delete workspace",
               "aria-label": "Delete workspace",
-              onClick: (G) => W(p)
+              onClick: (G) => W(f)
             }, [
-              $(m(L), { icon: "tabler:trash" })
-            ], 8, ja)) : k("", !0)
+              $(v(L), { icon: "tabler:trash" })
+            ], 8, ja)) : p("", !0)
           ])
         ]))), 128))
       ]),
@@ -779,45 +787,45 @@ host.docker.internal:host-gateway`
         key: 5,
         title: "Add workspace",
         busy: _.value,
-        onClose: d[6] || (d[6] = (p) => r.value = !1)
+        onClose: d[6] || (d[6] = (f) => r.value = !1)
       }, {
         default: Y(() => [
           e("fieldset", {
             class: "ac-form",
             disabled: _.value
           }, [
-            x.value.length ? (t(), o("div", Oa, [
+            x.value.length ? (t(), o("div", Ha, [
               d[11] || (d[11] = e("span", null, "Allowed roots", -1)),
-              e("div", Ha, [
-                (t(!0), o(j, null, M(x.value, (p) => (t(), o("button", {
-                  key: p,
+              e("div", Ga, [
+                (t(!0), o(R, null, M(x.value, (f) => (t(), o("button", {
+                  key: f,
                   type: "button",
                   class: "ac-chip ac-mono kx-focus-halo",
                   title: "Start from this root",
-                  onClick: (G) => a.value = h(p)
-                }, b(p), 9, Ga))), 128))
+                  onClick: (G) => a.value = y(f)
+                }, g(f), 9, Ka))), 128))
               ])
-            ])) : (t(), o("p", Ma, "The host administrator configures allowed workspace roots.")),
-            e("label", Ka, [
+            ])) : (t(), o("p", Oa, "The host administrator configures allowed workspace roots.")),
+            e("label", Wa, [
               d[12] || (d[12] = e("span", null, "Name", -1)),
-              P(e("input", {
-                "onUpdate:modelValue": d[2] || (d[2] = (p) => U.value = p),
-                onInput: d[3] || (d[3] = (p) => l.value = !0),
+              E(e("input", {
+                "onUpdate:modelValue": d[2] || (d[2] = (f) => U.value = f),
+                onInput: d[3] || (d[3] = (f) => l.value = !0),
                 autofocus: "",
                 class: "kx-focus-halo",
                 placeholder: "e.g. Kickside checkout"
               }, null, 544), [
-                [T, U.value]
+                [P, U.value]
               ])
             ]),
-            e("label", Wa, [
+            e("label", Fa, [
               d[13] || (d[13] = e("span", null, "Host directory", -1)),
-              P(e("input", {
-                "onUpdate:modelValue": d[4] || (d[4] = (p) => a.value = p),
+              E(e("input", {
+                "onUpdate:modelValue": d[4] || (d[4] = (f) => a.value = f),
                 class: "ac-mono kx-focus-halo",
                 placeholder: (x.value[0] ?? "/srv/work") + "/project"
-              }, null, 8, Fa), [
-                [T, a.value]
+              }, null, 8, za), [
+                [P, a.value]
               ]),
               d[14] || (d[14] = e("small", { class: "ac-hint" }, [
                 I("An existing directory, mounted at "),
@@ -825,42 +833,42 @@ host.docker.internal:host-gateway`
                 I(".")
               ], -1))
             ]),
-            C.value ? (t(), o("p", za, b(C.value), 1)) : k("", !0),
-            e("footer", Ja, [
+            C.value ? (t(), o("p", Ja, g(C.value), 1)) : p("", !0),
+            e("footer", Qa, [
               e("button", {
                 type: "button",
                 class: "ac-btn kx-focus-halo",
                 disabled: _.value,
-                onClick: d[5] || (d[5] = (p) => r.value = !1)
-              }, "Cancel", 8, Qa),
+                onClick: d[5] || (d[5] = (f) => r.value = !1)
+              }, "Cancel", 8, Xa),
               e("button", {
                 type: "button",
                 class: "ac-btn primary kx-focus-halo",
                 disabled: _.value || !U.value.trim() || !a.value.trim(),
-                onClick: R
+                onClick: j
               }, [
-                $(m(L), { icon: "tabler:folder-plus" }),
-                I(b(_.value ? "Saving…" : "Add workspace"), 1)
-              ], 8, Xa)
+                $(v(L), { icon: "tabler:folder-plus" }),
+                I(g(_.value ? "Saving…" : "Add workspace"), 1)
+              ], 8, Ya)
             ])
-          ], 8, Ra)
+          ], 8, Ma)
         ]),
         _: 1
-      }, 8, ["busy"])) : k("", !0)
+      }, 8, ["busy"])) : p("", !0)
     ]));
   }
-}), Za = { class: "ac-card ac-narrow" }, et = { class: "ac-card-head" }, at = { class: "ac-card-title" }, tt = ["disabled"], st = {
+}), et = { class: "ac-card ac-narrow" }, at = { class: "ac-card-head" }, tt = { class: "ac-card-title" }, st = ["disabled"], lt = {
   key: 0,
   class: "kx-err"
-}, lt = {
+}, ot = {
   key: 1,
   class: "ac-pre"
-}, ot = /* @__PURE__ */ K({
+}, nt = /* @__PURE__ */ K({
   __name: "maintenance",
   setup(A) {
-    const N = ee(), u = v(!1), g = v(""), w = v("");
+    const N = ee(), u = m(!1), k = m(""), w = m("");
     async function V() {
-      if (await X.confirm({
+      if (await Q.confirm({
         header: "Clean up Docker",
         message: `Prune stopped Autocode containers, unused images and build cache older than ${N.value.build_cache_retention} across this Docker host? Other modules may use the shared image cache.`,
         icon: "tabler:trash-x",
@@ -869,18 +877,18 @@ host.docker.internal:host-gateway`
       })) {
         w.value = "", u.value = !0;
         try {
-          g.value = await E.prune();
+          k.value = await q.prune();
         } catch (r) {
-          w.value = q(r, "Cleanup failed.");
+          w.value = T(r, "Cleanup failed.");
         } finally {
           u.value = !1;
         }
       }
     }
-    return (s, r) => (t(), o("section", Za, [
-      e("div", et, [
-        e("h2", at, [
-          $(m(L), { icon: "tabler:brand-docker" }),
+    return (s, r) => (t(), o("section", et, [
+      e("div", at, [
+        e("h2", tt, [
+          $(v(L), { icon: "tabler:brand-docker" }),
           r[0] || (r[0] = I("Docker cleanup", -1))
         ]),
         e("button", {
@@ -889,117 +897,123 @@ host.docker.internal:host-gateway`
           disabled: u.value,
           onClick: V
         }, [
-          $(m(L), {
+          $(v(L), {
             icon: u.value ? "tabler:loader-2" : "tabler:trash-x",
             class: z({ spin: u.value })
           }, null, 8, ["icon", "class"]),
-          I(" " + b(u.value ? "Cleaning…" : "Clean up Docker"), 1)
-        ], 8, tt)
+          I(" " + g(u.value ? "Cleaning…" : "Clean up Docker"), 1)
+        ], 8, st)
       ]),
       r[1] || (r[1] = e("p", { class: "ac-hint" }, "Prune stopped Autocode containers, dangling images and build cache across the Docker host. Tagged images stay.", -1)),
-      w.value ? (t(), o("p", st, b(w.value), 1)) : k("", !0),
-      g.value ? (t(), o("pre", lt, b(g.value), 1)) : k("", !0)
+      w.value ? (t(), o("p", lt, g(w.value), 1)) : p("", !0),
+      k.value ? (t(), o("pre", ot, g(k.value), 1)) : p("", !0)
     ]));
   }
-}), nt = { class: "ac" }, it = { class: "ac-bar" }, rt = {
+}), it = { class: "ac" }, rt = { class: "ac-bar" }, ut = {
   class: "ac-tabs",
   "aria-label": "Autocode management"
-}, ut = ["aria-pressed", "onClick"], ct = {
+}, ct = ["aria-pressed", "onClick"], dt = ["href"], vt = {
   key: 0,
   class: "kx-err"
-}, dt = {
+}, pt = {
   key: 1,
   class: "kx-loading"
-}, vt = {
+}, mt = {
   key: 2,
   class: "ac-body"
-}, pt = {
+}, kt = {
   key: 3,
   class: "ac-muted"
-}, mt = /* @__PURE__ */ K({
+}, ft = /* @__PURE__ */ K({
   __name: "admin",
   setup(A) {
     const N = [
       { id: "images", label: "Images", icon: "tabler:box" },
       { id: "workspaces", label: "Workspaces", icon: "tabler:folder" },
       { id: "docker", label: "Docker", icon: "tabler:brand-docker" }
-    ], u = v(), { catalog: g, error: w, load: V } = ge(), s = J(() => N.filter((a) => a.id === "images" ? g.value?.can_images : a.id === "workspaces" ? g.value?.can_workspaces : g.value?.can_prune));
+    ], u = m(), { catalog: k, error: w, load: V } = ye(), s = J(() => N.filter((a) => a.id === "images" ? k.value?.can_images : a.id === "workspaces" ? k.value?.can_workspaces : k.value?.can_prune));
     O(s, (a) => {
       a.some((n) => n.id === u.value) || (u.value = a[0]?.id);
     }, { immediate: !0 });
-    const r = v(""), D = v(0), x = v(0), C = J(() => u.value === "images" ? D.value : x.value), _ = v(null), U = v(null);
+    const r = m(""), D = m(0), x = m(0), C = J(() => u.value === "images" ? D.value : x.value), _ = m(null), U = m(null);
     function l() {
       u.value === "images" ? _.value?.open() : U.value?.open();
     }
-    return (a, n) => (t(), o("div", nt, [
-      $(ye, {
+    return (a, n) => (t(), o("div", it, [
+      $(_e, {
         title: "Autocode",
         subtitle: "Manage agent images, workspaces and Docker.",
         count: u.value && u.value !== "docker" ? `${C.value} ${C.value === 1 ? u.value.slice(0, -1) : u.value}` : void 0,
         action: u.value === "images" ? "Add image" : u.value === "workspaces" ? "Add workspace" : void 0,
         query: r.value,
-        "onUpdate:query": n[0] || (n[0] = (h) => r.value = h),
+        "onUpdate:query": n[0] || (n[0] = (y) => r.value = y),
         placeholder: u.value === "docker" ? void 0 : "Search resources…",
         onCreate: l
       }, null, 8, ["count", "action", "query", "placeholder"]),
-      e("div", it, [
-        e("nav", rt, [
-          (t(!0), o(j, null, M(s.value, (h) => (t(), o("button", {
-            key: h.id,
+      e("div", rt, [
+        e("nav", ut, [
+          (t(!0), o(R, null, M(s.value, (y) => (t(), o("button", {
+            key: y.id,
             type: "button",
-            class: z(["ac-tab kx-focus-outline", { active: u.value === h.id }]),
-            "aria-pressed": u.value === h.id,
+            class: z(["ac-tab kx-focus-outline", { active: u.value === y.id }]),
+            "aria-pressed": u.value === y.id,
             onClick: (B) => {
-              u.value !== h.id && (u.value = h.id, r.value = "");
+              u.value !== y.id && (u.value = y.id, r.value = "");
             }
           }, [
-            $(m(L), {
-              icon: h.icon
+            $(v(L), {
+              icon: y.icon
             }, null, 8, ["icon"]),
-            I(" " + b(h.label), 1)
-          ], 10, ut))), 128))
-        ])
+            I(" " + g(y.label), 1)
+          ], 10, ct))), 128))
+        ]),
+        v(k)?.limits_path ? (t(), o("a", {
+          key: 0,
+          class: "ac-link kx-focus-outline",
+          href: v(k).limits_path,
+          onClick: n[1] || (n[1] = be((y) => v(Q).navigate(v(k).limits_path), ["prevent"]))
+        }, "Run limits and retention", 8, dt)) : p("", !0)
       ]),
-      m(w) && !m(g) ? (t(), o("p", ct, [
-        I(b(m(w)) + " ", 1),
+      v(w) && !v(k) ? (t(), o("p", vt, [
+        I(g(v(w)) + " ", 1),
         e("button", {
           class: "ac-link kx-focus-outline",
           type: "button",
-          onClick: n[1] || (n[1] = //@ts-ignore
-          (...h) => m(V) && m(V)(...h))
+          onClick: n[2] || (n[2] = //@ts-ignore
+          (...y) => v(V) && v(V)(...y))
         }, "Retry")
-      ])) : m(g) ? (t(), o("main", vt, [
-        u.value === "images" ? (t(), H(wa, {
+      ])) : v(k) ? (t(), o("main", mt, [
+        u.value === "images" ? (t(), H(xa, {
           key: 0,
           ref_key: "images",
           ref: _,
           query: r.value,
-          onCount: n[2] || (n[2] = (h) => D.value = h)
-        }, null, 8, ["query"])) : k("", !0),
-        m(g).can_workspaces ? P((t(), H(Ya, {
+          onCount: n[3] || (n[3] = (y) => D.value = y)
+        }, null, 8, ["query"])) : p("", !0),
+        v(k).can_workspaces ? E((t(), H(Za, {
           key: 1,
           ref_key: "workspaces",
           ref: U,
           query: r.value,
-          onCount: n[3] || (n[3] = (h) => x.value = h)
+          onCount: n[4] || (n[4] = (y) => x.value = y)
         }, null, 8, ["query"])), [
-          [be, u.value === "workspaces"]
-        ]) : k("", !0),
-        u.value === "docker" ? (t(), H(ot, { key: 2 })) : k("", !0),
-        u.value ? k("", !0) : (t(), o("p", pt, "No management areas are available."))
-      ])) : (t(), o("div", dt, [
-        $(m(L), {
+          [ge, u.value === "workspaces"]
+        ]) : p("", !0),
+        u.value === "docker" ? (t(), H(nt, { key: 2 })) : p("", !0),
+        u.value ? p("", !0) : (t(), o("p", kt, "No management areas are available."))
+      ])) : (t(), o("div", pt, [
+        $(v(L), {
           icon: "tabler:loader-2",
           class: "spin"
         }),
-        n[4] || (n[4] = I(" Loading…", -1))
+        n[5] || (n[5] = I(" Loading…", -1))
       ]))
     ]));
   }
-}), _t = {
-  rootComponent: mt,
+}), xt = {
+  rootComponent: ft,
   plugins: [pe]
 };
 export {
-  _t as mountConfig
+  xt as mountConfig
 };

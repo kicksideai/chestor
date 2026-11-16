@@ -9,6 +9,36 @@ import TaskConfig from '../../ui/src/app/task-config.vue'
 import DriverAccount from '../../ui/src/app/driver-account.vue'
 
 describe('option drafts', () => {
+  it('shows basic controls first with human labels before technical keys and retains every option', () => {
+    const w = render(DriverOptions, { options: [
+      { ...option, name: 'technical_key', label: 'Technical option', section: 'advanced' },
+      { ...option, name: 'effort', label: 'Effort', section: 'basic', order: 2 },
+      { ...option, name: 'model', label: 'Model', section: 'basic', order: 1 },
+    ], modelValue: {} })
+    const heads = w.findAll('.ac-option-head')
+    expect(heads.map(h => h.get('span').text())).toEqual(['Model', 'Effort', 'Technical option'])
+    expect(heads[2].get('small').text()).toContain('technical_key')
+  })
+  it.each([
+    { type: 'text', schema: undefined, initial: 'read', empty: '' },
+    { type: 'string', schema: { type: 'string' }, initial: 'read', empty: '' },
+    { type: 'ids', schema: { type: 'array', items: { type: 'string' } }, initial: ['read'], empty: [] },
+  ])('preserves an explicitly cleared $type override and resets defaults separately', async ({ type, schema, initial, empty }) => {
+    const w = render(DriverOptions, { options: [{ ...option, name: 'tools', label: 'Tools', type, schema, default: 'read,bash,edit,write' }], modelValue: { tools: initial } })
+    await w.get('input[aria-label="Tools"]').setValue('')
+    expect(w.emitted('update:modelValue')?.at(-1)).toEqual([{ tools: empty }])
+    await w.setProps({ modelValue: { tools: empty } })
+    expect(w.get('input[aria-label="Tools"]').attributes('placeholder')).toBe('Empty override')
+    await w.get('button[aria-label="Use default for Tools"]').trigger('click')
+    expect(w.emitted('update:modelValue')?.at(-1)).toEqual([{}])
+    expect(w.emitted('invalid')?.at(-1)).toEqual([0])
+  })
+  it('does not silently restore defaults when the schema refuses an empty string', async () => {
+    const w = render(DriverOptions, { options: [{ ...option, type: 'string', schema: { type: 'string', minLength: 1 } }], modelValue: { config: 'keep' } })
+    await w.get('input[aria-label="Configuration"]').setValue('')
+    expect(w.emitted('update:modelValue')).toBeUndefined()
+    expect(w.emitted('invalid')?.at(-1)).toEqual([1])
+  })
   it.each([
     { type: 'number', schema: { type: 'number', minimum: 0 }, raw: '1.5', value: 1.5 },
     { type: 'integer', schema: { type: 'integer', minimum: 1 }, raw: '3', value: 3 },

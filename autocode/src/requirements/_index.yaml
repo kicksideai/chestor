@@ -120,6 +120,15 @@ entries:
       - entry: chestor.autocode:settings_tab
         path: .path
 
+  - name: limits_path
+    kind: ns.requirement
+    default: ""
+    meta:
+      comment: Host-mounted URL for Autocode run limits and retention in shared Settings; empty hides the navigation link.
+    targets:
+      - entry: chestor.autocode:settings_tab
+        path: .limits_path
+
   - name: gateway_endpoint
     kind: ns.requirement
     default: ""

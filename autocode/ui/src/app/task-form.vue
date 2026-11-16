@@ -117,7 +117,7 @@ async function start() {
       No {{ driver?.title }} accounts you can run on. <button class="ac-link kx-focus-outline" type="button" @click="emit('goto', 'accounts', agentId)">Add an account</button>
     </p>
     <p v-if="!readyImages.length" class="ac-muted">
-      No image with {{ driver?.title ?? agentId }}; ask an administrator.
+      No usable image with {{ driver?.title ?? agentId }}. {{ catalog.can_images ? 'Prepare an image in Autocode management.' : 'Ask an administrator to prepare and share an image.' }}
       <button v-if="catalog.can_images && catalog.settings_path" class="ac-link kx-focus-outline" type="button" @click="openImages">Manage images</button>
     </p>
     <div class="ac-picker-row">

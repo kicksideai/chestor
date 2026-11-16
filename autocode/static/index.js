@@ -1,6 +1,6 @@
 import { W as o, u as r } from "./wc-runtime-6vw183jT.js";
 import { l as s } from "./lazy-ZWC1tvFC.js";
-import { s as n } from "./styles-HSyuw4_P.js";
+import { s as n } from "./styles-DsKC8EYi.js";
 import "@iconify/vue";
 import { define as p } from "@wippy-fe/proxy";
 const i = { props: { type: "object", properties: { route: { type: "string", default: "", description: "Path relative to /autocode; runs/<run_id> opens a run." } } } }, a = {
@@ -17,7 +17,7 @@ class e extends o {
   static get vueConfig() {
     return {
       lazyConfig: s(
-        () => import("./index-mount-Dmuw_kRL.js").then((t) => t.mountConfig),
+        () => import("./index-mount-BFbQ9WJv.js").then((t) => t.mountConfig),
         "Could not load Autocode. Reload the page to try again.",
         r
       )

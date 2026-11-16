@@ -5,6 +5,43 @@ import { flushPromises } from '@vue/test-utils'
 import RunDetail from '../../ui/src/app/run-detail.vue'
 
 describe('run detail', () => {
+  it.each(['queued', 'running'])('confirms cancellation of a %s task before sending the request', async status => {
+    normal()
+    mocks.get.mockResolvedValue({ data: { success: true, run: { ...run, status }, events: [], more: false, next_seq: 0 } })
+    mocks.confirm.mockResolvedValue(false)
+    const w = render(RunDetail, { runId: 'r', accounts: [], images: [], workspaces: [] })
+    await flushPromises()
+    await w.get('button.danger').trigger('click')
+    await flushPromises()
+    expect(mocks.confirm).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('Task') }))
+    expect(mocks.confirm.mock.calls[0]?.[0].message).toMatch(/history.*remain/i)
+    expect(mocks.post).not.toHaveBeenCalled()
+    mocks.confirm.mockResolvedValue(true)
+    mocks.post.mockResolvedValue({ data: { success: true } })
+    await w.get('button.danger').trigger('click')
+    await flushPromises()
+    expect(mocks.post).toHaveBeenCalledWith('/api/v1/autocode/runs/r/cancel', undefined)
+  })
+  it.each([
+    { usage: { cost_decimal: '12.345', currency: 'EUR', cost_usd: 99 }, shown: '12.345 EUR', hidden: '$99' },
+    { usage: { cost_usd: 0 }, shown: '$0', hidden: 'undefined' },
+    { usage: { cost_decimal: '3.000', currency: 'JPY' }, shown: '3.000 JPY', hidden: 'undefined' },
+  ])('shows the reported cost $shown for totals and models', async ({ usage, shown, hidden }) => {
+    normal()
+    mocks.get.mockResolvedValue({ data: { success: true, run: { ...run, usage: { ...usage, models: { model: usage } } }, events: [], more: false, next_seq: 0 } })
+    const w = render(RunDetail, { runId: 'r', accounts: [], images: [], workspaces: [] })
+    await flushPromises()
+    expect(w.get('.ac-detail-meta').text()).toContain(shown)
+    expect(w.get('[aria-label="Usage by model"]').text()).toContain(shown)
+    expect(w.text()).not.toContain(hidden)
+  })
+  it.each([{ status: 'queued', text: 'Waiting to start…' }, { status: 'running', text: 'Working…' }])('describes $status progress', async ({ status, text }) => {
+    normal()
+    mocks.get.mockResolvedValue({ data: { success: true, run: { ...run, status }, events: [], more: false, next_seq: 0 } })
+    const w = render(RunDetail, { runId: 'r', accounts: [], images: [], workspaces: [] })
+    await flushPromises()
+    expect(w.get('[aria-label="Task log"]').text()).toBe(text)
+  })
   it('bounds a large run history, pages earlier explicitly and continues live by sequence', async () => {
     normal()
     let last = 10000

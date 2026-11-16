@@ -130,10 +130,10 @@ class Z extends Error {
         else if (i.path.length === 0)
           s._errors.push(t(i));
         else {
-          let o = s, h = 0;
-          for (; h < i.path.length; ) {
-            const p = i.path[h];
-            h === i.path.length - 1 ? (o[p] = o[p] || { _errors: [] }, o[p]._errors.push(t(i))) : o[p] = o[p] || { _errors: [] }, o = o[p], h++;
+          let o = s, f = 0;
+          for (; f < i.path.length; ) {
+            const p = i.path[f];
+            f === i.path.length - 1 ? (o[p] = o[p] || { _errors: [] }, o[p]._errors.push(t(i))) : o[p] = o[p] || { _errors: [] }, o = o[p], f++;
           }
         }
     };
@@ -239,8 +239,8 @@ const ze = (a) => {
       message: r.message
     };
   let o = "";
-  const h = s.filter((p) => !!p).slice().reverse();
-  for (const p of h)
+  const f = s.filter((p) => !!p).slice().reverse();
+  for (const p of f)
     o = p(i, { data: e, defaultError: o }).message;
   return {
     ...r,
@@ -310,10 +310,10 @@ class C {
 const _ = Object.freeze({
   status: "aborted"
 }), W = (a) => ({ status: "dirty", value: a }), O = (a) => ({ status: "valid", value: a }), ge = (a) => a.status === "aborted", ye = (a) => a.status === "dirty", D = (a) => a.status === "valid", Y = (a) => typeof Promise < "u" && a instanceof Promise;
-var f;
+var h;
 (function(a) {
   a.errToObj = (e) => typeof e == "string" ? { message: e } : e || {}, a.toString = (e) => typeof e == "string" ? e : e?.message;
-})(f || (f = {}));
+})(h || (h = {}));
 class S {
   constructor(e, t, s, r) {
     this._cachedPath = [], this.parent = e, this.data = t, this._path = s, this._key = r;
@@ -344,8 +344,8 @@ function g(a) {
   if (e && (t || s))
     throw new Error(`Can't use "invalid_type_error" or "required_error" in conjunction with custom error map.`);
   return e ? { errorMap: e, description: r } : { errorMap: (i, o) => {
-    const { message: h } = a;
-    return i.code === "invalid_enum_value" ? { message: h ?? o.defaultError } : typeof o.data > "u" ? { message: h ?? s ?? o.defaultError } : i.code !== "invalid_type" ? { message: o.defaultError } : { message: h ?? t ?? o.defaultError };
+    const { message: f } = a;
+    return i.code === "invalid_enum_value" ? { message: f ?? o.defaultError } : typeof o.data > "u" ? { message: f ?? s ?? o.defaultError } : i.code !== "invalid_type" ? { message: o.defaultError } : { message: f ?? t ?? o.defaultError };
   }, description: r };
 }
 class y {
@@ -469,7 +469,7 @@ class y {
         code: d.custom,
         ...s(r)
       });
-      return typeof Promise < "u" && i instanceof Promise ? i.then((h) => h ? !0 : (o(), !1)) : i ? !0 : (o(), !1);
+      return typeof Promise < "u" && i instanceof Promise ? i.then((f) => f ? !0 : (o(), !1)) : i ? !0 : (o(), !1);
     });
   }
   refinement(e, t) {
@@ -554,10 +554,10 @@ class y {
     });
   }
   pipe(e) {
-    return he.create(this, e);
+    return fe.create(this, e);
   }
   readonly() {
-    return fe.create(this);
+    return he.create(this);
   }
   isOptional() {
     return this.safeParse(void 0).success;
@@ -761,7 +761,7 @@ class R extends y {
     return this.refinement((r) => e.test(r), {
       validation: t,
       code: d.invalid_string,
-      ...f.errToObj(s)
+      ...h.errToObj(s)
     });
   }
   _addCheck(e) {
@@ -771,46 +771,46 @@ class R extends y {
     });
   }
   email(e) {
-    return this._addCheck({ kind: "email", ...f.errToObj(e) });
+    return this._addCheck({ kind: "email", ...h.errToObj(e) });
   }
   url(e) {
-    return this._addCheck({ kind: "url", ...f.errToObj(e) });
+    return this._addCheck({ kind: "url", ...h.errToObj(e) });
   }
   emoji(e) {
-    return this._addCheck({ kind: "emoji", ...f.errToObj(e) });
+    return this._addCheck({ kind: "emoji", ...h.errToObj(e) });
   }
   uuid(e) {
-    return this._addCheck({ kind: "uuid", ...f.errToObj(e) });
+    return this._addCheck({ kind: "uuid", ...h.errToObj(e) });
   }
   nanoid(e) {
-    return this._addCheck({ kind: "nanoid", ...f.errToObj(e) });
+    return this._addCheck({ kind: "nanoid", ...h.errToObj(e) });
   }
   cuid(e) {
-    return this._addCheck({ kind: "cuid", ...f.errToObj(e) });
+    return this._addCheck({ kind: "cuid", ...h.errToObj(e) });
   }
   cuid2(e) {
-    return this._addCheck({ kind: "cuid2", ...f.errToObj(e) });
+    return this._addCheck({ kind: "cuid2", ...h.errToObj(e) });
   }
   ulid(e) {
-    return this._addCheck({ kind: "ulid", ...f.errToObj(e) });
+    return this._addCheck({ kind: "ulid", ...h.errToObj(e) });
   }
   base64(e) {
-    return this._addCheck({ kind: "base64", ...f.errToObj(e) });
+    return this._addCheck({ kind: "base64", ...h.errToObj(e) });
   }
   base64url(e) {
     return this._addCheck({
       kind: "base64url",
-      ...f.errToObj(e)
+      ...h.errToObj(e)
     });
   }
   jwt(e) {
-    return this._addCheck({ kind: "jwt", ...f.errToObj(e) });
+    return this._addCheck({ kind: "jwt", ...h.errToObj(e) });
   }
   ip(e) {
-    return this._addCheck({ kind: "ip", ...f.errToObj(e) });
+    return this._addCheck({ kind: "ip", ...h.errToObj(e) });
   }
   cidr(e) {
-    return this._addCheck({ kind: "cidr", ...f.errToObj(e) });
+    return this._addCheck({ kind: "cidr", ...h.errToObj(e) });
   }
   datetime(e) {
     return typeof e == "string" ? this._addCheck({
@@ -824,7 +824,7 @@ class R extends y {
       precision: typeof e?.precision > "u" ? null : e?.precision,
       offset: e?.offset ?? !1,
       local: e?.local ?? !1,
-      ...f.errToObj(e?.message)
+      ...h.errToObj(e?.message)
     });
   }
   date(e) {
@@ -838,17 +838,17 @@ class R extends y {
     }) : this._addCheck({
       kind: "time",
       precision: typeof e?.precision > "u" ? null : e?.precision,
-      ...f.errToObj(e?.message)
+      ...h.errToObj(e?.message)
     });
   }
   duration(e) {
-    return this._addCheck({ kind: "duration", ...f.errToObj(e) });
+    return this._addCheck({ kind: "duration", ...h.errToObj(e) });
   }
   regex(e, t) {
     return this._addCheck({
       kind: "regex",
       regex: e,
-      ...f.errToObj(t)
+      ...h.errToObj(t)
     });
   }
   includes(e, t) {
@@ -856,49 +856,49 @@ class R extends y {
       kind: "includes",
       value: e,
       position: t?.position,
-      ...f.errToObj(t?.message)
+      ...h.errToObj(t?.message)
     });
   }
   startsWith(e, t) {
     return this._addCheck({
       kind: "startsWith",
       value: e,
-      ...f.errToObj(t)
+      ...h.errToObj(t)
     });
   }
   endsWith(e, t) {
     return this._addCheck({
       kind: "endsWith",
       value: e,
-      ...f.errToObj(t)
+      ...h.errToObj(t)
     });
   }
   min(e, t) {
     return this._addCheck({
       kind: "min",
       value: e,
-      ...f.errToObj(t)
+      ...h.errToObj(t)
     });
   }
   max(e, t) {
     return this._addCheck({
       kind: "max",
       value: e,
-      ...f.errToObj(t)
+      ...h.errToObj(t)
     });
   }
   length(e, t) {
     return this._addCheck({
       kind: "length",
       value: e,
-      ...f.errToObj(t)
+      ...h.errToObj(t)
     });
   }
   /**
    * Equivalent to `.min(1)`
    */
   nonempty(e) {
-    return this.min(1, f.errToObj(e));
+    return this.min(1, h.errToObj(e));
   }
   trim() {
     return new R({
@@ -1035,16 +1035,16 @@ class P extends y {
     return { status: r.value, value: e.data };
   }
   gte(e, t) {
-    return this.setLimit("min", e, !0, f.toString(t));
+    return this.setLimit("min", e, !0, h.toString(t));
   }
   gt(e, t) {
-    return this.setLimit("min", e, !1, f.toString(t));
+    return this.setLimit("min", e, !1, h.toString(t));
   }
   lte(e, t) {
-    return this.setLimit("max", e, !0, f.toString(t));
+    return this.setLimit("max", e, !0, h.toString(t));
   }
   lt(e, t) {
-    return this.setLimit("max", e, !1, f.toString(t));
+    return this.setLimit("max", e, !1, h.toString(t));
   }
   setLimit(e, t, s, r) {
     return new P({
@@ -1055,7 +1055,7 @@ class P extends y {
           kind: e,
           value: t,
           inclusive: s,
-          message: f.toString(r)
+          message: h.toString(r)
         }
       ]
     });
@@ -1069,7 +1069,7 @@ class P extends y {
   int(e) {
     return this._addCheck({
       kind: "int",
-      message: f.toString(e)
+      message: h.toString(e)
     });
   }
   positive(e) {
@@ -1077,7 +1077,7 @@ class P extends y {
       kind: "min",
       value: 0,
       inclusive: !1,
-      message: f.toString(e)
+      message: h.toString(e)
     });
   }
   negative(e) {
@@ -1085,7 +1085,7 @@ class P extends y {
       kind: "max",
       value: 0,
       inclusive: !1,
-      message: f.toString(e)
+      message: h.toString(e)
     });
   }
   nonpositive(e) {
@@ -1093,7 +1093,7 @@ class P extends y {
       kind: "max",
       value: 0,
       inclusive: !0,
-      message: f.toString(e)
+      message: h.toString(e)
     });
   }
   nonnegative(e) {
@@ -1101,20 +1101,20 @@ class P extends y {
       kind: "min",
       value: 0,
       inclusive: !0,
-      message: f.toString(e)
+      message: h.toString(e)
     });
   }
   multipleOf(e, t) {
     return this._addCheck({
       kind: "multipleOf",
       value: e,
-      message: f.toString(t)
+      message: h.toString(t)
     });
   }
   finite(e) {
     return this._addCheck({
       kind: "finite",
-      message: f.toString(e)
+      message: h.toString(e)
     });
   }
   safe(e) {
@@ -1122,12 +1122,12 @@ class P extends y {
       kind: "min",
       inclusive: !0,
       value: Number.MIN_SAFE_INTEGER,
-      message: f.toString(e)
+      message: h.toString(e)
     })._addCheck({
       kind: "max",
       inclusive: !0,
       value: Number.MAX_SAFE_INTEGER,
-      message: f.toString(e)
+      message: h.toString(e)
     });
   }
   get minValue() {
@@ -1205,16 +1205,16 @@ class F extends y {
     }), _;
   }
   gte(e, t) {
-    return this.setLimit("min", e, !0, f.toString(t));
+    return this.setLimit("min", e, !0, h.toString(t));
   }
   gt(e, t) {
-    return this.setLimit("min", e, !1, f.toString(t));
+    return this.setLimit("min", e, !1, h.toString(t));
   }
   lte(e, t) {
-    return this.setLimit("max", e, !0, f.toString(t));
+    return this.setLimit("max", e, !0, h.toString(t));
   }
   lt(e, t) {
-    return this.setLimit("max", e, !1, f.toString(t));
+    return this.setLimit("max", e, !1, h.toString(t));
   }
   setLimit(e, t, s, r) {
     return new F({
@@ -1225,7 +1225,7 @@ class F extends y {
           kind: e,
           value: t,
           inclusive: s,
-          message: f.toString(r)
+          message: h.toString(r)
         }
       ]
     });
@@ -1241,7 +1241,7 @@ class F extends y {
       kind: "min",
       value: BigInt(0),
       inclusive: !1,
-      message: f.toString(e)
+      message: h.toString(e)
     });
   }
   negative(e) {
@@ -1249,7 +1249,7 @@ class F extends y {
       kind: "max",
       value: BigInt(0),
       inclusive: !1,
-      message: f.toString(e)
+      message: h.toString(e)
     });
   }
   nonpositive(e) {
@@ -1257,7 +1257,7 @@ class F extends y {
       kind: "max",
       value: BigInt(0),
       inclusive: !0,
-      message: f.toString(e)
+      message: h.toString(e)
     });
   }
   nonnegative(e) {
@@ -1265,14 +1265,14 @@ class F extends y {
       kind: "min",
       value: BigInt(0),
       inclusive: !0,
-      message: f.toString(e)
+      message: h.toString(e)
     });
   }
   multipleOf(e, t) {
     return this._addCheck({
       kind: "multipleOf",
       value: e,
-      message: f.toString(t)
+      message: h.toString(t)
     });
   }
   get minValue() {
@@ -1361,14 +1361,14 @@ class H extends y {
     return this._addCheck({
       kind: "min",
       value: e.getTime(),
-      message: f.toString(t)
+      message: h.toString(t)
     });
   }
   max(e, t) {
     return this._addCheck({
       kind: "max",
       value: e.getTime(),
-      message: f.toString(t)
+      message: h.toString(t)
     });
   }
   get minDate() {
@@ -1542,19 +1542,19 @@ class A extends y {
   min(e, t) {
     return new A({
       ...this._def,
-      minLength: { value: e, message: f.toString(t) }
+      minLength: { value: e, message: h.toString(t) }
     });
   }
   max(e, t) {
     return new A({
       ...this._def,
-      maxLength: { value: e, message: f.toString(t) }
+      maxLength: { value: e, message: h.toString(t) }
     });
   }
   length(e, t) {
     return new A({
       ...this._def,
-      exactLength: { value: e, message: f.toString(t) }
+      exactLength: { value: e, message: h.toString(t) }
     });
   }
   nonempty(e) {
@@ -1608,10 +1608,10 @@ class w extends y {
     if (!(this._def.catchall instanceof E && this._def.unknownKeys === "strip"))
       for (const p in r.data)
         i.includes(p) || o.push(p);
-    const h = [];
+    const f = [];
     for (const p of i) {
       const k = n[p], q = r.data[p];
-      h.push({
+      f.push({
         key: { status: "valid", value: p },
         value: k._parse(new S(r, q, r.path, p)),
         alwaysSet: p in r.data
@@ -1621,7 +1621,7 @@ class w extends y {
       const p = this._def.unknownKeys;
       if (p === "passthrough")
         for (const k of o)
-          h.push({
+          f.push({
             key: { status: "valid", value: k },
             value: { status: "valid", value: r.data[k] }
           });
@@ -1635,7 +1635,7 @@ class w extends y {
       const p = this._def.catchall;
       for (const k of o) {
         const q = r.data[k];
-        h.push({
+        f.push({
           key: { status: "valid", value: k },
           value: p._parse(
             new S(r, q, r.path, k)
@@ -1647,7 +1647,7 @@ class w extends y {
     }
     return r.common.async ? Promise.resolve().then(async () => {
       const p = [];
-      for (const k of h) {
+      for (const k of f) {
         const q = await k.key, De = await k.value;
         p.push({
           key: q,
@@ -1656,20 +1656,20 @@ class w extends y {
         });
       }
       return p;
-    }).then((p) => C.mergeObjectSync(s, p)) : C.mergeObjectSync(s, h);
+    }).then((p) => C.mergeObjectSync(s, p)) : C.mergeObjectSync(s, f);
   }
   get shape() {
     return this._def.shape();
   }
   strict(e) {
-    return f.errToObj, new w({
+    return h.errToObj, new w({
       ...this._def,
       unknownKeys: "strict",
       ...e !== void 0 ? {
         errorMap: (t, s) => {
           const r = this._def.errorMap?.(t, s).message ?? s.defaultError;
           return t.code === "unrecognized_keys" ? {
-            message: f.errToObj(e).message ?? r
+            message: h.errToObj(e).message ?? r
           } : {
             message: r
           };
@@ -1910,7 +1910,7 @@ class G extends y {
     {
       let n;
       const i = [];
-      for (const h of s) {
+      for (const f of s) {
         const p = {
           ...t,
           common: {
@@ -1918,7 +1918,7 @@ class G extends y {
             issues: []
           },
           parent: null
-        }, k = h._parseSync({
+        }, k = f._parseSync({
           data: t.data,
           path: t.path,
           parent: p
@@ -1929,7 +1929,7 @@ class G extends y {
       }
       if (n)
         return t.common.issues.push(...n.ctx.common.issues), n.result;
-      const o = i.map((h) => new Z(h));
+      const o = i.map((f) => new Z(f));
       return l(t, {
         code: d.invalid_union,
         unionErrors: o
@@ -1952,10 +1952,10 @@ function de(a, e) {
   if (t === u.object && s === u.object) {
     const r = v.objectKeys(e), n = v.objectKeys(a).filter((o) => r.indexOf(o) !== -1), i = { ...a, ...e };
     for (const o of n) {
-      const h = de(a[o], e[o]);
-      if (!h.valid)
+      const f = de(a[o], e[o]);
+      if (!f.valid)
         return { valid: !1 };
-      i[o] = h.data;
+      i[o] = f.data;
     }
     return { valid: !0, data: i };
   } else if (t === u.array && s === u.array) {
@@ -1963,10 +1963,10 @@ function de(a, e) {
       return { valid: !1 };
     const r = [];
     for (let n = 0; n < a.length; n++) {
-      const i = a[n], o = e[n], h = de(i, o);
-      if (!h.valid)
+      const i = a[n], o = e[n], f = de(i, o);
+      if (!f.valid)
         return { valid: !1 };
-      r.push(h.data);
+      r.push(f.data);
     }
     return { valid: !0, data: r };
   } else return t === u.date && s === u.date && +a == +e ? { valid: !0, data: a } : { valid: !1 };
@@ -2034,8 +2034,8 @@ class $ extends y {
       type: "array"
     }), t.dirty());
     const n = [...s.data].map((i, o) => {
-      const h = this._def.items[o] || this._def.rest;
-      return h ? h._parse(new S(s, i, s.path, o)) : null;
+      const f = this._def.items[o] || this._def.rest;
+      return f ? f._parse(new S(s, i, s.path, o)) : null;
     }).filter((i) => !!i);
     return s.common.async ? Promise.all(n).then((i) => C.mergeArray(t, i)) : C.mergeArray(t, n);
   }
@@ -2115,15 +2115,15 @@ class Ce extends y {
         expected: u.map,
         received: s.parsedType
       }), _;
-    const r = this._def.keyType, n = this._def.valueType, i = [...s.data.entries()].map(([o, h], p) => ({
+    const r = this._def.keyType, n = this._def.valueType, i = [...s.data.entries()].map(([o, f], p) => ({
       key: r._parse(new S(s, o, s.path, [p, "key"])),
-      value: n._parse(new S(s, h, s.path, [p, "value"]))
+      value: n._parse(new S(s, f, s.path, [p, "value"]))
     }));
     if (s.common.async) {
       const o = /* @__PURE__ */ new Map();
       return Promise.resolve().then(async () => {
-        for (const h of i) {
-          const p = await h.key, k = await h.value;
+        for (const f of i) {
+          const p = await f.key, k = await f.value;
           if (p.status === "aborted" || k.status === "aborted")
             return _;
           (p.status === "dirty" || k.status === "dirty") && t.dirty(), o.set(p.value, k.value);
@@ -2132,8 +2132,8 @@ class Ce extends y {
       });
     } else {
       const o = /* @__PURE__ */ new Map();
-      for (const h of i) {
-        const p = h.key, k = h.value;
+      for (const f of i) {
+        const p = f.key, k = f.value;
         if (p.status === "aborted" || k.status === "aborted")
           return _;
         (p.status === "dirty" || k.status === "dirty") && t.dirty(), o.set(p.value, k.value);
@@ -2174,28 +2174,28 @@ class J extends y {
       message: r.maxSize.message
     }), t.dirty());
     const n = this._def.valueType;
-    function i(h) {
+    function i(f) {
       const p = /* @__PURE__ */ new Set();
-      for (const k of h) {
+      for (const k of f) {
         if (k.status === "aborted")
           return _;
         k.status === "dirty" && t.dirty(), p.add(k.value);
       }
       return { status: t.value, value: p };
     }
-    const o = [...s.data.values()].map((h, p) => n._parse(new S(s, h, s.path, p)));
-    return s.common.async ? Promise.all(o).then((h) => i(h)) : i(o);
+    const o = [...s.data.values()].map((f, p) => n._parse(new S(s, f, s.path, p)));
+    return s.common.async ? Promise.all(o).then((f) => i(f)) : i(o);
   }
   min(e, t) {
     return new J({
       ...this._def,
-      minSize: { value: e, message: f.toString(t) }
+      minSize: { value: e, message: h.toString(t) }
     });
   }
   max(e, t) {
     return new J({
       ...this._def,
-      maxSize: { value: e, message: f.toString(t) }
+      maxSize: { value: e, message: h.toString(t) }
     });
   }
   size(e, t) {
@@ -2385,12 +2385,12 @@ class z extends y {
         return Promise.resolve(i).then(async (o) => {
           if (t.value === "aborted")
             return _;
-          const h = await this._def.schema._parseAsync({
+          const f = await this._def.schema._parseAsync({
             data: o,
             path: s.path,
             parent: s
           });
-          return h.status === "aborted" ? _ : h.status === "dirty" || t.value === "dirty" ? W(h.value) : h;
+          return f.status === "aborted" ? _ : f.status === "dirty" || t.value === "dirty" ? W(f.value) : f;
         });
       {
         if (t.value === "aborted")
@@ -2405,10 +2405,10 @@ class z extends y {
     }
     if (r.type === "refinement") {
       const i = (o) => {
-        const h = r.refinement(o, n);
+        const f = r.refinement(o, n);
         if (s.common.async)
-          return Promise.resolve(h);
-        if (h instanceof Promise)
+          return Promise.resolve(f);
+        if (f instanceof Promise)
           throw new Error("Async refinement encountered during synchronous parse operation. Use .parseAsync instead.");
         return o;
       };
@@ -2574,7 +2574,7 @@ class lt extends y {
     return this._def.type;
   }
 }
-class he extends y {
+class fe extends y {
   _parse(e) {
     const { status: t, ctx: s } = this._processInputParams(e);
     if (s.common.async)
@@ -2607,14 +2607,14 @@ class he extends y {
     }
   }
   static create(e, t) {
-    return new he({
+    return new fe({
       in: e,
       out: t,
       typeName: m.ZodPipeline
     });
   }
 }
-class fe extends y {
+class he extends y {
   _parse(e) {
     const t = this._def.innerType._parse(e), s = (r) => (D(r) && (r.value = Object.freeze(r.value)), r);
     return Y(t) ? t.then((r) => s(r)) : s(t);
@@ -2623,7 +2623,7 @@ class fe extends y {
     return this._def.innerType;
   }
 }
-fe.create = (a, e) => new fe({
+he.create = (a, e) => new he({
   innerType: a,
   typeName: m.ZodReadonly,
   ...g(e)
@@ -2643,10 +2643,10 @@ j.create;
 U.create;
 const V = c().max(64), se = pe(ee()), ae = b({ protocol: c().max(64).describe("Endpoint protocol supported by the selected ListCodingAgents entry."), base_url: c().max(512).describe("Custom endpoint base URL. An empty value clears an account or task override."), model: c().max(200).optional().describe("Driver-native model identifier for this custom endpoint.") }).strict().describe("Optional custom endpoint supported by the selected agent; task values override profile/account defaults.");
 ae.partial({ protocol: !0 });
-const ft = b({
+const ht = b({
   traits: N(c().min(1).max(200)).max(32).optional().describe("Public agent trait IDs to resolve under the caller; at most 32. A task list replaces the profile trait list."),
   context: se.optional().describe("Context keys are projected to each selected trait schema, then merged with its defaults and validated. Task keys override profile keys; undeclared keys are rejected.")
-}).strict().describe("Optional per-run tool gateway declaration using traits only. Task traits replace profile traits; context keys merge with task values taking precedence."), ht = b({ id: c(), label: c(), hint: c(), file: c().optional(), subscription: x(), format: te(["json_object", "single_line", "text"]) }).strict(), Ne = b({
+}).strict().describe("Optional per-run tool gateway declaration using traits only. Task traits replace profile traits; context keys merge with task values taking precedence."), ft = b({ id: c(), label: c(), hint: c(), file: c().optional(), subscription: x(), format: te(["json_object", "single_line", "text"]) }).strict(), Ne = b({
   input_tokens: T().nonnegative().optional(),
   output_tokens: T().nonnegative().optional(),
   cached_tokens: T().nonnegative().optional(),
@@ -2662,7 +2662,7 @@ const ft = b({
   account_id: V.optional().describe("Account ID from ListCodingAccounts. Omit to balance across eligible accounts; an explicit account remains pinned. Empty clears a profile account selection."),
   account_pool: N(V.min(1)).max(200).optional().describe("Eligible account IDs from ListCodingAccounts for balancing. A task pool overrides the profile pool and clears its pinned account unless account_id is also supplied."),
   endpoint: ae.optional(),
-  tools: ft.optional(),
+  tools: ht.optional(),
   workspace_id: V.optional().describe("Workspace ID from ListCodingWorkspaces. Omit for an ephemeral scratch directory; an empty value overrides a profile workspace with scratch. Registered workspaces mount according to caller grants."),
   repo_url: c().max(2e3).optional().describe("Optional repository URL to clone into scratch. Omit for a plain scratch directory. A registered workspace uses its existing checkout. Do not embed credentials, query strings or URL fragments."),
   repo_ref: c().max(200).optional().describe("Optional branch or tag for a scratch clone; omitted or empty uses the remote default. Registered workspaces keep their current ref and refuse this field."),
@@ -2673,7 +2673,7 @@ const ft = b({
 Ee.partial().extend({ id: V.min(1).describe("Profile ID from ListCodingProfiles; update requires WRITE access.") });
 const $e = Ee.extend({ id: c(), options: se, owner_user_id: c(), owner: c(), writable: x(), deletable: x() }), pt = $e.pick({ id: !0, title: !0, agent: !0, owner_user_id: !0, owner: !0, writable: !0, deletable: !0 });
 ut([$e, pt]);
-const mt = b({ kind: c(), message: c(), retryable: x().optional(), details: se.optional() }).strict(), B = N(c()), me = pe(ee()), _t = b({ name: c(), label: c(), description: c(), section: c(), group: c(), order: T(), type: c(), values: N(ee()).optional(), schema: me.optional(), default: ee().optional(), profiles: B.optional() }), gt = b({ id: c(), title: c(), icon: c(), credentials: N(ht), endpoints: B, capabilities: B, unattended: me.optional(), options: N(_t) }), Le = b({ memory: c(), cpus: c(), pids_limit: T().int(), gpus: c(), network: c(), extra_args: B, allows: B }), yt = b({ ref: c(), label: c(), home: c(), dockerfile: c(), settings: Le.optional() }), vt = b({ label_bytes: T().int().positive(), secret_bytes: T().int().positive(), endpoint_url_bytes: T().int().positive(), endpoint_model_bytes: T().int().positive() }), Ct = b({ agents: N(gt), default_image: yt, can_images: x(), can_workspaces: x(), can_prune: x(), build_cache_retention: c(), settings_path: c().optional(), account_limits: vt.optional() }), kt = b({ windows: N(b({ window: c(), utilization: T().optional(), status: te(["allowed", "warning", "rejected"]), resets_at: T().int().optional() })), overage_status: c().optional(), overage_disabled_reason: c().optional(), is_using_overage: x().optional() }), Ot = b({
+const mt = b({ kind: c(), message: c(), retryable: x().optional(), details: se.optional() }).strict(), B = N(c()), me = pe(ee()), _t = b({ name: c(), label: c(), description: c(), section: c(), group: c(), order: T(), type: c(), values: N(ee()).optional(), schema: me.optional(), default: ee().optional(), profiles: B.optional() }), gt = b({ id: c(), title: c(), icon: c(), credentials: N(ft), endpoints: B, capabilities: B, unattended: me.optional(), options: N(_t) }), Le = b({ memory: c(), cpus: c(), pids_limit: T().int(), gpus: c(), network: c(), extra_args: B, allows: B }), yt = b({ ref: c(), label: c(), home: c(), dockerfile: c(), settings: Le.optional() }), vt = b({ label_bytes: T().int().positive(), secret_bytes: T().int().positive(), endpoint_url_bytes: T().int().positive(), endpoint_model_bytes: T().int().positive() }), Ct = b({ agents: N(gt), default_image: yt, can_images: x(), can_workspaces: x(), can_prune: x(), build_cache_retention: c(), settings_path: c().optional(), limits_path: c().optional(), account_limits: vt.optional() }), kt = b({ windows: N(b({ window: c(), utilization: T().optional(), status: te(["allowed", "warning", "rejected"]), resets_at: T().int().optional() })), overage_status: c().optional(), overage_disabled_reason: c().optional(), is_using_overage: x().optional() }), Ot = b({
   id: c(),
   agent: c(),
   label: c(),
@@ -2738,7 +2738,7 @@ export {
   Ct as q,
   pe as r,
   c as s,
-  ft as t,
+  ht as t,
   ee as u,
   St as w
 };

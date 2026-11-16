@@ -132,9 +132,10 @@ async function save() {
       </div>
     </div>
     <label class="ac-field">
-      <span>Docker host aliases</span>
+      <span>Extra Docker arguments</span>
       <textarea v-model="form.extra" rows="3" class="ac-mono kx-focus-halo" placeholder="One argument per line, e.g.&#10;--add-host&#10;host.docker.internal:host-gateway" />
     </label>
+    <p class="ac-hint"><a class="ac-link kx-focus-outline" href="https://github.com/kicksideai/chestor/blob/main/autocode/docs/docker-options.md#settings-limits-and-docker-warnings" target="_blank" rel="noopener noreferrer">Container limits and isolation</a></p>
     <footer class="ac-dialog-foot"><button type="button" class="ac-btn kx-focus-halo" @click="emit('cancel')">Cancel</button>
     <button type="button" class="ac-btn primary kx-focus-halo" :disabled="saving || !capabilities || !form.ref" @click="save">
       <Icon icon="tabler:box" /> {{ saving ? 'Saving…' : edit ? 'Save settings' : form.mode === 'build' ? 'Build image' : 'Add image' }}
