@@ -4,6 +4,7 @@ local funcs = require("funcs")
 local client = require("client")
 local traits = require("traits")
 local values = require("values")
+local configuration = require("configuration")
 type Object = {[string]: unknown}
 type Declaration = {traits: {string}?, context: Object?}
 type Tool = {id: string, name: string, description: string, inputSchema: Object, context: Object}
@@ -25,8 +26,6 @@ local function context_problem(context: Object): string?
     end
     return nil
 end
--- Bee driver configuration bounds request.gateway.tools to 32 members.
-local MAX_GATEWAY_TOOLS = 32
 local M = {}
 local function invalid(message: string): error
     return errors.new({kind = errors.INVALID, message = message})
@@ -182,9 +181,9 @@ function M.resolve(surface: unknown, agent: string): (Surface?, error?)
             end
         end
     end
-    if #tools > MAX_GATEWAY_TOOLS then
-        return nil, errors.new({kind = errors.INVALID, message = "tool surface exceeds driver bound of " .. tostring(MAX_GATEWAY_TOOLS),
-            retryable = false, details = {code = "autocode.tool_limit_exceeded", limit = MAX_GATEWAY_TOOLS, count = #tools}})
+    if #tools > configuration.MAX_GATEWAY_TOOLS then
+        return nil, errors.new({kind = errors.INVALID, message = "tool surface exceeds driver bound of " .. tostring(configuration.MAX_GATEWAY_TOOLS),
+            retryable = false, details = {code = "autocode.tool_limit_exceeded", limit = configuration.MAX_GATEWAY_TOOLS, count = #tools}})
     end
     return {tools = tools, instructions = #prompts > 0 and table.concat(prompts, "\n\n") or nil}, nil
 end

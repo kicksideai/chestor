@@ -314,6 +314,7 @@ entries:
   source: file://gateway_surface.lua
   modules: [registry, funcs]
   imports:
+    configuration: bee.drivers.binding:configuration
     capability_context: kickside.agents.traits:capability_context
     client: chestor.autocode.service:client
     traits: wippy.agent.discovery:traits

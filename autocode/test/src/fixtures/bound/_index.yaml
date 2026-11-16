@@ -218,3 +218,195 @@ entries:
     meta: {type: tool, public: true, llm_alias: bound_ag, input_schema: {type: object}}
     source: 'return {run = function() return {ok = true} end}'
     method: run
+
+  - {name: tool_ah, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_ah, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_ai, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_ai, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_aj, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_aj, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_ak, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_ak, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_al, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_al, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_am, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_am, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_an, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_an, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_ao, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_ao, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_ap, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_ap, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_aq, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_aq, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_ar, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_ar, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_as, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_as, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_at, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_at, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_au, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_au, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_av, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_av, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_aw, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_aw, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_ax, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_ax, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_ay, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_ay, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_az, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_az, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_ba, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_ba, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_bb, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_bb, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_bc, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_bc, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_bd, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_bd, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_be, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_be, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_bf, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_bf, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_bg, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_bg, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_bh, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_bh, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_bi, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_bi, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_bj, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_bj, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_bk, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_bk, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_bl, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_bl, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_bm, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_bm, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_bn, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_bn, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_bo, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_bo, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_bp, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_bp, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_bq, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_bq, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_br, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_br, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_bs, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_bs, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_bt, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_bt, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_bu, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_bu, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_bv, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_bv, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_bw, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_bw, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_bx, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_bx, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_by, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_by, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_bz, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_bz, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_ca, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_ca, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_cb, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_cb, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_cc, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_cc, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_cd, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_cd, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_ce, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_ce, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_cf, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_cf, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_cg, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_cg, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_ch, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_ch, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_ci, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_ci, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_cj, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_cj, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_ck, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_ck, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_cl, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_cl, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_cm, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_cm, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_cn, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_cn, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_co, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_co, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_cp, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_cp, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_cq, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_cq, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_cr, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_cr, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_cs, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_cs, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_ct, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_ct, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_cu, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_cu, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_cv, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_cv, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_cw, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_cw, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_cx, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_cx, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_cy, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_cy, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_cz, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_cz, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_da, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_da, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_db, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_db, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_dc, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_dc, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_dd, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_dd, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_de, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_de, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_df, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_df, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_dg, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_dg, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_dh, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_dh, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_di, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_di, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_dj, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_dj, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_dk, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_dk, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_dl, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_dl, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_dm, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_dm, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_dn, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_dn, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_do, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_do, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_dp, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_dp, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_dq, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_dq, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_dr, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_dr, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_ds, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_ds, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_dt, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_dt, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_du, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_du, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_dv, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_dv, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_dw, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_dw, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_dx, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_dx, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
+
+  - {name: tool_dy, kind: function.lua, meta: {type: tool, public: true, llm_alias: bound_dy, input_schema: {type: object}}, source: 'return {run = function() return {ok = true} end}', method: run}
