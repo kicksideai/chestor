@@ -1,5 +1,6 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 local registry = require("registry")
+local funcs = require("funcs")
 local client = require("client")
 local traits = require("traits")
 local values = require("values")
@@ -7,7 +8,17 @@ type Object = {[string]: unknown}
 type Declaration = {traits: {string}?, tools: {string}?, context: Object?}
 type Tool = {id: string, name: string, description: string, inputSchema: Object, context: Object}
 type Surface = {tools: {Tool}, context: Object, instructions: string?}
-type Trait = {prompt: string?, tools: {{id: string, context: Object?}}}
+type TraitTool = {id: string, context: Object?, alias: string?, description: string?, schema: Object?}
+type Contribution = {prompt: string?, tools: {string | TraitTool}?, context: Object?, delegates: {Object}?, agent_options: Object?}
+local function merge(base: Object?, overrides: Object?): Object
+    local result = {}
+    for key, value in pairs(base or {}) do result[key] = value end
+    for key, value in pairs(overrides or {}) do result[key] = value end
+    return result
+end
+local function populated(value: unknown): boolean
+    return value ~= nil and (type(value) ~= "table" or next(value) ~= nil)
+end
 local function context_problem(context: Object): string?
     for _, key in ipairs({"autocode_flow", "trace_context", "_execution_identity", "component_id", "actor_id", "actor_context"}) do
         if context[key] ~= nil then return "tool context reserves " .. key .. " for transport" end
@@ -62,7 +73,7 @@ function M.resolve(surface: unknown, agent: string): (Surface?, error?)
     local tools: {Tool} = {}
     local prompts: {string} = {}
     local seen, names = {}, {}
-    local function add(id: string, defaults: Object?, capability: boolean?): error?
+    local function add(id: string, defaults: Object?, capability: boolean?, spec: TraitTool?): error?
         local problem = context_problem(defaults or {})
         if problem then return invalid(problem) end
         if seen[id] then return nil end
@@ -73,49 +84,82 @@ function M.resolve(surface: unknown, agent: string): (Surface?, error?)
             tool = found :: Descriptor?
         end
         if not tool then return invalid("tool is not in the actor-visible catalog: " .. id) end
-        local alias = tool.llm_alias ~= "" and tool.llm_alias or id:match("[^:]+$") or id
+        local alias = spec and spec.alias or (tool.llm_alias ~= "" and tool.llm_alias or id:match("[^:]+$") or id)
         local name = alias:gsub("[^%w]", "_"):gsub("([A-Z])", function(c: string): string return "_" .. c:lower() end)
             :gsub("__+", "_"):gsub("^_", ""):gsub("[^a-z_]", "_")
         if name == "" then return invalid("tool has no usable MCP name: " .. id) end
         if names[name] then return invalid("bound tools have a duplicate MCP name: " .. name) end
         names[name], seen[id] = true, true
-        tools[#tools + 1] = {id = id, name = name, description = tool.llm_description or "", inputSchema = tool.input_schema, context = defaults or {}}
+        tools[#tools + 1] = {id = id, name = name, description = spec and spec.description or tool.llm_description or "", inputSchema = spec and spec.schema or tool.input_schema, context = defaults or {}}
         if #tools > 128 then return invalid("tool surface exceeds 128 tools") end
         return nil
     end
+    if #(declaration.traits or {}) > 0 then
+        local capability_context = require("capability_context")
+        local trait_contexts: {[string]: Object} = {}
+        for _, id in ipairs(declaration.traits or {}) do trait_contexts[id] = context end
+        local validation, validation_err = capability_context.validate_trait_contexts(declaration.traits, trait_contexts, registry.get)
+        if validation_err then return nil, validation_err end
+        if not validation.ok then return nil, invalid("trait context invalid: " .. capability_context.error_message(validation)) end
+    end
     for _, id in ipairs(declaration.traits or {}) do
-        local entry, entry_err = registry.get(id)
-        if not entry then return nil, entry_err end
-        local data, meta = entry.data or {}, entry.meta or {}
-        for _, field in ipairs({"build_func_id", "prompt_func_id", "step_func_id", "behaviors", "binding", "bindings",
-            "tool_wrapper", "tool_wrappers", "options", "agent_options", "context"}) do
-            local value = data[field]
-            if value ~= nil and (type(value) ~= "table" or next(value) ~= nil) then
-                return nil, invalid("unsupported trait feature " .. id .. ": " .. field)
-            end
-        end
-        if meta.context_schema ~= nil or meta.web_component ~= nil then
-            return nil, invalid("unsupported trait configuration: " .. id)
-        end
-        for _, tool in ipairs(data.tools or {}) do
-            if type(tool) == "table" and (tool.alias ~= nil or tool.description ~= nil) then
-                return nil, invalid("unsupported trait tool alias or description: " .. id)
-            end
-        end
-        local loaded, trait_err = traits.get_by_id(id)
-        local trait = loaded :: Trait?
+        local trait, trait_err = traits.get_by_id(id)
         if not trait then return nil, invalid("trait cannot be resolved: " .. id .. ": " .. tostring(trait_err)) end
+        -- These hooks need the internal agent's messages and per-turn session state;
+        -- the external harness owns that lifecycle and exposes no hook invocation.
+        if trait.prompt_func_id or trait.step_func_id then
+            return nil, invalid("trait requires internal agent turn hooks: " .. id)
+        end
+        -- Bindings, behaviours and wrappers run inside the agent's execution pipeline.
+        -- Publishing only their tools would bypass their execution/checkpoint semantics.
+        if populated(trait.bindings) or populated(trait.behaviors) or populated(trait.tool_wrappers) then
+            return nil, invalid("trait requires the internal agent execution pipeline: " .. id)
+        end
+        -- Internal model/session options cannot configure a separate harness driver.
+        if populated(trait.agent_options) then return nil, invalid("trait requires internal agent options: " .. id) end
+        local trait_context = merge(trait.context, context)
+        local problem = context_problem(trait_context)
+        if problem then return nil, invalid(problem) end
+        local members: {TraitTool} = {}
+        for _, tool in ipairs(trait.tools or {}) do members[#members + 1] = tool end
         if trait.prompt and trait.prompt ~= "" then prompts[#prompts + 1] = trait.prompt end
-        for _, tool in ipairs(trait.tools or {}) do
+        if trait.build_func_id then
+            -- The Wippy trait build contract: (prompt, context), with the same
+            -- context attached to funcs. Inherit the caller's actor and scope.
+            local build_context = merge(trait_context, {agent_id = agent})
+            local executor, executor_err = funcs.new()
+            if not executor then return nil, executor_err end
+            local caller, caller_err = executor:with_context(build_context)
+            if not caller then return nil, caller_err end
+            local built, build_err = caller:call(trait.build_func_id, trait.prompt, build_context)
+            if build_err then return nil, build_err end
+            local contribution = built :: Contribution?
+            if contribution then
+                -- Delegates need the internal agent router; driver options are a
+                -- different contract from the internal agent's model/session options.
+                if populated(contribution.delegates) or populated(contribution.agent_options) then
+                    return nil, invalid("trait build requires internal agent delegates or options: " .. id)
+                end
+                if contribution.prompt and contribution.prompt ~= "" then prompts[#prompts + 1] = contribution.prompt end
+                trait_context = merge(trait_context, contribution.context)
+                for _, tool in ipairs(contribution.tools or {}) do
+                    members[#members + 1] = type(tool) == "string" and {id = tool} or tool
+                end
+            end
+        end
+        for _, tool in ipairs(members) do
+            -- Wippy precedence: trait defaults/build context, declaration, tool.
+            local defaults = merge(merge(trait_context, context), tool.context)
+            defaults.agent_id = agent
             if tool.id:sub(-2) == ":*" then
                 local namespace = tool.id:sub(1, -2)
                 for _, entry in ipairs(catalog :: {Descriptor}) do
                     if entry.id:sub(1, #namespace) == namespace then
-                        local err = add(entry.id, tool.context); if err then return nil, err end
+                        local err = add(entry.id, defaults, nil, tool); if err then return nil, err end
                     end
                 end
             else
-                local err = add(tool.id, tool.context, true); if err then return nil, err end
+                local err = add(tool.id, defaults, true, tool); if err then return nil, err end
             end
         end
     end

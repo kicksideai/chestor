@@ -312,8 +312,9 @@ entries:
 - name: gateway_surface
   kind: library.lua
   source: file://gateway_surface.lua
-  modules: [registry]
+  modules: [registry, funcs]
   imports:
+    capability_context: kickside.agents.traits:capability_context
     client: chestor.autocode.service:client
     traits: wippy.agent.discovery:traits
     values: chestor.autocode.service:values

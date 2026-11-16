@@ -143,8 +143,8 @@ function M.handle(action_id: string, token: string, raw: unknown, hook: boolean?
                 details = {code = "autocode.tool_access_denied"}})
         else
             local context = {}
-            for key, item in pairs(selected.context or {}) do context[key] = item end
             for key, item in pairs(run.gateway.context or {}) do context[key] = item end
+            for key, item in pairs(selected.context or {}) do context[key] = item end
             local owner, builder_err = funcs.new()
             if not owner then return nil, builder_err, selected.id end
             local actor_bound, actor_err = owner:with_actor(frame.actor)
