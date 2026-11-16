@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
-import { PrimeVuePlugin } from '@wippy-fe/theme/primevue-plugin'
-import { WippyVueElement, define } from '@wippy-fe/webcomponent-vue'
+import { WippyVueElement, define, useEvents } from '@wippy-fe/webcomponent-vue'
 import type { WippyElementConfig, WippyPropsSchema } from '@wippy-fe/webcomponent-vue'
 import type { ComponentProps, ComponentEvents } from './types.ts'
-import Autocode from './app/autocode.vue'
+import { lazyPage } from './lazy'
 import stylesText from './styles.css?inline'
 import pkg from '../package.json'
 
@@ -17,7 +16,13 @@ class ChestorAutocodeElement extends WippyVueElement<ComponentProps, ComponentEv
   }
 
   static get vueConfig() {
-    return { rootComponent: Autocode, plugins: [PrimeVuePlugin] }
+    return {
+      lazyConfig: lazyPage(
+        () => import('./index-mount').then((module) => module.mountConfig),
+        'Could not load Autocode. Reload the page to try again.',
+        useEvents,
+      ),
+    }
   }
 }
 

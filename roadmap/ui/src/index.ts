@@ -1,6 +1,6 @@
-import { WippyVueElement, define } from '@wippy-fe/webcomponent-vue'
+import { WippyVueElement, define, useEvents } from '@wippy-fe/webcomponent-vue'
 import type { WippyElementConfig, WippyPropsSchema } from '@wippy-fe/webcomponent-vue'
-import RoadmapApp from './app/RoadmapApp.vue'
+import { lazyPage } from './lazy'
 import stylesText from './styles.css?inline'
 
 interface Props { entryId?: string; mode?: string; readOnly?: boolean }
@@ -37,7 +37,13 @@ class ChestorRoadmapElement extends WippyVueElement<Props, Events> {
   }
 
   static get vueConfig() {
-    return { rootComponent: RoadmapApp }
+    return {
+      lazyConfig: lazyPage(
+        () => import('./lazy-mount').then((module) => module.mountConfig),
+        'Could not load the roadmap. Reload the page to try again.',
+        useEvents,
+      ),
+    }
   }
 }
 

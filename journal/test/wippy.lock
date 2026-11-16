@@ -5,41 +5,41 @@ modules:
     - name: chestor/journal
       version: 0.0.0
     - name: chestor/workspace
-      version: 0.2.1
-      hash: 9645c79aa286bf95e04b45f30cc5a61900c2807d53be306377432081f81a717b
+      version: 0.2.6
+      hash: f71161c9510595dc8a089d66a88c341ab1418c09944f419dd2bd8533358255c1
     - name: kickside/component
-      version: 0.3.5
-      hash: 3b902068c17a7db8a4bb90d08e26b9de5a5ca788b3c22e3a61e80a9cae6d471b
+      version: 0.3.21
+      hash: b198d4120e3e745985222815251f03ce8493c9d1fe6fb4162217f810e4294399
     - name: kickside/contract
-      version: 0.3.2
-      hash: df463a8e8e9ce71c9e1b87bb4bdbfb389b28fa7a6dff73f47d3de58ee546c715
+      version: 0.3.8
+      hash: c297c02ca276a5963bd688b6b022e54fcfe03450e30cf496481c14f963ae8134
     - name: kickside/core
-      version: 0.3.7
-      hash: b59cd3995005d18916639380e6633df6da9ef0bacaa4a55e7acb11e9a91fc2a2
+      version: 0.3.20
+      hash: c58d7036447b01a921be2b90888f56f84aa192c2aa6cf3f0cbc8fb14f6a26c1b
     - name: kickside/execution
-      version: 0.2.7
-      hash: 3954d2cc679886deb8a15a4a3c8c36e4ea09e578f09a2eb6f27f0ac62e10fdf7
+      version: 0.2.8
+      hash: 7ffa847541cce7d03424bad43828fb08e9b077b6a08b3fe857cd0a22fa589e97
     - name: kickside/jobs
-      version: 0.1.67
-      hash: 6517b38a70a0a963312cb5367531a55e5372b63e13d3bd92cc724d297bf781bf
+      version: 0.1.81
+      hash: 72c601d2a1338a2d28533b2dd45e00c362d07893cad2753d88f80d30a6e5808a
     - name: kickside/realtime-dispatch
       version: 0.1.1
       hash: 6f0fa3625683510a1565afff3b40b6726ea5604b940b1627b787f6615683264d
     - name: kickside/renderers
-      version: 0.1.37
-      hash: 66aba2003c08b8cc6d016432fa29f5be6ee994301500b394dbf8b82d38db745b
+      version: 0.1.38
+      hash: 7b762ff9007a8703a6f39130458a86fc8ad847d5cc9887035fca0b7f9a8f6b87
     - name: kickside/widgets
-      version: 0.1.55
-      hash: 6e2a3d0351c4540e12f1ecabe4a58d82d3dd1866fecd57f6e26c69712b53715a
+      version: 0.1.62
+      hash: 6bb7b0da246b1ae262f079440a9553b0d33037f6a9d150958d1cedfea5580efe
     - name: wippy/agent
-      version: 0.5.9
-      hash: c0eff8b8cebd49bec8a2704ead671e0ea79434b54b9ebb5c36873b823c08ab4c
+      version: 0.5.13
+      hash: 857b603fc6f036b053380bf6c8f00f42f6eb2720fe3df5f8fcb436a35dfdddf1
     - name: wippy/bootloader
       version: 0.3.18
       hash: c7e71b358539b450b49b55e725f60f2dac8218e1c596cf3a473ce71e36b10a9b
     - name: wippy/llm
-      version: 0.5.12
-      hash: 4a6aa0e035b639b83add7120b331032b56312f794978988d92ec52a640e565e8
+      version: 0.5.20
+      hash: 7e998e27a8d543adcff7f77b99d9f71325124479251c46ce9f4933fcb028f473
     - name: wippy/migration
       version: 0.3.26
       hash: cf4848ad3f8ba8d31d944b2f3a7274bc2b7cf2888dd80f0db63b2c71a85f89c1
