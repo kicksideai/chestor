@@ -225,8 +225,8 @@ context: { ... } }`. Task fields override the corresponding profile surface
 fields; context keys merge with task values taking precedence. The workflow
 can supply board or ticket context through this task field independently of
 the reusable profile. Submission freezes the declaration; preparation resolves
-trait tool IDs, explicit tools, their schemas and static trait prompts under
-the owner. Prompts become driver instructions. MCP names use the framework's snake-case normalization with non-letter characters replaced by underscores,
+trait tools, build contributions, explicit tools and their schemas under the
+owner. Static and contributed prompts become driver instructions. MCP names use the framework's snake-case normalization with non-letter characters replaced by underscores,
 so every driver receives plain lowercase identifiers. Alias collisions are refused.
 A batch profile without a declared MCP client transport refuses a surface.
 An empty resolved tool list launches without a gateway.
@@ -335,7 +335,26 @@ Explicit gateway tools and wildcard expansion use the actor-visible normalized `
 
 ### SPEC: Supported batch traits
 
-The batch gateway supports static trait prompts and member tools with static per-tool context. It visibly refuses hook functions, runtime behaviours, bindings/wrappers, agent/options overrides, root trait context, configured traits and per-tool alias/description overrides.
+The batch gateway loads normalized Wippy traits and validates the declaration's
+context with the platform capability context validator against each trait's
+`meta.context_schema`. Configuration UI metadata does not affect batch execution.
+A trait's `build_func_id` runs with the caller's actor and scope using Wippy's
+`(trait_prompt, context)` contract and the same attached function context. Trait
+defaults merge with declaration context for the build; `agent_id` identifies the
+selected harness. Static and contributed tools pass through the same actor-visible
+catalog checks: wildcard expansion uses public discovery, while exact capability
+members may include actor-visible non-public tools. Build errors remain visible.
+
+Builds may contribute prompt text, tools and context. Tool context merges in Wippy
+order: trait defaults/build contribution, declaration, then per-tool context. Tool
+aliases and descriptions, and build-contributed input schemas, may override catalog
+presentation; the registered tool must still be visible. Transport identity fields remain reserved.
+
+Per-turn prompt/step hooks require the internal agent's messages and session state.
+Behaviours, bindings and wrappers require its execution/checkpoint pipeline.
+Delegates require its router, and internal model/session options cannot configure
+an external driver. These features are refused with an explanation of the missing
+execution behavior, including delegates/options returned by builds.
 
 ### SPEC: Native error boundaries
 

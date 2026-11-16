@@ -86,6 +86,13 @@ local function cases()
                 resume(user, flow, run)
             end
         end)
+        test.it("arms and resumes a task with a configured dynamic trait", function()
+            local user = f.member()
+            local config = request(user)
+            config.tools = {traits = {"app:gateway_dynamic_trait"}, context = {board_id = "flow-board"}}
+            local flow, run = park(user, config)
+            resume(user, flow, run)
+        end)
         test.it("parks and resumes committed tasks when realtime refuses or delivery fails", function()
             for _, mode in ipairs({"denied", "unavailable"}) do
                 local user = f.member()
