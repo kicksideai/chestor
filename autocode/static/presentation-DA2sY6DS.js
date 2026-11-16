@@ -1,5 +1,5 @@
 import { api as b, on as g } from "@wippy-fe/proxy";
-import { o as s, f as E, s as c, d as u, g as A, w as P, i as S, h as M, p as j, r as q, u as R, c as N, l as _, j as F, k as L, m as W, q as B } from "./dto-BsFogJu_.js";
+import { o as s, f as E, s as c, d as u, g as A, w as P, i as S, h as M, p as j, r as q, u as R, c as N, l as _, j as F, k as L, m as W, q as B } from "./dto-Bg8kJUPQ.js";
 import { onUnmounted as y, watch as O, nextTick as z, readonly as G, ref as H } from "vue";
 const J = "/api/v1/autocode", m = s({ kind: c().optional(), code: c().optional(), retryable: N().optional(), details: q(R()).optional() }), K = m.extend({ success: _(!1), error: F([c(), m.extend({ message: c() })]) });
 class v extends Error {

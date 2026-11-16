@@ -238,16 +238,20 @@ Known: concurrent host-operator replacement of workspace or Docker client paths 
 
 ## SPEC: run driver gateway
 
-Profiles and tasks accept `tools: { traits: [agent.trait IDs], tools: [tool IDs],
+Profiles and tasks accept `tools: { traits: [agent.trait IDs],
 context: { ... } }`. Task fields override the corresponding profile surface
 fields; context keys merge with task values taking precedence. The workflow
 can supply board or ticket context through this task field independently of
 the reusable profile. Submission freezes the declaration; preparation resolves
-trait tools, build contributions, explicit tools and their schemas under the
+trait tools, build contributions and their schemas under the
 owner. Static and contributed prompts become driver instructions. MCP names use the framework's snake-case normalization with non-letter characters replaced by underscores,
 so every driver receives plain lowercase identifiers. Alias collisions are refused.
 A batch profile without a declared MCP client transport refuses a surface.
-An empty resolved tool list launches without a gateway.
+An empty resolved tool list launches without a gateway. Independent tool selection
+is refused; there is no compatibility path for saved declarations. Admission refuses
+a deduplicated surface above the Bee driver bound of 32 tools with a non-retryable
+`INVALID` error, code `autocode.tool_limit_exceeded`, and `count`/`limit` details.
+Static tools and build contributions count together; no members are truncated.
 
 Autocode owns `/autocode-gateway/mcp/{action_id}` and
 `/autocode-gateway/hook/{action_id}` on its dedicated router, attached to the
@@ -349,22 +353,28 @@ MCP tools return both native and domain failures as tool errors. Native errors r
 
 ### SPEC: Gateway discovery
 
-Explicit gateway tools and wildcard expansion use the actor-visible normalized `kickside.agents:tools` public catalog. Exact tools supplied by a trait remain capability members; live dispatch still checks `funcs.call`.
+Trait wildcard expansion uses the actor-visible normalized `kickside.agents:tools` public catalog. Exact tools supplied by a trait remain capability members; live dispatch still checks `funcs.call`.
 
 ### SPEC: Supported batch traits
 
 The batch gateway loads normalized Wippy traits and validates the declaration's
-context with the platform capability context validator against each trait's
-`meta.context_schema`. Configuration UI metadata does not affect batch execution.
+flat `tools.context` with the platform capability context validator against each
+trait's `meta.context_schema`. Each trait receives only keys named in its schema's
+`properties`, even when the schema allows additional properties. A key declared by
+several selected traits reaches each of them and must satisfy each schema. A key
+accepted by no selected trait is refused, including when no traits are selected.
+Traits without a context schema receive no declaration keys. Configuration UI
+metadata does not affect batch execution.
 A trait's `build_func_id` runs with the caller's actor and scope using Wippy's
 `(trait_prompt, context)` contract and the same attached function context. Trait
-defaults merge with declaration context for the build; `agent_id` identifies the
-selected harness. Static and contributed tools pass through the same actor-visible
+defaults merge with that trait's selected declaration context for the build;
+`agent_id` identifies the selected harness. Static and contributed tools pass through the same actor-visible
 catalog checks: wildcard expansion uses public discovery, while exact capability
 members may include actor-visible non-public tools. Build errors remain visible.
 
 Builds may contribute prompt text, tools and context. Tool context merges in Wippy
-order: trait defaults/build contribution, declaration, then per-tool context. Tool
+order: trait defaults/build contribution, selected declaration keys, then per-tool
+context. Tools retain their explicit call arguments alongside context defaults. Tool
 aliases and descriptions, and build-contributed input schemas, may override catalog
 presentation; the registered tool must still be visible. Transport identity fields remain reserved.
 

@@ -9,7 +9,7 @@ local function cases()
             local function canonical(board)
                 local state = stubs.reset()
                 local _, err = subject.submit({agent = "claude", image_id = "image", options = {}, prompt = "task", repo_url = "",
-                    tools = {tools = {"app:gateway_echo"}, context = {board_id = board}}}, nil, "key")
+                    tools = {traits = {"app:gateway_trait"}, context = {board_id = board}}}, nil, "key")
                 test.is_nil(err, tostring(err))
                 return state.submission.canonical
             end

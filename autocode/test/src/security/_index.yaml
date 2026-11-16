@@ -111,12 +111,12 @@ entries:
   - name: gateway_fixture_calls
     kind: security.policy
     groups: [app.security:user]
-    policy: {resources: ['app:gateway_resolve', 'app:gateway_build', 'app:gateway_echo', 'app:gateway_refused', 'app:gateway_domain', 'app:gateway_native'], actions: [funcs.call, registry.get], effect: allow}
+    policy: {resources: ['app:gateway_catalog_echo', 'app:gateway_resolve', 'app:gateway_build', 'app:gateway_echo', 'app:gateway_refused', 'app:gateway_domain', 'app:gateway_native'], actions: [funcs.call, registry.get], effect: allow}
 
   - name: gateway_fixture_registry
     kind: security.policy
     groups: [app.security:user]
-    policy: {resources: ['app:gateway_restricted_trait', 'app:gateway_dynamic_trait', 'app:gateway_configured_trait', 'app:gateway_echo', 'app:gateway_trait', 'app:gateway_denied', 'app:gateway_refused', 'app:gateway_domain', 'app:gateway_native'], actions: [registry.get], effect: allow}
+    policy: {resources: ['app:gateway_catalog_trait', 'app:gateway_errors_trait', 'app:gateway_refused_trait', 'app:gateway_denied_trait', 'app:gateway_restricted_trait', 'app:gateway_dynamic_trait', 'app:gateway_configured_trait', 'app:gateway_echo', 'app:gateway_trait', 'app:gateway_denied', 'app:gateway_refused', 'app:gateway_domain', 'app:gateway_native'], actions: [registry.get], effect: allow}
 
   - name: gateway_privileged_tools
     kind: registry.entry

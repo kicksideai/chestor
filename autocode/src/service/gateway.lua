@@ -40,7 +40,7 @@ function M.issue(run_id: string, surface: Surface, timeout_ms: integer): (Issued
     local digest, hash_err = hash.sha256(token)
     if not digest then return nil, hash_err end
     local expiry = time.now():add(timeout_ms * 1000000):utc():format_rfc3339()
-    local binding = {token_hash = digest, expires_at = expiry, tools = surface.tools, context = surface.context}
+    local binding = {token_hash = digest, expires_at = expiry, tools = surface.tools}
     local store_err = repo.bind_gateway(run_id, binding)
     if store_err then return nil, store_err end
     local names = {}
@@ -142,16 +142,13 @@ function M.handle(action_id: string, token: string, raw: unknown, hook: boolean?
             call_err = errors.new({kind = errors.PERMISSION_DENIED, message = "function access denied: " .. selected.id,
                 details = {code = "autocode.tool_access_denied"}})
         else
-            local context = {}
-            for key, item in pairs(run.gateway.context or {}) do context[key] = item end
-            for key, item in pairs(selected.context or {}) do context[key] = item end
             local owner, builder_err = funcs.new()
             if not owner then return nil, builder_err, selected.id end
             local actor_bound, actor_err = owner:with_actor(frame.actor)
             if not actor_bound then return nil, actor_err, selected.id end
             local scoped, scope_err = actor_bound:with_scope(frame.scope)
             if not scoped then return nil, scope_err, selected.id end
-            local caller, context_err = scoped:with_context(context)
+            local caller, context_err = scoped:with_context(selected.context)
             if not caller then return nil, context_err, selected.id end
             value, call_err = caller:call(selected.id, args)
         end

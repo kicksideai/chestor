@@ -15,7 +15,6 @@ const fragments = Object.fromEntries(['endpoint', 'accountEndpoint', 'profile', 
 }))
 // The contract keeps arrays unique; Zod retains their ordered values.
 fragments.toolSurfaceSchema.properties.traits.uniqueItems = true
-fragments.toolSurfaceSchema.properties.tools.uniqueItems = true
 for (const name of ['profile', 'profileInput', 'profilePatch']) fragments[name].properties.account_pool.uniqueItems = true
 let stale = false
 async function materialize(path, text) {

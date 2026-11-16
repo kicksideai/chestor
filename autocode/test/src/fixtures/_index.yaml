@@ -236,7 +236,7 @@ entries:
 
   - name: gateway_trait
     kind: registry.entry
-    meta: {type: agent.trait}
+    meta: {type: agent.trait, context_schema: {type: object, additionalProperties: false, properties: {board_id: {type: string}, other: {type: string}}}}
     prompt: Use the bound board when answering.
     tools: [app:gateway_echo]
 
@@ -275,7 +275,7 @@ entries:
 
   - name: gateway_privileged_trait
     kind: registry.entry
-    meta: {type: agent.trait}
+    meta: {type: agent.trait, context_schema: {type: object, properties: {board_id: {type: string}}}}
     prompt: Report the bound context.
     tools: [app:gateway_privileged_echo]
 
@@ -336,7 +336,8 @@ entries:
       context_schema:
         type: object
         required: [board_id]
-        properties: {board_id: {type: string}}
+        additionalProperties: false
+        properties: {board_id: {type: string}, mode: {type: string}, tool_id: {type: string}}
       web_component: fixture-config
     prompt: Use the dynamic board.
     build_func_id: app:gateway_build
@@ -355,7 +356,7 @@ entries:
 
   - name: gateway_restricted_trait
     kind: registry.entry
-    meta: {type: agent.trait}
+    meta: {type: agent.trait, context_schema: {type: object, properties: {board_id: {type: string}}}}
     prompt: Restricted build
     build_func_id: app:gateway_restricted_build
 
@@ -428,3 +429,36 @@ entries:
     source: file://../idle_retention_probe.lua
     method: run
     modules: [process]
+
+  - name: gateway_catalog_trait
+    kind: registry.entry
+    meta:
+      type: agent.trait
+      context_schema:
+        type: object
+        additionalProperties: false
+        required: [catalog_id]
+        properties: {catalog_id: {type: string}}
+    tools: [app:gateway_catalog_echo]
+
+  - name: gateway_errors_trait
+    kind: registry.entry
+    meta: {type: agent.trait}
+    tools: [app:gateway_domain, app:gateway_native]
+
+  - name: gateway_refused_trait
+    kind: registry.entry
+    meta: {type: agent.trait}
+    tools: [app:gateway_refused]
+
+  - name: gateway_denied_trait
+    kind: registry.entry
+    meta: {type: agent.trait}
+    tools: [app:gateway_denied]
+
+  - name: gateway_catalog_echo
+    kind: function.lua
+    meta: {type: tool, public: true, llm_alias: GatewayCatalogEcho, input_schema: {type: object, properties: {text: {type: string}}, additionalProperties: false}}
+    source: file://../gateway_probe.lua
+    method: echo
+    modules: [security, ctx]

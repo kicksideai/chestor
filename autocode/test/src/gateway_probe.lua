@@ -9,6 +9,7 @@ local function native(args)
         details = {code = "fixture.native", password = "fixture-native-password", revision = 7}})
 end
 local function build(prompt, context)
+    assert(context.catalog_id == nil and ctx.get("catalog_id") == nil, "sibling context must not reach build")
     assert(ctx.get("board_id") == context.board_id, "build context must reach function context")
     if context.mode == "fail" then
         return nil, errors.new({kind = errors.UNAVAILABLE, message = "fixture build unavailable", details = {code = "fixture.build_unavailable"}})
@@ -28,4 +29,12 @@ local function build(prompt, context)
     return {prompt = prompt .. " Built for " .. context.board_id .. " by " .. security.actor():id(),
         context = {build_value = "contributed"}, tools = {tool}}
 end
-return {build = build, domain = domain, native = native, echo = function(args) return {owner = security.actor():id(), board_id = ctx.get("board_id"), build_owner = ctx.get("build_owner"), build_value = ctx.get("build_value"), text = args.text} end}
+local function bound_build(_, context)
+    local tools = {}
+    for i = 1, context.count do
+        local suffix = i <= 26 and string.char(96 + i) or "a" .. string.char(96 + i - 26)
+        tools[#tools + 1] = "app.bound:tool_" .. suffix
+    end
+    return {tools = tools}
+end
+return {bound_build = bound_build, build = build, domain = domain, native = native, echo = function(args) return {owner = security.actor():id(), board_id = ctx.get("board_id"), catalog_id = ctx.get("catalog_id"), build_owner = ctx.get("build_owner"), build_value = ctx.get("build_value"), text = args.text} end}
