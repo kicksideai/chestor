@@ -1,6 +1,13 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.11](https://github.com/kicksideai/chestor/compare/autocode-v0.1.10...autocode-v0.1.11) (2026-11-16)
+
+
+### Bug Fixes
+
+* **autocode:** resolve dynamic trait tool surfaces ([#47](https://github.com/kicksideai/chestor/issues/47)) ([8f1ebdf](https://github.com/kicksideai/chestor/commit/8f1ebdf4274c144678fcaf8ae456c9c25a4a9518))
+
 ## [0.1.10](https://github.com/kicksideai/chestor/compare/autocode-v0.1.9...autocode-v0.1.10) (2026-11-15)
 
 
