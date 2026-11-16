@@ -1,6 +1,14 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.14](https://github.com/kicksideai/chestor/compare/autocode-v0.1.13...autocode-v0.1.14) (2026-11-16)
+
+
+### Bug Fixes
+
+* **autocode:** derive gateway tools only from traits ([fb72131](https://github.com/kicksideai/chestor/commit/fb72131e9d1b09addbfaf698af5120b0ee45d2ff))
+* **autocode:** read gateway tool bound from bee/drivers ([#56](https://github.com/kicksideai/chestor/issues/56)) ([ff9fd14](https://github.com/kicksideai/chestor/commit/ff9fd14bc912f15671cb89ea5fa480aeb7ef246f))
+
 ## [0.1.13](https://github.com/kicksideai/chestor/compare/autocode-v0.1.12...autocode-v0.1.13) (2026-11-16)
 
 
