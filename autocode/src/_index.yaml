@@ -15,7 +15,7 @@ entries:
     component: wippy/agent
 
   - name: dep.bee.drivers
-    version: "*"
+    version: ">=0.1.25"
     kind: ns.dependency
     meta:
       comment: Declarative agent CLI drivers and the drivers library; the host binds activation to chestor.autocode.drivers:activation and supplies its own environment storages.

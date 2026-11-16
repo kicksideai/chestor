@@ -32,7 +32,7 @@ end
 local function bound_build(_, context)
     local tools = {}
     for i = 1, context.count do
-        local suffix = i <= 26 and string.char(96 + i) or "a" .. string.char(96 + i - 26)
+        local suffix = i <= 26 and string.char(96 + i) or string.char(96 + math.floor((i - 1) / 26)) .. string.char(97 + (i - 1) % 26)
         tools[#tools + 1] = "app.bound:tool_" .. suffix
     end
     return {tools = tools}

@@ -174,7 +174,7 @@ fragment.
 Driver text observations are folded per segment: `append` adds a delta;
 `replace` and `complete` replace the retained text with their full snapshot.
 A completion supersedes its streamed deltas in both the event log and result,
-including reasoning text. The locked `bee/drivers` 0.1.24 codec emits a small
+including reasoning text. The locked `bee/drivers` 0.1.25 codec emits a small
 completion as `complete`, and a chunked completion as `replace` followed by
 `append` pieces on the same segment, with or without preceding deltas.
 A distinct snapshot of that segment supersedes the previous snapshot; replacing
@@ -249,7 +249,8 @@ so every driver receives plain lowercase identifiers. Alias collisions are refus
 A batch profile without a declared MCP client transport refuses a surface.
 An empty resolved tool list launches without a gateway. Independent tool selection
 is refused; there is no compatibility path for saved declarations. Admission refuses
-a deduplicated surface above the Bee driver bound of 32 tools with a non-retryable
+a deduplicated surface above the installed Bee driver configuration's
+`MAX_GATEWAY_TOOLS` bound with a non-retryable
 `INVALID` error, code `autocode.tool_limit_exceeded`, and `count`/`limit` details.
 Static tools and build contributions count together; no members are truncated.
 
