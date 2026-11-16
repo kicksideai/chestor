@@ -124,7 +124,7 @@ compatible local Docker daemon. The runner adds no host alias implicitly.
 The executor bound to `docker_executor` must expose the Docker daemon's filesystem;
 for a remote daemon, bind the executor on that daemon's host. Registration and
 launch verify that the workspace is an existing directory within a configured root.
-Directory probes verify each path component without traversing symlinks and reject mount aliases. The approved directory is mounted at `/workspace`, with recursive bind mounts disabled. Ordinary volume mountpoints are valid. Docker parses image `extra_args`; Autocode verifies resulting isolation under the [settings limits and Docker warnings contract](docker-options.md#settings-limits-and-docker-warnings). Every main and image-probe container is created, inspected by returned ID and checked against the [effective isolation properties](docker-options.md) before it starts. Mismatched containers are removed and the error names the property. Effective namespace, privilege, mount, runtime and host-device authority must match module-selected settings, including every pinned Docker default protected path. Every create explicitly requests private cgroup namespaces. Network references resolve to their ID/name identity for both inspected representations. The container name and image must also preserve module ownership. File-backed Docker client options are administrator responsibility: their executor-readable inputs must remain outside all workspaces and container mounts, including aliases. Docker consumes these files before creation and does not expose their source paths in inspect output. Relative paths retain executor-working-directory semantics. Harmless flag-looking values reach Docker unchanged; historical safe recipes require no conversion or rebuilding.
+Directory probes verify each path component without traversing symlinks and reject mount aliases. The approved directory is mounted at `/workspace`, with recursive bind mounts disabled. Ordinary volume mountpoints are valid. Docker parses image `extra_args`; Autocode verifies resulting isolation under the [settings limits and Docker warnings contract](docker-options.md#settings-limits-and-docker-warnings). Every main and image-probe container is created, inspected by returned ID and checked against the [effective isolation properties](docker-options.md) before it starts. Mismatched containers are removed and the error names the property. Effective namespace, privilege, mount, runtime and host-device authority must match module-selected settings, including every pinned Docker default protected path. Every create explicitly requests private cgroup namespaces. Network references resolve to their ID/name identity for both inspected representations. The container name and image must also preserve module ownership. File-backed Docker client options are administrator responsibility: their executor-readable inputs must remain outside all workspaces and container mounts, including aliases. Docker consumes these files before creation and does not expose their source paths in inspect output. Relative paths retain executor-working-directory semantics. Harmless flag-looking values reach Docker unchanged.
 
 ## Pending platform boundaries
 
@@ -136,7 +136,7 @@ The arm delegates current Flow and pending-signal authorization to the public `k
 `get_profile`, `update_profile`, and `remove_profile`. Profiles are standalone owned components:
 READ permits listing and selection, WRITE permits editing, and DELETE permits
 removal. HTTP uses GET/POST `/autocode/profiles` and PUT/DELETE
-`/autocode/profiles/{id}`. Discovery uses bounded `ListCodingProfiles` summary pages and `ReadCodingProfile` reads one complete profile. Legacy unpaged service callers retain full profile lists.
+`/autocode/profiles/{id}`. Discovery uses bounded `ListCodingProfiles` summary pages and `ReadCodingProfile` reads one complete profile. Unpaged service callers receive full profile lists.
 The member page supports creating, editing and duplicating profiles. Loading
 finishes before an empty state appears; save failures appear inside the active
 profile dialog. Task and profile option fields display the same catalog, unattended
@@ -170,6 +170,24 @@ Caller-key replay returns the original run before reading current profiles or
 catalog defaults. Repository refs obey the same validation after profile
 inheritance as direct tasks. Repository URLs contain no credentials, query or
 fragment.
+
+Driver text observations are folded per segment: `append` adds a delta;
+`replace` and `complete` replace the retained text with their full snapshot.
+A completion supersedes its streamed deltas in both the event log and result,
+including reasoning text. The locked `bee/drivers` 0.1.24 codec emits a small
+completion as `complete`, and a chunked completion as `replace` followed by
+`append` pieces on the same segment, with or without preceding deltas.
+A distinct snapshot of that segment supersedes the previous snapshot; replacing
+an already selected answer updates that answer through every continuation piece.
+Redaction and byte limits apply to the resulting segment text.
+Observation event keys are opaque identities, not snapshot-boundary markers.
+Codecs emitting consecutive `complete` pieces for a single snapshot must fix
+their chunk operations upstream; Autocode cannot infer their boundaries from
+the text data contract.
+Known: the locked codec's chunked completions omit a completion marker. A large
+answer on a new segment can therefore leave an older completed answer selected
+when the terminal carries no answer. The codec must preserve the initial
+`complete` and emit its continuation pieces as `append`.
 
 Run usage preserves reported `input_tokens`, `output_tokens`, `cached_tokens`
 (cache reads), `cache_write_tokens`, `reasoning_tokens`, `cost_usd`,
@@ -206,17 +224,17 @@ Workspaces mount the approved host directory at `/workspace`, read-write only wi
 
 The module-owned `chestor_autocode_workspaces` row binds each component ID to its immutable approved host path. The runner reads this row rather than writable Component metadata. Approval, run insertion, preparation approval reads and teardown share the same serialized workspace-table fence. Registration serializes approval-set reads and insertion in one database transaction and refuses equal, ancestor or descendant overlap with another approved workspace. Admission rechecks that set. This excludes container-writable parents of other approved paths. Teardown checks active runs and removes approval in one transaction; run insertion rechecks approval under that fence, so a run cannot be inserted after approval removal. A workspace with Component `deleting_at` set refuses submission and preparation. Teardown retains the approval while any run is queued or running; settle those runs before deletion. A deletion marker set after a request has read the component is a known operator race; the recorded active run still prevents approval release. Paths use clean absolute spelling, no symlink traversal and no ancestor bind aliases. Ordinary volume mountpoints remain valid and nested mounts are excluded from container binds.
 
-Migration 06 approves legacy workspaces automatically when every principal holding WRITE or ADMIN has live workspace-management authority, regardless of context revision. Component supplies the grants; the directory supplies current user memberships and paged expansion of group grants; the live security scope supplies management authority. Stored owner or role metadata is not authority. Workspace placement is fixed at root, so its grants are direct. Read-only grantees do not prevent approval. A non-manager writer, an unresolved principal, malformed or disallowed path, or overlapping path leaves the workspace unapproved with its refusal reason in the existing Component render metadata. Malformed legacy values do not abort migration; native dependency failures remain visible. Lists expose refusal reasons and path conflicts. Registration records actor, timestamp and observed revision in the immutable admission row.
+Registration records actor, timestamp and observed revision in the immutable admission row.
 
 Workspace and image kinds declare `meta.mutation: closed`. On Component 0.3.17 and newer, direct contract creation and public context, metadata or placement writes require exact-kind `component.kind.create`/`component.kind.update` authority. Autocode attaches those grants only to its workspace registration, image creation/update/preparation and revision-checked image-ready function entries; no member or management group receives them. Object access and module management admission still apply. Older Component versions ignore the field; direct mutation protection requires the newer platform.
 
-Admission reports `autocode.workspace_approval_required` for readable unapproved workspaces and asks an administrator to re-register through the normal workspace path. There is no in-place approval action or endpoint. Refused queued runs park without creating a container and remain cancellable; settle them before deleting the old workspace, register its valid path normally, update saved task/profile/Block references and resubmit work. Automatically admitted queued runs execute under their existing IDs with no action. Interrupted running jobs settle through recovery without relaunching; terminal runs remain terminal. Historical runs, accounts, images and results remain readable.
+Admission reports `autocode.workspace_approval_required` for readable workspaces without an admission row. Workspaces must be registered through Autocode; there is no in-place approval action or endpoint. Interrupted running jobs settle through recovery without relaunching; terminal runs remain terminal.
 
 Docker resolves the administrator-owned host client configuration and endpoints, including `DOCKER_HOST=unix://`, named contexts and explicit endpoints. Its configuration, socket, CLI plugins, credential helpers and executable search paths, including resolved targets, must remain outside every workspace root and every container-mounted directory because members can write their workspaces. Container values, including `DOCKER_*`, HOME and PATH, reach only the inherited env-file descriptor and never become Docker client environment variables.
 
 Every run Docker call carries the job's absolute deadline; maintenance originates one five-minute deadline. Rejected-container removal has an independent 30-second deadline. Main run and both image-probe containers use the [settings limits and Docker warnings contract](docker-options.md#settings-limits-and-docker-warnings). Both probes use create/inspect/start and carry the image operation deadline. Image builds retain their existing controls. Directory probes have a 30-second deadline and two-second kill grace. Only the wrapper's private deadline marker classifies a host timeout; literal exits 124/137 remain command failures. Member validators hold only fixed directory-probe authority; observation hooks cannot reconstruct owners or dispatch tools.
 
-Known: concurrent host-operator replacement of workspace or Docker client paths, concurrent changes to grants, management authority or paths during upgrade and operator changes to retention timestamps require operator coordination.
+Known: concurrent host-operator replacement of workspace or Docker client paths and operator changes to retention timestamps require operator coordination.
 
 ## SPEC: run driver gateway
 
@@ -225,8 +243,8 @@ context: { ... } }`. Task fields override the corresponding profile surface
 fields; context keys merge with task values taking precedence. The workflow
 can supply board or ticket context through this task field independently of
 the reusable profile. Submission freezes the declaration; preparation resolves
-trait tool IDs, explicit tools, their schemas and static trait prompts under
-the owner. Prompts become driver instructions. MCP names use the framework's snake-case normalization with non-letter characters replaced by underscores,
+trait tools, build contributions, explicit tools and their schemas under the
+owner. Static and contributed prompts become driver instructions. MCP names use the framework's snake-case normalization with non-letter characters replaced by underscores,
 so every driver receives plain lowercase identifiers. Alias collisions are refused.
 A batch profile without a declared MCP client transport refuses a surface.
 An empty resolved tool list launches without a gateway.
@@ -294,8 +312,7 @@ The pending run outcome includes a durable, redacted account-health intent.
 Health-write failures remain native job failures; an existing job attempt replays
 that intent before cleanup and settlement without rerunning the CLI. Cooldown
 calculation uses the recorded observation time. Concurrent run settlements can
-replace an account’s last-error snapshot; this is a known cross-run race. The additive health column keeps
-queued and running records valid during upgrades.
+replace an account’s last-error snapshot; this is a known cross-run race.
 
 Account cards render counts and health exclusively from Component public metadata. The existing account-activity projection computes rolling 24-hour counts from run rows and publishes `runs_day` and `failures_day` with the health snapshot. Counts describe the last projection and age on the next account activity; reads never query private runs or write a snapshot. Balancing still uses live private state. Credential-kind
 changes require a new account; editing accepts only the existing kind.
@@ -330,17 +347,32 @@ Image component teardown ignores `options.remove_ref`. With `options.remove=true
 
 MCP tools return both native and domain failures as tool errors. Native errors retain kind, message, retryability and details in `structuredContent.error`; domain failures retain their complete structured result. Both text and structured forms redact credentials.
 
-### SPEC: Automatic workspace provenance upgrade
-
-Upgrade uses current Component WRITE/ADMIN grants and directory memberships, never owner metadata or context revision as writer evidence. Every current writer must have workspace-management authority. A member who changed a workspace and later lost WRITE is not detected. Refused workspaces require normal re-registration with updated saved references; automatically admitted workspaces need no approval action; pre-0.1.7 unfinished runs follow the conservative cleanup recovery described under queue expiry. Concurrent operator changes during upgrade are a known administrative race.
-
 ### SPEC: Gateway discovery
 
 Explicit gateway tools and wildcard expansion use the actor-visible normalized `kickside.agents:tools` public catalog. Exact tools supplied by a trait remain capability members; live dispatch still checks `funcs.call`.
 
 ### SPEC: Supported batch traits
 
-The batch gateway supports static trait prompts and member tools with static per-tool context. It visibly refuses hook functions, runtime behaviours, bindings/wrappers, agent/options overrides, root trait context, configured traits and per-tool alias/description overrides.
+The batch gateway loads normalized Wippy traits and validates the declaration's
+context with the platform capability context validator against each trait's
+`meta.context_schema`. Configuration UI metadata does not affect batch execution.
+A trait's `build_func_id` runs with the caller's actor and scope using Wippy's
+`(trait_prompt, context)` contract and the same attached function context. Trait
+defaults merge with declaration context for the build; `agent_id` identifies the
+selected harness. Static and contributed tools pass through the same actor-visible
+catalog checks: wildcard expansion uses public discovery, while exact capability
+members may include actor-visible non-public tools. Build errors remain visible.
+
+Builds may contribute prompt text, tools and context. Tool context merges in Wippy
+order: trait defaults/build contribution, declaration, then per-tool context. Tool
+aliases and descriptions, and build-contributed input schemas, may override catalog
+presentation; the registered tool must still be visible. Transport identity fields remain reserved.
+
+Per-turn prompt/step hooks require the internal agent's messages and session state.
+Behaviours, bindings and wrappers require its execution/checkpoint pipeline.
+Delegates require its router, and internal model/session options cannot configure
+an external driver. These features are refused with an explanation of the missing
+execution behavior, including delegates/options returned by builds.
 
 ### SPEC: Native error boundaries
 
@@ -348,7 +380,7 @@ Native preparation/stream failures retain kind, retryability and details through
 
 ### SPEC: Cancellation signals
 
-Cancellation commits its durable run flag and demand for the existing Jobs slot in one transaction, then nudges the pool and sends a platform event to the attached runner. An unattached or approval-parked job wakes and settles as cancelled, enqueues its Flow resume, and releases the active-run workspace deletion fence. A failed pool nudge is logged after commit and leaves durable demand for reconciliation. Cancellation is checked before preparation and recovery as well as before parking. A concurrent operator cancellation/parking transition is a known race handled by Jobs slot demand; no polling process is added. The runner subscribes before one catch-up read, blocks on signals, and closes the subscription when streaming ends; idle runs issue no periodic cancellation reads. Pre-create, pre-start and final reads retain cancellation fencing. Docker stop and cleanup remain deadline-bounded.
+Cancellation commits its durable run flag and demand for the existing Jobs slot in one transaction, then nudges the pool and sends a platform event to the attached runner. An unattached job wakes and settles as cancelled, enqueues its Flow resume, and releases the active-run workspace deletion fence. A failed pool nudge is logged after commit and leaves durable demand for reconciliation. Cancellation is checked before preparation and recovery as well as before parking. A concurrent operator cancellation/parking transition is a known race handled by Jobs slot demand; no polling process is added. The runner subscribes before one catch-up read, blocks on signals, and closes the subscription when streaming ends; idle runs issue no periodic cancellation reads. Pre-create, pre-start and final reads retain cancellation fencing. Docker stop and cleanup remain deadline-bounded.
 
 ### SPEC: Block authorization
 
@@ -356,7 +388,7 @@ The Block arm calls `kickside.blocks:authorize_arm` for the caller and pending p
 
 ### SPEC: Image render state
 
-Image lifecycle writes one complete public render snapshot: status, approved-generation usability, agents, last error and native error data. Requests publish preparation, workers publish terminal state, and migration 07 fills snapshots for existing installs. Image lists consume only component metadata; private build rows serve execution and build-log detail. Only revision-checked ready publication admits a candidate generation; upgrade snapshots expose an already approved generation.
+Image lifecycle writes one complete public render snapshot: status, approved-generation usability, agents, last error and native error data. Requests publish preparation and workers publish terminal state. Image lists consume only component metadata; private build rows serve execution and build-log detail. Only revision-checked ready publication admits a candidate generation.
 
 ### SPEC: Profiles reconciliation
 
@@ -372,7 +404,7 @@ Committed submissions keep their run ID and expose native realtime failures as `
 
 ### SPEC: User ownership vocabulary
 
-Module-owned user ownership is named `owner_user_id` in DTOs, readers, helpers and UI code. Published `owner`/`owner_id` fields remain compatibility aliases. The existing private SQL `owner_id` columns are decoded at that boundary, preserving released data without a schema rename. Platform `meta.owner`, ownership locators and execution identity fields retain their platform contracts.
+Module-owned user ownership is named `owner_user_id` in DTOs, readers, helpers and UI code. Published `owner`/`owner_id` fields are aliases. Private SQL `owner_id` columns are decoded at that boundary. Platform `meta.owner`, ownership locators and execution identity fields retain their platform contracts.
 
 ### SPEC: Host deadlines and optional tool provider
 
@@ -388,7 +420,7 @@ Host command timeout classification requires a fresh private marker emitted only
 
 `workflow_delivery_timeout` (default **24h**, positive duration) bounds retries from `finished_at`. A worker at or beyond that deadline records expiry and completes without another Flow resume call. The existing `workflow_delivered` integer records **0 pending, 1 delivered, 2 expired**. Delivered or expired work is idempotent; a later acknowledgement cannot change expiry into delivery. Failed attempts within the window retain their native errors and retry through the existing Jobs slot. Both delivered and expired runs age from their original settlement time under `run_retention`; expiry preserves the complete run result and usage. No write-path retention notification is added. Known: a resume call already in flight when the window closes may complete under its existing Jobs execution deadline.
 
-Retention visits at most 500 candidates per callback, ordered by `(finished_at, id)`. A durable keyset on the existing admission singleton advances past active run or resume jobs, so a full blocked page cannot hide later eligible runs. Full pages continue even when nothing is deleted; reaching the end resets the cursor and parks, preventing an endless blocked-page continuation. Partial child/history cleanup retains the position before that candidate until its bounded pages drain. A run skipped while active, or inserted before the current cursor, is reconsidered on the next scan. The next age deadline still comes from one indexed seek among unexpired eligible rows. Migration 09 initializes event accounting from populated logs without discarding released history, adds the singleton cursor, and replaces the partial retention index to include expired delivery. Existing over-budget logs are bounded on their next append or age out through normal retention.
+Retention visits at most 500 candidates per callback, ordered by `(finished_at, id)`. A durable keyset on the existing admission singleton advances past active run or resume jobs, so a full blocked page cannot hide later eligible runs. Full pages continue even when nothing is deleted; reaching the end resets the cursor and parks, preventing an endless blocked-page continuation. Partial child/history cleanup retains the position before that candidate until its bounded pages drain. A run skipped while active, or inserted before the current cursor, is reconsidered on the next scan. The next age deadline still comes from one indexed seek among unexpired eligible rows.
 
 
 ### SPEC: Pending admission and queue expiry
@@ -399,11 +431,11 @@ Admission counts **queued and running** runs under the existing admission transa
 
 The existing retention callback examines up to 500 overdue queued runs with no cleanup obligation. A durable `dispatch_state` starts as `waiting`. The runner atomically claims `creating` before Docker creation; expiry atomically claims `expiring` before purging the inactive Jobs slot through Jobs' lease fence. Only one claim can win, including when an expiry selection is stale. `started_at` is not evidence that no container exists. Runs marked `creating`, including crashes before recording an outcome and cancelled creates whose removal failed, remain with runner recovery. Recovery removes the deterministic container name before applying the saved outcome, or records interruption if no outcome exists, without relaunching execution. Pending outcomes are excluded from expiry.
 
-Approval-parked work with state `waiting` can expire. Workflow runs retain their ordinary resume/delivery path. An interrupted expiry remains eligible in state `expiring`; bounded Jobs history cleanup requests continuation until the slot drains. A running Jobs lease defers expiry to worker settlement or lease release. A page held entirely by leases parks until activity wakes retention. After purge, expiry preserves an outcome recorded by a worker that observed its claim before releasing the lease. Concurrent operator cancellation or workspace approval at expiry remains a known race.
+Workflow runs retain their ordinary resume/delivery path. An interrupted expiry remains eligible in state `expiring`; bounded Jobs history cleanup requests continuation until the slot drains. A running Jobs lease defers expiry to worker settlement or lease release. A page held entirely by leases parks until activity wakes retention. After purge, expiry preserves an outcome recorded by a worker that observed its claim before releasing the lease. Concurrent operator cancellation at expiry remains a known race.
 
-Migration 11 adds the dispatch marker and replaces the queue index. Existing unfinished 0.1.6 rows have no durable evidence ruling out a container, so migration conservatively marks them `creating` and leaves their jobs and saved outcomes to cleanup recovery. They are not expired or executed again as new work; a run without a saved outcome settles as interrupted. Historical outcomes, events, submissions and workflow delivery state remain unchanged.
+Recovery checks the deterministic container name through the existing Docker inspection path. A present container is removed before applying a saved outcome or recording interruption, without relaunching execution. A queued run with no recorded start or outcome returns to `waiting` only after Docker confirms absence, then parks without preparation or launch. Core's existing retention notifier recomputes its queue deadline; cancellation and expiry apply normally. A failed inspection retains recovery ownership and remains a job failure. Recorded starts, running rows and saved outcomes retain cleanup/settlement recovery even if the container is absent.
 
-Expiry creates no table or worker. The admission notification and the next indexed unexpired queue deadline drive Core's existing callback. Settled runs then age from `finished_at` under `run_retention`, including submissions, events and Jobs history. Migration 10 adds only three partial indexes; it preserves populated 0.1.5 run data.
+Expiry creates no table or worker. The admission notification and the next indexed unexpired queue deadline drive Core's existing callback. Settled runs then age from `finished_at` under `run_retention`, including submissions, events and Jobs history.
 
 ### SPEC: Configurable text and checkout limits
 

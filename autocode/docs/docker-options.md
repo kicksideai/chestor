@@ -4,8 +4,7 @@
 Docker parses `extra_args`, including option availability, arity, CSV network
 syntax, short clusters and values that look like flags. Autocode checks only the
 array/string representation and absence of NUL bytes at the recipe boundary.
-Unknown or malformed Docker options fail in Docker. Approved historical recipes
-need no conversion or rebuild.
+Unknown or malformed Docker options fail in Docker.
 
 Every main run and both image probes use `docker create`, inspect the returned
 container ID, verify its effective configuration, and only then use `docker

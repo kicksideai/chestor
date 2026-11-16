@@ -216,6 +216,11 @@ function repo.begin_creation()
     M.state.run.dispatch_state = "creating"
     return true
 end
+function repo.wait_after_recovery()
+    if M.state.marker_error then return nil, M.state.marker_error end
+    M.state.run.dispatch_state = "waiting"
+    return true
+end
 function repo.start_run()
     if M.state.cancel_on_reserve then M.state.run.cancel_requested = true end
     if M.state.run.cancel_requested then return false end
@@ -421,6 +426,10 @@ function funcs.new()
         call = function(_, ...) return funcs.call(...) end}
 end
 
+function docker.present(_, deadline)
+    record_deadline("recovery inspection", deadline)
+    return not M.state.container_absent, M.state.inspect_error
+end
 function docker.ensure_removed(name, deadline)
     local err = docker.remove(name, deadline)
     if M.state.remove_absent then return nil end

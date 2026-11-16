@@ -92,7 +92,7 @@ function M.list_workspaces(args: unknown): (Object?, error?)
         if approval_err then return nil, boundary.native(approval_err) end
         local projected = resource_dto.workspace(workspace)
         if not approved then
-            projected.unavailable_reason = resources.text(workspace.meta.unavailable_reason) or "Workspace was not admitted by Autocode; ask an administrator to re-register it."
+            projected.unavailable_reason = ""
         end
         if projected.shareable then
             local context, context_err = resources.context("workspace", workspace.id, resources.ACCESS.ADMIN)

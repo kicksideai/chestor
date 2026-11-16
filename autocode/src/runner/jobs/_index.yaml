@@ -14,6 +14,7 @@ entries:
       - json
     imports:
       settings: chestor.autocode.domain:settings
+      retention_notifier: kickside.core.retention:notifier
       repo: chestor.autocode.persist:repo
       runs: chestor.autocode.service:runs
       container: chestor.autocode.infrastructure:container

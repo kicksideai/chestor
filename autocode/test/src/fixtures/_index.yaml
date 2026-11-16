@@ -331,26 +331,60 @@ entries:
 
   - name: gateway_dynamic_trait
     kind: registry.entry
-    meta: {type: agent.trait}
-    prompt: Static part cannot replace the hook.
-    build_func_id: app:gateway_echo
-    tools: [app:gateway_echo]
+    meta:
+      type: agent.trait
+      context_schema:
+        type: object
+        required: [board_id]
+        properties: {board_id: {type: string}}
+      web_component: fixture-config
+    prompt: Use the dynamic board.
+    build_func_id: app:gateway_build
+
+  - name: gateway_build
+    kind: function.lua
+    source: file://../gateway_probe.lua
+    method: build
+    modules: [security, ctx]
 
   - name: gateway_configured_trait
     kind: registry.entry
     meta: {type: agent.trait, context_schema: {type: object, properties: {board_id: {type: string}}}, web_component: fixture-config}
+    context: {default_value: inherited}
     tools: [app:gateway_echo]
 
-  - name: queue_legacy
+  - name: gateway_restricted_trait
+    kind: registry.entry
+    meta: {type: agent.trait}
+    prompt: Restricted build
+    build_func_id: app:gateway_restricted_build
+
+  - name: gateway_restricted_build
     kind: function.lua
-    source: file://../queue_legacy.lua
-    security: {policies: [app:test_runtime]}
-    method: queue
-    modules: [security, uuid]
-    imports:
-      database: chestor.autocode.persist:database
-      jobs: kickside.core.jobs:jobs
-      deferred: chestor.autocode.service:deferred
+    source: file://../gateway_probe.lua
+    method: build
+    modules: [security, ctx]
+
+  - name: gateway_resolve
+    kind: function.lua
+    source: 'return {resolve = function(args) return require("gateway").resolve(args, "claude") end}'
+    method: resolve
+    imports: {gateway: 'chestor.autocode.service:gateway'}
+
+  - name: gateway_turn_trait
+    kind: registry.entry
+    meta: {type: agent.trait}
+    step_func_id: app:gateway_build
+
+  - name: gateway_pipeline_trait
+    kind: registry.entry
+    meta: {type: agent.trait}
+    tool_wrapper: {binding: 'app:gateway_build'}
+
+  - name: gateway_options_trait
+    kind: registry.entry
+    meta: {type: agent.trait}
+    agent_options: {temperature: 0}
 
   - name: host_commands
     kind: library.lua

@@ -26,9 +26,6 @@ and start tasks. Account grants allow grantees to run with the stored credential
 including subscription logins. Use official API keys or your own endpoints for
 production or multiple users.
 
-Upgrade automatically preserves a valid workspace when every current WRITE or ADMIN holder has workspace-management authority, resolving direct and group grants through Component and the directory, regardless of context revision. Other workspaces stay refused with a reason; an administrator re-registers them through the normal workspace path and updates saved references. Approved workspaces need no upgrade action; existing unfinished runs follow conservative cleanup recovery on the 0.1.7 upgrade; see the [upgrade rules](docs/reference.md#spec-workspace-approval).
-A member who changed a legacy workspace and later lost WRITE is not detected.
-
 ## Requirements
 
 Wippy v0.3.59a or newer; validation uses v0.3.60a. The host needs Docker and an `exec.native`
@@ -114,7 +111,7 @@ wippy publish --version "<released-version>" --create --module-visibility public
 ## Use and reference
 
 - [Contracts, host configuration and behavioural SPEC](docs/reference.md)
-- [Upgrade compatibility and workspace provenance](docs/reference.md#spec-workspace-approval)
+- [Workspace admission and provenance](docs/reference.md#spec-workspace-approval)
 - [Native dialog design choice](docs/reference.md#frontend-dialog-deviation)
 
 ## Links

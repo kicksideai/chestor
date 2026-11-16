@@ -58,7 +58,7 @@ function repo.image_build(image_id: string): (ImageBuild?, error?)
         FROM chestor_autocode_image_builds WHERE image_id = $1]], {image_id})
     local build, read_err = first(rows, err, image_build)
     if not build or read_err then return build, read_err end
-    if (build.finished_at == "" or not build.projected) and build.job_id ~= "" then
+    if build.finished_at == "" or not build.projected then
         local job, job_err = jobs.get_job(build.job_id)
         if job_err then return nil, job_err end
         build.job_live = job ~= nil and (job.status == "pending" or job.status == "running")
@@ -152,17 +152,12 @@ function repo.delete_image_build(image_id: string, cleanup: ((ImageBuild?) -> er
         if cleanup then return cleanup(nil) end
         return nil
     end
-    if build.job_id == "" and (build.finished_at == "" or not build.projected) then
-        return errors.new({kind = errors.CONFLICT, message = "image build has no recorded job ID; termination is unconfirmed"})
-    end
-    if build.job_id ~= "" then
-        local _, cancel_err = jobs.cancel(build.job_id)
-        if cancel_err then return cancel_err end
-        local job, job_err = jobs.get_job(build.job_id)
-        if job_err then return job_err end
-        if job and (job.status == "pending" or job.status == "running") then
-            return errors.new({kind = errors.UNAVAILABLE, message = "image build cancellation awaits worker termination", retryable = true})
-        end
+    local _, cancel_err = jobs.cancel(build.job_id)
+    if cancel_err then return cancel_err end
+    local job, job_err = jobs.get_job(build.job_id)
+    if job_err then return job_err end
+    if job and (job.status == "pending" or job.status == "running") then
+        return errors.new({kind = errors.UNAVAILABLE, message = "image build cancellation awaits worker termination", retryable = true})
     end
     if cleanup then
         local cleanup_err = cleanup(build)
@@ -174,5 +169,4 @@ function repo.delete_image_build(image_id: string, cleanup: ((ImageBuild?) -> er
     return nil
 end
 
-repo.decode_build = image_build
 return repo

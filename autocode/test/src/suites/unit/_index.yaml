@@ -30,6 +30,9 @@ entries:
       test: wippy.test:test
       records: app:records_subject
       redact: app:redact_subject
+      claude_codec: bee.drivers.codec:claude_stream_json
+      codex_codec: bee.drivers.codec:codex_jsonl
+      codec_events: bee.drivers.codec:events
 
   - name: resume_faults_test
     kind: function.lua
@@ -286,28 +289,6 @@ entries:
       test: wippy.test:test
       api: app:gateway_api_subject
       stub: app:gateway_http_stub
-
-  - name: upgrade_test
-    kind: function.lua
-    meta: {type: test, suite: autocode_populated_upgrade, group: Autocode}
-    source: file://../../suites/upgrade_test.lua
-    method: run
-    modules: [sql, funcs, uuid, json, registry]
-    imports:
-      host: app:host_commands
-      component: kickside.component:component
-      test: wippy.test:test
-      repo: app:upgrade_runs
-      identity: app:identity
-      contract_fixture: app:contract_fixture
-      workspace_store: app:upgrade_workspace_store
-      runner: app:upgrade_runner
-      docker_runner: app:upgrade_docker_runner
-      docker: chestor.autocode.infrastructure:docker
-      stubs: app:runner_stubs
-    security:
-      actor: {id: app:test_runner}
-      policies: [app:test_runtime]
 
   - name: mount_test
     kind: function.lua

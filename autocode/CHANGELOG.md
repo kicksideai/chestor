@@ -1,6 +1,41 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.12](https://github.com/kicksideai/chestor/compare/autocode-v0.1.11...autocode-v0.1.12) (2026-11-16)
+
+
+### Bug Fixes
+
+* **autocode:** replace streamed text with completion snapshots ([#49](https://github.com/kicksideai/chestor/issues/49)) ([9619bb2](https://github.com/kicksideai/chestor/commit/9619bb2e33e4f3f8ff0048ac0f4a0a4637631b8c))
+
+## [0.1.11](https://github.com/kicksideai/chestor/compare/autocode-v0.1.10...autocode-v0.1.11) (2026-11-16)
+
+
+### Bug Fixes
+
+* **autocode:** resolve dynamic trait tool surfaces ([#47](https://github.com/kicksideai/chestor/issues/47)) ([8f1ebdf](https://github.com/kicksideai/chestor/commit/8f1ebdf4274c144678fcaf8ae456c9c25a4a9518))
+
+## [0.1.10](https://github.com/kicksideai/chestor/compare/autocode-v0.1.9...autocode-v0.1.10) (2026-11-15)
+
+
+### Code Refactoring
+
+* **autocode:** create the greenfield schema without legacy upgrades ([#45](https://github.com/kicksideai/chestor/issues/45)) ([03e5f09](https://github.com/kicksideai/chestor/commit/03e5f09c02e71ed08e26945b9f4c65a98e23e063))
+
+## [0.1.9](https://github.com/kicksideai/chestor/compare/autocode-v0.1.8...autocode-v0.1.9) (2026-11-15)
+
+
+### Bug Fixes
+
+* **autocode:** recover inherited runs using Docker evidence ([#43](https://github.com/kicksideai/chestor/issues/43)) ([fb6c29e](https://github.com/kicksideai/chestor/commit/fb6c29e5e73550521099c10602292cc49f021fdc))
+
+## [0.1.8](https://github.com/kicksideai/chestor/compare/autocode-v0.1.7...autocode-v0.1.8) (2026-11-15)
+
+
+### Bug Fixes
+
+* **autocode:** recover parked runs during upgrades ([#41](https://github.com/kicksideai/chestor/issues/41)) ([636310f](https://github.com/kicksideai/chestor/commit/636310f8fc5ad7c4c49f8d1bb7a738f27d877268))
+
 ## [0.1.7](https://github.com/kicksideai/chestor/compare/autocode-v0.1.6...autocode-v0.1.7) (2026-11-14)
 
 

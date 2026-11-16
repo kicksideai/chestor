@@ -11,26 +11,6 @@ entries:
     targets:
       - entry: chestor.autocode.migrations:01_create_tables
         path: .meta.target_db
-      - entry: chestor.autocode.migrations:11_queue_dispatch
-        path: .meta.target_db
-      - entry: chestor.autocode.migrations:10_pending_runs
-        path: .meta.target_db
-      - entry: chestor.autocode.migrations:09_bounded_run_history
-        path: .meta.target_db
-      - entry: chestor.autocode.migrations:08_workspace_provenance
-        path: .meta.target_db
-      - entry: chestor.autocode.migrations:07_image_snapshots
-        path: .meta.target_db
-      - entry: chestor.autocode.migrations:06_workspace_admission
-        path: .meta.target_db
-      - entry: chestor.autocode.migrations:05_run_account_health
-        path: .meta.target_db
-      - entry: chestor.autocode.migrations:04_run_gateway
-        path: .meta.target_db
-      - entry: chestor.autocode.migrations:03_profiles_and_limits
-        path: .meta.target_db
-      - entry: chestor.autocode.migrations:02_run_retention_index
-        path: .meta.target_db
       - entry: chestor.autocode.persist:db_config
         path: .meta.db_id
       - entry: chestor.autocode.security:store

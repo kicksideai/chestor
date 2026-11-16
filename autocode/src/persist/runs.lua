@@ -301,6 +301,15 @@ function repo.begin_creation(id: string): (boolean?, error?)
     return changed == 1, nil
 end
 
+-- Called only after Docker confirms absence while the runner owns the Jobs lease.
+function repo.wait_after_recovery(id: string): (boolean?, error?)
+    local changed, err = execute([[UPDATE chestor_autocode_runs SET dispatch_state = 'waiting'
+        WHERE id = $1 AND status = 'queued' AND dispatch_state = 'creating'
+            AND started_at = '' AND pending_status = '']], {id})
+    if err then return nil, err end
+    return changed == 1, nil
+end
+
 function repo.start_run(id: string): (boolean?, error?)
     local started = false
     local now = db.now()
