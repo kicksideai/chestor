@@ -1,6 +1,13 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.13](https://github.com/kicksideai/chestor/compare/autocode-v0.1.12...autocode-v0.1.13) (2026-11-16)
+
+
+### Bug Fixes
+
+* preserve web component host contracts and eager bundles ([#18](https://github.com/kicksideai/chestor/issues/18)) ([825ff94](https://github.com/kicksideai/chestor/commit/825ff945467715e4d7613667719e6e7173c558df))
+
 ## [0.1.12](https://github.com/kicksideai/chestor/compare/autocode-v0.1.11...autocode-v0.1.12) (2026-11-16)
 
 
