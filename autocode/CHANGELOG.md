@@ -1,6 +1,13 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.12](https://github.com/kicksideai/chestor/compare/autocode-v0.1.11...autocode-v0.1.12) (2026-11-16)
+
+
+### Bug Fixes
+
+* **autocode:** replace streamed text with completion snapshots ([#49](https://github.com/kicksideai/chestor/issues/49)) ([9619bb2](https://github.com/kicksideai/chestor/commit/9619bb2e33e4f3f8ff0048ac0f4a0a4637631b8c))
+
 ## [0.1.11](https://github.com/kicksideai/chestor/compare/autocode-v0.1.10...autocode-v0.1.11) (2026-11-16)
 
 
