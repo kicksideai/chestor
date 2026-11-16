@@ -145,3 +145,11 @@ entries:
       resources: [app:docker, /bin/sh -c 'PATH=/usr/bin:/bin; export PATH; exec timeout -k 2 30 /bin/sh -c "$AUTOCODE_HOST_WRAPPER" 2>&1']
       actions: [exec.get, exec.run]
       effect: allow
+
+  - name: prune_tool_subject_call
+    kind: security.policy
+    groups: [app:coding_tools]
+    policy:
+      resources: app:prune_tool_subject
+      actions: funcs.call
+      effect: allow

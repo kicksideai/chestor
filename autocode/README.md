@@ -4,7 +4,8 @@
 Run coding agent CLIs in Docker with shared agent accounts, prepared images,
 host workspaces, durable jobs, and streamed output. Includes a member page,
 a System management tab, a driver account card, a workflow task Block, and
-an agent capability with discovery, asynchronous submission, reading, and cancellation tools.
+agent traits for discovery, asynchronous tasks, and resource administration.
+See [Agent traits](docs/reference.md#agent-traits) for tools and permissions.
 
 Sharing an account shares its credential with grantees, including subscription logins.
 

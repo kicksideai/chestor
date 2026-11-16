@@ -40,11 +40,19 @@ entries:
                     minLength: 1
                     maxLength: 200
                   maxItems: 32
+                  description: Public agent trait IDs to resolve under the caller; at most 32. A
+                    task list replaces the profile trait list.
                   uniqueItems: true
                 context:
                   type: object
                   additionalProperties: {}
+                  description: Context keys are projected to each selected trait schema, then
+                    merged with its defaults and validated. Task keys override
+                    profile keys; undeclared keys are rejected.
               additionalProperties: false
+              description: Optional per-run tool gateway declaration using traits only. Task
+                traits replace profile traits; context keys merge with task
+                values taking precedence.
             profile_id: { type: string, minLength: 1, maxLength: 64, title: Profile }
             agent: { type: string, minLength: 1, maxLength: 64, title: Agent }
             account_pool:
@@ -61,16 +69,22 @@ entries:
                 protocol:
                   type: string
                   maxLength: 64
+                  description: Endpoint protocol supported by the selected ListCodingAgents entry.
                 base_url:
                   type: string
                   maxLength: 512
+                  description: Custom endpoint base URL. An empty value clears an account or task
+                    override.
                 model:
                   type: string
                   maxLength: 200
+                  description: Driver-native model identifier for this custom endpoint.
               required:
                 - protocol
                 - base_url
               additionalProperties: false
+              description: Optional custom endpoint supported by the selected agent; task
+                values override profile/account defaults.
             account_id:
               {
                 type: string,

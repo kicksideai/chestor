@@ -32,6 +32,35 @@ Image deletion accepts Component's native pending or completed result. Optional
 Docker reference removal runs during teardown, after the build drains and before
 deletion completes. A Docker removal failure remains a native lifecycle failure; the build row retains the approved target until all Docker cleanup succeeds, and retry treats an absent image as removed.
 
+## Agent traits
+
+`chestor.autocode.traits:coding_tasks` provides resource discovery, owned-run
+listing, asynchronous submission, owned-run reads/cancellation and image detail
+with the latest build log. `ListCodingRuns` pages newest-first with `next_cursor`;
+`ReadCodingRun` pages events with `next_seq`/`more`. Image recipes are visible only
+to callers with WRITE access.
+
+`chestor.autocode.traits:coding_admin` provides the same resource discovery plus
+account add/update/remove, profile add/update/remove (duplicate by reading then
+adding), image create/update/prepare/delete, workspace create/delete, and Docker
+image/cache prune. These are typed adapters over the same contracts and services
+used by HTTP. Pair with `coding_tasks` when task execution is also needed.
+
+Both traits require the exact `chestor.autocode.security:tool_access` grants and
+module access. Account/profile mutations retain their existing resource checks.
+Image/workspace mutations and prune additionally require the corresponding
+existing management endpoint permission; selecting the trait grants no management
+authority. Image preparation remains asynchronous and may return `build_error`
+after saving the image. Deletion returns the existing pending/completed result.
+Workspace deletion removes registration only. Prune uses configured cache retention
+and affects shared Docker layers/cache; its tool description states that scope.
+Sharing/ACL changes and Settings remain platform capabilities.
+
+Tool inputs describe discovery IDs, scratch versus registered workspaces, profile
+overrides, timeout durations, driver option discovery, trait context and paging.
+Generated profile/endpoint/tool-surface descriptions come from the shared wire
+schemas. An unknown agent error names the selection and points to `ListCodingAgents`.
+
 ## Task and account contracts
 
 Open `chestor.autocode:tasks` with its default binding. Methods return
@@ -85,8 +114,9 @@ driver-to-icon map. Catalog resource defaults come from the same decoder as imag
 ## Agent capability
 
 `chestor.autocode.traits:coding_tasks` is the public **Coding tasks** capability.
-It exposes nine tools. `ListCodingProfiles` and `ReadCodingProfile` use `chestor.autocode:profiles`;
-the other seven use `chestor.autocode:tasks`:
+It exposes eleven tools. `ListCodingProfiles` and `ReadCodingProfile` use `chestor.autocode:profiles`;
+eight tools use `chestor.autocode:tasks`, and `ReadCodingImage` uses the existing
+image read service:
 
 - **`SubmitCodingTask`**: Registry entry: `chestor.autocode.traits:submit_coding_task`; Contract method: `submit_task`
 - **`ReadCodingRun`**: Registry entry: `chestor.autocode.traits:read_coding_run`; Contract method: `get_run`
@@ -96,6 +126,8 @@ the other seven use `chestor.autocode:tasks`:
 - **`ListCodingWorkspaces`**: Registry entry: `chestor.autocode.traits:list_coding_workspaces`; Contract method: `list_workspaces`
 - **`ReadCodingProfile`**: Registry entry: `chestor.autocode.traits:read_coding_profile`; Contract method: `get_profile`
 - **`ListCodingProfiles`**: Registry entry: `chestor.autocode.traits:list_coding_profiles`; Contract method: `list_profiles`
+- **`ListCodingRuns`**: Registry entry: `chestor.autocode.traits:list_coding_runs`; Contract method: `list_runs`
+- **`ReadCodingImage`**: Registry entry: `chestor.autocode.traits:read_coding_image`; Image service: `images.get`
 - **`CancelCodingRun`**: Registry entry: `chestor.autocode.traits:cancel_coding_run`; Contract method: `cancel_run`
 
 All tools embed the contract's input and output DTO schemas directly. They
@@ -253,6 +285,8 @@ a deduplicated surface above the installed Bee driver configuration's
 `MAX_GATEWAY_TOOLS` bound with a non-retryable
 `INVALID` error, code `autocode.tool_limit_exceeded`, and `count`/`limit` details.
 Static tools and build contributions count together; no members are truncated.
+The administration and task traits share discovery tools: their deduplicated union
+is 24 tools, subject to the same driver bound when combined with other traits.
 
 Autocode owns `/autocode-gateway/mcp/{action_id}` and
 `/autocode-gateway/hook/{action_id}` on its dedicated router, attached to the

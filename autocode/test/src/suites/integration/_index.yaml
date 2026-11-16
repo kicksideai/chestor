@@ -197,6 +197,7 @@ entries:
       identity: app:identity
       repo: chestor.autocode.persist:repo
       deferred: chestor.autocode.service:deferred
+      gateway: chestor.autocode.service:gateway
     security:
       actor: {id: app:test_runner}
       policies: [app:test_runtime]
@@ -295,6 +296,7 @@ entries:
       identity: app:identity
       contract_fixture: app:contract_fixture
       gateway: chestor.autocode.service:gateway
+      configuration: bee.drivers.binding:configuration
       drivers: bee.drivers:drivers
       container: chestor.autocode.infrastructure:container
       repo: chestor.autocode.persist:repo

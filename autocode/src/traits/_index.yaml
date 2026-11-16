@@ -32,6 +32,8 @@ entries:
       - chestor.autocode.traits:list_coding_images
       - chestor.autocode.traits:list_coding_workspaces
       - chestor.autocode.traits:cancel_coding_run
+      - chestor.autocode.traits:list_coding_runs
+      - chestor.autocode.traits:read_coding_image
 
   - name: submit_coding_task
     kind: function.lua

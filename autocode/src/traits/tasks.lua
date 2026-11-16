@@ -32,4 +32,11 @@ local function workspaces(input: Object): (Object?, error?) return call("list_co
 local function cancel(input: Object): (Object?, error?) return call("cancel_coding_run", "cancel_run", input) end
 local function profiles(input: Object): (Object?, error?) return call("list_coding_profiles", "list_profiles", page(input), "chestor.autocode:profiles") end
 local function profile(input: Object): (Object?, error?) return call("read_coding_profile", "get_profile", input, "chestor.autocode:profiles") end
-return {profile = profile, profiles = profiles, submit = submit, read = read, agents = agents, accounts = accounts, images = images, workspaces = workspaces, cancel = cancel}
+local function runs(input: Object): (Object?, error?) return call("list_coding_runs", "list_runs", page(input)) end
+local function add_account(input: Object): (Object?, error?) return call("add_coding_account", "add_account", input, "chestor.autocode:accounts") end
+local function update_account(input: Object): (Object?, error?) return call("update_coding_account", "update_account", input, "chestor.autocode:accounts") end
+local function remove_account(input: Object): (Object?, error?) return call("remove_coding_account", "remove_account", input, "chestor.autocode:accounts") end
+local function add_profile(input: Object): (Object?, error?) return call("add_coding_profile", "add_profile", input, "chestor.autocode:profiles") end
+local function update_profile(input: Object): (Object?, error?) return call("update_coding_profile", "update_profile", input, "chestor.autocode:profiles") end
+local function remove_profile(input: Object): (Object?, error?) return call("remove_coding_profile", "remove_profile", input, "chestor.autocode:profiles") end
+return {runs = runs, add_account = add_account, update_account = update_account, remove_account = remove_account, add_profile = add_profile, update_profile = update_profile, remove_profile = remove_profile, profile = profile, profiles = profiles, submit = submit, read = read, agents = agents, accounts = accounts, images = images, workspaces = workspaces, cancel = cancel}
