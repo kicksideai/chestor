@@ -171,6 +171,24 @@ catalog defaults. Repository refs obey the same validation after profile
 inheritance as direct tasks. Repository URLs contain no credentials, query or
 fragment.
 
+Driver text observations are folded per segment: `append` adds a delta;
+`replace` and `complete` replace the retained text with their full snapshot.
+A completion supersedes its streamed deltas in both the event log and result,
+including reasoning text. The locked `bee/drivers` 0.1.24 codec emits a small
+completion as `complete`, and a chunked completion as `replace` followed by
+`append` pieces on the same segment, with or without preceding deltas.
+A distinct snapshot of that segment supersedes the previous snapshot; replacing
+an already selected answer updates that answer through every continuation piece.
+Redaction and byte limits apply to the resulting segment text.
+Observation event keys are opaque identities, not snapshot-boundary markers.
+Codecs emitting consecutive `complete` pieces for a single snapshot must fix
+their chunk operations upstream; Autocode cannot infer their boundaries from
+the text data contract.
+Known: the locked codec's chunked completions omit a completion marker. A large
+answer on a new segment can therefore leave an older completed answer selected
+when the terminal carries no answer. The codec must preserve the initial
+`complete` and emit its continuation pieces as `append`.
+
 Run usage preserves reported `input_tokens`, `output_tokens`, `cached_tokens`
 (cache reads), `cache_write_tokens`, `reasoning_tokens`, `cost_usd`,
 `cost_decimal`, `currency`, and `models` keyed by model name. Model usage has

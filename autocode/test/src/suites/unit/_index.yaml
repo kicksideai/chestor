@@ -30,6 +30,9 @@ entries:
       test: wippy.test:test
       records: app:records_subject
       redact: app:redact_subject
+      claude_codec: bee.drivers.codec:claude_stream_json
+      codex_codec: bee.drivers.codec:codex_jsonl
+      codec_events: bee.drivers.codec:events
 
   - name: resume_faults_test
     kind: function.lua

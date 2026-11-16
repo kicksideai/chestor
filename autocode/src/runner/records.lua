@@ -1,6 +1,6 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
--- Folds reader messages into events and a final answer. Consecutive
--- completion pieces share segment state across reader steps. Retained text
+-- Folds reader messages into events and a final answer. Complete and replace
+-- observations carry snapshots; only append carries a delta. Retained text
 -- passes the filter before the log and result limits apply.
 local credentials = require("credentials")
 local canonical_json = require("canonical_json")
@@ -55,7 +55,9 @@ end
 local function remember(folder: Folder, segment: Segment)
     local answer = segment.answer
     if not answer or answer.text == "" then return end
-    if segment.done then
+    -- A replacement of an already selected answer supersedes that answer
+    -- even when the codec delivers its snapshot as replace plus appends.
+    if segment.done or segment.answer_message == folder.answer_ordinal then
         if segment.message < folder.answer_ordinal then return end
         if segment.message > folder.answer_ordinal then
             folder.answer = {text = "", dropped = 0}
@@ -106,8 +108,8 @@ local function text_observation(folder: Folder, data: {segment_id: string, opera
         forget(folder, id, out)
         segment = nil
     end
-    -- A completed segment remains open across feed calls so consecutive
-    -- completion pieces share one answer and one redaction boundary.
+    -- Keep a segment open across feed calls so a snapshot can supersede
+    -- its deltas before the event is emitted.
     local closed: {string} = {}
     for _, held in ipairs(folder.order) do
         local other = folder.segments[held]
@@ -125,8 +127,9 @@ local function text_observation(folder: Folder, data: {segment_id: string, opera
         folder.segments[id] = segment
         folder.order[#folder.order + 1] = id
     end
-    if data.operation == "replace" then
-        segment.text, segment.dropped, segment.done = "", 0, false
+    if data.operation ~= "append" then
+        segment.text, segment.dropped = "", 0
+        if data.operation == "replace" then segment.done = false end
         if segment.answer then
             local answer: Text = {text = "", dropped = 0}
             segment.answer = answer
