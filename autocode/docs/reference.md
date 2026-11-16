@@ -115,7 +115,8 @@ driver-to-icon map. Catalog resource defaults come from the same decoder as imag
 
 `chestor.autocode.traits:coding_tasks` is the public **Coding tasks** capability.
 It exposes eleven tools. `ListCodingProfiles` and `ReadCodingProfile` use `chestor.autocode:profiles`;
-the other seven use `chestor.autocode:tasks`:
+eight tools use `chestor.autocode:tasks`, and `ReadCodingImage` uses the existing
+image read service:
 
 - **`SubmitCodingTask`**: Registry entry: `chestor.autocode.traits:submit_coding_task`; Contract method: `submit_task`
 - **`ReadCodingRun`**: Registry entry: `chestor.autocode.traits:read_coding_run`; Contract method: `get_run`
@@ -126,7 +127,7 @@ the other seven use `chestor.autocode:tasks`:
 - **`ReadCodingProfile`**: Registry entry: `chestor.autocode.traits:read_coding_profile`; Contract method: `get_profile`
 - **`ListCodingProfiles`**: Registry entry: `chestor.autocode.traits:list_coding_profiles`; Contract method: `list_profiles`
 - **`ListCodingRuns`**: Registry entry: `chestor.autocode.traits:list_coding_runs`; Contract method: `list_runs`
-- **`ReadCodingImage`**: Registry entry: `chestor.autocode.traits:read_coding_image`; Management service: `read_image`
+- **`ReadCodingImage`**: Registry entry: `chestor.autocode.traits:read_coding_image`; Image service: `images.get`
 - **`CancelCodingRun`**: Registry entry: `chestor.autocode.traits:cancel_coding_run`; Contract method: `cancel_run`
 
 All tools embed the contract's input and output DTO schemas directly. They

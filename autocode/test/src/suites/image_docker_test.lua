@@ -192,12 +192,29 @@ RUN mkdir -p /opt/agent
             }) do
                 local name, ref = "autocode-numeric-" .. uuid.v7(), base()
                 containers[#containers + 1] = name
-                local code, err = docker.run({"create", "--name", name, "--cap-drop=NET_RAW", "--cgroupns=private",
-                    "--network=none", "--" .. case.flag .. "=" .. case.text, ref, "sh"},
-                    {isolation = {name = name, image = ref, network = "none", mounts = {}}})
-                test.is_nil(err, case.flag .. "=" .. case.text .. ": " .. tostring(err)); test.eq(code, 0)
-                test.eq(output({"inspect", "--format", "{{.State.Status}} {{.HostConfig." .. case.field .. "}}", name}), "created " .. case.number)
-                output({"rm", name})
+                local args = {"create", "--name", name, "--cap-drop=NET_RAW", "--cgroupns=private",
+                    "--network=none", "--" .. case.flag .. "=" .. case.text, ref, "sh"}
+                -- Docker owns flag grammar; client builds differ on Go number spellings.
+                local native_lines, inspected_lines = {}, {}
+                local native_code, native_err = docker.run(args, {on_line = function(line) native_lines[#native_lines + 1] = line end})
+                test.is_nil(native_err, tostring(native_err))
+                if native_code == 0 then
+                    test.eq(output({"inspect", "--format", "{{.State.Status}} {{.HostConfig." .. case.field .. "}}", name}), "created " .. case.number)
+                    output({"rm", name})
+                else
+                    local message = table.concat(native_lines, "\n")
+                    test.not_nil(message:find("invalid argument", 1, true), message)
+                    test.not_nil(message:find(case.text, 1, true), message)
+                end
+                local code, err = docker.run(args, {isolation = {name = name, image = ref, network = "none", mounts = {}},
+                    on_line = function(line) inspected_lines[#inspected_lines + 1] = line end})
+                test.is_nil(err, case.flag .. "=" .. case.text .. ": " .. tostring(err)); test.eq(code, native_code)
+                if code == 0 then
+                    test.eq(output({"inspect", "--format", "{{.State.Status}} {{.HostConfig." .. case.field .. "}}", name}), "created " .. case.number)
+                    output({"rm", name})
+                else
+                    test.eq(table.concat(inspected_lines, "\n"), table.concat(native_lines, "\n"))
+                end
             end
         end)
         test.it("refuses unsafe extra arguments on real image probes before starting them", function()
