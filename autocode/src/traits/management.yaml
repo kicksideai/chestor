@@ -1,0 +1,666 @@
+# SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+version: "1.0"
+namespace: chestor.autocode.traits
+entries:
+  - name: coding_admin
+    kind: registry.entry
+    meta:
+      type: agent.trait
+      public: true
+      title: Coding administration
+      description: Manage coding accounts, profiles, images and approved workspaces, and prune Docker images/cache.
+    prompt: "Manage Autocode resources through their typed tools. Pair with coding_tasks for discovery and image
+      build-log reads. Account/profile writes retain resource grants; image/workspace writes and prune
+      additionally require management permission. Image preparation is asynchronous: inspect ReadCodingImage
+      after a build request. A build_error means the image was saved but preparation was not accepted.
+      Deletions may return a pending job. Prune affects shared host layers/cache; confirm the intended scope
+      with the operator before using it. Sharing and ACL changes belong to the platform Component capability.
+      Settings belong to the platform Settings capability."
+    tools:
+      - chestor.autocode.traits:add_coding_account
+      - chestor.autocode.traits:update_coding_account
+      - chestor.autocode.traits:remove_coding_account
+      - chestor.autocode.traits:add_coding_profile
+      - chestor.autocode.traits:update_coding_profile
+      - chestor.autocode.traits:remove_coding_profile
+      - chestor.autocode.traits:create_coding_image
+      - chestor.autocode.traits:update_coding_image
+      - chestor.autocode.traits:prepare_coding_image
+      - chestor.autocode.traits:delete_coding_image
+      - chestor.autocode.traits:create_coding_workspace
+      - chestor.autocode.traits:delete_coding_workspace
+      - chestor.autocode.traits:prune_coding_images
+      - chestor.autocode.traits:list_coding_agents
+      - chestor.autocode.traits:list_coding_accounts
+      - chestor.autocode.traits:list_coding_profiles
+      - chestor.autocode.traits:read_coding_profile
+      - chestor.autocode.traits:list_coding_images
+      - chestor.autocode.traits:read_coding_image
+      - chestor.autocode.traits:list_coding_workspaces
+  - name: list_coding_runs
+    kind: function.lua
+    meta:
+      type: tool
+      public: true
+      title: List Coding Runs
+      llm_alias: ListCodingRuns
+      llm_description: List only your owned run summaries, newest first. Pass next_cursor back as cursor to continue.
+      mcp:
+        required_scopes:
+          - state.read
+      input_schema: file://../contracts/list_runs.input.schema.json
+      output_schema: file://../contracts/list_runs.output.schema.json
+    source: file://tasks.lua
+    method: runs
+    modules:
+      - security
+    imports:
+      client: chestor.autocode.service:client
+      boundary: chestor.autocode.service:boundary
+  - name: read_coding_image
+    kind: function.lua
+    meta:
+      type: tool
+      public: true
+      title: Read Coding Image
+      llm_alias: ReadCodingImage
+      llm_description: Read a caller-readable image and its latest build log. The stored Dockerfile and settings are
+        included only with WRITE access.
+      mcp:
+        required_scopes:
+          - state.read
+      input_schema:
+        type: object
+        additionalProperties: false
+        properties:
+          id: &a8
+            type: string
+            description: Resource ID returned by the corresponding ListCodingImages or ListCodingWorkspaces tool.
+            maxLength: 64
+            minLength: 1
+        required:
+          - id
+      output_schema:
+        type: object
+        additionalProperties: false
+        properties:
+          image:
+            type: object
+            additionalProperties: false
+            properties:
+              id:
+                type: string
+                minLength: 1
+                maxLength: 64
+              ref:
+                type: string
+              label:
+                type: string
+              home:
+                type: string
+              status:
+                type: string
+              usable:
+                type: boolean
+              agents:
+                type: array
+                items:
+                  type: string
+              last_error:
+                type: string
+              owner:
+                type: string
+              writable:
+                type: boolean
+              deletable:
+                type: boolean
+              shareable:
+                type: boolean
+              owner_user_id:
+                type: string
+            required:
+              - id
+              - ref
+              - label
+              - home
+              - status
+              - usable
+              - agents
+              - last_error
+              - owner
+              - writable
+              - deletable
+              - shareable
+              - owner_user_id
+          build_log:
+            type: string
+            description: Latest build output, including preparation failures.
+          dockerfile:
+            type: string
+            description: Stored Dockerfile, visible only to writers.
+          settings:
+            type: object
+            additionalProperties: false
+            properties:
+              memory: &a1
+                type: string
+                description: Docker memory limit, such as 4g; omitted resets to 4g.
+                maxLength: 32
+              cpus: &a2
+                type: string
+                description: Docker CPU limit, such as 2; omitted resets to 2.
+                maxLength: 16
+              pids_limit: &a3
+                type: integer
+                minimum: 0
+                description: Container process limit; omitted resets to 1024.
+              gpus: &a4
+                type: string
+                description: Docker GPU selector; empty disables GPU requests.
+                maxLength: 200
+              network: &a5
+                type: string
+                description: Docker network mode; omitted resets to bridge.
+                maxLength: 200
+              extra_args: &a6
+                type: array
+                maxItems: 64
+                items:
+                  type: string
+                  maxLength: 1024
+                description: Additional Docker arguments, one argument per array element. These are administrator-controlled
+                  host options.
+              allows: &a7
+                type: array
+                maxItems: 32
+                items:
+                  type: string
+                  maxLength: 64
+                  pattern: ^[a-z][a-z-]*$
+                description: Allowed driver capabilities from ListCodingAgents. Omit to allow all activated driver
+                  capabilities; an empty array allows none.
+            required:
+              - memory
+              - cpus
+              - pids_limit
+              - gpus
+              - network
+              - extra_args
+              - allows
+        required:
+          - image
+          - build_log
+    source: file://management.lua
+    method: read_coding_image
+    modules:
+      - security
+      - json
+      - registry
+    imports:
+      boundary: chestor.autocode.service:boundary
+      images: chestor.autocode.service:image_management
+      workspaces: chestor.autocode.service:workspace_management
+      maintenance: chestor.autocode.service:maintenance
+  - name: add_coding_account
+    kind: function.lua
+    meta:
+      type: tool
+      public: true
+      title: Add Coding Account
+      llm_alias: AddCodingAccount
+      llm_description: Create an owned coding account through its existing service. Credentials are never returned by reads.
+      mcp:
+        required_scopes:
+          - state.read
+          - state.write
+      input_schema: file://../contracts/add_account.input.schema.json
+      output_schema: file://../contracts/add_account.output.schema.json
+    source: file://tasks.lua
+    method: add_account
+    modules:
+      - security
+    imports:
+      client: chestor.autocode.service:client
+      boundary: chestor.autocode.service:boundary
+  - name: update_coding_account
+    kind: function.lua
+    meta:
+      type: tool
+      public: true
+      title: Update Coding Account
+      llm_alias: UpdateCodingAccount
+      llm_description: Update a WRITE-authorized coding account through its existing service. Credentials are never
+        returned by reads.
+      mcp:
+        required_scopes:
+          - state.read
+          - state.write
+      input_schema: file://../contracts/update_account.input.schema.json
+      output_schema: file://../contracts/update_account.output.schema.json
+    source: file://tasks.lua
+    method: update_account
+    modules:
+      - security
+    imports:
+      client: chestor.autocode.service:client
+      boundary: chestor.autocode.service:boundary
+  - name: remove_coding_account
+    kind: function.lua
+    meta:
+      type: tool
+      public: true
+      title: Remove Coding Account
+      llm_alias: RemoveCodingAccount
+      llm_description: Remove a DELETE-authorized coding account through its existing service. Credentials are never
+        returned by reads.
+      mcp:
+        required_scopes:
+          - state.read
+          - state.write
+      input_schema: file://../contracts/remove_account.input.schema.json
+      output_schema: file://../contracts/remove_account.output.schema.json
+    source: file://tasks.lua
+    method: remove_account
+    modules:
+      - security
+    imports:
+      client: chestor.autocode.service:client
+      boundary: chestor.autocode.service:boundary
+  - name: add_coding_profile
+    kind: function.lua
+    meta:
+      type: tool
+      public: true
+      title: Add Coding Profile
+      llm_alias: AddCodingProfile
+      llm_description: Create an owned coding profile through its existing service. Use ReadCodingProfile to inspect
+        or copy a profile before creating a duplicate.
+      mcp:
+        required_scopes:
+          - state.read
+          - state.write
+      input_schema: file://../contracts/add_profile.input.schema.json
+      output_schema: file://../contracts/add_profile.output.schema.json
+    source: file://tasks.lua
+    method: add_profile
+    modules:
+      - security
+    imports:
+      client: chestor.autocode.service:client
+      boundary: chestor.autocode.service:boundary
+  - name: update_coding_profile
+    kind: function.lua
+    meta:
+      type: tool
+      public: true
+      title: Update Coding Profile
+      llm_alias: UpdateCodingProfile
+      llm_description: Update a WRITE-authorized coding profile through its existing service. Use ReadCodingProfile
+        to inspect or copy a profile before creating a duplicate.
+      mcp:
+        required_scopes:
+          - state.read
+          - state.write
+      input_schema: file://../contracts/update_profile.input.schema.json
+      output_schema: file://../contracts/update_profile.output.schema.json
+    source: file://tasks.lua
+    method: update_profile
+    modules:
+      - security
+    imports:
+      client: chestor.autocode.service:client
+      boundary: chestor.autocode.service:boundary
+  - name: remove_coding_profile
+    kind: function.lua
+    meta:
+      type: tool
+      public: true
+      title: Remove Coding Profile
+      llm_alias: RemoveCodingProfile
+      llm_description: Remove a DELETE-authorized coding profile through its existing service. Use ReadCodingProfile
+        to inspect or copy a profile before creating a duplicate.
+      mcp:
+        required_scopes:
+          - state.read
+          - state.write
+      input_schema: file://../contracts/remove_profile.input.schema.json
+      output_schema: file://../contracts/remove_profile.output.schema.json
+    source: file://tasks.lua
+    method: remove_profile
+    modules:
+      - security
+    imports:
+      client: chestor.autocode.service:client
+      boundary: chestor.autocode.service:boundary
+  - name: create_coding_image
+    kind: function.lua
+    meta:
+      type: tool
+      public: true
+      title: Create Coding Image
+      llm_alias: CreateCodingImage
+      llm_description: Register an image and request asynchronous preparation. Requires image management.
+        ReadCodingImage returns build status/log and any preparation failure.
+      mcp:
+        required_scopes:
+          - state.read
+          - state.write
+      input_schema:
+        type: object
+        additionalProperties: false
+        properties:
+          ref: &a9
+            type: string
+            description: Docker reference, for example team/agent:latest. Create uses a local image if present or pulls
+              it; prepare explicitly refreshes it.
+            maxLength: 300
+          label: &a10
+            type: string
+            description: Display label; empty uses the Docker reference.
+            maxLength: 200
+          home: &a11
+            type: string
+            description: Absolute container HOME outside / and /workspace; omitted resets to /opt/agent.
+            maxLength: 300
+          dockerfile: &a12
+            type: string
+            description: Dockerfile contents to build; omit or use empty text to use a Docker reference instead. Update
+              omission preserves the stored Dockerfile.
+            maxLength: 65536
+          memory: *a1
+          cpus: *a2
+          pids_limit: *a3
+          gpus: *a4
+          network: *a5
+          extra_args: *a6
+          allows: *a7
+        required:
+          - ref
+      output_schema: &a13
+        type: object
+        additionalProperties: false
+        properties:
+          id:
+            type: string
+            description: Registered image ID.
+          build_error:
+            type: object
+            properties:
+              kind:
+                type: string
+              message:
+                type: string
+              retryable:
+                type: boolean
+              details:
+                type: object
+                additionalProperties: {}
+            required:
+              - kind
+              - message
+            additionalProperties: false
+        required:
+          - id
+    source: file://management.lua
+    method: create_coding_image
+    modules:
+      - security
+      - json
+      - registry
+    imports:
+      boundary: chestor.autocode.service:boundary
+      images: chestor.autocode.service:image_management
+      workspaces: chestor.autocode.service:workspace_management
+      maintenance: chestor.autocode.service:maintenance
+    security:
+      policies:
+        - chestor.autocode.security:image_mutation
+  - name: update_coding_image
+    kind: function.lua
+    meta:
+      type: tool
+      public: true
+      title: Update Coding Image
+      llm_alias: UpdateCodingImage
+      llm_description: "Save an image recipe with WRITE and image management access; changed build settings request
+        preparation. Supply the full run settings: omitted run settings reset to defaults."
+      mcp:
+        required_scopes:
+          - state.read
+          - state.write
+      input_schema:
+        type: object
+        additionalProperties: false
+        properties:
+          id: *a8
+          ref: *a9
+          label: *a10
+          home: *a11
+          dockerfile: *a12
+          memory: *a1
+          cpus: *a2
+          pids_limit: *a3
+          gpus: *a4
+          network: *a5
+          extra_args: *a6
+          allows: *a7
+        required:
+          - id
+      output_schema: *a13
+    source: file://management.lua
+    method: update_coding_image
+    modules:
+      - security
+      - json
+      - registry
+    imports:
+      boundary: chestor.autocode.service:boundary
+      images: chestor.autocode.service:image_management
+      workspaces: chestor.autocode.service:workspace_management
+      maintenance: chestor.autocode.service:maintenance
+    security:
+      policies:
+        - chestor.autocode.security:image_mutation
+  - name: prepare_coding_image
+    kind: function.lua
+    meta:
+      type: tool
+      public: true
+      title: Prepare Coding Image
+      llm_alias: PrepareCodingImage
+      llm_description: "Refresh an image with WRITE and management access: rebuild a stored Dockerfile, pull a
+        registry reference, or re-probe a local-only image. ReadCodingImage reports the build log."
+      mcp:
+        required_scopes:
+          - state.read
+          - state.write
+      input_schema:
+        type: object
+        additionalProperties: false
+        properties:
+          id: *a8
+        required:
+          - id
+      output_schema:
+        type: object
+        additionalProperties: false
+        properties: {}
+        required: []
+    source: file://management.lua
+    method: prepare_coding_image
+    modules:
+      - security
+      - json
+      - registry
+    imports:
+      boundary: chestor.autocode.service:boundary
+      images: chestor.autocode.service:image_management
+      workspaces: chestor.autocode.service:workspace_management
+      maintenance: chestor.autocode.service:maintenance
+    security:
+      policies:
+        - chestor.autocode.security:image_mutation
+  - name: delete_coding_image
+    kind: function.lua
+    meta:
+      type: tool
+      public: true
+      title: Delete Coding Image
+      llm_alias: DeleteCodingImage
+      llm_description: Delete a DELETE-authorized image with management access. Optional Docker reference removal
+        waits for builds to drain; inspect the native pending/completed deletion result.
+      mcp:
+        required_scopes:
+          - state.read
+          - state.write
+      input_schema:
+        type: object
+        additionalProperties: false
+        properties:
+          id: *a8
+          remove:
+            type: boolean
+            default: false
+            description: Also remove the Docker reference during teardown. This affects host Docker state; omit to keep
+              the reference.
+        required:
+          - id
+      output_schema: file://../contracts/remove_account.output.schema.json
+    source: file://management.lua
+    method: delete_coding_image
+    modules:
+      - security
+      - json
+      - registry
+    imports:
+      boundary: chestor.autocode.service:boundary
+      images: chestor.autocode.service:image_management
+      workspaces: chestor.autocode.service:workspace_management
+      maintenance: chestor.autocode.service:maintenance
+  - name: create_coding_workspace
+    kind: function.lua
+    meta:
+      type: tool
+      public: true
+      title: Create Coding Workspace
+      llm_alias: CreateCodingWorkspace
+      llm_description: Register an existing host directory under configured workspace roots. Requires workspace
+        management; records the caller approval and uses existing overlap/path checks.
+      mcp:
+        required_scopes:
+          - state.read
+          - state.write
+      input_schema:
+        type: object
+        additionalProperties: false
+        properties:
+          name:
+            type: string
+            description: Workspace display name.
+            maxLength: 120
+          host_path:
+            type: string
+            description: Existing absolute directory on the execution host, under configured workspace roots. It must not
+              overlap another approved workspace.
+            maxLength: 1000
+        required:
+          - name
+          - host_path
+      output_schema:
+        type: object
+        additionalProperties: false
+        properties:
+          id:
+            type: string
+            description: Registered workspace ID.
+        required:
+          - id
+    source: file://management.lua
+    method: create_coding_workspace
+    modules:
+      - security
+      - json
+      - registry
+    imports:
+      boundary: chestor.autocode.service:boundary
+      images: chestor.autocode.service:image_management
+      workspaces: chestor.autocode.service:workspace_management
+      maintenance: chestor.autocode.service:maintenance
+    security:
+      policies:
+        - chestor.autocode.security:store
+        - chestor.autocode.security:workspace_mutation
+  - name: delete_coding_workspace
+    kind: function.lua
+    meta:
+      type: tool
+      public: true
+      title: Delete Coding Workspace
+      llm_alias: DeleteCodingWorkspace
+      llm_description: Delete a DELETE-authorized workspace registration with management access. The host directory
+        and its contents remain.
+      mcp:
+        required_scopes:
+          - state.read
+          - state.write
+      input_schema:
+        type: object
+        additionalProperties: false
+        properties:
+          id: *a8
+        required:
+          - id
+      output_schema: file://../contracts/remove_account.output.schema.json
+    source: file://management.lua
+    method: delete_coding_workspace
+    modules:
+      - security
+      - json
+      - registry
+    imports:
+      boundary: chestor.autocode.service:boundary
+      images: chestor.autocode.service:image_management
+      workspaces: chestor.autocode.service:workspace_management
+      maintenance: chestor.autocode.service:maintenance
+  - name: prune_coding_images
+    kind: function.lua
+    meta:
+      type: tool
+      public: true
+      title: Prune Coding Images
+      llm_alias: PruneCodingImages
+      llm_description: "Reclaim Docker space with maintenance management access: remove settled Autocode containers,
+        dangling image layers and expired build cache. Layer/cache cleanup affects the shared Docker host,
+        including other modules. Uses the configured build-cache retention."
+      mcp:
+        required_scopes:
+          - state.read
+          - state.write
+      input_schema:
+        type: object
+        additionalProperties: false
+        properties: {}
+        required: []
+      output_schema:
+        type: object
+        additionalProperties: false
+        properties:
+          output:
+            type: string
+            description: Docker cleanup command output.
+        required:
+          - output
+    source: file://management.lua
+    method: prune_coding_images
+    modules:
+      - security
+      - json
+      - registry
+    imports:
+      boundary: chestor.autocode.service:boundary
+      images: chestor.autocode.service:image_management
+      workspaces: chestor.autocode.service:workspace_management
+      maintenance: chestor.autocode.service:maintenance
+    security:
+      policies:
+        - chestor.autocode.security:docker_commands

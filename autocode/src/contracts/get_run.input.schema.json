@@ -5,23 +5,26 @@
     "run_id": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 64
+      "maxLength": 64,
+      "description": "Owned run ID returned by SubmitCodingTask or ListCodingRuns. Runs submitted by another caller are not visible."
     },
     "after_seq": {
       "type": "integer",
       "minimum": 0,
-      "default": 0
+      "default": 0,
+      "description": "Read events strictly after this sequence (default 0). Pass next_seq while more is true. Cannot be combined with before_seq."
     },
     "limit": {
       "type": "integer",
       "minimum": 1,
       "maximum": 500,
-      "default": 500
+      "default": 500,
+      "description": "Maximum events in this page, 1–500 (default 500). Follow more and next_seq for additional events."
     },
     "before_seq": {
       "type": "integer",
       "minimum": 0,
-      "description": "Return the preceding event window; zero selects the latest window."
+      "description": "Read the preceding event window; zero selects the latest window. Cannot be combined with after_seq."
     }
   },
   "required": [

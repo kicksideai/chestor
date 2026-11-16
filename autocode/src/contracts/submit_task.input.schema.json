@@ -5,46 +5,56 @@
     "agent": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 64
+      "maxLength": 64,
+      "description": "Activated agent ID from ListCodingAgents; use that tool to discover credential kinds, capabilities, endpoints and supported driver options."
     },
     "account_id": {
       "type": "string",
-      "maxLength": 64
+      "maxLength": 64,
+      "description": "Account ID from ListCodingAccounts. Omit to balance across eligible accounts; an explicit account remains pinned. Empty clears a profile account selection."
     },
     "image_id": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 64
+      "maxLength": 64,
+      "description": "Prepared image ID from ListCodingImages, compatible with the selected agent. ReadCodingImage exposes build status and the latest log."
     },
     "workspace_id": {
       "type": "string",
-      "maxLength": 64
+      "maxLength": 64,
+      "description": "Workspace ID from ListCodingWorkspaces. Omit for an ephemeral scratch directory; an empty value overrides a profile workspace with scratch. Registered workspaces mount according to caller grants."
     },
     "prompt": {
       "type": "string",
       "minLength": 1,
       "maxLength": 16384,
-      "pattern": "\\S"
+      "pattern": "\\S",
+      "description": "Task instructions, at most 16384 UTF-8 bytes. Submission returns asynchronously; use ListCodingRuns or ReadCodingRun for completion."
     },
     "repo_url": {
       "type": "string",
-      "maxLength": 2000
+      "maxLength": 2000,
+      "description": "Optional repository URL to clone into scratch. Omit for a plain scratch directory. A registered workspace uses its existing checkout. Do not embed credentials, query strings or URL fragments."
     },
     "options": {
       "type": "object",
-      "additionalProperties": true
+      "additionalProperties": true,
+      "description": "Driver-specific option values from ListCodingAgents. Task keys override matching profile keys and unattended presets; omitted keys inherit defaults."
     },
     "unattended": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "Apply the driver unattended preset when true. Explicit driver options override the preset; omission uses the profile or driver default."
     },
     "timeout": {
       "type": "string",
-      "maxLength": 64
+      "maxLength": 64,
+      "description": "Run duration such as 30m or 2h, from 1m through 168h (7 days). Overrides the profile run_timeout; omission uses the profile or configured default."
     },
     "idempotency_key": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 200
+      "maxLength": 200,
+      "description": "Caller-scoped retry key. Reuse it with the same request to recover the original run; changing that request with the same key returns a conflict."
     },
     "input": {
       "description": "Optional JSON input, encoded separately from prompt; at most 65,536 UTF-8 bytes after JSON serialization. The runner appends it after prompt as Input:."
@@ -52,12 +62,13 @@
     "repo_ref": {
       "type": "string",
       "maxLength": 200,
-      "description": "Optional branch or tag for repo_url (at most 200 bytes); omitted or empty uses the remote default branch."
+      "description": "Optional branch or tag for a scratch clone; omitted or empty uses the remote default. Registered workspaces keep their current ref and refuse this field."
     },
     "profile_id": {
       "type": "string",
       "maxLength": 64,
-      "minLength": 1
+      "minLength": 1,
+      "description": "Profile ID from ListCodingProfiles; ReadCodingProfile shows its defaults. Explicit task fields and option keys override the selected profile."
     },
     "account_pool": {
       "type": "array",
@@ -67,29 +78,34 @@
         "minLength": 1
       },
       "uniqueItems": true,
-      "maxItems": 200
+      "maxItems": 200,
+      "description": "Eligible account IDs from ListCodingAccounts for balancing. A task pool overrides the profile pool and clears its pinned account unless account_id is also supplied."
     },
     "endpoint": {
       "type": "object",
       "properties": {
         "protocol": {
           "type": "string",
-          "maxLength": 64
+          "maxLength": 64,
+          "description": "Endpoint protocol supported by the selected ListCodingAgents entry."
         },
         "base_url": {
           "type": "string",
-          "maxLength": 512
+          "maxLength": 512,
+          "description": "Custom endpoint base URL. An empty value clears an account or task override."
         },
         "model": {
           "type": "string",
-          "maxLength": 200
+          "maxLength": 200,
+          "description": "Driver-native model identifier for this custom endpoint."
         }
       },
       "required": [
         "protocol",
         "base_url"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Optional custom endpoint supported by the selected agent; task values override profile/account defaults."
     },
     "tools": {
       "type": "object",
@@ -102,14 +118,17 @@
             "maxLength": 200
           },
           "maxItems": 32,
+          "description": "Public agent trait IDs to resolve under the caller; at most 32. A task list replaces the profile trait list.",
           "uniqueItems": true
         },
         "context": {
           "type": "object",
-          "additionalProperties": {}
+          "additionalProperties": {},
+          "description": "Context keys are projected to each selected trait schema, then merged with its defaults and validated. Task keys override profile keys; undeclared keys are rejected."
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Optional per-run tool gateway declaration using traits only. Task traits replace profile traits; context keys merge with task values taking precedence."
     }
   },
   "required": [

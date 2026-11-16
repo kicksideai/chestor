@@ -211,7 +211,7 @@ function M.admit(request: Request, launching: boolean?): (Admitted?, error?)
     if request.endpoint and request.endpoint.base_url == "" then request.endpoint = nil end
     local driver, driver_err = drivers.get(request.agent)
     if not driver then
-        if errors.is(driver_err, errors.NOT_FOUND) then return nil, refuse("select an agent") end
+        if errors.is(driver_err, errors.NOT_FOUND) then return nil, refuse("unknown agent '" .. tostring(request.agent) .. "'; use ListCodingAgents to select an activated agent") end
         return nil, driver_err
     end
     local unattended = request.unattended == true
