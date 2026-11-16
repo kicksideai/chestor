@@ -7,7 +7,6 @@ export const endpoint = z.object({ protocol: z.string().max(64), base_url: z.str
 export const accountEndpoint = endpoint.partial({ protocol: true })
 export const toolSurfaceSchema = z.object({
   traits: z.array(z.string().min(1).max(200)).max(32).optional(),
-  tools: z.array(z.string().min(1).max(200)).max(128).optional(),
   context: values.optional(),
 }).strict()
 export const credentialKind = z.object({ id: z.string(), label: z.string(), hint: z.string(), file: z.string().optional(), subscription: z.boolean(), format: z.enum(['json_object', 'single_line', 'text']) }).strict()

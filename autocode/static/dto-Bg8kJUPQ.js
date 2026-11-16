@@ -314,7 +314,7 @@ var f;
 (function(a) {
   a.errToObj = (e) => typeof e == "string" ? { message: e } : e || {}, a.toString = (e) => typeof e == "string" ? e : e?.message;
 })(f || (f = {}));
-class A {
+class N {
   constructor(e, t, s, r) {
     this._cachedPath = [], this.parent = e, this.data = t, this._path = s, this._key = r;
   }
@@ -502,7 +502,7 @@ class y {
     return this.nullable().optional();
   }
   array() {
-    return N.create(this);
+    return O.create(this);
   }
   promise() {
     return K.create(this, this._def);
@@ -1496,7 +1496,7 @@ Te.create = (a) => new Te({
   typeName: m.ZodVoid,
   ...g(a)
 });
-class N extends y {
+class O extends y {
   _parse(e) {
     const { ctx: t, status: s } = this._processInputParams(e), r = this._def;
     if (t.parsedType !== l.array)
@@ -1532,27 +1532,27 @@ class N extends y {
       exact: !1,
       message: r.maxLength.message
     }), s.dirty()), t.common.async)
-      return Promise.all([...t.data].map((i, o) => r.type._parseAsync(new A(t, i, t.path, o)))).then((i) => C.mergeArray(s, i));
-    const n = [...t.data].map((i, o) => r.type._parseSync(new A(t, i, t.path, o)));
+      return Promise.all([...t.data].map((i, o) => r.type._parseAsync(new N(t, i, t.path, o)))).then((i) => C.mergeArray(s, i));
+    const n = [...t.data].map((i, o) => r.type._parseSync(new N(t, i, t.path, o)));
     return C.mergeArray(s, n);
   }
   get element() {
     return this._def.type;
   }
   min(e, t) {
-    return new N({
+    return new O({
       ...this._def,
       minLength: { value: e, message: f.toString(t) }
     });
   }
   max(e, t) {
-    return new N({
+    return new O({
       ...this._def,
       maxLength: { value: e, message: f.toString(t) }
     });
   }
   length(e, t) {
-    return new N({
+    return new O({
       ...this._def,
       exactLength: { value: e, message: f.toString(t) }
     });
@@ -1561,7 +1561,7 @@ class N extends y {
     return this.min(1, e);
   }
 }
-N.create = (a, e) => new N({
+O.create = (a, e) => new O({
   type: a,
   minLength: null,
   maxLength: null,
@@ -1580,7 +1580,7 @@ function V(a) {
       ...a._def,
       shape: () => e
     });
-  } else return a instanceof N ? new N({
+  } else return a instanceof O ? new O({
     ...a._def,
     type: V(a.element)
   }) : a instanceof I ? I.create(V(a.unwrap())) : a instanceof U ? U.create(V(a.unwrap())) : a instanceof $ ? $.create(a.items.map((e) => V(e))) : a;
@@ -1613,7 +1613,7 @@ class w extends y {
       const x = n[p], q = r.data[p];
       h.push({
         key: { status: "valid", value: p },
-        value: x._parse(new A(r, q, r.path, p)),
+        value: x._parse(new N(r, q, r.path, p)),
         alwaysSet: p in r.data
       });
     }
@@ -1638,7 +1638,7 @@ class w extends y {
         h.push({
           key: { status: "valid", value: x },
           value: p._parse(
-            new A(r, q, r.path, x)
+            new N(r, q, r.path, x)
             //, ctx.child(key), value, getParsedType(value)
           ),
           alwaysSet: x in r.data
@@ -2035,7 +2035,7 @@ class $ extends y {
     }), t.dirty());
     const n = [...s.data].map((i, o) => {
       const h = this._def.items[o] || this._def.rest;
-      return h ? h._parse(new A(s, i, s.path, o)) : null;
+      return h ? h._parse(new N(s, i, s.path, o)) : null;
     }).filter((i) => !!i);
     return s.common.async ? Promise.all(n).then((i) => C.mergeArray(t, i)) : C.mergeArray(t, n);
   }
@@ -2077,8 +2077,8 @@ class X extends y {
     const r = [], n = this._def.keyType, i = this._def.valueType;
     for (const o in s.data)
       r.push({
-        key: n._parse(new A(s, o, s.path, o)),
-        value: i._parse(new A(s, s.data[o], s.path, o)),
+        key: n._parse(new N(s, o, s.path, o)),
+        value: i._parse(new N(s, s.data[o], s.path, o)),
         alwaysSet: o in s.data
       });
     return s.common.async ? C.mergeObjectAsync(t, r) : C.mergeObjectSync(t, r);
@@ -2116,8 +2116,8 @@ class Ce extends y {
         received: s.parsedType
       }), _;
     const r = this._def.keyType, n = this._def.valueType, i = [...s.data.entries()].map(([o, h], p) => ({
-      key: r._parse(new A(s, o, s.path, [p, "key"])),
-      value: n._parse(new A(s, h, s.path, [p, "value"]))
+      key: r._parse(new N(s, o, s.path, [p, "key"])),
+      value: n._parse(new N(s, h, s.path, [p, "value"]))
     }));
     if (s.common.async) {
       const o = /* @__PURE__ */ new Map();
@@ -2183,7 +2183,7 @@ class J extends y {
       }
       return { status: t.value, value: p };
     }
-    const o = [...s.data.values()].map((h, p) => n._parse(new A(s, h, s.path, p)));
+    const o = [...s.data.values()].map((h, p) => n._parse(new N(s, h, s.path, p)));
     return s.common.async ? Promise.all(o).then((h) => i(h)) : i(o);
   }
   min(e, t) {
@@ -2634,7 +2634,7 @@ var m;
 })(m || (m = {}));
 const c = Z.create, T = z.create, k = ie.create, ee = oe.create;
 E.create;
-const O = N.create, b = w.create, lt = G.create;
+const A = O.create, b = w.create, lt = G.create;
 Q.create;
 $.create;
 const pe = X.create, Tt = ce.create, te = P.create;
@@ -2644,8 +2644,7 @@ U.create;
 const L = c().max(64), se = pe(ee()), ae = b({ protocol: c().max(64), base_url: c().max(512), model: c().max(200).optional() }).strict();
 ae.partial({ protocol: !0 });
 const ft = b({
-  traits: O(c().min(1).max(200)).max(32).optional(),
-  tools: O(c().min(1).max(200)).max(128).optional(),
+  traits: A(c().min(1).max(200)).max(32).optional(),
   context: se.optional()
 }).strict(), ht = b({ id: c(), label: c(), hint: c(), file: c().optional(), subscription: k(), format: te(["json_object", "single_line", "text"]) }).strict(), Ae = b({
   input_tokens: T().nonnegative().optional(),
@@ -2661,7 +2660,7 @@ const ft = b({
   agent: L.min(1),
   image_id: L.min(1),
   account_id: L.optional(),
-  account_pool: O(L.min(1)).max(200).optional(),
+  account_pool: A(L.min(1)).max(200).optional(),
   endpoint: ae.optional(),
   tools: ft.optional(),
   workspace_id: L.optional(),
@@ -2674,7 +2673,7 @@ const ft = b({
 Ee.partial().extend({ id: L.min(1) });
 const $e = Ee.extend({ id: c(), options: se, owner_user_id: c(), owner: c(), writable: k(), deletable: k() }), pt = $e.pick({ id: !0, title: !0, agent: !0, owner_user_id: !0, owner: !0, writable: !0, deletable: !0 });
 lt([$e, pt]);
-const mt = b({ kind: c(), message: c(), retryable: k().optional(), details: se.optional() }).strict(), B = O(c()), me = pe(ee()), _t = b({ name: c(), label: c(), description: c(), section: c(), group: c(), order: T(), type: c(), values: O(ee()).optional(), schema: me.optional(), default: ee().optional(), profiles: B.optional() }), gt = b({ id: c(), title: c(), icon: c(), credentials: O(ht), endpoints: B, capabilities: B, unattended: me.optional(), options: O(_t) }), Ve = b({ memory: c(), cpus: c(), pids_limit: T().int(), gpus: c(), network: c(), extra_args: B, allows: B }), yt = b({ ref: c(), label: c(), home: c(), dockerfile: c(), settings: Ve.optional() }), vt = b({ label_bytes: T().int().positive(), secret_bytes: T().int().positive(), endpoint_url_bytes: T().int().positive(), endpoint_model_bytes: T().int().positive() }), Ct = b({ agents: O(gt), default_image: yt, can_images: k(), can_workspaces: k(), can_prune: k(), build_cache_retention: c(), settings_path: c().optional(), account_limits: vt.optional() }), xt = b({ windows: O(b({ window: c(), utilization: T().optional(), status: te(["allowed", "warning", "rejected"]), resets_at: T().int().optional() })), overage_status: c().optional(), overage_disabled_reason: c().optional(), is_using_overage: k().optional() }), St = b({
+const mt = b({ kind: c(), message: c(), retryable: k().optional(), details: se.optional() }).strict(), B = A(c()), me = pe(ee()), _t = b({ name: c(), label: c(), description: c(), section: c(), group: c(), order: T(), type: c(), values: A(ee()).optional(), schema: me.optional(), default: ee().optional(), profiles: B.optional() }), gt = b({ id: c(), title: c(), icon: c(), credentials: A(ht), endpoints: B, capabilities: B, unattended: me.optional(), options: A(_t) }), Ve = b({ memory: c(), cpus: c(), pids_limit: T().int(), gpus: c(), network: c(), extra_args: B, allows: B }), yt = b({ ref: c(), label: c(), home: c(), dockerfile: c(), settings: Ve.optional() }), vt = b({ label_bytes: T().int().positive(), secret_bytes: T().int().positive(), endpoint_url_bytes: T().int().positive(), endpoint_model_bytes: T().int().positive() }), Ct = b({ agents: A(gt), default_image: yt, can_images: k(), can_workspaces: k(), can_prune: k(), build_cache_retention: c(), settings_path: c().optional(), account_limits: vt.optional() }), xt = b({ windows: A(b({ window: c(), utilization: T().optional(), status: te(["allowed", "warning", "rejected"]), resets_at: T().int().optional() })), overage_status: c().optional(), overage_disabled_reason: c().optional(), is_using_overage: k().optional() }), St = b({
   id: c(),
   agent: c(),
   label: c(),
@@ -2695,7 +2694,7 @@ const mt = b({ kind: c(), message: c(), retryable: k().optional(), details: se.o
   last_error: c(),
   runs_day: T().int(),
   failures_day: T().int()
-}), kt = b({ id: c(), ref: c(), label: c(), home: c(), status: c(), usable: k(), agents: B, last_error: c(), owner_user_id: c(), owner: c(), writable: k(), deletable: k(), shareable: k() }), Ot = b({ image: kt, build_log: c(), dockerfile: c().optional(), settings: Ve.optional() }), Nt = b({ conflicts: O(b({ id: c(), host_path: c() })).optional(), unavailable_reason: c().optional(), id: c(), name: c(), writable: k(), deletable: k(), shareable: k(), host_path: c().optional() }), bt = te(["queued", "running", "succeeded", "failed", "cancelled"]), Le = b({
+}), kt = b({ id: c(), ref: c(), label: c(), home: c(), status: c(), usable: k(), agents: B, last_error: c(), owner_user_id: c(), owner: c(), writable: k(), deletable: k(), shareable: k() }), Ot = b({ image: kt, build_log: c(), dockerfile: c().optional(), settings: Ve.optional() }), Nt = b({ conflicts: A(b({ id: c(), host_path: c() })).optional(), unavailable_reason: c().optional(), id: c(), name: c(), writable: k(), deletable: k(), shareable: k(), host_path: c().optional() }), bt = te(["queued", "running", "succeeded", "failed", "cancelled"]), Le = b({
   owner_user_id: c(),
   endpoint: ae.optional(),
   id: c(),
@@ -2718,12 +2717,12 @@ const mt = b({ kind: c(), message: c(), retryable: k().optional(), details: se.o
   created_at: c(),
   started_at: c(),
   finished_at: c()
-}), At = Le.pick({ id: !0, agent: !0, account_id: !0, image_id: !0, workspace_id: !0, status: !0, workflow: !0, cancel_requested: !0, created_at: !0, started_at: !0, finished_at: !0 }).extend({ prompt_summary: c(), usage: Ie.optional() }), wt = b({ seq: T().int(), kind: te(["assistant", "reasoning", "tool", "tool_call", "hook", "tool_result", "tool_error", "system", "error", "log"]), text: c(), created_at: c() }), Zt = b({ run: Le, events: O(wt), more: k(), next_seq: T().int().nonnegative() });
+}), At = Le.pick({ id: !0, agent: !0, account_id: !0, image_id: !0, workspace_id: !0, status: !0, workflow: !0, cancel_requested: !0, created_at: !0, started_at: !0, finished_at: !0 }).extend({ prompt_summary: c(), usage: Ie.optional() }), wt = b({ seq: T().int(), kind: te(["assistant", "reasoning", "tool", "tool_call", "hook", "tool_result", "tool_error", "system", "error", "log"]), text: c(), created_at: c() }), Zt = b({ run: Le, events: A(wt), more: k(), next_seq: T().int().nonnegative() });
 export {
   gt as a,
   vt as b,
   k as c,
-  O as d,
+  A as d,
   ae as e,
   mt as f,
   At as g,

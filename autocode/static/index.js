@@ -17,7 +17,7 @@ class e extends o {
   static get vueConfig() {
     return {
       lazyConfig: s(
-        () => import("./index-mount-CBkYz0It.js").then((t) => t.mountConfig),
+        () => import("./index-mount-DEVnCBCZ.js").then((t) => t.mountConfig),
         "Could not load Autocode. Reload the page to try again.",
         r
       )
