@@ -59,6 +59,7 @@ entries:
     key: run_retention
     value_type: duration
     default: 720h
+    confirm_decrease: true
     title: Run and log retention
     category: Runs
     order: 30
