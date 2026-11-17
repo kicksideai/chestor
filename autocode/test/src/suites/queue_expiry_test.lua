@@ -19,7 +19,7 @@ local function cases()
         test.it("expires an admitted queue on Core's deadline with no later activity", function()
             admin = identity.admin(); f.users[#f.users + 1] = admin
             local member = f.member()
-            local account = f.call(member, "add_account", {agent = "claude", label = "idle queue", credential_kind = "env:ANTHROPIC_API_KEY", secret = "private-key"}, "chestor.autocode:accounts")
+            local account = f.call(member, "add_account", {agent = "claude", label = "idle queue", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", secret = "test-subscription"}, "chestor.autocode:accounts")
             local image = f.image_for(member)
             test.eq(identity.request(admin, "PUT", "/settings", {namespace = "chestor.autocode", key = "queue_timeout", value = "2s"}).status, 200)
             mailbox = process.listen("idle_queue_pass")

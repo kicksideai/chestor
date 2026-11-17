@@ -33,6 +33,7 @@ let generation = 0
 onUnmounted(() => { generation++ })
 
 const choice = computed(() => driver.value?.credentials.find((c) => c.id === kind.value) ?? null)
+const hasApiKey = computed(() => driver.value?.credentials.some(c => !c.file && !c.subscription) === true)
 const endpointable = computed(() => !!choice.value && !choice.value.file && !choice.value.subscription && (driver.value?.endpoints.length ?? 0) > 0)
 
 const byteLength = (text: string) => new TextEncoder().encode(text).length
@@ -157,9 +158,9 @@ function submit() {
 
     <p v-if="choice?.subscription" class="da-notice" role="note">
       <Icon icon="tabler:alert-triangle" />
-      <span><strong>Personal use only.</strong> A subscription login is for your own personal use; running it through this tool for
+      <span><strong>Personal use only.</strong> A subscription login is for your own personal use. Running it through this tool for
         anyone else is not compliant with the provider's terms, and the provider may restrict or suspend the account. Only you run on
-        it. Use an official API key or your own endpoint for production or multiple users.</span>
+        it. <template v-if="hasApiKey">Use an official API key or your own endpoint for production or multiple users.</template></span>
     </p>
 
     <div class="da-drop" :class="{ over: dragging, filled: !!dropped }" @dragover.prevent="dragging = !config?.busy" @dragleave="dragging = false" @drop.prevent="drop">

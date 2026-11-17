@@ -77,7 +77,12 @@ async function save() {
   saving.value = true
   saveError.value = ''
   try {
-    const body = { ...draft.value, account_pool: draft.value.account_id ? [] : draft.value.account_pool, endpoint: endpointUrl.value ? { protocol: endpointProtocol.value, base_url: endpointUrl.value.trim(), model: endpointModel.value.trim() || undefined } : { protocol: endpointProtocol.value, base_url: '' } }
+    const body: ProfileInput = { ...draft.value, account_pool: draft.value.account_id ? [] : draft.value.account_pool }
+    if (driver.value?.endpoints.length) {
+      body.endpoint = { protocol: endpointProtocol.value, base_url: endpointUrl.value.trim(), model: endpointModel.value.trim() || undefined }
+    } else if (editing.value && profiles.value.some(profile => profile.id === editing.value && profile.endpoint?.base_url)) {
+      body.endpoint = { protocol: '', base_url: '' }
+    }
     if (editing.value) await autocode.updateProfile(editing.value, body)
     else await autocode.createProfile(body)
     if (!alive()) return
@@ -98,7 +103,7 @@ defineExpose({ open })
   <section :aria-busy="loading">
     <p v-if="loading" class="kx-empty" role="status">Loading profiles…</p>
     <div v-else-if="error" class="kx-err" role="alert">{{ error }} <button type="button" class="ac-btn kx-focus-halo" aria-label="Retry profiles" @click="load">Retry</button></div>
-    <p v-else-if="!profiles.length" class="kx-empty">Create a profile to reuse an agent, endpoint and task settings.</p>
+    <p v-else-if="!profiles.length" class="kx-empty">Create a profile to reuse agent and task settings.</p>
     <p v-else-if="!shown.length" class="kx-empty">No matches.</p>
     <ul v-else class="ac-list">
       <li v-for="profile in shown" :key="profile.id" class="ac-row ac-account ac-hover-actions">

@@ -69,7 +69,10 @@ export function requestContractErrors(method: string, path: string, body?: unkno
 }
 
 export const driver = { id: 'agent', title: 'Agent', icon: 'tabler:robot', credentials: [{ id: 'key', label: 'Key', hint: '', format: 'text' as const, subscription: false }, { id: 'login', label: 'Login', hint: '', format: 'text' as const, file: 'login.json', subscription: true }], endpoints: ['openai'], capabilities: [], options: [] }
-export const claudeLike: AgentInfo = { ...driver, id: 'claude-like', title: 'Claude-like', unattended: { permission_mode: 'bypassPermissions' }, options: [
+export const claudeLike: AgentInfo = { ...driver, id: 'claude-like', title: 'Claude-like', endpoints: [], credentials: [
+  { id: 'file:.claude/.credentials.json', label: 'Login file ~/.claude/.credentials.json', hint: '', format: 'json_object', file: '.claude/.credentials.json', subscription: true },
+  { id: 'env:CLAUDE_CODE_OAUTH_TOKEN', label: 'Subscription token CLAUDE_CODE_OAUTH_TOKEN', hint: '', format: 'single_line', subscription: true },
+], unattended: { permission_mode: 'bypassPermissions' }, options: [
   { name: 'permission_mode', label: 'Permission mode', description: '', section: '', group: '', order: 1, type: 'string', values: ['manual', 'bypassPermissions'], default: 'manual', profiles: ['batch'] },
   { name: 'model', label: 'Model', description: '', section: '', group: '', order: 2, type: 'string', default: 'sonnet' },
 ] }

@@ -36,7 +36,7 @@ local function cases()
         test.it("keeps workflow JSON input outside a maximum-sized prompt", function()
             local user = member()
             local image = image_for(user)
-            local account = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "input", secret = "key"})
+            local account = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", label = "input", secret = "test-subscription"})
             local prompt = string.rep("p", 16384)
             local payload = {value = string.rep("x", 20000)}
             local result, err = identity.call(user, "chestor.autocode.blocks:arm_task", {config = {agent = "claude", account_id = account.json.id,
@@ -52,7 +52,7 @@ local function cases()
             local user = identity.admin()
             users[#users + 1] = user
             local image = image_for(user)
-            local account = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "input launch", secret = "key"})
+            local account = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", label = "input launch", secret = "test-subscription"})
             local prefix = '{"value":"'
             local prompt, input = string.rep("p", 16384), prefix .. string.rep("x", 65536 - #prefix - 2) .. '"}'
             require("stubs").reset()
@@ -72,7 +72,7 @@ local function cases()
                     local image = image_for(user)
                     local accounts = {}
                     for i = 1, 2 do
-                        accounts[i] = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "balance", secret = "key"}).json.id
+                        accounts[i] = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", label = "balance", secret = "test-subscription"}).json.id
                     end
                     require("stubs").reset()
                     local id, err = require("run_store_subject").create_run(user.id, {actor_id = user.id, actor_context = "{}"},
@@ -104,7 +104,7 @@ local function cases()
             test.eq(catalog.status, 200, catalog.body)
             local image = identity.call(user, "app:fixture_register", "image", {title = "object test", ref = "fixture:object", home = "/opt/agent"},
                 {settings = catalog.json.default_image.settings})
-            local account = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "objects", secret = "key"})
+            local account = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", label = "objects", secret = "test-subscription"})
             test.eq(account.status, 201, account.body)
             local function objects(schema, value, path)
                 if value == nil then return end
@@ -262,7 +262,7 @@ local function cases()
         end)
         test.it("submits and replays caller keys through HTTP and the contract", function()
             local user = member()
-            local account = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "key", secret = "key"})
+            local account = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", label = "Login", secret = "test-subscription"})
             test.eq(account.status, 201, account.body)
             local image = image_for(user)
             local request = {agent = "claude", account_id = account.json.id, image_id = image, prompt = "task", unattended = false, idempotency_key = " " .. uuid.v7() .. " "}
@@ -289,7 +289,7 @@ local function cases()
         test.it("refuses another user's dataflow and signal before submission", function()
             local user, other = member(), member()
             local flow_id, signal_id = flow_for(other), uuid.v7()
-            local account = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "key", secret = "key"})
+            local account = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", label = "Login", secret = "test-subscription"})
             local image = image_for(user)
             local result, err = identity.call(user, "chestor.autocode.blocks:arm_task", {
                 config = {agent = "claude", account_id = account.json.id, image_id = image, prompt = "task"},
@@ -305,7 +305,7 @@ local function cases()
             test.is_nil(properties.timeout)
             test.not_nil(properties.run_timeout)
             local user = member()
-            local account = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "key", secret = "key"})
+            local account = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", label = "Login", secret = "test-subscription"})
             local image = image_for(user)
             local flow_id = flow_for(user)
             local function arm(run_timeout)
@@ -320,7 +320,7 @@ local function cases()
         end)
         test.it("passes the durable arm key unchanged and records its callback atomically", function()
             local user = member()
-            local account = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "key", secret = "key"})
+            local account = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", label = "Login", secret = "test-subscription"})
             local image = image_for(user)
             local flow_id = flow_for(user)
             local trace = {trace_id = "block-trace", run_id = "flow-run", caused_by_event_id = "event", correlation_key = "block-key"}

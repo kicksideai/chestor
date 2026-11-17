@@ -1,5 +1,5 @@
 import { u as $e, s as He, c as qe, B as Ge, f as Ke, a as Qe, b as Xe, P as Ye } from "./wc-runtime-CEQ5gZTA.js";
-import { defineComponent as re, openBlock as t, createElementBlock as l, Fragment as z, renderList as ee, normalizeClass as ce, createVNode as P, unref as o, createTextVNode as M, toDisplayString as i, ref as p, computed as X, onMounted as Ue, watch as pe, createElementVNode as e, withDirectives as Q, vModelText as ue, vModelSelect as de, createCommentVNode as f, isRef as fe, vModelCheckbox as Ze, createBlock as oe, onUnmounted as ye, nextTick as Te, withCtx as me, mergeProps as be, renderSlot as et, withKeys as Be, withModifiers as _e } from "vue";
+import { defineComponent as re, openBlock as t, createElementBlock as l, Fragment as z, renderList as Z, normalizeClass as ce, createVNode as P, unref as o, createTextVNode as M, toDisplayString as i, ref as p, computed as X, onMounted as Ue, watch as pe, createElementVNode as e, withDirectives as Q, vModelText as ue, vModelSelect as de, createCommentVNode as f, isRef as fe, vModelCheckbox as Ze, createBlock as oe, onUnmounted as ye, nextTick as Te, withCtx as me, mergeProps as be, renderSlot as et, withKeys as Be, withModifiers as _e } from "vue";
 import { Icon as j } from "@iconify/vue";
 import { host as we, config as tt, loadByTagName as at } from "@wippy-fe/proxy";
 import { u as ke, s as Se, _ as Le, a as lt, b as nt } from "./app-dialog.vue_vue_type_script_setup_true_lang-Dl1DHcqw.js";
@@ -20,14 +20,14 @@ const vt = {
   },
   emits: ["update:modelValue"],
   setup(s) {
-    return (u, v) => s.agents.length <= 6 ? (t(), l("div", vt, [
-      (t(!0), l(z, null, ee(s.agents, (a) => (t(), l("button", {
+    return (d, v) => s.agents.length <= 6 ? (t(), l("div", vt, [
+      (t(!0), l(z, null, Z(s.agents, (a) => (t(), l("button", {
         key: a.id,
         disabled: s.disabled,
         type: "button",
         class: ce(["ac-chip kx-focus-halo", { active: s.modelValue === a.id }]),
         "aria-pressed": s.modelValue === a.id,
-        onClick: (F) => u.$emit("update:modelValue", a.id)
+        onClick: (F) => d.$emit("update:modelValue", a.id)
       }, [
         P(o(j), {
           icon: o(xe)(a.id, s.agents),
@@ -41,9 +41,9 @@ const vt = {
       class: "kx-focus-halo",
       "aria-label": "Agent",
       value: s.modelValue,
-      onChange: v[0] || (v[0] = (a) => u.$emit("update:modelValue", a.target.value))
+      onChange: v[0] || (v[0] = (a) => d.$emit("update:modelValue", a.target.value))
     }, [
-      (t(!0), l(z, null, ee(s.agents, (a) => (t(), l("option", {
+      (t(!0), l(z, null, Z(s.agents, (a) => (t(), l("option", {
         key: a.id,
         value: a.id
       }, i(a.title), 9, ft))), 128))
@@ -70,8 +70,8 @@ const vt = {
     workspaces: {}
   },
   emits: ["started", "goto", "agentChanged", "cancel", "busy"],
-  setup(s, { emit: u }) {
-    const v = s, a = u, F = ke(), A = p(null), I = p([]), U = p(""), S = p({}), T = X(() => I.value.find((c) => c.id === U.value));
+  setup(s, { emit: d }) {
+    const v = s, a = d, F = ke(), A = p(null), I = p([]), S = p(""), U = p({}), T = X(() => I.value.find((c) => c.id === S.value));
     Ue(async () => {
       try {
         I.value = await Y.profiles();
@@ -80,21 +80,21 @@ const vt = {
       }
     });
     function q() {
-      S.value = {};
+      U.value = {};
     }
     function E(c) {
-      U.value ? S.value = { ...S.value, ...c } : L.value = { ...L.value, ...c };
+      S.value ? U.value = { ...U.value, ...c } : L.value = { ...L.value, ...c };
     }
     function H() {
       const c = F.value.settings_path;
       c && A.value?.dispatchEvent(new CustomEvent("navigate", { detail: { path: c }, bubbles: !0, composed: !0 }));
     }
-    const L = p({ agent: ut(F.value, v.accounts), account_id: "", image_id: "", workspace_id: "", repo_url: "" }), x = X(() => dt(U.value ? S.value : L.value, T.value)), { now: _, driver: R, agentAccounts: W, ready: D, agentImages: m, invalidOptions: Z, optionValues: B, invalidImage: C, invalidAccount: V, invalidWorkspace: ae, selectAgent: le } = ct(x, {
+    const L = p({ agent: ut(F.value, v.accounts), account_id: "", image_id: "", workspace_id: "", repo_url: "" }), x = X(() => dt(S.value ? U.value : L.value, T.value)), { now: _, driver: R, agentAccounts: W, ready: B, agentImages: m, invalidOptions: ee, optionValues: D, invalidImage: V, invalidAccount: C, invalidWorkspace: ae, selectAgent: le } = ct(x, {
       catalog: () => F.value,
       accounts: () => v.accounts,
       images: () => v.images,
       workspaces: () => v.workspaces
-    }, "live", () => !!U.value), K = X({
+    }, "live", () => !!S.value), K = X({
       get: () => x.value.agent ?? "",
       set: (c) => {
         if (c === x.value.agent) return;
@@ -105,13 +105,13 @@ const vt = {
     function G(c) {
       return X({ get: () => x.value[c] ?? "", set: (r) => E({ [c]: r }) });
     }
-    const te = G("account_id"), J = G("image_id"), b = G("workspace_id"), d = G("repo_url"), n = G("repo_ref"), h = X({ get: () => x.value.run_timeout ?? "", set: (c) => E({ run_timeout: c }) }), k = p(""), g = X({ get: () => B.value, set: (c) => E({ options: c }) }), $ = X({ get: () => x.value.unattended ?? !!R.value?.unattended, set: (c) => E({ unattended: c }) }), O = X({ get: () => x.value.tools, set: (c) => E({ tools: c }) }), N = p(!1), ne = p(!1), ve = p("");
+    const te = G("account_id"), J = G("image_id"), b = G("workspace_id"), u = G("repo_url"), n = G("repo_ref"), h = X({ get: () => x.value.run_timeout ?? "", set: (c) => E({ run_timeout: c }) }), k = p(""), g = X({ get: () => D.value, set: (c) => E({ options: c }) }), $ = X({ get: () => x.value.unattended ?? !!R.value?.unattended, set: (c) => E({ unattended: c }) }), O = X({ get: () => x.value.tools, set: (c) => E({ tools: c }) }), N = p(!1), ne = p(!1), ve = p("");
     function Ae(c) {
       return Fe(c, _.value) === "cooling" ? `${c.label} (cooling down${c.cooldown_until ? " until " + he(c.cooldown_until) : ""})` : c.label;
     }
     pe(K, (c) => a("agentChanged", c), { immediate: !0 });
     let ie;
-    pe([U, K, te, J, b, d, n, h, k, g, $, O], () => {
+    pe([S, K, te, J, b, u, n, h, k, g, $, O], () => {
       ie = void 0;
     }, { deep: !0, flush: "sync" });
     async function w() {
@@ -124,14 +124,14 @@ const vt = {
             account_id: te.value,
             image_id: J.value,
             workspace_id: b.value,
-            repo_url: d.value,
+            repo_url: u.value,
             repo_ref: n.value.trim() || void 0,
             timeout: h.value.trim() || void 0,
             prompt: k.value,
             options: x.value.options ?? {},
             unattended: $.value
-          }, { run_timeout: r, ...y } = S.value, ge = U.value ? {
-            profile_id: U.value,
+          }, { run_timeout: r, ...y } = U.value, ge = S.value ? {
+            profile_id: S.value,
             prompt: k.value,
             options: x.value.options ?? {},
             ...y,
@@ -168,18 +168,18 @@ const vt = {
       e("label", kt, [
         r[18] || (r[18] = e("span", null, "Profile", -1)),
         Q(e("select", {
-          "onUpdate:modelValue": r[1] || (r[1] = (y) => U.value = y),
+          "onUpdate:modelValue": r[1] || (r[1] = (y) => S.value = y),
           "aria-label": "Profile",
           class: "kx-focus-halo",
           onChange: q
         }, [
           r[17] || (r[17] = e("option", { value: "" }, "Custom task", -1)),
-          (t(!0), l(z, null, ee(I.value, (y) => (t(), l("option", {
+          (t(!0), l(z, null, Z(I.value, (y) => (t(), l("option", {
             key: y.id,
             value: y.id
           }, i(y.title), 9, bt))), 128))
         ], 544), [
-          [de, U.value]
+          [de, S.value]
         ])
       ]),
       e("div", yt, [
@@ -214,12 +214,12 @@ const vt = {
             "onUpdate:modelValue": r[4] || (r[4] = (y) => fe(te) ? te.value = y : null),
             class: "kx-focus-halo"
           }, [
-            U.value && o(V) ? (t(), l("option", {
+            S.value && o(C) ? (t(), l("option", {
               key: 0,
               value: o(te)
             }, i(o(te)) + " (unavailable)", 9, Ct)) : f("", !0),
-            e("option", Vt, "Auto (" + i(o(D).length) + " ready)", 1),
-            (t(!0), l(z, null, ee(o(W), (y) => (t(), l("option", {
+            e("option", Vt, "Auto (" + i(o(B).length) + " ready)", 1),
+            (t(!0), l(z, null, Z(o(W), (y) => (t(), l("option", {
               key: y.id,
               value: y.id
             }, i(Ae(y)), 9, At))), 128))
@@ -233,11 +233,11 @@ const vt = {
             "onUpdate:modelValue": r[5] || (r[5] = (y) => fe(J) ? J.value = y : null),
             class: "kx-focus-halo"
           }, [
-            U.value && o(C) && o(J) ? (t(), l("option", {
+            S.value && o(V) && o(J) ? (t(), l("option", {
               key: 0,
               value: o(J)
             }, i(o(J)) + " (unavailable)", 9, Ut)) : f("", !0),
-            (t(!0), l(z, null, ee(o(m), (y) => (t(), l("option", {
+            (t(!0), l(z, null, Z(o(m), (y) => (t(), l("option", {
               key: y.id,
               value: y.id
             }, i(y.label), 9, Tt))), 128))
@@ -252,11 +252,11 @@ const vt = {
             class: "kx-focus-halo"
           }, [
             r[22] || (r[22] = e("option", { value: "" }, "Scratch directory", -1)),
-            U.value && o(ae) ? (t(), l("option", {
+            S.value && o(ae) ? (t(), l("option", {
               key: 0,
               value: o(b)
             }, i(o(b)) + " (unavailable)", 9, Ft)) : f("", !0),
-            (t(!0), l(z, null, ee(s.workspaces, (y) => (t(), l("option", {
+            (t(!0), l(z, null, Z(s.workspaces, (y) => (t(), l("option", {
               key: y.id,
               value: y.id
             }, i(y.name) + i(y.writable ? "" : " (read-only)"), 9, Rt))), 128))
@@ -271,11 +271,11 @@ const vt = {
           e("label", Nt, [
             r[24] || (r[24] = e("span", null, "Git repository", -1)),
             Q(e("input", {
-              "onUpdate:modelValue": r[7] || (r[7] = (y) => fe(d) ? d.value = y : null),
+              "onUpdate:modelValue": r[7] || (r[7] = (y) => fe(u) ? u.value = y : null),
               class: "ac-mono kx-focus-halo",
               placeholder: "Optional: https://github.com/org/repo.git"
             }, null, 512), [
-              [ue, o(d)]
+              [ue, o(u)]
             ])
           ]),
           e("label", Pt, [
@@ -317,12 +317,12 @@ const vt = {
             onInvalid: r[12] || (r[12] = (y) => N.value = y)
           }, null, 8, ["modelValue", "agent"]),
           o(R) ? (t(), oe(je, {
-            key: U.value + o(R).id,
+            key: S.value + o(R).id,
             modelValue: g.value,
             "onUpdate:modelValue": r[13] || (r[13] = (y) => g.value = y),
             options: o(R).options,
             defaults: { ...$.value ? o(R).unattended : {}, ...T.value?.options },
-            onInvalid: r[14] || (r[14] = (y) => Z.value = y)
+            onInvalid: r[14] || (r[14] = (y) => ee.value = y)
           }, null, 8, ["modelValue", "options", "defaults"])) : f("", !0)
         ])
       ]),
@@ -336,7 +336,7 @@ const vt = {
         e("button", {
           type: "button",
           class: "ac-btn primary kx-focus-halo",
-          disabled: ne.value || N.value || o(Z) > 0 || !U.value && (!K.value || !(o(te) || o(D).length) || !o(J)) || !k.value.trim(),
+          disabled: ne.value || N.value || o(ee) > 0 || !S.value && (!K.value || !(o(te) || o(B).length) || !o(J)) || !k.value.trim(),
           onClick: w
         }, [
           P(o(j), { icon: "tabler:player-play" }),
@@ -404,14 +404,14 @@ const vt = {
     workspaces: {}
   },
   setup(s) {
-    const u = s, v = ke(), a = p(null), F = p([]), A = p(0), I = p(!1), U = p(!1);
-    let S;
+    const d = s, v = ke(), a = p(null), F = p([]), A = p(0), I = p(!1), S = p(!1);
+    let U;
     const T = p(!1), q = p(""), E = p(!1), H = p(null), L = p(!1), x = p("");
     let _ = null;
-    const R = p(!1), W = p(!1), D = p(!1), m = p(""), Z = Ce(), B = X(() => (a.value?.prompt.length ?? 0) > 500 || (a.value?.prompt.split(`
-`).length ?? 0) > 5), C = X(() => (a.value?.result.length ?? 0) > 1800 || (a.value?.result.split(`
+    const R = p(!1), W = p(!1), B = p(!1), m = p(""), ee = Ce(), D = X(() => (a.value?.prompt.length ?? 0) > 500 || (a.value?.prompt.split(`
+`).length ?? 0) > 5), V = X(() => (a.value?.result.length ?? 0) > 1800 || (a.value?.result.split(`
 `).length ?? 0) > 10);
-    let V = !0, ae = !0, le, K;
+    let C = !0, ae = !0, le, K;
     const G = (w) => w.status === "queued" || w.status === "running";
     function te() {
       _ && (ae = _.scrollHeight - _.scrollTop - _.clientHeight < 40);
@@ -423,12 +423,12 @@ const vt = {
     });
     const J = Ve(async () => {
       try {
-        const w = S ?? (a.value ? void 0 : 0);
-        S = void 0;
-        let c = await Y.run(u.runId, w === void 0 ? A.value : void 0, w);
-        if (!V) return;
+        const w = U ?? (a.value ? void 0 : 0);
+        U = void 0;
+        let c = await Y.run(d.runId, w === void 0 ? A.value : void 0, w);
+        if (!C) return;
         if (w === void 0 && (c.more || T.value && c.events.length)) {
-          if (c = await Y.run(u.runId, void 0, 0), !V) return;
+          if (c = await Y.run(d.runId, void 0, 0), !C) return;
           F.value = c.events, I.value = c.more, T.value = !1;
         } else if (w !== void 0)
           F.value = c.events, I.value = c.more, T.value = w !== 0;
@@ -436,25 +436,25 @@ const vt = {
           const r = Math.max(0, F.value.length + c.events.length - Ta);
           r && F.value.splice(0, r), F.value.push(...c.events), I.value = I.value || r > 0;
         }
-        E.value = !1, a.value = c.run, T.value || (A.value = c.next_seq), await Te(), V && ae && _ && _.scrollTo({ top: _.scrollHeight }), q.value = "";
+        E.value = !1, a.value = c.run, T.value || (A.value = c.next_seq), await Te(), C && ae && _ && _.scrollTo({ top: _.scrollHeight }), q.value = "";
       } catch (w) {
-        if (!V) return;
+        if (!C) return;
         E.value = w instanceof st && w.code === "autocode.run_not_found", E.value && (a.value = null, F.value = []), q.value = E.value ? "" : se(w, "Could not load the task.");
       } finally {
-        U.value = !1;
+        S.value = !1;
       }
     });
     function b() {
-      U.value || !F.value.length || (ae = !1, U.value = !0, S = F.value[0].seq, J());
+      S.value || !F.value.length || (ae = !1, S.value = !0, U = F.value[0].seq, J());
     }
-    function d() {
-      U.value || (ae = !0, U.value = !0, S = 0, J());
+    function u() {
+      S.value || (ae = !0, S.value = !0, U = 0, J());
     }
-    const n = Re.run(u.runId, () => {
+    const n = Re.run(d.runId, () => {
       J();
     });
     $e(J), ye(() => {
-      V = !1, n(), clearTimeout(K), clearTimeout(le);
+      C = !1, n(), clearTimeout(K), clearTimeout(le);
     });
     async function h() {
       try {
@@ -467,7 +467,7 @@ const vt = {
           rejectLabel: "Keep task",
           acceptClass: "p-button-danger"
         })) return;
-        await Y.cancelRun(u.runId), await J();
+        await Y.cancelRun(d.runId), await J();
       } catch (w) {
         q.value = se(w, "Could not cancel the task.");
       }
@@ -487,8 +487,8 @@ const vt = {
     }
     async function g() {
       try {
-        await k(a.value?.result ?? ""), D.value = !0, m.value = "", clearTimeout(K), K = setTimeout(() => {
-          D.value = !1;
+        await k(a.value?.result ?? ""), B.value = !0, m.value = "", clearTimeout(K), K = setTimeout(() => {
+          B.value = !1;
         }, 2e3);
       } catch {
         m.value = "Could not copy. Select the result text to copy it.";
@@ -497,7 +497,7 @@ const vt = {
     async function $() {
       try {
         const w = new URL(tt.env.APP_API_URL || "/", window.location.href);
-        await k(new URL(`/autocode/runs/${encodeURIComponent(u.runId)}`, w).href), L.value = !0, x.value = "", clearTimeout(le), le = setTimeout(() => {
+        await k(new URL(`/autocode/runs/${encodeURIComponent(d.runId)}`, w).href), L.value = !0, x.value = "", clearTimeout(le), le = setTimeout(() => {
           L.value = !1;
         }, 2e3);
       } catch {
@@ -511,13 +511,13 @@ const vt = {
       return typeof w.options?.model == "string" ? w.options.model : "";
     }
     function ne(w) {
-      return u.accounts.find((c) => c.id === w)?.label ?? "Unlisted account";
+      return d.accounts.find((c) => c.id === w)?.label ?? "Unlisted account";
     }
     function ve(w) {
-      return u.workspaces.find((c) => c.id === w)?.name ?? "Unlisted workspace";
+      return d.workspaces.find((c) => c.id === w)?.name ?? "Unlisted workspace";
     }
     function Ae(w) {
-      return u.images.find((c) => c.id === w)?.label ?? "Unlisted image";
+      return d.images.find((c) => c.id === w)?.label ?? "Unlisted image";
     }
     function ie(w) {
       const c = [];
@@ -588,8 +588,8 @@ const vt = {
             e("span", null, i(Ae(a.value.image_id)), 1),
             e("span", {
               title: o(he)(a.value.started_at || a.value.created_at)
-            }, i(a.value.started_at ? "Started" : "Queued") + " " + i(o(Ee)(a.value.started_at || a.value.created_at, o(Z))), 9, Yt),
-            a.value.started_at ? (t(), l("span", Zt, i(o(De)(a.value, o(Z))) + " " + i(G(a.value) ? "elapsed" : "duration"), 1)) : f("", !0),
+            }, i(a.value.started_at ? "Started" : "Queued") + " " + i(o(Ee)(a.value.started_at || a.value.created_at, o(ee))), 9, Yt),
+            a.value.started_at ? (t(), l("span", Zt, i(o(De)(a.value, o(ee))) + " " + i(G(a.value) ? "elapsed" : "duration"), 1)) : f("", !0),
             a.value.timeout_ms ? (t(), l("span", ea, i(o(ot)(a.value.timeout_ms)), 1)) : f("", !0),
             e("span", null, i(a.value.unattended ? "Unattended" : "Attended"), 1),
             a.value.workflow ? (t(), l("span", ta, "Workflow")) : f("", !0),
@@ -605,7 +605,7 @@ const vt = {
         ]),
         a.value.usage.models ? (t(), l("section", ua, [
           c[5] || (c[5] = e("h3", null, "Usage by model", -1)),
-          (t(!0), l(z, null, ee(a.value.usage.models, (r, y) => (t(), l("p", {
+          (t(!0), l(z, null, Z(a.value.usage.models, (r, y) => (t(), l("p", {
             key: y,
             class: "ac-muted"
           }, i(y) + " · " + i(ie(r)), 1))), 128))
@@ -614,7 +614,7 @@ const vt = {
         e("section", ca, [
           e("div", ra, [
             c[6] || (c[6] = e("h3", { id: "ac-prompt-heading" }, "Prompt", -1)),
-            B.value ? (t(), l("button", {
+            D.value ? (t(), l("button", {
               key: 0,
               type: "button",
               class: "ac-link kx-focus-outline",
@@ -625,7 +625,7 @@ const vt = {
           ]),
           e("pre", {
             id: "ac-prompt-text",
-            class: ce(["ac-pre ac-prompt", { expanded: R.value || !B.value }])
+            class: ce(["ac-pre ac-prompt", { expanded: R.value || !D.value }])
           }, [
             e("span", null, i(a.value.prompt), 1)
           ], 2)
@@ -634,7 +634,7 @@ const vt = {
           e("div", ga, [
             e("h3", fa, i(a.value.status === "succeeded" ? "Result" : "Partial result"), 1),
             e("div", ma, [
-              C.value ? (t(), l("button", {
+              V.value ? (t(), l("button", {
                 key: 0,
                 type: "button",
                 class: "ac-link kx-focus-outline",
@@ -648,9 +648,9 @@ const vt = {
                 onClick: g
               }, [
                 P(o(j), {
-                  icon: D.value ? "tabler:check" : "tabler:copy"
+                  icon: B.value ? "tabler:check" : "tabler:copy"
                 }, null, 8, ["icon"]),
-                M(i(D.value ? "Copied" : "Copy"), 1)
+                M(i(B.value ? "Copied" : "Copy"), 1)
               ])
             ])
           ]),
@@ -672,18 +672,18 @@ const vt = {
             key: 0,
             type: "button",
             class: "ac-link kx-focus-outline",
-            disabled: U.value,
+            disabled: S.value,
             onClick: b
-          }, i(U.value ? "Loading…" : "Load earlier"), 9, wa)) : f("", !0),
+          }, i(S.value ? "Loading…" : "Load earlier"), 9, wa)) : f("", !0),
           T.value ? (t(), l("button", {
             key: 1,
             type: "button",
             class: "ac-link kx-focus-outline",
-            disabled: U.value,
-            onClick: d
+            disabled: S.value,
+            onClick: u
           }, "Latest", 8, xa)) : f("", !0),
           e("div", Ca, [
-            (t(!0), l(z, null, ee(F.value, (r) => (t(), l("div", {
+            (t(!0), l(z, null, Z(F.value, (r) => (t(), l("div", {
               key: r.seq,
               class: ce(["ac-event", r.kind])
             }, [
@@ -728,27 +728,27 @@ const vt = {
     runId: {}
   },
   emits: ["goto", "agentChanged", "count", "open", "close"],
-  setup(s, { expose: u, emit: v }) {
-    const a = Ie(), F = p([]), A = s, I = v, U = ke(), S = p(!1), T = p(!1);
-    u({ open: () => {
-      S.value = !0;
+  setup(s, { expose: d, emit: v }) {
+    const a = Ie(), F = p([]), A = s, I = v, S = ke(), U = p(!1), T = p(!1);
+    d({ open: () => {
+      U.value = !0;
     } });
-    const q = p([]), E = p([]), H = p([]), L = p([]), x = p(), _ = p(!1), R = p(""), W = Ce(), D = p(!1);
-    let m = 0, Z = 1;
-    async function B() {
+    const q = p([]), E = p([]), H = p([]), L = p([]), x = p(), _ = p(!1), R = p(""), W = Ce(), B = p(!1);
+    let m = 0, ee = 1;
+    async function D() {
       const n = [];
       let h;
-      for (let k = 0; k < Z; k++) {
+      for (let k = 0; k < ee; k++) {
         const g = await Y.runs(h);
         if (!a() || (n.push(...g.runs), h = g.next_cursor, !h)) break;
       }
       return { runs: n, next_cursor: h };
     }
-    const C = Ve(async () => {
-      m++, D.value = !0;
+    const V = Ve(async () => {
+      m++, B.value = !0;
       try {
         await Pe(
-          () => Promise.all([Y.accounts(), Y.images(), B(), Y.workspaces()]),
+          () => Promise.all([Y.accounts(), Y.images(), D(), Y.workspaces()]),
           ([n, h, , k]) => [...n, ...h, ...k.workspaces].map((g) => g.id),
           F,
           a,
@@ -756,29 +756,29 @@ const vt = {
             q.value = n, E.value = h, L.value = k.runs, x.value = k.next_cursor, H.value = g.workspaces, _.value = !0, R.value = "";
           },
           () => {
-            C();
+            V();
           }
         );
       } catch (n) {
         a() && (R.value = se(n, "Could not load tasks."));
       } finally {
-        a() && (D.value = !1);
+        a() && (B.value = !1);
       }
-    }, a), V = Re.runs(() => {
-      C();
+    }, a), C = Re.runs(() => {
+      V();
     });
     Ne(() => F.value, () => {
-      C();
-    }), $e(C), ye(V);
+      V();
+    }), $e(V), ye(C);
     const ae = p(!1);
     async function le() {
-      if (!(!x.value || ae.value || D.value)) {
+      if (!(!x.value || ae.value || B.value)) {
         ae.value = !0;
         try {
           const n = m, h = await Y.runs(x.value);
           if (!a() || m !== n) return;
           const k = new Set(L.value.map((g) => g.id));
-          L.value.push(...h.runs.filter((g) => !k.has(g.id))), x.value = h.next_cursor, Z++;
+          L.value.push(...h.runs.filter((g) => !k.has(g.id))), x.value = h.next_cursor, ee++;
         } catch (n) {
           a() && (R.value = se(n, "Could not load more tasks."));
         } finally {
@@ -787,17 +787,17 @@ const vt = {
       }
     }
     function K(n) {
-      S.value = !1, I("open", n);
+      U.value = !1, I("open", n);
     }
-    const G = X(() => q.value.some((n) => n.usable && n.enabled)), te = X(() => L.value.filter((n) => [n.prompt_summary, n.status, n.agent, J(n.agent), d(n.account_id)].join(" ").toLowerCase().includes(A.query.trim().toLowerCase())));
+    const G = X(() => q.value.some((n) => n.usable && n.enabled)), te = X(() => L.value.filter((n) => [n.prompt_summary, n.status, n.agent, J(n.agent), u(n.account_id)].join(" ").toLowerCase().includes(A.query.trim().toLowerCase())));
     pe(() => L.value.length, (n) => I("count", n));
     function J(n) {
-      return U.value.agents.find((h) => h.id === n)?.title ?? n;
+      return S.value.agents.find((h) => h.id === n)?.title ?? n;
     }
     function b(n) {
       return E.value.find((h) => h.id === n)?.label ?? "Unlisted image";
     }
-    function d(n) {
+    function u(n) {
       return q.value.find((h) => h.id === n)?.label ?? "Unlisted account";
     }
     return (n, h) => s.runId ? (t(), l("section", Fa, [
@@ -825,7 +825,7 @@ const vt = {
           class: "ac-link kx-focus-outline",
           type: "button",
           onClick: h[2] || (h[2] = //@ts-ignore
-          (...k) => o(C) && o(C)(...k))
+          (...k) => o(V) && o(V)(...k))
         }, "Retry")
       ])) : f("", !0),
       L.value.length ? te.value.length ? f("", !0) : (t(), l("div", Ba, [...h[12] || (h[12] = [
@@ -839,7 +839,7 @@ const vt = {
         e("div", qa, i(G.value ? "Give a coding agent a task and follow its progress here." : "Add an account to give your coding agent a place to start."), 1),
         P(o(Se), {
           label: G.value ? "New task" : "Add account",
-          onClick: h[3] || (h[3] = (k) => G.value ? S.value = !0 : I("goto"))
+          onClick: h[3] || (h[3] = (k) => G.value ? U.value = !0 : I("goto"))
         }, {
           icon: me(() => [
             P(o(j), { icon: "tabler:plus" })
@@ -848,7 +848,7 @@ const vt = {
         }, 8, ["label"])
       ])),
       te.value.length ? (t(), l("ul", Da, [
-        (t(!0), l(z, null, ee(te.value, (k) => (t(), l("li", {
+        (t(!0), l(z, null, Z(te.value, (k) => (t(), l("li", {
           key: k.id,
           class: "ac-run"
         }, [
@@ -869,11 +869,11 @@ const vt = {
               e("span", Ha, [
                 e("span", null, [
                   P(o(j), {
-                    icon: o(xe)(k.agent, o(U).agents)
+                    icon: o(xe)(k.agent, o(S).agents)
                   }, null, 8, ["icon"]),
                   M(i(J(k.agent)), 1)
                 ]),
-                e("span", null, i(d(k.account_id)), 1),
+                e("span", null, i(u(k.account_id)), 1),
                 e("span", null, i(b(k.image_id)), 1),
                 e("span", {
                   title: o(he)(k.started_at || k.created_at)
@@ -892,16 +892,16 @@ const vt = {
         P(o(Se), {
           label: "Load more",
           loading: ae.value,
-          disabled: D.value,
+          disabled: B.value,
           onClick: le
         }, null, 8, ["loading", "disabled"])
       ])) : f("", !0),
-      S.value ? (t(), oe(Le, {
+      U.value ? (t(), oe(Le, {
         key: 5,
         title: "New task",
         busy: T.value,
         wide: "",
-        onClose: h[8] || (h[8] = (k) => S.value = !1)
+        onClose: h[8] || (h[8] = (k) => U.value = !1)
       }, {
         default: me(() => [
           P(jt, {
@@ -910,7 +910,7 @@ const vt = {
             images: E.value,
             workspaces: H.value,
             onStarted: K,
-            onCancel: h[5] || (h[5] = (k) => S.value = !1),
+            onCancel: h[5] || (h[5] = (k) => U.value = !1),
             onAgentChanged: h[6] || (h[6] = (k) => I("agentChanged", k)),
             onGoto: h[7] || (h[7] = (k, g) => I("goto", g))
           }, null, 8, ["accounts", "images", "workspaces"])
@@ -924,7 +924,7 @@ const vt = {
           class: "ac-link kx-focus-outline",
           type: "button",
           onClick: h[1] || (h[1] = //@ts-ignore
-          (...k) => o(C) && o(C)(...k))
+          (...k) => o(V) && o(V)(...k))
         }, "Retry")
       ], 64)) : (t(), l(z, { key: 1 }, [
         P(o(j), {
@@ -985,53 +985,53 @@ var Ya = {
   watch: {
     modelValue: {
       deep: !0,
-      handler: function(u) {
-        this.d_value = u;
+      handler: function(d) {
+        this.d_value = d;
       }
     },
-    defaultValue: function(u) {
-      this.d_value = u;
+    defaultValue: function(d) {
+      this.d_value = d;
     },
     $formName: {
       immediate: !0,
-      handler: function(u) {
+      handler: function(d) {
         var v, a;
-        this.formField = ((v = this.$pcForm) === null || v === void 0 || (a = v.register) === null || a === void 0 ? void 0 : a.call(v, u, this.$formControl)) || {};
+        this.formField = ((v = this.$pcForm) === null || v === void 0 || (a = v.register) === null || a === void 0 ? void 0 : a.call(v, d, this.$formControl)) || {};
       }
     },
     $formControl: {
       immediate: !0,
-      handler: function(u) {
+      handler: function(d) {
         var v, a;
-        this.formField = ((v = this.$pcForm) === null || v === void 0 || (a = v.register) === null || a === void 0 ? void 0 : a.call(v, this.$formName, u)) || {};
+        this.formField = ((v = this.$pcForm) === null || v === void 0 || (a = v.register) === null || a === void 0 ? void 0 : a.call(v, this.$formName, d)) || {};
       }
     },
     $formDefaultValue: {
       immediate: !0,
-      handler: function(u) {
-        this.d_value !== u && (this.d_value = u);
+      handler: function(d) {
+        this.d_value !== d && (this.d_value = d);
       }
     },
     $formValue: {
       immediate: !1,
-      handler: function(u) {
+      handler: function(d) {
         var v;
-        (v = this.$pcForm) !== null && v !== void 0 && v.getFieldState(this.$formName) && u !== this.d_value && (this.d_value = u);
+        (v = this.$pcForm) !== null && v !== void 0 && v.getFieldState(this.$formName) && d !== this.d_value && (this.d_value = d);
       }
     }
   },
   formField: {},
   methods: {
-    writeValue: function(u, v) {
+    writeValue: function(d, v) {
       var a, F;
-      this.controlled && (this.d_value = u, this.$emit("update:modelValue", u)), this.$emit("value-change", u), (a = (F = this.formField).onChange) === null || a === void 0 || a.call(F, {
+      this.controlled && (this.d_value = d, this.$emit("update:modelValue", d)), this.$emit("value-change", d), (a = (F = this.formField).onChange) === null || a === void 0 || a.call(F, {
         originalEvent: v,
-        value: u
+        value: d
       });
     },
     // @todo move to @primeuix/utils
     findNonEmpty: function() {
-      for (var u = arguments.length, v = new Array(u), a = 0; a < u; a++)
+      for (var d = arguments.length, v = new Array(d), a = 0; a < d; a++)
         v[a] = arguments[a];
       return v.find(qe);
     }
@@ -1041,28 +1041,28 @@ var Ya = {
       return qe(this.d_value);
     },
     $invalid: function() {
-      var u, v;
-      return !this.$formNovalidate && this.findNonEmpty(this.invalid, (u = this.$pcFormField) === null || u === void 0 || (u = u.$field) === null || u === void 0 ? void 0 : u.invalid, (v = this.$pcForm) === null || v === void 0 || (v = v.getFieldState(this.$formName)) === null || v === void 0 ? void 0 : v.invalid);
+      var d, v;
+      return !this.$formNovalidate && this.findNonEmpty(this.invalid, (d = this.$pcFormField) === null || d === void 0 || (d = d.$field) === null || d === void 0 ? void 0 : d.invalid, (v = this.$pcForm) === null || v === void 0 || (v = v.getFieldState(this.$formName)) === null || v === void 0 ? void 0 : v.invalid);
     },
     $formName: function() {
-      var u;
-      return this.$formNovalidate ? void 0 : this.name || ((u = this.$formControl) === null || u === void 0 ? void 0 : u.name);
+      var d;
+      return this.$formNovalidate ? void 0 : this.name || ((d = this.$formControl) === null || d === void 0 ? void 0 : d.name);
     },
     $formControl: function() {
-      var u;
-      return this.formControl || ((u = this.$pcFormField) === null || u === void 0 ? void 0 : u.formControl);
+      var d;
+      return this.formControl || ((d = this.$pcFormField) === null || d === void 0 ? void 0 : d.formControl);
     },
     $formNovalidate: function() {
-      var u;
-      return (u = this.$formControl) === null || u === void 0 ? void 0 : u.novalidate;
+      var d;
+      return (d = this.$formControl) === null || d === void 0 ? void 0 : d.novalidate;
     },
     $formDefaultValue: function() {
-      var u, v;
-      return this.findNonEmpty(this.d_value, (u = this.$pcFormField) === null || u === void 0 ? void 0 : u.initialValue, (v = this.$pcForm) === null || v === void 0 || (v = v.initialValues) === null || v === void 0 ? void 0 : v[this.$formName]);
+      var d, v;
+      return this.findNonEmpty(this.d_value, (d = this.$pcFormField) === null || d === void 0 ? void 0 : d.initialValue, (v = this.$pcForm) === null || v === void 0 || (v = v.initialValues) === null || v === void 0 ? void 0 : v[this.$formName]);
     },
     $formValue: function() {
-      var u, v;
-      return this.findNonEmpty((u = this.$pcFormField) === null || u === void 0 || (u = u.$field) === null || u === void 0 ? void 0 : u.value, (v = this.$pcForm) === null || v === void 0 || (v = v.getFieldState(this.$formName)) === null || v === void 0 ? void 0 : v.value);
+      var d, v;
+      return this.findNonEmpty((d = this.$pcFormField) === null || d === void 0 || (d = d.$field) === null || d === void 0 ? void 0 : d.value, (v = this.$pcForm) === null || v === void 0 || (v = v.getFieldState(this.$formName)) === null || v === void 0 ? void 0 : v.value);
     },
     controlled: function() {
       return this.$inProps.hasOwnProperty("modelValue") || !this.$inProps.hasOwnProperty("modelValue") && !this.$inProps.hasOwnProperty("defaultValue");
@@ -1191,8 +1191,8 @@ var Ya = {
     position: "relative"
   }
 }, tl = {
-  root: function(u) {
-    var v = u.instance, a = u.props;
+  root: function(d) {
+    var v = d.instance, a = d.props;
     return ["p-toggleswitch p-component", {
       "p-toggleswitch-checked": v.checked,
       "p-disabled": a.disabled,
@@ -1261,27 +1261,27 @@ var Ya = {
   inheritAttrs: !1,
   emits: ["change", "focus", "blur"],
   methods: {
-    getPTOptions: function(u) {
-      var v = u === "root" ? this.ptmi : this.ptm;
-      return v(u, {
+    getPTOptions: function(d) {
+      var v = d === "root" ? this.ptmi : this.ptm;
+      return v(d, {
         context: {
           checked: this.checked,
           disabled: this.disabled
         }
       });
     },
-    onChange: function(u) {
+    onChange: function(d) {
       if (!this.disabled && !this.readonly) {
         var v = this.checked ? this.falseValue : this.trueValue;
-        this.writeValue(v, u), this.$emit("change", u);
+        this.writeValue(v, d), this.$emit("change", d);
       }
     },
-    onFocus: function(u) {
-      this.$emit("focus", u);
+    onFocus: function(d) {
+      this.$emit("focus", d);
     },
-    onBlur: function(u) {
+    onBlur: function(d) {
       var v, a;
-      this.$emit("blur", u), (v = (a = this.formField).onBlur) === null || v === void 0 || v.call(a, u);
+      this.$emit("blur", d), (v = (a = this.formField).onBlur) === null || v === void 0 || v.call(a, d);
     }
   },
   computed: {
@@ -1297,7 +1297,7 @@ var Ya = {
     }
   }
 }, nl = ["data-p-checked", "data-p-disabled", "data-p"], ol = ["id", "checked", "tabindex", "disabled", "readonly", "aria-checked", "aria-labelledby", "aria-label", "aria-invalid"], sl = ["data-p"], il = ["data-p"];
-function ul(s, u, v, a, F, A) {
+function ul(s, d, v, a, F, A) {
   return t(), l("div", be({
     class: s.cx("root"),
     style: s.sx("root")
@@ -1319,13 +1319,13 @@ function ul(s, u, v, a, F, A) {
     "aria-labelledby": s.ariaLabelledby,
     "aria-label": s.ariaLabel,
     "aria-invalid": s.invalid || void 0,
-    onFocus: u[0] || (u[0] = function() {
+    onFocus: d[0] || (d[0] = function() {
       return A.onFocus && A.onFocus.apply(A, arguments);
     }),
-    onBlur: u[1] || (u[1] = function() {
+    onBlur: d[1] || (d[1] = function() {
       return A.onBlur && A.onBlur.apply(A, arguments);
     }),
-    onChange: u[2] || (u[2] = function() {
+    onChange: d[2] || (d[2] = function() {
       return A.onChange && A.onChange.apply(A, arguments);
     })
   }, A.getPTOptions("input")), null, 16, ol), e("div", be({
@@ -1376,14 +1376,14 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
     ownerLabel: {}
   },
   emits: ["toggle", "rename", "remove", "edit"],
-  setup(s, { emit: u }) {
-    const v = s, a = u, F = { ready: "ready", cooling: "cooling down", disabled: "disabled", unavailable: "unavailable" }, A = Ce(), I = X(() => Fe(v.account, A.value)), U = X(() => v.account.mine ? "" : `Shared with you by ${v.ownerLabel}`), S = p(!1), T = p(""), q = p(null);
+  setup(s, { emit: d }) {
+    const v = s, a = d, F = { ready: "ready", cooling: "cooling down", disabled: "disabled", unavailable: "unavailable" }, A = Ce(), I = X(() => Fe(v.account, A.value)), S = X(() => v.account.mine ? "" : `Shared with you by ${v.ownerLabel}`), U = p(!1), T = p(""), q = p(null);
     function E() {
-      T.value = v.account.label, S.value = !0, Te(() => q.value?.select());
+      T.value = v.account.label, U.value = !0, Te(() => q.value?.select());
     }
     function H() {
-      if (!S.value) return;
-      S.value = !1;
+      if (!U.value) return;
+      U.value = !1;
       const L = T.value.trim();
       L && L !== v.account.label && a("rename", L);
     }
@@ -1395,7 +1395,7 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
           e("span", {
             class: ce(["kx-tag-sm ac-tone", I.value])
           }, i(F[I.value]), 3),
-          S.value ? Q((t(), l("input", {
+          U.value ? Q((t(), l("input", {
             key: 0,
             ref_key: "input",
             ref: q,
@@ -1404,7 +1404,7 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
             "aria-label": "Account label",
             onKeydown: [
               Be(_e(H, ["prevent"]), ["enter"]),
-              x[1] || (x[1] = Be(_e((_) => S.value = !1, ["prevent"]), ["escape"]))
+              x[1] || (x[1] = Be(_e((_) => U.value = !1, ["prevent"]), ["escape"]))
             ],
             onBlur: H
           }, null, 40, rl)), [
@@ -1419,14 +1419,14 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
             title: o(he)(s.account.last_used_at)
           }, "last used " + i(o(Ee)(s.account.last_used_at, o(A))), 9, fl)) : (t(), l("span", ml, "never used"))
         ]),
-        U.value ? (t(), l("div", hl, i(U.value), 1)) : f("", !0),
+        S.value ? (t(), l("div", hl, i(S.value), 1)) : f("", !0),
         s.account.usable ? s.account.subscription ? (t(), l("div", bl, "Subscription login: personal use only")) : f("", !0) : (t(), l("div", kl, [
           P(o(j), { icon: "tabler:lock" }),
           M(" " + i(s.account.unavailable_reason || "Account unavailable for tasks"), 1)
         ])),
         s.account.endpoint ? (t(), l("div", yl, i(s.account.endpoint.protocol) + " · " + i(s.account.endpoint.base_url) + i(s.account.endpoint.model ? " · " + s.account.endpoint.model : ""), 1)) : f("", !0),
         I.value === "cooling" && s.account.cooldown_until ? (t(), l("div", _l, "Available at " + i(o(he)(s.account.cooldown_until)), 1)) : f("", !0),
-        (t(!0), l(z, null, ee(s.account.rate_limits?.windows ?? [], (_) => (t(), l("div", {
+        (t(!0), l(z, null, Z(s.account.rate_limits?.windows ?? [], (_) => (t(), l("div", {
           key: _.window,
           class: "ac-muted"
         }, [
@@ -1508,20 +1508,20 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
     selectedAgent: {}
   },
   emits: ["count"],
-  setup(s, { expose: u, emit: v }) {
-    const a = Ie(), F = p([]), A = s, I = v, U = p(!1), S = p(null);
+  setup(s, { expose: d, emit: v }) {
+    const a = Ie(), F = p([]), A = s, I = v, S = p(!1), U = p(null);
     function T() {
-      S.value = null, m.value = "", U.value = !0;
+      U.value = null, m.value = "", S.value = !0;
     }
     function q(g) {
-      S.value = g, B.value = g.agent, m.value = "", U.value = !0;
+      U.value = g, D.value = g.agent, m.value = "", S.value = !0;
     }
-    u({ open: T });
-    const E = ke(), H = Ce(), L = p([]), x = p({}), _ = p(""), R = p(""), W = p(!1), D = p(!1), m = p(""), Z = p(0), B = p(A.selectedAgent || E.value.agents[0]?.id || "");
+    d({ open: T });
+    const E = ke(), H = Ce(), L = p([]), x = p({}), _ = p(""), R = p(""), W = p(!1), B = p(!1), m = p(""), ee = p(0), D = p(A.selectedAgent || E.value.agents[0]?.id || "");
     pe(() => A.selectedAgent, (g) => {
-      g && (B.value = g);
+      g && (D.value = g);
     });
-    const C = X(() => E.value.agents.find((g) => g.id === B.value)), V = X(() => JSON.stringify({ driver: C.value, busy: D.value, error: m.value, saved: Z.value, account: S.value ? { id: S.value.id, label: S.value.label, credential_kind: S.value.credential_kind, endpoint: S.value.endpoint } : void 0, limits: E.value.account_limits })), ae = X(() => [...E.value.agents, ...[...new Set(L.value.map((g) => g.agent))].filter((g) => !E.value.agents.some(($) => $.id === g)).map((g) => ({ id: g, title: `Unavailable agent: ${g}`, icon: "tabler:terminal-2" }))].map((g) => ({ agent: g, accounts: L.value.filter(($) => $.agent === g.id && [$.label, g.title, $.credential_kind].join(" ").toLowerCase().includes(A.query.toLowerCase())) })).filter((g) => g.accounts.length));
+    const V = X(() => E.value.agents.find((g) => g.id === D.value)), C = X(() => JSON.stringify({ driver: V.value, busy: B.value, error: m.value, saved: ee.value, account: U.value ? { id: U.value.id, label: U.value.label, credential_kind: U.value.credential_kind, endpoint: U.value.endpoint } : void 0, limits: E.value.account_limits })), ae = X(() => [...E.value.agents, ...[...new Set(L.value.map((g) => g.agent))].filter((g) => !E.value.agents.some(($) => $.id === g)).map((g) => ({ id: g, title: `Unavailable agent: ${g}`, icon: "tabler:terminal-2" }))].map((g) => ({ agent: g, accounts: L.value.filter(($) => $.agent === g.id && [$.label, g.title, $.credential_kind].join(" ").toLowerCase().includes(A.query.toLowerCase())) })).filter((g) => g.accounts.length));
     function le(g) {
       return E.value.agents.find(($) => $.id === g.agent)?.credentials.find(($) => $.id === g.credential_kind)?.label ?? g.credential_kind;
     }
@@ -1561,16 +1561,16 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
     async function b(g) {
       if (!(g instanceof CustomEvent)) return;
       const $ = rt.safeParse(g.detail);
-      if (D.value) return;
-      if (!$.success || $.data.agent !== B.value || S.value && (!S.value.writable || $.data.credential_kind !== S.value.credential_kind)) {
+      if (B.value) return;
+      if (!$.success || $.data.agent !== D.value || U.value && (!U.value.writable || $.data.credential_kind !== U.value.credential_kind)) {
         m.value = "Invalid account submission.";
         return;
       }
       const O = $.data;
-      m.value = "", D.value = !0;
+      m.value = "", B.value = !0;
       try {
-        if (S.value) {
-          const N = await Y.updateAccount(S.value.id, {
+        if (U.value) {
+          const N = await Y.updateAccount(U.value.id, {
             label: O.label,
             endpoint: O.endpoint ?? { base_url: "" },
             ...O.secret ? { secret: O.secret } : {}
@@ -1579,18 +1579,18 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
           R.value = N.health_error ? `Account saved, but its health could not be refreshed: ${N.health_error.message}` : "";
         } else await Y.createAccount(O);
         if (!a()) return;
-        Z.value++, U.value = !1, await G();
+        ee.value++, S.value = !1, await G();
       } catch (N) {
         a() && (m.value = se(N, "Could not save the account."));
       } finally {
-        a() && (D.value = !1);
+        a() && (B.value = !1);
       }
     }
     pe(L, (g) => I("count", g.length));
-    const d = (g, $, O) => J(async () => {
+    const u = (g, $, O) => J(async () => {
       const N = await Y.updateAccount(g.id, $);
       a() && N.health_error && (R.value = `Account saved, but its health could not be refreshed: ${N.health_error.message}`);
-    }, O), n = (g) => d(g, { enabled: !g.enabled }, "Could not update the account."), h = (g, $) => d(g, { label: $ }, "Could not rename the account.");
+    }, O), n = (g) => u(g, { enabled: !g.enabled }, "Could not update the account."), h = (g, $) => u(g, { label: $ }, "Could not rename the account.");
     async function k(g) {
       const $ = await we.confirm({
         header: "Delete account",
@@ -1637,7 +1637,7 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
         e("div", { class: "kx-empty-title" }, "No matches", -1),
         e("div", { class: "kx-empty-sub" }, "Try another account or agent.", -1)
       ])])) : f("", !0),
-      (t(!0), l(z, null, ee(ae.value, (O) => (t(), l("section", {
+      (t(!0), l(z, null, Z(ae.value, (O) => (t(), l("section", {
         key: O.agent.id,
         class: "ac-stack"
       }, [
@@ -1651,7 +1651,7 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
           e("span", Il, i(O.accounts.filter((N) => N.usable && o(Fe)(N, o(H)) === "ready").length) + " of " + i(O.accounts.length) + " ready", 1)
         ]),
         e("ul", Nl, [
-          (t(!0), l(z, null, ee(O.accounts, (N) => (t(), oe(Cl, {
+          (t(!0), l(z, null, Z(O.accounts, (N) => (t(), oe(Cl, {
             key: N.id,
             account: N,
             "kind-label": le(N),
@@ -1663,25 +1663,25 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
           }, null, 8, ["account", "kind-label", "owner-label", "onEdit", "onToggle", "onRename", "onRemove"]))), 128))
         ])
       ]))), 128)),
-      U.value ? (t(), oe(Le, {
+      S.value ? (t(), oe(Le, {
         key: 5,
-        title: S.value ? "Edit account" : "Add account",
-        busy: D.value,
-        onClose: $[2] || ($[2] = (O) => U.value = !1)
+        title: U.value ? "Edit account" : "Add account",
+        busy: B.value,
+        onClose: $[2] || ($[2] = (O) => S.value = !1)
       }, {
         default: me(() => [
           e("div", Pl, [
-            S.value ? f("", !0) : (t(), oe(We, {
+            U.value ? f("", !0) : (t(), oe(We, {
               key: 0,
-              disabled: D.value,
-              modelValue: B.value,
-              "onUpdate:modelValue": $[1] || ($[1] = (O) => B.value = O),
+              disabled: B.value,
+              modelValue: D.value,
+              "onUpdate:modelValue": $[1] || ($[1] = (O) => D.value = O),
               agents: o(E).agents
             }, null, 8, ["disabled", "modelValue", "agents"])),
-            S.value ? f("", !0) : (t(), l("p", Ol, "Tasks balance across your ready accounts automatically.")),
-            C.value ? (t(), l("chestor-autocode-driver-account", {
+            U.value ? f("", !0) : (t(), l("p", Ol, "Tasks balance across your ready accounts automatically.")),
+            V.value ? (t(), l("chestor-autocode-driver-account", {
               key: 2,
-              "^config": V.value,
+              "^config": C.value,
               onSubmit: b
             }, null, 40, ql)) : (t(), l("p", Bl, "This account’s agent is unavailable."))
           ])
@@ -1726,16 +1726,16 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
     query: {}
   },
   emits: ["count"],
-  setup(s, { expose: u, emit: v }) {
-    const a = Ie(), F = s, A = v, I = ke(), U = p([]), S = p([]), T = p([]), q = p([]), E = p([]), H = p(""), L = p(""), x = p(!0), _ = p(!1), R = p(0), W = p(!1), D = p(null), m = p(null), Z = p(""), B = p(""), C = p(""), V = X(() => I.value.agents.find((b) => b.id === m.value?.agent)), ae = X(() => U.value.filter((b) => `${b.title} ${b.agent}`.toLowerCase().includes(F.query.toLowerCase()))), le = Ve(async () => {
+  setup(s, { expose: d, emit: v }) {
+    const a = Ie(), F = s, A = v, I = ke(), S = p([]), U = p([]), T = p([]), q = p([]), E = p([]), H = p(""), L = p(""), x = p(!0), _ = p(!1), R = p(0), W = p(!1), B = p(null), m = p(null), ee = p(""), D = p(""), V = p(""), C = X(() => I.value.agents.find((b) => b.id === m.value?.agent)), ae = X(() => S.value.filter((b) => `${b.title} ${b.agent}`.toLowerCase().includes(F.query.toLowerCase()))), le = Ve(async () => {
       try {
         await Pe(
           () => Promise.all([Y.profiles(), Y.accounts(), Y.images(), Y.workspaces()]),
-          ([b, d, n, h]) => [...b.map((k) => k.id), ...d.map((k) => k.id), ...n.map((k) => k.id), ...h.workspaces.map((k) => k.id)],
-          S,
+          ([b, u, n, h]) => [...b.map((k) => k.id), ...u.map((k) => k.id), ...n.map((k) => k.id), ...h.workspaces.map((k) => k.id)],
+          U,
           a,
-          ([b, d, n, h]) => {
-            U.value = b, T.value = d, q.value = n, E.value = h.workspaces, A("count", b.length), H.value = "";
+          ([b, u, n, h]) => {
+            S.value = b, T.value = u, q.value = n, E.value = h.workspaces, A("count", b.length), H.value = "";
           },
           () => {
             le();
@@ -1747,10 +1747,10 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
         a() && (x.value = !1);
       }
     }, a);
-    Ne(() => S.value, le), $e(le);
-    function K(b, d = !1) {
-      D.value = b && !d ? b.id : null, m.value = b ? {
-        title: b.title + (d ? " copy" : ""),
+    Ne(() => U.value, le), $e(le);
+    function K(b, u = !1) {
+      B.value = b && !u ? b.id : null, m.value = b ? {
+        title: b.title + (u ? " copy" : ""),
         agent: b.agent,
         account_id: b.account_id ?? "",
         account_pool: [...b.account_pool ?? []],
@@ -1762,17 +1762,17 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
         run_timeout: b.run_timeout,
         options: JSON.parse(JSON.stringify(b.options)),
         unattended: b.unattended
-      } : { title: "", agent: I.value.agents[0]?.id ?? "", image_id: "", options: {}, account_pool: [], account_id: "", workspace_id: "" }, Z.value = b?.endpoint?.protocol ?? V.value?.endpoints[0] ?? "", B.value = b?.endpoint?.base_url ?? "", C.value = b?.endpoint?.model ?? "", R.value = 0, L.value = "";
+      } : { title: "", agent: I.value.agents[0]?.id ?? "", image_id: "", options: {}, account_pool: [], account_id: "", workspace_id: "" }, ee.value = b?.endpoint?.protocol ?? C.value?.endpoints[0] ?? "", D.value = b?.endpoint?.base_url ?? "", V.value = b?.endpoint?.model ?? "", R.value = 0, L.value = "";
     }
     function G() {
-      m.value && (m.value.account_id = "", m.value.account_pool = [], m.value.options = {}, Z.value = V.value?.endpoints[0] ?? "", B.value = "", C.value = "");
+      m.value && (m.value.account_id = "", m.value.account_pool = [], m.value.options = {}, ee.value = C.value?.endpoints[0] ?? "", D.value = "", V.value = "");
     }
     async function te() {
       if (!(!m.value || _.value || R.value || W.value)) {
         _.value = !0, L.value = "";
         try {
-          const b = { ...m.value, account_pool: m.value.account_id ? [] : m.value.account_pool, endpoint: B.value ? { protocol: Z.value, base_url: B.value.trim(), model: C.value.trim() || void 0 } : { protocol: Z.value, base_url: "" } };
-          if (D.value ? await Y.updateProfile(D.value, b) : await Y.createProfile(b), !a()) return;
+          const b = { ...m.value, account_pool: m.value.account_id ? [] : m.value.account_pool };
+          if (C.value?.endpoints.length ? b.endpoint = { protocol: ee.value, base_url: D.value.trim(), model: V.value.trim() || void 0 } : B.value && S.value.some((u) => u.id === B.value && u.endpoint?.base_url) && (b.endpoint = { protocol: "", base_url: "" }), B.value ? await Y.updateProfile(B.value, b) : await Y.createProfile(b), !a()) return;
           m.value = null, await le();
         } catch (b) {
           a() && (L.value = se(b, "Could not save the profile."));
@@ -1785,22 +1785,22 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
       if (await we.confirm({ header: "Delete profile", message: `Delete ${b.title}?`, acceptLabel: "Delete" }))
         try {
           await Y.deleteProfile(b.id), await le();
-        } catch (d) {
-          a() && (H.value = se(d, "Could not delete the profile."));
+        } catch (u) {
+          a() && (H.value = se(u, "Could not delete the profile."));
         }
     }
-    return u({ open: K }), (b, d) => (t(), l("section", { "aria-busy": x.value }, [
+    return d({ open: K }), (b, u) => (t(), l("section", { "aria-busy": x.value }, [
       x.value ? (t(), l("p", jl, "Loading profiles…")) : H.value ? (t(), l("div", Wl, [
         M(i(H.value) + " ", 1),
         e("button", {
           type: "button",
           class: "ac-btn kx-focus-halo",
           "aria-label": "Retry profiles",
-          onClick: d[0] || (d[0] = //@ts-ignore
+          onClick: u[0] || (u[0] = //@ts-ignore
           (...n) => o(le) && o(le)(...n))
         }, "Retry")
-      ])) : U.value.length ? ae.value.length ? (t(), l("ul", Hl, [
-        (t(!0), l(z, null, ee(ae.value, (n) => (t(), l("li", {
+      ])) : S.value.length ? ae.value.length ? (t(), l("ul", Hl, [
+        (t(!0), l(z, null, Z(ae.value, (n) => (t(), l("li", {
           key: n.id,
           class: "ac-row ac-account ac-hover-actions"
         }, [
@@ -1841,12 +1841,12 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
             ], 8, an)) : f("", !0)
           ])
         ]))), 128))
-      ])) : (t(), l("p", zl, "No matches.")) : (t(), l("p", Jl, "Create a profile to reuse an agent, endpoint and task settings.")),
+      ])) : (t(), l("p", zl, "No matches.")) : (t(), l("p", Jl, "Create a profile to reuse agent and task settings.")),
       m.value ? (t(), oe(Le, {
         key: 5,
-        title: D.value ? "Edit profile" : "Create profile",
+        title: B.value ? "Edit profile" : "Create profile",
         busy: _.value,
-        onClose: d[19] || (d[19] = (n) => m.value = null)
+        onClose: u[19] || (u[19] = (n) => m.value = null)
       }, {
         default: me(() => [
           e("form", {
@@ -1859,9 +1859,9 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
               disabled: _.value
             }, [
               e("label", on, [
-                d[20] || (d[20] = e("span", null, "Title", -1)),
+                u[20] || (u[20] = e("span", null, "Title", -1)),
                 Q(e("input", {
-                  "onUpdate:modelValue": d[1] || (d[1] = (n) => m.value.title = n),
+                  "onUpdate:modelValue": u[1] || (u[1] = (n) => m.value.title = n),
                   "aria-label": "Profile title",
                   class: "kx-focus-halo",
                   required: "",
@@ -1871,13 +1871,13 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
                 ])
               ]),
               e("label", sn, [
-                d[21] || (d[21] = e("span", null, "Agent", -1)),
+                u[21] || (u[21] = e("span", null, "Agent", -1)),
                 Q(e("select", {
-                  "onUpdate:modelValue": d[2] || (d[2] = (n) => m.value.agent = n),
+                  "onUpdate:modelValue": u[2] || (u[2] = (n) => m.value.agent = n),
                   class: "kx-focus-halo",
                   onChange: G
                 }, [
-                  (t(!0), l(z, null, ee(o(I).agents, (n) => (t(), l("option", {
+                  (t(!0), l(z, null, Z(o(I).agents, (n) => (t(), l("option", {
                     key: n.id,
                     value: n.id
                   }, i(n.title), 9, un))), 128))
@@ -1886,13 +1886,13 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
                 ])
               ]),
               e("label", dn, [
-                d[23] || (d[23] = e("span", null, "Account", -1)),
+                u[23] || (u[23] = e("span", null, "Account", -1)),
                 Q(e("select", {
-                  "onUpdate:modelValue": d[3] || (d[3] = (n) => m.value.account_id = n),
+                  "onUpdate:modelValue": u[3] || (u[3] = (n) => m.value.account_id = n),
                   class: "kx-focus-halo"
                 }, [
-                  d[22] || (d[22] = e("option", { value: "" }, "Auto balance", -1)),
-                  (t(!0), l(z, null, ee(T.value.filter((n) => n.agent === m.value?.agent), (n) => (t(), l("option", {
+                  u[22] || (u[22] = e("option", { value: "" }, "Auto balance", -1)),
+                  (t(!0), l(z, null, Z(T.value.filter((n) => n.agent === m.value?.agent), (n) => (t(), l("option", {
                     key: n.id,
                     value: n.id
                   }, i(n.label), 9, cn))), 128))
@@ -1901,13 +1901,13 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
                 ])
               ]),
               m.value.account_id ? f("", !0) : (t(), l("label", rn, [
-                d[24] || (d[24] = e("span", null, "Account pool (empty uses all usable accounts)", -1)),
+                u[24] || (u[24] = e("span", null, "Account pool (empty uses all usable accounts)", -1)),
                 Q(e("select", {
-                  "onUpdate:modelValue": d[4] || (d[4] = (n) => m.value.account_pool = n),
+                  "onUpdate:modelValue": u[4] || (u[4] = (n) => m.value.account_pool = n),
                   multiple: "",
                   class: "kx-focus-halo"
                 }, [
-                  (t(!0), l(z, null, ee(T.value.filter((n) => n.agent === m.value?.agent), (n) => (t(), l("option", {
+                  (t(!0), l(z, null, Z(T.value.filter((n) => n.agent === m.value?.agent), (n) => (t(), l("option", {
                     key: n.id,
                     value: n.id
                   }, i(n.label), 9, vn))), 128))
@@ -1916,14 +1916,14 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
                 ])
               ])),
               e("label", pn, [
-                d[26] || (d[26] = e("span", null, "Image", -1)),
+                u[26] || (u[26] = e("span", null, "Image", -1)),
                 Q(e("select", {
-                  "onUpdate:modelValue": d[5] || (d[5] = (n) => m.value.image_id = n),
+                  "onUpdate:modelValue": u[5] || (u[5] = (n) => m.value.image_id = n),
                   required: "",
                   class: "kx-focus-halo"
                 }, [
-                  d[25] || (d[25] = e("option", { value: "" }, "Choose an image", -1)),
-                  (t(!0), l(z, null, ee(q.value.filter((n) => n.agents.includes(m.value?.agent ?? "")), (n) => (t(), l("option", {
+                  u[25] || (u[25] = e("option", { value: "" }, "Choose an image", -1)),
+                  (t(!0), l(z, null, Z(q.value.filter((n) => n.agents.includes(m.value?.agent ?? "")), (n) => (t(), l("option", {
                     key: n.id,
                     value: n.id
                   }, i(n.label), 9, gn))), 128))
@@ -1932,13 +1932,13 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
                 ])
               ]),
               e("label", fn, [
-                d[28] || (d[28] = e("span", null, "Workspace", -1)),
+                u[28] || (u[28] = e("span", null, "Workspace", -1)),
                 Q(e("select", {
-                  "onUpdate:modelValue": d[6] || (d[6] = (n) => m.value.workspace_id = n),
+                  "onUpdate:modelValue": u[6] || (u[6] = (n) => m.value.workspace_id = n),
                   class: "kx-focus-halo"
                 }, [
-                  d[27] || (d[27] = e("option", { value: "" }, "Scratch directory", -1)),
-                  (t(!0), l(z, null, ee(E.value, (n) => (t(), l("option", {
+                  u[27] || (u[27] = e("option", { value: "" }, "Scratch directory", -1)),
+                  (t(!0), l(z, null, Z(E.value, (n) => (t(), l("option", {
                     key: n.id,
                     value: n.id
                   }, i(n.name), 9, mn))), 128))
@@ -1946,47 +1946,47 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
                   [de, m.value.workspace_id]
                 ])
               ]),
-              V.value?.endpoints.length ? (t(), l(z, { key: 1 }, [
+              C.value?.endpoints.length ? (t(), l(z, { key: 1 }, [
                 e("label", hn, [
-                  d[29] || (d[29] = e("span", null, "Endpoint protocol", -1)),
+                  u[29] || (u[29] = e("span", null, "Endpoint protocol", -1)),
                   Q(e("select", {
-                    "onUpdate:modelValue": d[7] || (d[7] = (n) => Z.value = n),
+                    "onUpdate:modelValue": u[7] || (u[7] = (n) => ee.value = n),
                     class: "kx-focus-halo"
                   }, [
-                    (t(!0), l(z, null, ee(V.value.endpoints, (n) => (t(), l("option", {
+                    (t(!0), l(z, null, Z(C.value.endpoints, (n) => (t(), l("option", {
                       key: n,
                       value: n
                     }, i(n), 9, kn))), 128))
                   ], 512), [
-                    [de, Z.value]
+                    [de, ee.value]
                   ])
                 ]),
                 e("label", bn, [
-                  d[30] || (d[30] = e("span", null, "Endpoint URL", -1)),
+                  u[30] || (u[30] = e("span", null, "Endpoint URL", -1)),
                   Q(e("input", {
-                    "onUpdate:modelValue": d[8] || (d[8] = (n) => B.value = n),
+                    "onUpdate:modelValue": u[8] || (u[8] = (n) => D.value = n),
                     class: "kx-focus-halo",
                     placeholder: "Use account endpoint",
                     maxlength: "512"
                   }, null, 512), [
-                    [ue, B.value]
+                    [ue, D.value]
                   ])
                 ]),
                 e("label", yn, [
-                  d[31] || (d[31] = e("span", null, "Endpoint model", -1)),
+                  u[31] || (u[31] = e("span", null, "Endpoint model", -1)),
                   Q(e("input", {
-                    "onUpdate:modelValue": d[9] || (d[9] = (n) => C.value = n),
+                    "onUpdate:modelValue": u[9] || (u[9] = (n) => V.value = n),
                     class: "kx-focus-halo",
                     maxlength: "200"
                   }, null, 512), [
-                    [ue, C.value]
+                    [ue, V.value]
                   ])
                 ])
               ], 64)) : f("", !0),
               e("label", _n, [
-                d[32] || (d[32] = e("span", null, "Repository URL", -1)),
+                u[32] || (u[32] = e("span", null, "Repository URL", -1)),
                 Q(e("input", {
-                  "onUpdate:modelValue": d[10] || (d[10] = (n) => m.value.repo_url = n),
+                  "onUpdate:modelValue": u[10] || (u[10] = (n) => m.value.repo_url = n),
                   class: "kx-focus-halo",
                   maxlength: "2000"
                 }, null, 512), [
@@ -1994,9 +1994,9 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
                 ])
               ]),
               e("label", $n, [
-                d[33] || (d[33] = e("span", null, "Repository ref", -1)),
+                u[33] || (u[33] = e("span", null, "Repository ref", -1)),
                 Q(e("input", {
-                  "onUpdate:modelValue": d[11] || (d[11] = (n) => m.value.repo_ref = n),
+                  "onUpdate:modelValue": u[11] || (u[11] = (n) => m.value.repo_ref = n),
                   class: "kx-focus-halo",
                   maxlength: "200"
                 }, null, 512), [
@@ -2004,9 +2004,9 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
                 ])
               ]),
               e("label", wn, [
-                d[34] || (d[34] = e("span", null, "Run timeout", -1)),
+                u[34] || (u[34] = e("span", null, "Run timeout", -1)),
                 Q(e("input", {
-                  "onUpdate:modelValue": d[12] || (d[12] = (n) => m.value.run_timeout = n),
+                  "onUpdate:modelValue": u[12] || (u[12] = (n) => m.value.run_timeout = n),
                   class: "kx-focus-halo",
                   placeholder: "Use configured timeout",
                   maxlength: "64"
@@ -2014,34 +2014,34 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
                   [ue, m.value.run_timeout]
                 ])
               ]),
-              V.value?.unattended ? (t(), l("label", xn, [
+              C.value?.unattended ? (t(), l("label", xn, [
                 e("input", {
                   checked: m.value.unattended !== !1,
-                  onChange: d[13] || (d[13] = (n) => m.value.unattended = n.target.checked),
+                  onChange: u[13] || (u[13] = (n) => m.value.unattended = n.target.checked),
                   type: "checkbox",
                   class: "kx-focus-outline"
                 }, null, 40, Cn),
-                d[35] || (d[35] = M("Unattended · skip permission prompts when the image allows it", -1))
+                u[35] || (u[35] = M("Unattended · skip permission prompts when the image allows it", -1))
               ])) : f("", !0),
               P(Me, {
                 modelValue: m.value.tools,
-                "onUpdate:modelValue": d[14] || (d[14] = (n) => m.value.tools = n),
+                "onUpdate:modelValue": u[14] || (u[14] = (n) => m.value.tools = n),
                 agent: m.value.agent,
-                onInvalid: d[15] || (d[15] = (n) => W.value = n)
+                onInvalid: u[15] || (u[15] = (n) => W.value = n)
               }, null, 8, ["modelValue", "agent"]),
-              V.value ? (t(), oe(je, {
-                key: V.value.id,
+              C.value ? (t(), oe(je, {
+                key: C.value.id,
                 modelValue: m.value.options,
-                "onUpdate:modelValue": d[16] || (d[16] = (n) => m.value.options = n),
-                options: V.value.options,
-                defaults: m.value.unattended !== !1 ? V.value.unattended : {},
-                onInvalid: d[17] || (d[17] = (n) => R.value = n)
+                "onUpdate:modelValue": u[16] || (u[16] = (n) => m.value.options = n),
+                options: C.value.options,
+                defaults: m.value.unattended !== !1 ? C.value.unattended : {},
+                onInvalid: u[17] || (u[17] = (n) => R.value = n)
               }, null, 8, ["modelValue", "options", "defaults"])) : f("", !0),
               e("footer", Vn, [
                 e("button", {
                   type: "button",
                   class: "ac-btn kx-focus-halo",
-                  onClick: d[18] || (d[18] = (n) => m.value = null)
+                  onClick: u[18] || (u[18] = (n) => m.value = null)
                 }, "Cancel"),
                 e("button", {
                   type: "submit",
@@ -2074,33 +2074,33 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
 }, Pn = /* @__PURE__ */ re({
   __name: "autocode",
   setup(s) {
-    const u = Qe(), v = Xe(), a = p(null);
-    pe(() => u.value?.route, () => {
+    const d = Qe(), v = Xe(), a = p(null);
+    pe(() => d.value?.route, () => {
       a.value = null;
     });
-    const F = X(() => a.value ?? u.value?.route ?? ""), A = X(() => {
-      const B = /^\/?runs\/([^/]+)\/?$/.exec(F.value);
+    const F = X(() => a.value ?? d.value?.route ?? ""), A = X(() => {
+      const D = /^\/?runs\/([^/]+)\/?$/.exec(F.value);
       try {
-        return B ? decodeURIComponent(B[1]) : "";
+        return D ? decodeURIComponent(D[1]) : "";
       } catch {
         return "";
       }
     }), I = X(() => !!F.value && F.value !== "/" && !A.value);
-    function U(B) {
-      T.value = "tasks", a.value = B, v("navigate", { path: B });
+    function S(D) {
+      T.value = "tasks", a.value = D, v("navigate", { path: D });
     }
-    const S = [
+    const U = [
       { id: "tasks", label: "Tasks", icon: "tabler:player-play" },
       { id: "profiles", label: "Profiles", icon: "tabler:robot" },
       { id: "accounts", label: "Accounts", icon: "tabler:key" }
-    ], T = p("tasks"), { catalog: q, error: E, load: H } = lt(), L = p(""), x = p(0), _ = p(null), R = p(null), W = p(null), D = p("");
-    async function m(B) {
-      B && (D.value = B), T.value = "accounts", L.value = "", await Te(), W.value?.open();
+    ], T = p("tasks"), { catalog: q, error: E, load: H } = lt(), L = p(""), x = p(0), _ = p(null), R = p(null), W = p(null), B = p("");
+    async function m(D) {
+      D && (B.value = D), T.value = "accounts", L.value = "", await Te(), W.value?.open();
     }
-    function Z() {
+    function ee() {
       T.value === "tasks" ? _.value?.open() : T.value === "profiles" ? R.value?.open() : W.value?.open();
     }
-    return (B, C) => (t(), l("div", Un, [
+    return (D, V) => (t(), l("div", Un, [
       !A.value && !I.value ? (t(), oe(nt, {
         key: 0,
         title: "Autocode",
@@ -2108,32 +2108,32 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
         count: `${x.value} ${T.value === "tasks" ? "task" : T.value === "profiles" ? "profile" : "account"}${x.value === 1 ? "" : "s"}`,
         action: T.value === "tasks" ? "New task" : T.value === "profiles" ? "Create profile" : "Add account",
         query: L.value,
-        "onUpdate:query": C[0] || (C[0] = (V) => L.value = V),
+        "onUpdate:query": V[0] || (V[0] = (C) => L.value = C),
         placeholder: T.value === "tasks" ? "Search tasks…" : T.value === "profiles" ? "Search profiles…" : "Search accounts…",
-        onCreate: Z
+        onCreate: ee
       }, null, 8, ["count", "action", "query", "placeholder"])) : f("", !0),
       !A.value && !I.value ? (t(), l("div", Tn, [
         e("nav", Ln, [
-          (t(), l(z, null, ee(S, (V) => e("button", {
-            key: V.id,
+          (t(), l(z, null, Z(U, (C) => e("button", {
+            key: C.id,
             type: "button",
-            class: ce(["ac-tab kx-focus-outline", { active: T.value === V.id }]),
-            "aria-pressed": T.value === V.id,
+            class: ce(["ac-tab kx-focus-outline", { active: T.value === C.id }]),
+            "aria-pressed": T.value === C.id,
             onClick: (ae) => {
-              T.value !== V.id && (T.value = V.id, L.value = "", x.value = 0);
+              T.value !== C.id && (T.value = C.id, L.value = "", x.value = 0);
             }
           }, [
             P(o(j), {
-              icon: V.icon
+              icon: C.icon
             }, null, 8, ["icon"]),
-            M(" " + i(V.label), 1)
+            M(" " + i(C.label), 1)
           ], 10, Fn)), 64))
         ]),
         o(q)?.settings_path && (o(q).can_images || o(q).can_workspaces || o(q).can_prune) ? (t(), l("a", {
           key: 0,
           class: "ac-link kx-focus-outline",
           href: o(q).settings_path,
-          onClick: C[1] || (C[1] = _e((V) => o(we).navigate(o(q).settings_path), ["prevent"]))
+          onClick: V[1] || (V[1] = _e((C) => o(we).navigate(o(q).settings_path), ["prevent"]))
         }, "Images, workspaces and Docker", 8, Rn)) : f("", !0)
       ])) : f("", !0),
       o(E) && !o(q) ? (t(), l("p", En, [
@@ -2141,19 +2141,19 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
         e("button", {
           class: "ac-link kx-focus-outline",
           type: "button",
-          onClick: C[2] || (C[2] = //@ts-ignore
-          (...V) => o(H) && o(H)(...V))
+          onClick: V[2] || (V[2] = //@ts-ignore
+          (...C) => o(H) && o(H)(...C))
         }, "Retry")
       ])) : o(q) ? (t(), l("main", {
         key: 4,
         class: ce(["ac-body", { "ac-detail-page": A.value || I.value }])
       }, [
         I.value ? (t(), l("div", Nn, [
-          C[11] || (C[11] = e("h1", null, "Run not found", -1)),
+          V[11] || (V[11] = e("h1", null, "Run not found", -1)),
           e("button", {
             type: "button",
             class: "ac-btn kx-focus-halo",
-            onClick: C[3] || (C[3] = (V) => U(""))
+            onClick: V[3] || (V[3] = (C) => S(""))
           }, "Back to tasks")
         ])) : A.value || T.value === "tasks" ? (t(), oe(Xa, {
           key: 1,
@@ -2161,31 +2161,31 @@ const dl = { class: "ac-account-main" }, cl = { class: "ac-row-title" }, rl = ["
           ref: _,
           query: L.value,
           "run-id": A.value,
-          onOpen: C[4] || (C[4] = (V) => U("runs/" + encodeURIComponent(V))),
-          onClose: C[5] || (C[5] = (V) => U("")),
-          onCount: C[6] || (C[6] = (V) => x.value = V),
-          onAgentChanged: C[7] || (C[7] = (V) => D.value = V),
+          onOpen: V[4] || (V[4] = (C) => S("runs/" + encodeURIComponent(C))),
+          onClose: V[5] || (V[5] = (C) => S("")),
+          onCount: V[6] || (V[6] = (C) => x.value = C),
+          onAgentChanged: V[7] || (V[7] = (C) => B.value = C),
           onGoto: m
         }, null, 8, ["query", "run-id"])) : T.value === "profiles" ? (t(), oe(Sn, {
           key: 2,
           ref_key: "profiles",
           ref: R,
           query: L.value,
-          onCount: C[8] || (C[8] = (V) => x.value = V)
+          onCount: V[8] || (V[8] = (C) => x.value = C)
         }, null, 8, ["query"])) : (t(), oe(Dl, {
           key: 3,
           ref_key: "accounts",
           ref: W,
           query: L.value,
-          "selected-agent": D.value,
-          onCount: C[9] || (C[9] = (V) => x.value = V)
+          "selected-agent": B.value,
+          onCount: V[9] || (V[9] = (C) => x.value = C)
         }, null, 8, ["query", "selected-agent"]))
       ], 2)) : (t(), l("div", In, [
         P(o(j), {
           icon: "tabler:loader-2",
           class: "spin"
         }),
-        C[10] || (C[10] = M(" Loading…", -1))
+        V[10] || (V[10] = M(" Loading…", -1))
       ]))
     ]));
   }

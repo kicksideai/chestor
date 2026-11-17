@@ -23,9 +23,10 @@ wippy install
 
 Apply host bindings and migrations through the application install plan.
 Administrators prepare images and register workspaces; members add accounts
-and start tasks. Account grants allow grantees to run with the stored credential,
-including subscription logins. Use official API keys or your own endpoints for
-production or multiple users.
+and start tasks. Claude Code uses a subscription login through its CLI login file
+or an OAuth token. Use a driver that offers API keys or custom endpoints for
+production or multiple users. Account grants allow grantees to run with the stored
+credential, including subscription logins.
 
 ## Requirements
 
@@ -47,7 +48,7 @@ Assign the `chestor.autocode.security:module_management` policy to image/workspa
 
 The optional per-run gateway uses the host-installed `kickside/agents` tools contract; ordinary runs add no Agents, Connection, Uploads or Relay bindings.
 
-The module depends on `bee/drivers`, `kickside/component`, `kickside/contract`,
+The module depends on `bee/drivers` 0.1.26 or newer, `kickside/component`, `kickside/contract`,
 `kickside/jobs`, `kickside/execution`, `kickside/settings`, `kickside/blocks`,
 and `wippy/migration`. Bind `bee.drivers:activation` to
 `chestor.autocode.drivers:activation`. Bind `bee.drivers:host_environment` and

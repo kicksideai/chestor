@@ -7,18 +7,57 @@ local function cases()
         local f = require("contract_fixture").new()
         test.after_each(f.release)
         local contract = "chestor.autocode:profiles"
+        test.it("refuses a custom endpoint on Claude profile creation and update", function()
+            local user = f.member()
+            local body = {title = "Claude subscription", agent = "claude", image_id = f.image_for(user),
+                endpoint = {protocol = "anthropic-messages", base_url = "https://models.example/v1"}}
+            local created, create_err = f.call(user, "add_profile", body, contract)
+            test.is_nil(created)
+            test.is_true(errors.is(create_err, errors.INVALID), tostring(create_err))
+            test.eq(create_err:details().code, "autocode.invalid_profile")
+            local reach = body.endpoint
+            body.endpoint = nil
+            local profile = f.call(user, "add_profile", body, contract)
+            local updated, update_err = f.call(user, "update_profile", {id = profile.id, endpoint = reach}, contract)
+            test.is_nil(updated)
+            test.is_true(errors.is(update_err, errors.INVALID), tostring(update_err))
+            test.eq(update_err:details().code, "autocode.invalid_profile")
+        end)
         local function add(user, patch)
-            local body = {title = "DeepSeek", agent = "claude", image_id = f.image_for(user),
-                endpoint = {protocol = "anthropic-messages", base_url = "https://models.example/v1", model = "deepseek"}, options = {model = "sonnet"}}
+            local body = {title = "Claude subscription", agent = "claude", options = {model = "sonnet"}}
             for key, value in pairs(patch or {}) do body[key] = value end
+            body.image_id = body.image_id or f.image_for(user, body.agent)
             return f.call(user, "add_profile", body, contract), body
+        end
+        local function endpoint(url)
+            return {protocol = "openai-responses", base_url = url, model = "fixture-model"}
+        end
+        local function codex_profile(user, image, pool)
+            return add(user, {title = "Codex endpoint", agent = "codex", image_id = image, account_pool = pool,
+                endpoint = endpoint("https://models.example/v1"), options = {}})
+        end
+        local function endpoint_account(user, label, reach)
+            local result, err = f.call(user, "add_account", {agent = "codex", credential_kind = "env:CODEX_API_KEY",
+                label = label, secret = "test-key-" .. label, endpoint = reach}, "chestor.autocode:accounts")
+            test.is_nil(err, tostring(err))
+            return result
+        end
+        local function prepared_endpoint(prepared, url)
+            for _, file in ipairs(prepared.launch.files) do
+                if file.path == ".codex/config.toml" then
+                    test.not_nil(url)
+                    test.not_nil(file.content:find('base_url = "' .. url .. '"', 1, true))
+                    return
+                end
+            end
+            test.is_nil(url, "expected a Codex endpoint configuration file")
         end
         test.it("uses owner_user_id consistently while preserving published ownership aliases", function()
             local user = f.member()
             local profile = add(user)
             local profiles = f.call(user, "list_profiles", {}, contract).profiles
             for _, item in ipairs(profiles) do if item.id == profile.id then test.eq(item.owner_user_id, user.id); test.eq(item.owner, user.id) end end
-            local account = f.call(user, "add_account", {agent = "claude", label = "owner", credential_kind = "env:ANTHROPIC_API_KEY", secret = "key"}, "chestor.autocode:accounts")
+            local account = f.call(user, "add_account", {agent = "claude", label = "owner", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", secret = "test-subscription"}, "chestor.autocode:accounts")
             local accounts = f.call(user, "list_accounts", {}).accounts
             local own
             for _, item in ipairs(accounts) do if item.id == account.id then own = item end end
@@ -32,19 +71,20 @@ local function cases()
         end)
         test.it("freezes both the presence and absence of the reserved account endpoint", function()
             local user = f.member()
+            local image = f.image_for(user, "codex")
             for _, custom in ipairs({false, true}) do
-                local initial = custom and {protocol = "anthropic-messages", base_url = "https://original.example/v1"} or nil
-                local account = f.call(user, "add_account", {agent = "claude", label = "key", credential_kind = "env:ANTHROPIC_API_KEY", secret = "key", endpoint = initial}, "chestor.autocode:accounts")
-                local submitted = f.call(user, "submit_task", {agent = "claude", image_id = f.image_for(user), account_id = account.id, prompt = "snapshot"})
-                test.not_nil(f.call(user, "update_account", {id = account.id, endpoint = {protocol = "anthropic-messages", base_url = "https://changed.example/v1"}}, "chestor.autocode:accounts"))
+                local initial = custom and endpoint("https://original.example/v1") or nil
+                local account = endpoint_account(user, "Key", initial)
+                local submitted = f.call(user, "submit_task", {agent = "codex", image_id = image, account_id = account.id, prompt = "snapshot"})
+                test.not_nil(f.call(user, "update_account", {id = account.id, endpoint = endpoint("https://changed.example/v1")}, "chestor.autocode:accounts"))
                 local prepared, err = identity.call(user, "chestor.autocode.service:prepare", {run_id = submitted.run_id})
                 test.is_nil(err, tostring(err))
-                test.eq(prepared.launch.environment.ANTHROPIC_BASE_URL, initial and initial.base_url or nil)
+                prepared_endpoint(prepared, initial and initial.base_url or nil)
             end
         end)
         test.it("clears inherited timeout and ref through the workflow arm", function()
             local user = f.member()
-            f.call(user, "add_account", {agent = "claude", label = "key", credential_kind = "env:ANTHROPIC_API_KEY", secret = "key"}, "chestor.autocode:accounts")
+            f.call(user, "add_account", {agent = "claude", label = "Login", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", secret = "test-subscription"}, "chestor.autocode:accounts")
             local profile = add(user, {run_timeout = "3m", repo_url = "https://example.invalid/repo", repo_ref = "feature"})
             local direct = f.call(user, "submit_task", {agent = "claude", image_id = f.image_for(user), prompt = "default"})
             local armed, err = identity.call(user, "chestor.autocode.blocks:arm_task", {dataflow_id = f.flow_for(user), signal_id = "signal", idempotency_key = "clear-profile-fields",
@@ -56,18 +96,17 @@ local function cases()
         end)
         test.it("rebalances an endpoint snapshot with its account while preserving explicit profile endpoints", function()
             local user = f.member()
-            local image = f.image_for(user)
+            local image = f.image_for(user, "codex")
             local endpoints, pool = {}, {}
             for _, label in ipairs({"a", "b"}) do
                 local url = "https://" .. label .. ".example/v1"
-                local account = f.call(user, "add_account", {agent = "claude", label = label, credential_kind = "env:ANTHROPIC_API_KEY", secret = "key-" .. label,
-                    endpoint = {protocol = "anthropic-messages", base_url = url}}, "chestor.autocode:accounts")
+                local account = endpoint_account(user, label, endpoint(url))
                 endpoints[account.id] = url
                 pool[#pool + 1] = account.id
             end
             for _, explicit in ipairs({false, true}) do
-                local profile = explicit and add(user, {account_pool = pool}) or nil
-                local run_id, err = identity.call(user, "app:fixture_scheduled_task", profile and {profile_id = profile.id, agent = "", image_id = "", options = {}, repo_url = "", prompt = "task"} or {agent = "claude", image_id = image, account_pool = pool, options = {}, repo_url = "", prompt = "task"})
+                local profile = explicit and codex_profile(user, image, pool) or nil
+                local run_id, err = identity.call(user, "app:fixture_scheduled_task", profile and {profile_id = profile.id, agent = "", image_id = "", options = {}, repo_url = "", prompt = "task"} or {agent = "codex", image_id = image, account_pool = pool, options = {}, repo_url = "", prompt = "task"})
                 test.is_nil(err, tostring(err))
                 local original = repo.stored_run(run_id).account_id
                 test.is_nil(repo.settle_account(original, "busy", "2999-01-01T00:00:00Z"))
@@ -75,14 +114,14 @@ local function cases()
                 test.is_nil(prepare_err, tostring(prepare_err))
                 test.is_true(prepared.account_id ~= original)
                 local expected = explicit and "https://models.example/v1" or endpoints[prepared.account_id]
-                test.eq(prepared.launch.environment.ANTHROPIC_BASE_URL, expected, "prepared endpoint, explicit=" .. tostring(explicit) .. ", original=" .. original .. ", selected=" .. prepared.account_id)
+                prepared_endpoint(prepared, expected)
                 test.eq(repo.stored_run(run_id).endpoint.base_url, expected, "stored endpoint, explicit=" .. tostring(explicit))
                 test.is_nil(repo.clear_cooldown(original))
             end
         end)
         test.it("refuses reserved transport keys in user tool context", function()
             local user = f.member()
-            f.call(user, "add_account", {agent = "claude", label = "key", credential_kind = "env:ANTHROPIC_API_KEY", secret = "key"}, "chestor.autocode:accounts")
+            f.call(user, "add_account", {agent = "claude", label = "Login", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", secret = "test-subscription"}, "chestor.autocode:accounts")
             local image = f.image_for(user)
             for _, key in ipairs({"autocode_flow", "trace_context", "_execution_identity"}) do
                 local result, err = f.call(user, "submit_task", {agent = "claude", image_id = image, prompt = "task",
@@ -93,38 +132,36 @@ local function cases()
         end)
         test.it("pairs each balanced credential with its own endpoint and preserves explicit overrides", function()
             local user = f.member()
-            local image = f.image_for(user)
+            local image = f.image_for(user, "codex")
             local endpoints, pool = {}, {}
             for _, label in ipairs({"a", "b"}) do
-                local endpoint = "https://" .. label .. ".example/v1"
-                local added, err = f.call(user, "add_account", {agent = "claude", label = label, credential_kind = "env:ANTHROPIC_API_KEY",
-                    secret = "key-" .. label, endpoint = {protocol = "anthropic-messages", base_url = endpoint}}, "chestor.autocode:accounts")
-                test.is_nil(err, tostring(err))
-                endpoints[added.id] = endpoint
+                local url = "https://" .. label .. ".example/v1"
+                local added = endpoint_account(user, label, endpoint(url))
+                endpoints[added.id] = url
                 pool[#pool + 1] = added.id
             end
             local selected = {}
             for index = 1, 2 do
-                local submitted, err = f.call(user, "submit_task", {agent = "claude", image_id = image, account_pool = pool, prompt = "task"})
+                local submitted, err = f.call(user, "submit_task", {agent = "codex", image_id = image, account_pool = pool, prompt = "task"})
                 test.is_nil(err, tostring(err))
                 local run = repo.stored_run(submitted.run_id)
                 selected[run.account_id] = true
                 local prepared, prepare_err = identity.call(user, "chestor.autocode.service:prepare", {run_id = run.id})
                 test.is_nil(prepare_err, tostring(prepare_err))
-                test.eq(prepared.launch.environment.ANTHROPIC_BASE_URL, endpoints[run.account_id])
+                prepared_endpoint(prepared, endpoints[run.account_id])
             end
             local count = 0
             for _ in pairs(selected) do count = count + 1 end
             test.eq(count, 2)
-            local profile = add(user)
+            local profile = codex_profile(user, image)
             local submitted = f.call(user, "submit_task", {profile_id = profile.id, prompt = "override"})
             local prepared, err = identity.call(user, "chestor.autocode.service:prepare", {run_id = submitted.run_id})
             test.is_nil(err, tostring(err))
-            test.eq(prepared.launch.environment.ANTHROPIC_BASE_URL, "https://models.example/v1")
+            prepared_endpoint(prepared, "https://models.example/v1")
         end)
         test.it("accepts a driver tool surface and freezes task context independently of its profile", function()
             local user = f.member()
-            f.call(user, "add_account", {agent = "claude", label = "key", credential_kind = "env:ANTHROPIC_API_KEY", secret = "private-key"}, "chestor.autocode:accounts")
+            f.call(user, "add_account", {agent = "claude", label = "Login", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", secret = "test-subscription"}, "chestor.autocode:accounts")
             local profile = add(user, {tools = {traits = {"app:gateway_trait"}, context = {board_id = "default", other = "retained"}}})
             local submitted, err = f.call(user, "submit_task", {profile_id = profile.id, prompt = "task", tools = {context = {board_id = "board-a"}}})
             test.is_nil(err, tostring(err))
@@ -134,12 +171,12 @@ local function cases()
         end)
         test.it("owns profiles and freezes defaults with explicit node overrides before replay", function()
             local user, other = f.member(), f.member()
-            local account = f.call(user, "add_account", {agent = "claude", label = "key", credential_kind = "env:ANTHROPIC_API_KEY", secret = "private-key"}, "chestor.autocode:accounts")
+            local account = f.call(user, "add_account", {agent = "claude", label = "Login", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", secret = "test-subscription"}, "chestor.autocode:accounts")
             local profile, body = add(user, {account_id = account.id, run_timeout = "3m"})
             test.not_nil(profile)
             local listed, list_err = f.call(user, "list_profiles", {}, contract)
             test.is_nil(list_err, tostring(list_err))
-            test.eq(listed.profiles[1].title, "DeepSeek")
+            test.eq(listed.profiles[1].title, "Claude subscription")
             test.is_nil(listed.profiles[1].secret)
             local hidden = f.call(other, "list_profiles", {}, contract)
             test.eq(#hidden.profiles, 0)
@@ -150,7 +187,7 @@ local function cases()
             local run = repo.stored_run(submitted.run_id)
             test.eq(run.options.model, "haiku")
             test.eq(run.timeout_ms, 180000)
-            test.eq(run.endpoint.model, "deepseek")
+            test.is_nil(run.endpoint)
             test.eq(run.agent, body.agent)
             test.is_nil(f.call(user, "update_profile", {id = profile.id, options = {model = "opus"}, title = "changed"}, contract).error)
             local replayed, replay_err = f.call(user, "submit_task", {profile_id = profile.id, prompt = "task", options = {model = "haiku"}, idempotency_key = "profile-task"})
@@ -166,8 +203,8 @@ local function cases()
         end)
         test.it("freezes a node account pool and keeps referenced account grants independent", function()
             local user, other = f.member(), f.member()
-            local a = f.call(user, "add_account", {agent = "claude", label = "a", credential_kind = "env:ANTHROPIC_API_KEY", secret = "key-a"}, "chestor.autocode:accounts")
-            local b = f.call(user, "add_account", {agent = "claude", label = "b", credential_kind = "env:ANTHROPIC_API_KEY", secret = "key-b"}, "chestor.autocode:accounts")
+            local a = f.call(user, "add_account", {agent = "claude", label = "a", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", secret = "key-a"}, "chestor.autocode:accounts")
+            local b = f.call(user, "add_account", {agent = "claude", label = "b", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", secret = "key-b"}, "chestor.autocode:accounts")
             local profile = add(user, {account_pool = {a.id}})
             local submitted, err = f.call(user, "submit_task", {profile_id = profile.id, prompt = "pool", account_pool = {b.id}})
             test.is_nil(err, tostring(err))
@@ -199,10 +236,9 @@ local function cases()
                 test.is_nil(profile)
             end
         end)
-        test.it("rejects secrets, unknown options and unsupported endpoints before storing a profile", function()
+        test.it("rejects secrets, unknown options and malformed repositories before storing a profile", function()
             local user = f.member()
-            for _, patch in ipairs({{secret = "leak"}, {repo_ref = "../bad"}, {options = {permission_mode = "invalid"}}, {options = {not_an_option = true}}, {endpoint = {protocol = "openai-responses", base_url = "https://example.com"}},
-                {endpoint = {protocol = "anthropic-messages", base_url = "https://key@example.com"}}}) do
+            for _, patch in ipairs({{secret = "leak"}, {repo_ref = "../bad"}, {options = {permission_mode = "invalid"}}, {options = {not_an_option = true}}}) do
                 local added = add(user, patch)
                 test.is_nil(added)
             end

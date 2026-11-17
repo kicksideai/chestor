@@ -1,37 +1,29 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 -- The durable run path: a member's submission records the run with its job,
 -- the runner resolves the member's identity, admits the run again under it
--- and settles it. A local Messages stream supplies a complete result; a
--- missing image settles as failed through the real worker. Runs stay their
--- owner's, and retention removes settled runs with their events.
+-- and settles it. A missing image settles as failed through the real worker.
+-- Runs stay their owner's, and retention removes settled runs with their events.
 local test = require("test")
 local identity = require("identity")
 local build_fixture = require("build_fixture")
 local repo = require("repo")
 local time = require("time")
 local funcs = require("funcs")
-local anthropic = require("anthropic")
 local docker = require("docker")
 
 local READ = 1
-local SECRET = "sk-ant-harness-" .. string.rep("r", 32)
+local SECRET = "harness-oauth-" .. string.rep("r", 32)
 
 local function cases()
     test.describe("autocode runs", function()
         local users = {}
         local local_images = {}
-        local components = {}
         local function track(user)
             users[#users + 1] = user
             return user
         end
 
         test.after_each(function()
-            for _, component in ipairs(components) do
-                local removed = identity.request(component.owner, "DELETE", "/autocode/images/" .. component.id)
-                test.eq(removed.status, 200, removed.body)
-            end
-            components = {}
             for _, ref in ipairs(local_images) do
                 local code, err = docker.run({"image", "rm", ref})
                 test.is_nil(err)
@@ -48,44 +40,22 @@ local function cases()
             test.eq(response.status, 200, response.body)
         end
 
-        local function setup(image_ref, endpoint, tools)
-            local admin = track(identity.admin())
-            local member = track(tools and identity.user({identity.SIGNED_IN, identity.MEMBERS, "app:coding_tools"}) or identity.member())
+        local function setup()
+            local admin, member = track(identity.admin()), track(identity.member())
             local listed = identity.request(admin, "GET", "/autocode/catalog")
             local allows = {}
             for _, driver in ipairs(listed.json.agents) do
                 if driver.id == "claude" then allows = driver.capabilities end
             end
-            local settings = {network = endpoint and "bridge" or "none", allows = allows,
-                extra_args = endpoint and {"--add-host", "host.docker.internal:host-gateway"} or {}}
-            local image_id
-            if image_ref then
-                local created = identity.request(admin, "POST", "/autocode/images", {ref = image_ref, home = "/opt/agent",
-                    network = settings.network, allows = settings.allows, extra_args = settings.extra_args})
-                test.eq(created.status, 201, created.body)
-                image_id = created.json.id
-                components[#components + 1] = {owner = admin, id = image_id}
-                local deadline = time.now():add("180s")
-                while true do
-                    local build = repo.image_build(image_id)
-                    if build and build.finished_at ~= "" and build.projected then
-                        test.eq(build.status, "ready", build.log)
-                        break
-                    end
-                    if time.now():after(deadline) then error("image build does not finish") end
-                    time.sleep("100ms")
-                end
-            else
-                local err
-                image_id, err = identity.call(admin, "app:fixture_register", "image", {title = "Missing image",
-                    ref = "chestor-autocode-harness:missing", home = "/opt/agent", status = "ready", agents = {"claude"}, last_error = ""},
-                    {dockerfile = "", settings = settings})
-                test.is_nil(err)
-                build_fixture.ready(image_id, admin.id, "/opt/agent", settings, identity.call(admin, "app:fixture_image_revision", image_id))
-            end
+            local settings = {network = "none", allows = allows}
+            local image_id, err = identity.call(admin, "app:fixture_register", "image", {title = "Missing image",
+                ref = "chestor-autocode-harness:missing", home = "/opt/agent", status = "ready", agents = {"claude"}, last_error = ""},
+                {dockerfile = "", settings = settings})
+            test.is_nil(err)
+            build_fixture.ready(image_id, admin.id, "/opt/agent", settings, identity.call(admin, "app:fixture_image_revision", image_id))
             share(admin, image_id, READ)
             local created = identity.request(member, "POST", "/autocode/accounts",
-                {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "Key", secret = SECRET, endpoint = endpoint})
+                {agent = "claude", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", label = "Login", secret = SECRET})
             test.eq(created.status, 201, created.body)
             return member, image_id, created.json.id
         end
