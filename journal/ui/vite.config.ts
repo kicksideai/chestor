@@ -5,7 +5,7 @@ import { defineConfig } from 'vite'
 import { hostExternals, wcRuntimeChunk } from '../../wc-build'
 
 export default defineConfig({
-  plugins: [vue(), wippyComponentPlugin()],
+  plugins: [vue(), wippyComponentPlugin({ required: true, lazyEntries: ['index'] })],
   base: '',
   define: { 'process.env.NODE_ENV': JSON.stringify('production'), 'process.env': '{}' },
   build: {

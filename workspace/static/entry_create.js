@@ -1,35 +1,30 @@
-import { W as t, u as o } from "./wc-runtime-BIZwvF6q.js";
-import { l as r, s as n } from "./styles-DP-xQddr.js";
-import "@iconify/vue";
-import { define as s } from "@wippy-fe/proxy";
-const i = {
+import { W as o, l as r } from "./wc-runtime-B0OetHdg.js";
+import { s as n } from "./styles-e3DM6Wqz.js";
+import { define as i } from "@wippy-fe/proxy";
+const a = {
   type: "object",
   properties: {
     type: { type: "string" },
     "parent-id": { type: "string" }
   }
-}, a = r(
-  () => import("./EntryCreate-C7anMRIl.js"),
-  { loading: "Loading the create form…", failed: "Could not load the create form. Reload the page to try again." },
-  o
-);
-class e extends t {
+};
+class e extends o {
   static get wippyConfig() {
     return {
-      propsSchema: i,
+      propsSchema: a,
       hostCssKeys: ["themeConfigUrl", "iframeCssUrl"],
       inlineCss: n
     };
   }
   static get vueConfig() {
-    return { rootComponent: a };
+    return r(() => import("./EntryCreate-nArTTV9z.js").then((t) => ({ rootComponent: t.default })), { surface: "compact", loading: "Loading the create form…", failed: "Could not load the create form. Reload the page to try again.", delay: 200, timeout: 3e4 });
   }
 }
-async function c() {
+async function f() {
   return e;
 }
-s(import.meta.url, e);
+i(import.meta.url, e);
 export {
-  c as webComponent
+  f as webComponent
 };
 //# sourceMappingURL=entry_create.js.map

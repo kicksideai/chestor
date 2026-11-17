@@ -1,6 +1,6 @@
-import { WippyVueElement, define, useEvents } from '@wippy-fe/webcomponent-vue'
+import { WippyVueElement, define, lazyVueConfig } from '@wippy-fe/webcomponent-vue'
 import type { WippyElementConfig, WippyPropsSchema } from '@wippy-fe/webcomponent-vue'
-import { lazyPage } from './lazy'
+
 // @vue-flow styles must live in the shadow root (the renderer is a shadow-DOM web
 // component), so they are inlined alongside the renderer's own styles.
 import vfCore from '@vue-flow/core/dist/style.css?inline'
@@ -30,11 +30,7 @@ class KicksideDbSchemaElement extends WippyVueElement<Props, Events> {
 
   static get vueConfig() {
     return {
-      lazyConfig: lazyPage(
-        () => import('./lazy-mount').then((module) => module.mountConfig),
-        'Could not load the database schema. Reload the page to try again.',
-        useEvents,
-      ),
+      ...lazyVueConfig(() => import('./lazy-mount').then((module) => module.mountConfig), { surface: 'page', loading: 'Loading…', failed: 'Could not load the database schema. Reload the page to try again.', timeout: 30000 }),
     }
   }
 }

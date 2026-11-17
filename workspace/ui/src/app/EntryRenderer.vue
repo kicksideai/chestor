@@ -10,9 +10,8 @@ import { Button, Notice } from './shared'
 // attrs are the type-specific element attributes (e.g. source-url/content-type
 // for wc-resource-view, entry-id for a typed renderer). The shell derives them
 // from the entry, so EntryRenderer stays renderer-agnostic.
-// fill (default true): absolute-inset the renderer to a definite pixel height (full-page
-// manage views). fill=false lets it flow to its own content height (a create popup that
-// grows to fit its form; the host scrolls on overflow).
+// fill (default true): the normal-flow renderer fills the bounded manage or preview
+// host. fill=false lets the host grow with the renderer's own content height.
 // fill defaults to true (full-page manage/preview want a definite pixel height). A
 // bare `fill?: boolean` would cast an absent prop to false (Vue boolean-prop rule),
 // silently flowing manage views and collapsing a renderer with no intrinsic height
@@ -22,6 +21,7 @@ const props = withDefaults(defineProps<{ tag: string; attrs: Record<string, stri
 const host = ref<HTMLElement | null>(null)
 const failed = ref(false)
 let el: HTMLElement | null = null
+let mountGeneration = 0
 
 async function ensureRegistered(tag: string) {
   if (customElements.get(tag)) return
@@ -30,36 +30,47 @@ async function ensureRegistered(tag: string) {
 }
 
 async function mount() {
+  const generation = ++mountGeneration
+  const mountHost = host.value
+  const tag = props.tag
+  const attrs = { ...props.attrs }
+  const fill = props.fill
   failed.value = false
-  if (!host.value) return
-  host.value.innerHTML = ''
+  el?.remove()
   el = null
+  if (!mountHost) return
+  mountHost.replaceChildren()
   try {
-    await ensureRegistered(props.tag)
-    el = document.createElement(props.tag)
-    for (const [k, v] of Object.entries(props.attrs || {})) {
-      if (v != null && v !== '') el.setAttribute(k, String(v))
+    await ensureRegistered(tag)
+    if (generation !== mountGeneration || host.value !== mountHost) return
+    const ctor = customElements.get(tag) as CustomElementConstructor & { preloadImplementation?: () => Promise<void> }
+    void Promise.resolve().then(() => ctor.preloadImplementation?.()).catch(() => {
+      // The attached element owns its loading feedback and public error event.
+    })
+    const next = mountHost.ownerDocument.createElement(tag)
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v != null && v !== '') next.setAttribute(k, String(v))
     }
-    if (props.fill === false) {
+    next.style.display = 'block'
+    next.style.width = '100%'
+    if (fill === false) {
       // Flow: the renderer sizes to its own content; the host scrolls on overflow.
-      el.style.display = 'block'
-      el.style.width = '100%'
+      next.style.minHeight = '0'
     } else {
-      // Fill: absolute insets give the renderer a definite pixel height; height:100%
-      // would collapse a renderer whose own :host/.de chain is percentage-based.
-      el.style.position = 'absolute'
-      el.style.inset = '0'
+      // The bounded preview host supplies the height. Its page stays in normal flow.
+      next.style.height = '100%'
+      next.style.minHeight = '0'
     }
-    host.value.appendChild(el)
-    failed.value = !customElements.get(props.tag)
+    el = next
+    mountHost.replaceChildren(next)
   } catch {
-    failed.value = true
+    if (generation === mountGeneration && host.value === mountHost) failed.value = true
   }
 }
 
 onMounted(mount)
-watch(() => [props.tag, JSON.stringify(props.attrs)], mount)
-onBeforeUnmount(() => { el = null })
+watch(() => [props.tag, JSON.stringify(props.attrs), props.fill], mount)
+onBeforeUnmount(() => { mountGeneration++; el?.remove(); el = null })
 </script>
 
 <template>

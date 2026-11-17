@@ -1,6 +1,6 @@
-import { WippyVueElement, define, useEvents } from '@wippy-fe/webcomponent-vue'
+import { WippyVueElement, define, lazyVueConfig } from '@wippy-fe/webcomponent-vue'
 import type { WippyElementConfig, WippyPropsSchema } from '@wippy-fe/webcomponent-vue'
-import { lazyPage } from './lazy'
+
 // The stylesheet is inlined into the shadow root, so it is composed here rather
 // than through @import, which a shadow root would never resolve.
 import shellStyles from './styles.css?inline'
@@ -44,11 +44,7 @@ class ChestorJournalElement extends WippyVueElement<Props, Events> {
 
   static get vueConfig() {
     return {
-      lazyConfig: lazyPage(
-        () => import('./lazy-mount').then((module) => module.mountConfig),
-        'Could not load the journal. Reload the page to try again.',
-        useEvents,
-      ),
+      ...lazyVueConfig(() => import('./lazy-mount').then((module) => module.mountConfig), { surface: 'page', loading: 'Loading…', failed: 'Could not load the journal. Reload the page to try again.', timeout: 30000 }),
     }
   }
 }

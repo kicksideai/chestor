@@ -1,15 +1,11 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
-import { WippyVueElement, define, useEvents } from '@wippy-fe/webcomponent-vue'
+import { WippyVueElement, define, lazyVueConfig } from '@wippy-fe/webcomponent-vue'
 import type { WippyElementConfig, WippyPropsSchema } from '@wippy-fe/webcomponent-vue'
-import { lazyControl } from './lazy'
+
 import type { TaskConfig as TaskConfigValue } from './task-config-types.ts'
 import stylesText from './task-config.css?inline'
 
-const TaskConfig = lazyControl(
-  () => import('./app/task-config.vue'),
-  { loading: 'Loading the task config…', failed: 'Could not load the task config. Reload the page to try again.' },
-  useEvents,
-)
+
 
 // chestor-autocode-task-config - the config editor of the coding agent task
 // Block (presentation.config_wc). The workflow passes `config` and stores the
@@ -25,7 +21,7 @@ class TaskConfigElement extends WippyVueElement<{ config?: TaskConfigValue }, { 
   }
 
   static get vueConfig() {
-    return { rootComponent: TaskConfig }
+    return lazyVueConfig(() => (() => import('./app/task-config.vue'))().then(module => ({ rootComponent: module.default })), { surface: 'compact', loading: 'Loading the task config…', failed: 'Could not load the task config. Reload the page to try again.', delay: 200, timeout: 30000 })
   }
 }
 

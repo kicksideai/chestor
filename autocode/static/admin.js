@@ -1,27 +1,21 @@
-import { W as o, u as s } from "./wc-runtime-6vw183jT.js";
-import { l as r } from "./lazy-ZWC1tvFC.js";
-import { s as n } from "./styles-BbmDgjzB.js";
-import "@iconify/vue";
-import { define as i } from "@wippy-fe/proxy";
-const m = { type: "object", properties: {} };
+import { W as o, l as s } from "./wc-runtime-CEQ5gZTA.js";
+import { s as i } from "./styles-CZu759Vv.js";
+import { define as n } from "@wippy-fe/proxy";
+const r = { type: "object", properties: {} };
 class e extends o {
   static get wippyConfig() {
-    return { propsSchema: m, hostCssKeys: ["themeConfigUrl", "primeVueCssUrl", "iframeCssUrl"], inlineCss: n };
+    return { propsSchema: r, hostCssKeys: ["themeConfigUrl", "primeVueCssUrl", "iframeCssUrl"], inlineCss: i };
   }
   static get vueConfig() {
     return {
-      lazyConfig: r(
-        () => import("./admin-mount-CFBpHHip.js").then((t) => t.mountConfig),
-        "Could not load Autocode settings. Reload the page to try again.",
-        s
-      )
+      ...s(() => import("./admin-mount-CIvdktNU.js").then((t) => t.mountConfig), { surface: "page", loading: "Loading…", failed: "Could not load Autocode settings. Reload the page to try again.", timeout: 3e4 })
     };
   }
 }
-async function g() {
+async function u() {
   return e;
 }
-i(import.meta.url, e);
+n(import.meta.url, e);
 export {
-  g as webComponent
+  u as webComponent
 };
