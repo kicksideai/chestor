@@ -6,6 +6,7 @@ import { useProps, useEvents, useHostVisibilityRefresh } from '@wippy-fe/webcomp
 import { defaultAgent } from './defaults.ts'
 import { useTaskTargeting, effectiveTask } from './task-targeting.ts'
 import DriverOptions from './driver-options.vue'
+import TraitTools from './trait-tools.vue'
 import { taskConfigSchema, type TaskConfig } from '../task-config-types.ts'
 import { autocode, type Account, type Catalog, type Image, type Workspace, type Profile } from './api.ts'
 import { serial } from './live.ts'
@@ -39,6 +40,7 @@ const selectedProfile = computed(() => profiles.value.find(p => p.id === config.
 const inherited = computed(() => effectiveTask(config.value, selectedProfile.value))
 const error = ref('')
 const pending = ref(false)
+const invalidTraits = ref(false)
 
 const { driver, agentAccounts, ready, agentImages, invalidAgent, invalidImage, invalidAccount, invalidWorkspace,
   invalidOptions, optionValues, initialSelection } = useTaskTargeting(inherited, {
@@ -49,7 +51,7 @@ const agentTitle = computed(() => driver.value?.title ?? config.value.agent ?? '
 function set(patch: Partial<TaskConfig>) {
   const next = { ...config.value, ...patch }
   config.value = next
-  if (invalidOptions.value > 0) { pending.value = true; return }
+  if (invalidOptions.value > 0 || invalidTraits.value) { pending.value = true; return }
   pending.value = false
   emit('config-changed', next)
 }
@@ -61,7 +63,12 @@ function setEndpoint(field: 'protocol' | 'base_url' | 'model', value: string) {
 
 function optionsValidity(count: number) {
   invalidOptions.value = count
-  if (!count && pending.value) void nextTick(() => { if (!invalidOptions.value && pending.value) set({}) })
+  if (!count && pending.value) void nextTick(() => { if (!invalidOptions.value && !invalidTraits.value && pending.value) set({}) })
+}
+
+function traitsValidity(invalid: boolean) {
+  invalidTraits.value = invalid
+  if (!invalid && pending.value) void nextTick(() => { if (!invalidTraits.value && !invalidOptions.value && pending.value) set({}) })
 }
 
 function chooseAgent(agent: string) {
@@ -184,6 +191,7 @@ useHostVisibilityRefresh(serial(async () => {
         <label class="tc-field"><span class="tc-lbl">Endpoint URL</span><input class="tc-input kx-focus-halo" :value="inherited.endpoint?.base_url" placeholder="Use account endpoint" @change="setEndpoint('base_url', ($event.target as HTMLInputElement).value.trim())" /></label>
         <label class="tc-field"><span class="tc-lbl">Endpoint model</span><input class="tc-input kx-focus-halo" :value="inherited.endpoint?.model" @change="setEndpoint('model', ($event.target as HTMLInputElement).value.trim())" /></label>
       </template>
+      <TraitTools :model-value="inherited.tools" :agent="inherited.agent ?? ''" @update:model-value="set({ tools: $event })" @invalid="traitsValidity" />
       <DriverOptions v-if="driver" :key="(config.profile_id ?? '') + driver.id" :options="driver.options" :model-value="optionValues" :defaults="{ ...(inherited.unattended !== false ? driver.unattended : {}), ...selectedProfile?.options }" @invalid="optionsValidity" @update:model-value="(v: Record<string, unknown>) => set({ options: v })" />
       <p v-if="invalidOptions" class="kx-err" role="alert">Driver options are invalid. These drafts and further changes are not applied to the workflow until all options are valid.</p>
       <label class="tc-field">

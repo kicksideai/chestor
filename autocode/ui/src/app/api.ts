@@ -64,7 +64,10 @@ export async function principalLabels(ids: string[]): Promise<Record<string, str
 
 const idResponse = z.object({ id: z.string() })
 const imageCreated = idResponse.extend({ build_error: errorFields.extend({ message: z.string() }).optional() })
+const traitSchema = z.object({ id: z.string(), title: z.string(), description: z.string(), web_component: z.string().optional(), context_schema: z.object({ properties: z.record(z.record(z.unknown())).optional(), required: z.array(z.string()).optional() }).passthrough().optional() })
 export const autocode = {
+  traits: () => request('get', '/api/v1/agents/traits', z.object({ traits: z.array(traitSchema) })).then(r => r.traits),
+  toolSurface: (agent: string, tools: dto.ProfileInput['tools']) => call('post', '/tool-surface', z.object({ count: z.number().int().nonnegative(), limit: z.number().int().positive() }), { agent, tools }),
   profiles: () => call('get', '/profiles', z.object({ profiles: z.array(dto.profile) })).then(r => r.profiles),
   createProfile: (body: dto.ProfileInput) => call('post', '/profiles', idResponse, body),
   updateProfile: (id: string, body: Partial<dto.ProfileInput>) => call('put', `/profiles/${encodeURIComponent(id)}`, idResponse, body),

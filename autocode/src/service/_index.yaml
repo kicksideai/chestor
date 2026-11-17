@@ -71,6 +71,7 @@ entries:
   kind: library.lua
   source: file://catalog.lua
   modules:
+  - json
   - registry
   - security
   imports:
@@ -78,6 +79,8 @@ entries:
     images: chestor.autocode.service:images
     accounts: chestor.autocode.service:accounts
     maintenance: chestor.autocode.service:maintenance
+    gateway_surface: chestor.autocode.service:gateway_surface
+    configuration: bee.drivers.binding:configuration
     boundary: chestor.autocode.service:boundary
 
 - name: add_account

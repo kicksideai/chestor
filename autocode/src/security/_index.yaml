@@ -28,7 +28,9 @@ entries:
         - chestor.autocode.api:accounts_update
         - chestor.autocode.api:accounts_update.user.endpoint
         - chestor.autocode.api:catalog
+        - chestor.autocode.api:tool_surface
         - chestor.autocode.api:catalog.user.endpoint
+        - chestor.autocode.api:tool_surface.user.endpoint
         - chestor.autocode.api:images_create.endpoint
         - chestor.autocode.api:images_delete.endpoint
         - chestor.autocode.api:images_get
@@ -175,6 +177,7 @@ entries:
     policy:
       resources:
         - chestor.autocode.api:catalog
+        - chestor.autocode.api:tool_surface
         - chestor.autocode.api:accounts_list
         - chestor.autocode.api:profiles_list
         - chestor.autocode.api:profiles_create
@@ -267,6 +270,7 @@ entries:
     policy:
       resources:
         - chestor.autocode.api:catalog.user.endpoint
+        - chestor.autocode.api:tool_surface.user.endpoint
         - chestor.autocode.api:accounts_list.user.endpoint
         - chestor.autocode.api:profiles_list.user.endpoint
         - chestor.autocode.api:profiles_create.user.endpoint

@@ -174,10 +174,30 @@ finishes before an empty state appears; save failures appear inside the active
 profile dialog. Task and profile option fields display the same catalog, unattended
 and inherited defaults that execution uses, without submitting them as overrides.
 
+Profiles, new tasks and the task Block share a trait editor. The platform
+`wc-agent-trait-picker` lists actor-visible traits with titles and descriptions;
+its per-trait configuration is adapted to the batch `tools.traits` and flat
+`tools.context` shape. Traits without a custom panel use `wc-schema-form` for
+all declared context fields, preserving declared pickers and using the component
+picker for `board_id` and `catalog_id`. Shared context fields have one value.
+Editing or duplicating preserves the surface; removing a trait removes context
+fields no remaining selected trait declares. Clearing all traits explicitly
+overrides a profile's surface with an empty surface. No individual tool selector
+is provided.
+
+POST `/autocode/tool-surface` takes `{agent, tools}` and resolves the surface
+under the authenticated caller using the submission field schemas and the same
+gateway resolver as admission. It returns `{count, limit}` with the complete
+deduplicated count and Bee's bound, without storing or accepting a run. Native
+refusals retain their kind, code, retryability and details, including count/limit
+for `autocode.tool_limit_exceeded`. Forms display these refusals and do not
+submit unresolved or refused surfaces; Block drafts remain local until valid.
+Admission still resolves and authorizes the surface again on submission.
+
 A profile contains `title`, `agent`, `image_id`, optional `account_id` or
 `account_pool`, optional `endpoint {protocol, base_url, model}`, `workspace_id`,
 `repo_url`, `repo_ref`, `run_timeout`, `unattended`, and catalog-validated
-`options`. An empty account selection balances across the harness's usable
+`options`, plus optional `tools {traits, context}`. An empty account selection balances across the harness's usable
 accounts. Credentials remain on accounts. Endpoint protocols come from the
 harness catalog; endpoint URLs cannot contain credentials, query or fragment.
 Profiles grant no access to their referenced accounts, images or workspaces.

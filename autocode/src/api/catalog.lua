@@ -7,4 +7,12 @@ local function handler(): ()
     local result, err = catalog.get()
     web.respond(ctx.res, result, err, web.STATUS.OK)
 end
-return {handler = handler}
+local function preview(): ()
+    local ctx = web.open()
+    if not ctx then return end
+    local body = web.body(ctx)
+    if not body then return end
+    local result, err = catalog.preview(body)
+    web.respond(ctx.res, result, err, web.STATUS.OK)
+end
+return {handler = handler, preview = preview}

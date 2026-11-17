@@ -10,6 +10,7 @@ import { reconcile, useComponentTopics, serial, useAlive } from './live.ts'
 import { errorText } from './presentation.ts'
 import AppDialog from './app-dialog.vue'
 import DriverOptions from './driver-options.vue'
+import TraitTools from './trait-tools.vue'
 
 const alive = useAlive()
 const props = defineProps<{ query: string }>()
@@ -25,6 +26,7 @@ const saveError = ref('')
 const loading = ref(true)
 const saving = ref(false)
 const invalid = ref(0)
+const invalidTraits = ref(false)
 const editing = ref<string | null>(null)
 const draft = ref<ProfileInput | null>(null)
 const endpointProtocol = ref('')
@@ -53,7 +55,7 @@ function open(profile?: Profile, duplicate = false) {
   draft.value = profile ? {
     title: profile.title + (duplicate ? ' copy' : ''), agent: profile.agent, account_id: profile.account_id ?? '',
     account_pool: [...(profile.account_pool ?? [])], image_id: profile.image_id, workspace_id: profile.workspace_id ?? '',
-    tools: profile.tools, repo_url: profile.repo_url, repo_ref: profile.repo_ref, run_timeout: profile.run_timeout,
+    tools: profile.tools ? JSON.parse(JSON.stringify(profile.tools)) as ProfileInput['tools'] : undefined, repo_url: profile.repo_url, repo_ref: profile.repo_ref, run_timeout: profile.run_timeout,
     options: JSON.parse(JSON.stringify(profile.options)) as Record<string, unknown>, unattended: profile.unattended,
   } : { title: '', agent: catalog.value.agents[0]?.id ?? '', image_id: '', options: {}, account_pool: [], account_id: '', workspace_id: '' }
   endpointProtocol.value = profile?.endpoint?.protocol ?? driver.value?.endpoints[0] ?? ''
@@ -71,7 +73,7 @@ function chooseAgent() {
   endpointUrl.value = ''; endpointModel.value = ''
 }
 async function save() {
-  if (!draft.value || saving.value || invalid.value) return
+  if (!draft.value || saving.value || invalid.value || invalidTraits.value) return
   saving.value = true
   saveError.value = ''
   try {
@@ -130,8 +132,9 @@ defineExpose({ open })
           <label class="ac-field"><span>Repository ref</span><input v-model="draft.repo_ref" class="kx-focus-halo" maxlength="200" /></label>
           <label class="ac-field"><span>Run timeout</span><input v-model="draft.run_timeout" class="kx-focus-halo" placeholder="Use configured timeout" maxlength="64" /></label>
           <label v-if="driver?.unattended" class="ac-check"><input :checked="draft.unattended !== false" @change="draft.unattended = ($event.target as HTMLInputElement).checked" type="checkbox" class="kx-focus-outline" />Unattended · skip permission prompts when the image allows it</label>
+          <TraitTools v-model="draft.tools" :agent="draft.agent" @invalid="invalidTraits = $event" />
           <DriverOptions v-if="driver" :key="driver.id" v-model="draft.options" :options="driver.options" :defaults="draft.unattended !== false ? driver.unattended : {}" @invalid="invalid = $event" />
-          <footer class="ac-dialog-foot"><button type="button" class="ac-btn kx-focus-halo" @click="draft = null">Cancel</button><button type="submit" class="ac-btn primary kx-focus-halo" :disabled="saving || !!invalid">Save</button></footer>
+          <footer class="ac-dialog-foot"><button type="button" class="ac-btn kx-focus-halo" @click="draft = null">Cancel</button><button type="submit" class="ac-btn primary kx-focus-halo" :disabled="saving || !!invalid || invalidTraits">Save</button></footer>
         </fieldset>
       </form>
     </AppDialog>

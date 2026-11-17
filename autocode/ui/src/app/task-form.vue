@@ -9,6 +9,7 @@ import { useTaskTargeting, effectiveTask } from './task-targeting.ts'
 import type { TaskConfig } from '../task-config-types.ts'
 import AgentPicker from './agent-picker.vue'
 import DriverOptions from './driver-options.vue'
+import TraitTools from './trait-tools.vue'
 import { autocode, type Account, type Image, type Workspace, type Profile } from './api.ts'
 
 // The new task form. Accounts list the caller's usable, enabled accounts of the
@@ -64,6 +65,8 @@ const timeout = computed({ get: () => target.value.run_timeout ?? '', set: value
 const prompt = ref('')
 const options = computed({ get: () => optionValues.value, set: value => set({ options: value }) })
 const unattended = computed({ get: () => target.value.unattended ?? !!driver.value?.unattended, set: value => set({ unattended: value }) })
+const tools = computed({ get: () => target.value.tools, set: tools => set({ tools }) })
+const invalidTraits = ref(false)
 const starting = ref(false)
 const error = ref('')
 
@@ -73,18 +76,18 @@ function accountTitle(a: Account) {
 watch(agentId, agent => emit('agentChanged', agent), { immediate: true })
 
 let submission: { snapshot: string; key: string; body: Parameters<typeof autocode.startRun>[0] } | undefined
-watch([profileId, agentId, accountId, imageId, workspaceId, repoUrl, repoRef, timeout, prompt, options, unattended], () => {
+watch([profileId, agentId, accountId, imageId, workspaceId, repoUrl, repoRef, timeout, prompt, options, unattended, tools], () => {
   submission = undefined
 }, { deep: true, flush: 'sync' })
 
 async function start() {
-  if (starting.value) return
+  if (starting.value || invalidTraits.value) return
   error.value = ''
   starting.value = true
   emit('busy', true)
   try {
     const custom = {
-      agent: agentId.value, account_id: accountId.value, image_id: imageId.value, workspace_id: workspaceId.value,
+      tools: tools.value, agent: agentId.value, account_id: accountId.value, image_id: imageId.value, workspace_id: workspaceId.value,
       repo_url: repoUrl.value, repo_ref: repoRef.value.trim() || undefined, timeout: timeout.value.trim() || undefined, prompt: prompt.value, options: target.value.options ?? {}, unattended: unattended.value,
     }
     const { run_timeout, ...overrides } = overridden.value
@@ -158,12 +161,13 @@ async function start() {
       <input v-model="unattended" type="checkbox" class="kx-focus-outline" />
       Unattended · skip permission prompts when the image allows it
     </label>
+    <TraitTools v-model="tools" :agent="agentId" @invalid="invalidTraits = $event" />
     <DriverOptions v-if="driver" :key="profileId + driver.id" v-model="options" :options="driver.options" :defaults="{ ...(unattended ? driver.unattended : {}), ...selectedProfile?.options }" @invalid="(n: number) => (invalidOptions = n)" />
     </div></details>
     <p v-if="error" class="kx-err" role="alert">{{ error }}</p>
     <footer class="ac-dialog-foot"><button type="button" class="ac-btn kx-focus-halo" @click="emit('cancel')">Cancel</button>
     <button type="button" class="ac-btn primary kx-focus-halo"
-      :disabled="starting || invalidOptions > 0 || (!profileId && (!agentId || !(accountId || ready.length) || !imageId)) || !prompt.trim()" @click="start">
+      :disabled="starting || invalidTraits || invalidOptions > 0 || (!profileId && (!agentId || !(accountId || ready.length) || !imageId)) || !prompt.trim()" @click="start">
       <Icon icon="tabler:player-play" /> {{ starting ? 'Starting…' : 'Start' }}
     </button>
     </footer>
