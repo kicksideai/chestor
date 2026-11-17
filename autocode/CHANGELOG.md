@@ -1,6 +1,13 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.17](https://github.com/kicksideai/chestor/compare/autocode-v0.1.16...autocode-v0.1.17) (2026-11-17)
+
+
+### Bug Fixes
+
+* **autocode:** confirm run retention decreases ([#64](https://github.com/kicksideai/chestor/issues/64)) ([16b56a1](https://github.com/kicksideai/chestor/commit/16b56a1fd1ea4524dbb16d3c2554bf70821e4149))
+
 ## [0.1.16](https://github.com/kicksideai/chestor/compare/autocode-v0.1.15...autocode-v0.1.16) (2026-11-17)
 
 
