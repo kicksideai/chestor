@@ -29,28 +29,13 @@ local function cases()
             users = {}
         end)
 
-        -- kinds returns Claude Code's API key and subscription credential ids.
-        local function kinds(user)
-            local catalog = identity.request(user, "GET", "/autocode/catalog")
-            test.eq(catalog.status, 200, catalog.body)
-            local key, subscription
-            for _, agent in ipairs(catalog.json.agents) do
-                if agent.id == "claude" then
-                    for _, choice in ipairs(agent.credentials) do
-                        if not choice.file and not choice.subscription then key = key or choice.id end
-                        if not choice.file and choice.subscription then subscription = subscription or choice.id end
-                    end
-                end
-            end
-            test.not_nil(key, "claude offers no API key credential")
-            test.not_nil(subscription, "claude offers no subscription token credential")
-            return key, subscription
+        local function create(user, agent, kind, label, secret, endpoint)
+            return identity.request(user, "POST", "/autocode/accounts",
+                {agent = agent, credential_kind = kind, label = label, secret = secret, endpoint = endpoint})
         end
 
-        local function create(user, kind, label, secret, endpoint)
-            local response = identity.request(user, "POST", "/autocode/accounts",
-                {agent = "claude", credential_kind = kind, label = label, secret = secret, endpoint = endpoint})
-            return response
+        local function login(user, label, secret, endpoint)
+            return create(user, "claude", "env:CLAUDE_CODE_OAUTH_TOKEN", label, secret, endpoint)
         end
 
         local function listed(user, id)
@@ -95,23 +80,21 @@ local function cases()
         end)
         test.it("keeps the credential private and lists the account to its owner", function()
             local owner = track(identity.member())
-            local key = kinds(owner)
-            local secret = "sk-ant-harness-" .. string.rep("k", 32)
-            local created = create(owner, key, "Owner key", secret)
+            local secret = "harness-oauth-" .. string.rep("k", 32)
+            local created = login(owner, "Owner login", secret)
             test.eq(created.status, 201, created.body)
             local account, body = listed(owner, created.json.id)
             test.not_nil(account, body)
             test.eq(account.mine, true)
             test.eq(account.usable, true)
-            test.eq(account.label, "Owner key")
+            test.eq(account.label, "Owner login")
             test.is_nil(body:find(secret, 1, true), "the account listing returns the credential")
         end)
 
         test.it("hides an account from other members until it is shared", function()
             local owner = track(identity.member())
             local other = track(identity.member())
-            local key = kinds(owner)
-            local created = create(owner, key, "Team key", "sk-ant-harness-" .. string.rep("t", 32))
+            local created = login(owner, "Team login", "harness-oauth-" .. string.rep("t", 32))
             test.eq(created.status, 201, created.body)
             local id = created.json.id
 
@@ -132,8 +115,7 @@ local function cases()
         test.it("makes a shared subscription login usable for grantees", function()
             local owner = track(identity.member())
             local other = track(identity.member())
-            local _, subscription = kinds(owner)
-            local created = create(owner, subscription, "Personal login", "harness-oauth-" .. string.rep("s", 32))
+            local created = login(owner, "Personal login", "harness-oauth-" .. string.rep("s", 32))
             test.eq(created.status, 201, created.body)
             local mine = listed(owner, created.json.id)
             test.eq(mine.subscription, true)
@@ -148,13 +130,11 @@ local function cases()
 
         test.it("refuses an endpoint that carries credentials or a subscription login", function()
             local owner = track(identity.member())
-            local key, subscription = kinds(owner)
-            local secret = "sk-ant-harness-" .. string.rep("e", 32)
-            local userinfo = create(owner, key, "Userinfo", secret, {base_url = "http://user:pass@api.example.com:8000/v1"})
+            local userinfo = create(owner, "codex", "env:CODEX_API_KEY", "Userinfo", "test-key", {base_url = "http://user:pass@api.example.com:8000/v1"})
             test.eq(userinfo.status, 400, userinfo.body)
-            local personal = create(owner, subscription, "Personal", secret, {base_url = "http://api.example.com:8000/v1"})
+            local personal = login(owner, "Personal", "test-subscription", {base_url = "http://api.example.com:8000/v1"})
             test.eq(personal.status, 400, personal.body)
-            local own = create(owner, key, "Own endpoint", secret, {base_url = "http://api.example.com:8000/v1", model = "qwen3-coder"})
+            local own = create(owner, "codex", "env:CODEX_API_KEY", "Own endpoint", "test-key", {base_url = "http://api.example.com:8000/v1", model = "qwen3-coder"})
             test.eq(own.status, 201, own.body)
             local account = listed(owner, own.json.id)
             test.eq(account.endpoint.base_url, "http://api.example.com:8000/v1")
@@ -163,8 +143,7 @@ local function cases()
 
         test.it("disables and deletes an account through its owner", function()
             local owner = track(identity.member())
-            local key = kinds(owner)
-            local created = create(owner, key, "Short lived", "sk-ant-harness-" .. string.rep("d", 32))
+            local created = login(owner, "Short lived", "harness-oauth-" .. string.rep("d", 32))
             test.eq(created.status, 201, created.body)
             local id = created.json.id
             test.eq(identity.request(owner, "PUT", "/autocode/accounts/" .. id, {enabled = false}).status, 200)
@@ -179,8 +158,7 @@ local function cases()
         test.it("reports account DELETE independently of WRITE", function()
             local owner = track(identity.member())
             local other = track(identity.member())
-            local key = kinds(owner)
-            local created = create(owner, key, "Grant masks", "sk-ant-harness-" .. string.rep("g", 32))
+            local created = login(owner, "Grant masks", "harness-oauth-" .. string.rep("g", 32))
             test.eq(created.status, 201, created.body)
             local id = created.json.id
             test.eq(listed(owner, id).deletable, true)
@@ -198,8 +176,7 @@ local function cases()
         test.it("accepts WRITE-only and DELETE-only grants without requiring READ", function()
             local owner = track(identity.member())
             local other = track(identity.member())
-            local key = kinds(owner)
-            local created = create(owner, key, "Independent masks", "sk-ant-harness-" .. string.rep("i", 32))
+            local created = login(owner, "Independent masks", "harness-oauth-" .. string.rep("i", 32))
             test.eq(created.status, 201, created.body)
             local id = created.json.id
             test.is_nil(share(owner, id, 2))

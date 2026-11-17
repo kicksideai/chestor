@@ -11,7 +11,7 @@ class r extends o {
     return { propsSchema: i, hostCssKeys: ["themeConfigUrl"], inlineCss: e };
   }
   static get vueConfig() {
-    return p(() => import("./driver-account-D-3EKeVr.js").then((a) => ({ rootComponent: a.default })), { surface: "compact", loading: "Loading the driver account card…", failed: "Could not load the driver account card. Reload the page to try again.", delay: 0, timeout: 3e4 });
+    return p(() => import("./driver-account-Bibub6MD.js").then((a) => ({ rootComponent: a.default })), { surface: "compact", loading: "Loading the driver account card…", failed: "Could not load the driver account card. Reload the page to try again.", delay: 0, timeout: 3e4 });
   }
 }
 async function l() {

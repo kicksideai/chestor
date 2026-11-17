@@ -36,7 +36,7 @@ local function cases()
             f.release()
         end)
         local function request(user)
-            local account = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "key", secret = "key"})
+            local account = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", label = "Login", secret = "test-subscription"})
             test.eq(account.status, 201, account.body)
             return {agent = "claude", account_id = account.json.id, image_id = f.image_for(user), prompt = "task", unattended = false}
         end

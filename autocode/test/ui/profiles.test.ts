@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
-import { mocks, render, normal, respond, run, driver, option } from './fixtures.ts'
+import { mocks, render, normal, respond, run, driver, option, account, image, claudeLike } from './fixtures.ts'
 import { describe, expect, it } from 'vitest'
 import { flushPromises } from '@vue/test-utils'
 import DriverOptions from '../../ui/src/app/driver-options.vue'
@@ -7,11 +7,12 @@ import TaskConfig from '../../ui/src/app/task-config.vue'
 import Profiles from '../../ui/src/app/profiles.vue'
 import AccountRow from '../../ui/src/app/account-row.vue'
 import TaskForm from '../../ui/src/app/task-form.vue'
-import { account, image } from './fixtures.ts'
 import RunDetail from '../../ui/src/app/run-detail.vue'
-import { claudeLike } from './fixtures.ts'
 
-const profile = { id: 'p', title: 'DeepSeek', agent: 'claude', image_id: 'i', account_pool: [], options: { model: 'sonnet' }, owner_user_id: 'owner', owner: 'owner', writable: true, deletable: true, endpoint: { protocol: 'anthropic-messages', base_url: 'https://models.example', model: 'deepseek' } }
+const claude = { ...claudeLike, id: 'claude', title: 'Claude Code' }
+const codex = { ...driver, id: 'codex', title: 'Codex', endpoints: ['openai-responses'] }
+const profile = { id: 'p', title: 'Claude subscription', agent: claude.id, image_id: 'i', account_pool: [], options: { model: 'sonnet' }, owner_user_id: 'owner', owner: 'owner', writable: true, deletable: true }
+const codexProfile = { ...profile, title: 'Codex endpoint', agent: codex.id, options: {}, endpoint: { protocol: 'openai-responses', base_url: 'https://models.example', model: 'fixture-model' } }
 describe('profiles and normalized run information', () => {
   it('saves and reloads a profile with an explicitly empty Pi Tools override', async () => {
     normal()
@@ -107,20 +108,27 @@ describe('profiles and normalized run information', () => {
     expect(mocks.post.mock.calls.at(-1)?.[1]).toMatchObject({ profile_id: 'p' })
     expect(mocks.post.mock.calls.at(-1)?.[1]).not.toHaveProperty('image_id')
   })
-  it('lists, edits and duplicates profiles without credentials', async () => {
+  it.each([
+    { entry: profile, agent: claude, endpoint: undefined },
+    { entry: codexProfile, agent: codex, endpoint: codexProfile.endpoint },
+  ])('lists, edits and duplicates $entry.title without credentials', async ({ entry, agent, endpoint }) => {
     normal()
-    mocks.get.mockImplementation(async path => ({ data: { success: true, ...(path.endsWith('/profiles') ? { profiles: [profile] } : respond(path)) } }))
+    mocks.get.mockImplementation(async path => ({ data: { success: true, ...(path.endsWith('/profiles') ? { profiles: [entry] } : respond(path)) } }))
     mocks.post.mockResolvedValue({ data: { success: true, id: 'copy' } })
     mocks.put.mockResolvedValue({ data: { success: true, id: 'p' } })
-    const w = render(Profiles, { query: '' })
+    const w = render(Profiles, { query: '' }, [agent])
     await flushPromises()
-    expect(w.text()).toContain('DeepSeek')
+    expect(w.text()).toContain(entry.title)
     await w.get('[aria-label="Duplicate profile"]').trigger('click')
     await flushPromises()
-    expect(w.get<HTMLInputElement>('input[aria-label="Profile title"]').element.value).toBe('DeepSeek copy')
+    expect(w.get<HTMLInputElement>('input[aria-label="Profile title"]').element.value).toBe(`${entry.title} copy`)
+    expect(w.find('input[placeholder="Use account endpoint"]').exists()).toBe(!!endpoint)
     await w.get('form').trigger('submit')
     await flushPromises()
-    expect(mocks.post).toHaveBeenCalledWith('/api/v1/autocode/profiles', expect.objectContaining({ title: 'DeepSeek copy', agent: 'claude', endpoint: profile.endpoint }))
+    expect(mocks.post).toHaveBeenCalledWith('/api/v1/autocode/profiles', expect.objectContaining({ title: `${entry.title} copy`, agent: agent.id }))
+    const body = mocks.post.mock.calls.at(-1)?.[1]
+    if (endpoint) expect(body).toHaveProperty('endpoint', endpoint)
+    else expect(body).not.toHaveProperty('endpoint')
     expect(JSON.stringify(mocks.post.mock.calls)).not.toContain('secret')
     await w.get('[aria-label="Edit profile"]').trigger('click')
     await flushPromises()
@@ -128,6 +136,7 @@ describe('profiles and normalized run information', () => {
     await w.get('form').trigger('submit')
     await flushPromises()
     expect(mocks.put).toHaveBeenCalledWith('/api/v1/autocode/profiles/p', expect.objectContaining({ title: 'Renamed' }))
+    if (!endpoint) expect(mocks.put.mock.calls.at(-1)?.[1]).not.toHaveProperty('endpoint')
   })
   it('selects a workflow profile and emits only explicit stage overrides', async () => {
     normal()

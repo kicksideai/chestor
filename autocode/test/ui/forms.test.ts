@@ -91,6 +91,13 @@ describe('credential selection', () => {
     mocks.props.value.config = { driver, busy: false }
     return render(DriverAccount)
   }
+  it('offers only subscription login for Claude', () => {
+    mocks.props.value.config = { driver: { ...claudeLike, id: 'claude', title: 'Claude Code' } }
+    const w = render(DriverAccount)
+    expect(w.findAll('select option').map(choice => choice.attributes('value'))).toEqual(['file:.claude/.credentials.json', 'env:CLAUDE_CODE_OAUTH_TOKEN'])
+    expect(w.text()).not.toContain('API key')
+    expect(w.text()).not.toContain('Custom endpoint')
+  })
   it('clears secrets and endpoints on a credential-kind change', async () => {
     const w = card()
     await w.get('textarea').setValue('old secret')

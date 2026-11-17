@@ -26,15 +26,16 @@ local function new()
         end
         return result, err
     end
-    local function image_for(user)
+    local function image_for(user, driver_id)
+        driver_id = driver_id or "claude"
         local admin = identity.admin()
         users[#users + 1] = admin
         local list = call(user, "list_agents", {})
         local allows
-        for _, agent in ipairs(list.agents) do if agent.id == "claude" then allows = agent.capabilities end end
-        local image, err = identity.call(admin, "app:fixture_register", "image", {title = "fixture", ref = "chestor-autocode-harness:missing", home = "/opt/agent", agents = {"claude"}, status = "ready"}, {settings = {network = "none", allows = allows}})
+        for _, agent in ipairs(list.agents) do if agent.id == driver_id then allows = agent.capabilities end end
+        local image, err = identity.call(admin, "app:fixture_register", "image", {title = "fixture", ref = "chestor-autocode-harness:missing", home = "/opt/agent", agents = {driver_id}, status = "ready"}, {settings = {network = "none", allows = allows}})
         test.is_nil(err)
-        build_fixture.ready(image, admin.id, "/opt/agent", {network = "none", allows = allows}, identity.call(admin, "app:fixture_image_revision", image))
+        build_fixture.ready(image, admin.id, "/opt/agent", {network = "none", allows = allows}, identity.call(admin, "app:fixture_image_revision", image), {driver_id})
         local shared = identity.request(admin, "POST", "/component-access/share/" .. image, {subject_id = user.id, subject_type = "user", access_mask = 1})
         test.eq(shared.status, 200, shared.body)
         return image

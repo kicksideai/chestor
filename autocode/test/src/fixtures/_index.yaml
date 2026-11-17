@@ -3,24 +3,6 @@ version: "1.0"
 namespace: app
 
 entries:
-  - name: anthropic
-    kind: library.lua
-    source: file://../anthropic.lua
-    modules: [http, json]
-
-  - name: anthropic_messages
-    kind: http.endpoint
-    meta: { router: mock }
-    method: POST
-    path: /v1/messages
-    func: anthropic_messages_handler
-
-  - name: anthropic_messages_handler
-    kind: function.lua
-    source: file://../anthropic.lua
-    method: messages
-    modules: [http, json]
-
   - name: identity
     kind: library.lua
     meta:

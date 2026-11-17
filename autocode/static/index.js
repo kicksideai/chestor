@@ -14,7 +14,7 @@ class e extends o {
   }
   static get vueConfig() {
     return {
-      ...r(() => import("./index-mount-DfLX-ZLU.js").then((t) => t.mountConfig), { surface: "page", loading: "Loading…", failed: "Could not load Autocode. Reload the page to try again.", timeout: 3e4 })
+      ...r(() => import("./index-mount-DuBYgyZw.js").then((t) => t.mountConfig), { surface: "page", loading: "Loading…", failed: "Could not load Autocode. Reload the page to try again.", timeout: 3e4 })
     };
   }
 }

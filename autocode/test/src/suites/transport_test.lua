@@ -35,7 +35,7 @@ local function cases()
             local prepared, err = transport.prepared(value, run)
             test.is_nil(err)
             test.eq(prepared.agent, "claude")
-            test.eq(prepared.kind.variable, "ANTHROPIC_API_KEY")
+            test.eq(prepared.kind.variable, "CLAUDE_CODE_OAUTH_TOKEN")
             test.is_nil(prepared.spec)
             value.account_id = "other"
             test.is_nil(transport.prepared(value, run))

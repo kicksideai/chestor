@@ -75,7 +75,11 @@ and the credential with the component revision. An empty endpoint `base_url`
 clears the custom endpoint. Replacing a secret, explicitly enabling an account,
 or changing its endpoint clears both cooldown and last error and publishes live
 account state. Reads return no credential or account share capability.
-`credential_kind` accepts at most 200 bytes in both schema and service.
+`credential_kind` accepts at most 200 bytes in both schema and service. Claude
+Code accepts the subscription login file `~/.claude/.credentials.json` or the
+subscription token `CLAUDE_CODE_OAUTH_TOKEN`. An undeclared kind returns `Invalid`
+with code `autocode.invalid_account`. Other CLIs advertise their own credential
+kinds through `list_agents`.
 
 `submit_task.prompt` remains bounded to 16,384 UTF-8 bytes. Optional `input`
 accepts JSON with a separate bound of 65,536 UTF-8 bytes after serialization.
@@ -142,8 +146,7 @@ Assign `chestor.autocode.security:tool_access` (`intent: tool_access`) alongside
 module access to the intended groups, then select the capability on the agent.
 Ordinary module membership alone does not enable the tools. Resource grants
 and run ownership still apply. The harness covers refused callers, exact schema
-reuse and a tool submission completed by the real Docker runner against its
-mock model endpoint.
+reuse, tool submissions and durable run settlement.
 
 ## Docker host configuration
 
@@ -198,8 +201,10 @@ A profile contains `title`, `agent`, `image_id`, optional `account_id` or
 `account_pool`, optional `endpoint {protocol, base_url, model}`, `workspace_id`,
 `repo_url`, `repo_ref`, `run_timeout`, `unattended`, and catalog-validated
 `options`, plus optional `tools {traits, context}`. An empty account selection balances across the harness's usable
-accounts. Credentials remain on accounts. Endpoint protocols come from the
-harness catalog; endpoint URLs cannot contain credentials, query or fragment.
+accounts. Credentials remain on accounts. Drivers that advertise endpoint
+protocols in the catalog support custom endpoints. Claude Code accounts, profiles
+and tasks use the subscription's default service. Endpoint URLs cannot contain
+credentials, a query or a fragment.
 Profiles grant no access to their referenced accounts, images or workspaces.
 
 Task submission and Block config accept `profile_id`. Profile fields supply
