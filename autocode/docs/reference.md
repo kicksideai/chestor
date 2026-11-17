@@ -191,6 +191,19 @@ driver's existing invalid-option errors. Autocode sends the resolved options
 with driver preset expansion disabled; the stored `unattended` field records
 the requested mode. The run page shows the effective options.
 
+The shared task/profile/Block option editor shows basic controls before technical
+options and keeps every declared batch option available through its filter.
+Clearing a string or ID-list field is an explicit empty override, validated by
+the driver's schema; for Pi, `options.tools: ""` disables all built-in tools.
+Use **Use default** to remove an override and inherit the profile or driver
+default. JSON fields accept explicit empty collections (`[]` or `{}`) when their
+schema permits them. Clearing a numeric or JSON draft removes that override.
+Task cancellation requires host confirmation identifying the task; stopping
+execution keeps its history. Queued tasks say **Waiting to start…**, and running
+tasks say **Working…**. Aggregate and model usage display the reported decimal
+amount and currency when both are present, otherwise the reported USD amount;
+the UI does not convert, estimate or sum costs.
+
 Admission freezes the effective fields, account pool and options in the run.
 Transactional reservation freezes the reserved account’s own endpoint separately
 from explicit task/profile endpoint overrides; rebalancing replaces an account

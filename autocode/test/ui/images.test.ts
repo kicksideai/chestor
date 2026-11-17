@@ -7,6 +7,13 @@ import ImageForm from '../../ui/src/app/image-form.vue'
 import Images from '../../ui/src/app/images.vue'
 
 describe('images', () => {
+  it('names the general Docker arguments field and links its limits documentation', () => {
+    const w = render(ImageForm, { edit: null, capabilities: [] })
+    const label = w.findAll('label').find(l => l.text().includes('Extra Docker arguments'))
+    expect(label).toBeDefined()
+    expect(label!.get('textarea').attributes('placeholder')).toContain('One argument per line')
+    expect(w.get('a[href*="docker-options.md"]').text()).toContain('limits')
+  })
   it('mounts the shared grants widget only with ADMIN for images', async () => {
     const item = image
     normal()

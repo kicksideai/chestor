@@ -129,7 +129,7 @@ defineExpose({ open })
           <label class="ac-field"><span>Repository URL</span><input v-model="draft.repo_url" class="kx-focus-halo" maxlength="2000" /></label>
           <label class="ac-field"><span>Repository ref</span><input v-model="draft.repo_ref" class="kx-focus-halo" maxlength="200" /></label>
           <label class="ac-field"><span>Run timeout</span><input v-model="draft.run_timeout" class="kx-focus-halo" placeholder="Use configured timeout" maxlength="64" /></label>
-          <label v-if="driver?.unattended" class="ac-check"><input :checked="draft.unattended !== false" @change="draft.unattended = ($event.target as HTMLInputElement).checked" type="checkbox" class="kx-focus-outline" />Unattended</label>
+          <label v-if="driver?.unattended" class="ac-check"><input :checked="draft.unattended !== false" @change="draft.unattended = ($event.target as HTMLInputElement).checked" type="checkbox" class="kx-focus-outline" />Unattended · skip permission prompts when the image allows it</label>
           <DriverOptions v-if="driver" :key="driver.id" v-model="draft.options" :options="driver.options" :defaults="draft.unattended !== false ? driver.unattended : {}" @invalid="invalid = $event" />
           <footer class="ac-dialog-foot"><button type="button" class="ac-btn kx-focus-halo" @click="draft = null">Cancel</button><button type="submit" class="ac-btn primary kx-focus-halo" :disabled="saving || !!invalid">Save</button></footer>
         </fieldset>

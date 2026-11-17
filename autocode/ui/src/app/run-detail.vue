@@ -2,7 +2,7 @@
 <script setup lang="ts">
 import { useRequiredCatalog } from './catalog.ts'
 import { ref, computed, nextTick, onUnmounted, onMounted } from 'vue'
-import { config } from '@wippy-fe/proxy'
+import { config, host } from '@wippy-fe/proxy'
 import { Icon } from '@iconify/vue'
 import { useHostVisibilityRefresh } from '@wippy-fe/webcomponent-vue'
 import { agentIcon, relativeTime, duration, timeout, useRunClock, errorText, shortTime } from './presentation.ts'
@@ -112,6 +112,14 @@ onUnmounted(() => {
 
 async function cancel() {
   try {
+    if (!run.value || !await host.confirm({
+      header: 'Cancel task',
+      message: `Cancel "${run.value.prompt.split('\n')[0]}" (${run.value.id})? Execution will stop; task history will remain.`,
+      icon: 'tabler:player-stop',
+      acceptLabel: 'Cancel task',
+      rejectLabel: 'Keep task',
+      acceptClass: 'p-button-danger',
+    })) return
     await autocode.cancelRun(props.runId)
     await refresh()
   } catch (e) {
@@ -173,14 +181,15 @@ function runModel(r: Run) { return typeof r.options?.model === 'string' ? r.opti
 function accountLabel(id: string) { return props.accounts.find((a) => a.id === id)?.label ?? 'Unlisted account' }
 function workspaceLabel(id: string) { return props.workspaces.find((w) => w.id === id)?.name ?? 'Unlisted workspace' }
 function imageLabel(id: string) { return props.images.find((i) => i.id === id)?.label ?? 'Unlisted image' }
-function usageLine(r: Run) {
+function usageLine(usage: Run['usage']) {
   const parts: string[] = []
-  if (r.usage.input_tokens !== undefined) parts.push(`${r.usage.input_tokens} input`)
-  if (r.usage.output_tokens !== undefined) parts.push(`${r.usage.output_tokens} output`)
-  if (r.usage.cached_tokens !== undefined) parts.push(`${r.usage.cached_tokens} cached`)
-  if (r.usage.cache_write_tokens !== undefined) parts.push(`${r.usage.cache_write_tokens} cache write`)
-  if (r.usage.reasoning_tokens !== undefined) parts.push(`${r.usage.reasoning_tokens} reasoning`)
-  if (r.usage.cost_usd !== undefined) parts.push(`$${r.usage.cost_usd}`)
+  if (usage.input_tokens !== undefined) parts.push(`${usage.input_tokens} input`)
+  if (usage.output_tokens !== undefined) parts.push(`${usage.output_tokens} output`)
+  if (usage.cached_tokens !== undefined) parts.push(`${usage.cached_tokens} cached`)
+  if (usage.cache_write_tokens !== undefined) parts.push(`${usage.cache_write_tokens} cache write`)
+  if (usage.reasoning_tokens !== undefined) parts.push(`${usage.reasoning_tokens} reasoning`)
+  if (usage.cost_decimal !== undefined && usage.currency) parts.push(`${usage.cost_decimal} ${usage.currency}`)
+  else if (usage.cost_usd !== undefined) parts.push(`$${usage.cost_usd}`)
   return parts.join(' · ')
 }
 </script>
@@ -205,7 +214,7 @@ function usageLine(r: Run) {
           <span v-if="run.started_at">{{ duration(run, now) }} {{ active(run) ? 'elapsed' : 'duration' }}</span>
           <span v-if="run.timeout_ms">{{ timeout(run.timeout_ms) }}</span>
           <span>{{ run.unattended ? 'Unattended' : 'Attended' }}</span><span v-if="run.workflow">Workflow</span>
-          <span v-if="run.workspace_id">{{ workspaceLabel(run.workspace_id) }}</span><span v-if="runModel(run)">{{ runModel(run) }}</span><span v-if="usageLine(run)">{{ usageLine(run) }}</span>
+          <span v-if="run.workspace_id">{{ workspaceLabel(run.workspace_id) }}</span><span v-if="runModel(run)">{{ runModel(run) }}</span><span v-if="usageLine(run.usage)">{{ usageLine(run.usage) }}</span>
         </div>
       </header>
       <details class="ac-detail-section"><summary class="kx-focus-outline">Effective options</summary>
@@ -214,7 +223,7 @@ function usageLine(r: Run) {
       </details>
       <section v-if="run.usage.models" class="ac-detail-section" aria-label="Usage by model">
         <h3>Usage by model</h3>
-        <p v-for="(usage, model) in run.usage.models" :key="model" class="ac-muted">{{ model }} · {{ Object.entries(usage).map(([key, value]) => `${key === 'cost_usd' ? '$' : key + ': '}${value}`).join(' · ') }}</p>
+        <p v-for="(usage, model) in run.usage.models" :key="model" class="ac-muted">{{ model }} · {{ usageLine(usage) }}</p>
       </section>
       <p v-if="linkError" class="kx-err" role="alert">{{ linkError }}</p>
       <section class="ac-detail-section" aria-labelledby="ac-prompt-heading">
@@ -236,7 +245,7 @@ function usageLine(r: Run) {
             <span class="ac-event-kind">{{ e.kind }}</span>
             <pre class="ac-event-text">{{ e.text }}</pre>
           </div>
-          <div v-if="active(run)" class="ac-muted ac-pulse">Working…</div>
+          <div v-if="active(run)" class="ac-muted ac-pulse">{{ run.status === 'queued' ? 'Waiting to start…' : 'Working…' }}</div>
           <div v-else-if="!events.length" class="ac-muted">No log events.</div>
         </div>
       </section>

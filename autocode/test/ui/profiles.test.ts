@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
-import { mocks, render, normal, respond, run } from './fixtures.ts'
+import { mocks, render, normal, respond, run, driver, option } from './fixtures.ts'
 import { describe, expect, it } from 'vitest'
 import { flushPromises } from '@vue/test-utils'
 import DriverOptions from '../../ui/src/app/driver-options.vue'
@@ -13,6 +13,22 @@ import { claudeLike } from './fixtures.ts'
 
 const profile = { id: 'p', title: 'DeepSeek', agent: 'claude', image_id: 'i', account_pool: [], options: { model: 'sonnet' }, owner_user_id: 'owner', owner: 'owner', writable: true, deletable: true, endpoint: { protocol: 'anthropic-messages', base_url: 'https://models.example', model: 'deepseek' } }
 describe('profiles and normalized run information', () => {
+  it('saves and reloads a profile with an explicitly empty Pi Tools override', async () => {
+    normal()
+    const pi = { ...driver, id: 'pi', title: 'Pi', options: [{ ...option, name: 'tools', label: 'Tools', type: 'text', schema: undefined, default: 'read,bash,edit,write' }] }
+    let saved = { ...profile, agent: 'pi', options: { tools: 'read' } as Record<string, unknown> }
+    mocks.get.mockImplementation(async path => ({ data: { success: true, ...(path.endsWith('/profiles') ? { profiles: [saved] } : respond(path)) } }))
+    mocks.put.mockImplementation(async (_path, body) => { saved = { ...saved, ...JSON.parse(JSON.stringify(body)) }; return { data: { success: true, id: 'p' } } })
+    const w = render(Profiles, { query: '' }, [pi])
+    await flushPromises()
+    await w.get('[aria-label="Edit profile"]').trigger('click')
+    await w.get('input[aria-label="Tools"]').setValue('')
+    await w.get('form').trigger('submit')
+    await flushPromises()
+    expect(saved.options).toEqual({ tools: '' })
+    await w.get('[aria-label="Edit profile"]').trigger('click')
+    expect(w.getComponent(DriverOptions).props('modelValue')).toEqual({ tools: '' })
+  })
   it('shows loading retry and no-match states', async () => {
     normal()
     mocks.get.mockRejectedValue(new Error('Profile read failed'))

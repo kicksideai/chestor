@@ -4,6 +4,7 @@ import { ref, computed, watch, nextTick } from 'vue'
 import { useProps, useEvents } from '@wippy-fe/webcomponent-vue'
 import type { ComponentProps, ComponentEvents } from '../types.ts'
 import { Icon } from '@iconify/vue'
+import { host } from '@wippy-fe/proxy'
 import { useCatalog } from './catalog.ts'
 import PageHead from './page-head.vue'
 import TasksTab from './tasks.vue'
@@ -56,7 +57,9 @@ function create() { if (tab.value === 'tasks') tasks.value?.open(); else if (tab
     <PageHead v-if="!runId && !missingRoute" title="Autocode" subtitle="Run coding agents with your accounts and workspaces." :count="`${count} ${tab === 'tasks' ? 'task' : tab === 'profiles' ? 'profile' : 'account'}${count === 1 ? '' : 's'}`" :action="tab === 'tasks' ? 'New task' : tab === 'profiles' ? 'Create profile' : 'Add account'" v-model:query="query" :placeholder="tab === 'tasks' ? 'Search tasks…' : tab === 'profiles' ? 'Search profiles…' : 'Search accounts…'" @create="create" />
     <div v-if="!runId && !missingRoute" class="ac-bar"><nav class="ac-tabs" aria-label="Autocode views">
       <button v-for="t in tabs" :key="t.id" type="button" class="ac-tab kx-focus-outline" :class="{ active: tab === t.id }" :aria-pressed="tab === t.id" @click="if (tab !== t.id) { tab = t.id; query = ''; count = 0 }"><Icon :icon="t.icon" /> {{ t.label }}</button>
-    </nav></div>
+    </nav>
+    <a v-if="catalog?.settings_path && (catalog.can_images || catalog.can_workspaces || catalog.can_prune)" class="ac-link kx-focus-outline" :href="catalog.settings_path" @click.prevent="host.navigate(catalog.settings_path)">Images, workspaces and Docker</a>
+    </div>
 
     <p v-if="error && !catalog" class="kx-err">
       {{ error }} <button class="ac-link kx-focus-outline" type="button" @click="load">Retry</button>

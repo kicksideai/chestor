@@ -22,7 +22,7 @@ const validators = computed(() => new Map<string, ValidateFunction<unknown> | st
 const visible = computed(() => {
   const term = filter.value.trim().toLowerCase()
   return batchOptions(props.options).filter(o => !term || [o.name, o.label, o.description, o.section, o.group].join(' ').toLowerCase().includes(term))
-    .sort((a, b) => a.section.localeCompare(b.section) || a.group.localeCompare(b.group) || a.order - b.order || a.name.localeCompare(b.name))
+    .sort((a, b) => Number(b.section === 'basic') - Number(a.section === 'basic') || a.section.localeCompare(b.section) || a.group.localeCompare(b.group) || a.order - b.order || a.name.localeCompare(b.name))
 })
 const setCount = computed(() => Object.keys(props.modelValue).length)
 
@@ -42,6 +42,10 @@ function set(name: string, value: unknown) {
   if (value === undefined) delete next[name]
   else next[name] = value
   emit('update:modelValue', next)
+}
+function reset(option: DriverOption) {
+  delete drafts.value[option.name]
+  accept(option, undefined)
 }
 function text(option: DriverOption): string {
   if (option.name in drafts.value) return drafts.value[option.name]
@@ -68,7 +72,7 @@ function accept(option: DriverOption, value: unknown) {
 function commit(option: DriverOption, raw: string) {
   drafts.value[option.name] = raw
   const trimmed = raw.trim()
-  if (!trimmed) { accept(option, undefined); return }
+  if (!trimmed) { accept(option, option.type === 'ids' ? [] : option.type === 'text' || option.type === 'string' ? '' : undefined); return }
   if (option.type === 'json') {
     let value: unknown
     try { value = JSON.parse(trimmed) }
@@ -108,8 +112,8 @@ function fallback(option: DriverOption): string {
     <div v-for="(o, index) in visible" :key="o.name" class="ac-option">
       <div v-if="index === 0 || o.section !== visible[index - 1].section || o.group !== visible[index - 1].group" class="ac-muted">{{ [o.section, o.group].filter(Boolean).join(' · ') }}</div>
       <div class="ac-option-head">
-        <span class="ac-mono">{{ o.name }}</span>
-        <small class="ac-muted">{{ o.label }}<template v-if="o.description && o.description !== o.label"> — {{ o.description }}</template></small>
+        <span>{{ o.label || o.name }}</span>
+        <small class="ac-muted"><code>{{ o.name }}</code><template v-if="o.description && o.description !== o.label"> — {{ o.description }}</template></small>
       </div>
       <select v-if="o.type === 'boolean' || o.type === 'enum'" class="kx-focus-halo" :aria-label="o.label || o.name" :aria-invalid="!!invalid[o.name]" :aria-describedby="invalid[o.name] ? `${prefix}-${o.name}-error` : undefined" :value="selected(o)" @change="choose(o, $event)">
         <option value="">{{ fallback(o) }}</option>
@@ -117,7 +121,8 @@ function fallback(option: DriverOption): string {
         <template v-else><option v-for="v in o.values ?? []" :key="String(v)" :value="String(v)">{{ v }}</option></template>
       </select>
       <textarea v-else-if="o.type === 'json'" rows="2" class="ac-mono kx-focus-halo" :aria-label="o.label || o.name" :aria-invalid="!!invalid[o.name]" :aria-describedby="invalid[o.name] ? `${prefix}-${o.name}-error` : undefined" :value="text(o)" :placeholder="`JSON · ${fallback(o)}`" @input="input(o, $event)" />
-      <input v-else class="ac-mono kx-focus-halo" :aria-label="o.label || o.name" :aria-invalid="!!invalid[o.name]" :aria-describedby="invalid[o.name] ? `${prefix}-${o.name}-error` : undefined" :value="text(o)" :placeholder="o.type === 'ids' ? 'comma separated' : fallback(o)" @input="input(o, $event)" />
+      <input v-else class="ac-mono kx-focus-halo" :aria-label="o.label || o.name" :aria-invalid="!!invalid[o.name]" :aria-describedby="invalid[o.name] ? `${prefix}-${o.name}-error` : undefined" :value="text(o)" :placeholder="props.modelValue[o.name] !== undefined && !text(o) ? 'Empty override' : o.type === 'ids' ? 'comma separated' : fallback(o)" @input="input(o, $event)" />
+      <button type="button" class="ac-link kx-focus-outline" :aria-label="`Use default for ${o.label || o.name}`" @click="reset(o)">Use default</button>
       <small v-if="invalid[o.name]" :id="`${prefix}-${o.name}-error`" class="kx-err" role="alert">{{ invalid[o.name] }}</small>
     </div>
     <p v-if="!visible.length" class="ac-muted">No matching options.</p>

@@ -208,6 +208,33 @@ local function cases()
                 test.eq(run.unattended, unattended)
             end
         end)
+        test.it("preserves a saved empty Pi Tools override through admission and launch", function()
+            local admin = track(identity.admin())
+            local catalog = identity.request(admin, "GET", "/autocode/catalog").json
+            local allows = {}
+            for _, driver in ipairs(catalog.agents) do if driver.id == "pi" then allows = driver.capabilities end end
+            local image_id = register(admin, "image", {title = "Pi", ref = "harness", home = "/opt/agent"}, {settings = {allows = allows}})
+            build_fixture.ready(image_id, admin.id, "/opt/agent", {allows = allows}, identity.call(admin, "app:fixture_image_revision", image_id), {"pi"})
+            local account_id = register(admin, "account", {title = "Key", agent = "pi", credential_kind = "env:ANTHROPIC_API_KEY", enabled = true}, {credential = "test-key"})
+            local added = identity.request(admin, "POST", "/autocode/profiles", {title = "No tools", agent = "pi", image_id = image_id,
+                account_id = account_id, options = {tools = ""}})
+            test.eq(added.status, 201, added.body)
+            local listed = identity.request(admin, "GET", "/autocode/profiles")
+            test.eq(listed.status, 200, listed.body)
+            local saved
+            for _, profile in ipairs(listed.json.profiles) do if profile.id == added.json.id then saved = profile end end
+            test.not_nil(saved)
+            test.eq(saved.options.tools, "")
+            local submitted = identity.request(admin, "POST", "/autocode/runs", {profile_id = saved.id, prompt = "task"})
+            test.eq(submitted.status, 201, submitted.body)
+            local run = repo.stored_run(submitted.json.run_id)
+            test.eq(run.options.tools, "")
+            local prepared, err = identity.call(admin, "chestor.autocode.service:prepare", {run_id = run.id})
+            test.is_nil(err, tostring(err))
+            local no_tools = false
+            for _, argument in ipairs(prepared.launch.argv) do if argument == "--no-tools" then no_tools = true end end
+            test.is_true(no_tools, "empty Pi Tools must launch without built-in tools")
+        end)
         test.it("lets explicit options override unattended presets for two catalog harnesses", function()
             local admin = track(identity.admin())
             local catalog = identity.request(admin, "GET", "/autocode/catalog").json

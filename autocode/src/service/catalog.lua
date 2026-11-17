@@ -22,9 +22,10 @@ local function get(): (Object?, error?)
     local tab, tab_err = registry.get("chestor.autocode:settings_tab")
     if not tab then return nil, boundary.native(tab_err) end
     local settings_path = type(tab.data.path) == "string" and tab.data.path ~= "" and tab.data.path or nil
+    local limits_path = type(tab.data.limits_path) == "string" and tab.data.limits_path ~= "" and tab.data.limits_path or nil
     local retention, retention_err = maintenance.cache_retention()
     if not retention then return nil, retention_err end
-    return {build_cache_retention = retention, agents = result.agents, default_image = defaults, account_limits = accounts.LIMITS, settings_path = settings_path,
+    return {build_cache_retention = retention, agents = result.agents, default_image = defaults, account_limits = accounts.LIMITS, settings_path = settings_path, limits_path = limits_path,
         can_images = allowed({"images_create", "images_update", "images_delete", "images_prepare"}),
         can_workspaces = allowed({"workspaces_create", "workspaces_delete"}), can_prune = allowed({"maintenance_prune"})}, nil
 end

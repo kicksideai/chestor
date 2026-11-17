@@ -2,6 +2,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { Icon } from '@iconify/vue'
+import { host } from '@wippy-fe/proxy'
 import { useCatalog } from './catalog.ts'
 import PageHead from './page-head.vue'
 import ImagesTab from './images.vue'
@@ -39,6 +40,7 @@ function create() { if (tab.value === 'images') images.value?.open(); else works
           <Icon :icon="t.icon" /> {{ t.label }}
         </button>
       </nav>
+      <a v-if="catalog?.limits_path" class="ac-link kx-focus-outline" :href="catalog.limits_path" @click.prevent="host.navigate(catalog.limits_path)">Run limits and retention</a>
     </div>
 
     <p v-if="error && !catalog" class="kx-err">

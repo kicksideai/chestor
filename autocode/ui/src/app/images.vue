@@ -136,7 +136,7 @@ watch(images, value => emit('count', value.length))
 
 <template>
   <div class="ac-stack">
-    <p class="ac-hint">Share ready images to make them available for tasks.</p>
+    <p class="ac-hint">Ready means preparation finished. Usable means you can run tasks with the image. Share ready images to make them available to others.</p>
     <p v-if="error" class="kx-err" role="alert">{{ error }} <button type="button" class="ac-link kx-focus-outline" @click="refresh">Retry</button></p>
     <div v-if="!loaded && !error" class="kx-loading">Loading images…</div>
     <div v-if="loaded && !images.length" class="kx-empty"><div class="kx-empty-ico"><Icon icon="tabler:box" /></div><div class="kx-empty-title">No images yet</div><div class="kx-empty-sub">Start with the default agent recipe or use an existing image.</div><button class="ac-btn primary kx-focus-halo" @click="openAdd">Add image</button></div>

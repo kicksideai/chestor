@@ -34,7 +34,7 @@ wippy-loading ~ wippy-loading { display: none; }
   scrollbar-gutter: stable;
 }
 
-.ac-bar { flex: none; display: flex; padding: 0 24px 20px; }
+.ac-bar { flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 0 24px 20px; }
 .ac-body { padding: 0 24px 24px; flex: 1 0 auto; }
 .ac-card {
   border: 1px solid var(--p-content-border-color); border-radius: var(--kx-radius-14); padding: 16px;

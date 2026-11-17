@@ -12,6 +12,24 @@ const hostProps = reactive(mocks.props)
 const button = (w: VueWrapper, label: string) => w.findAll('button').find(b => b.text().includes(label))!
 
 describe('run deep links', () => {
+  it('links every task area to host-bound image and workspace management', async () => {
+    normal()
+    mocks.get.mockImplementation(async path => ({ data: { success: true, ...respond(path), ...(path.endsWith('/catalog') ? { can_images: true, settings_path: '/custom/manage' } : {}) } }))
+    const w = render(Autocode)
+    await flushPromises()
+    for (const tab of ['Tasks', 'Profiles', 'Accounts']) {
+      await button(w, tab).trigger('click')
+      await flushPromises()
+      expect(w.get('a[href="/custom/manage"]').text()).toContain('Images, workspaces and Docker')
+    }
+  })
+  it('links resource management to the host-bound run limits and retention page', async () => {
+    normal()
+    mocks.get.mockImplementation(async path => ({ data: { success: true, ...respond(path), ...(path.endsWith('/catalog') ? { can_images: true, limits_path: '/custom/limits' } : {}) } }))
+    const w = render(Admin)
+    await flushPromises()
+    expect(w.get('a[href="/custom/limits"]').text()).toBe('Run limits and retention')
+  })
   it('follows live output through the page scroll owner and respects scrolling away', async () => {
     normal()
     mocks.props.value.route = 'runs/r'
@@ -231,6 +249,6 @@ it.each([undefined, ''])('hides image settings navigation when settings_path is 
   await flushPromises()
   w.findComponent(Tasks).vm.open()
   await flushPromises()
-  expect(w.text()).toContain('No image with')
+  expect(w.text()).toContain('No usable image with')
   expect(w.findAll('button').some(b => b.text().includes('Manage images'))).toBe(false)
 })

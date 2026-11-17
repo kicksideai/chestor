@@ -10,7 +10,7 @@ export const agentInfo = z.object({ id: z.string(), title: z.string(), icon: z.s
 export const imageRunSettings = z.object({ memory: z.string(), cpus: z.string(), pids_limit: z.number().int(), gpus: z.string(), network: z.string(), extra_args: strings, allows: strings })
 export const defaultImage = z.object({ ref: z.string(), label: z.string(), home: z.string(), dockerfile: z.string(), settings: imageRunSettings.optional() })
 export const accountLimits = z.object({ label_bytes: z.number().int().positive(), secret_bytes: z.number().int().positive(), endpoint_url_bytes: z.number().int().positive(), endpoint_model_bytes: z.number().int().positive() })
-export const catalog = z.object({ agents: z.array(agentInfo), default_image: defaultImage, can_images: z.boolean(), can_workspaces: z.boolean(), can_prune: z.boolean(), build_cache_retention: z.string(), settings_path: z.string().optional(), account_limits: accountLimits.optional() })
+export const catalog = z.object({ agents: z.array(agentInfo), default_image: defaultImage, can_images: z.boolean(), can_workspaces: z.boolean(), can_prune: z.boolean(), build_cache_retention: z.string(), settings_path: z.string().optional(), limits_path: z.string().optional(), account_limits: accountLimits.optional() })
 // usable describes eligibility; cooldown_until separately controls readiness.
 export const rateLimits = z.object({ windows: z.array(z.object({ window: z.string(), utilization: z.number().optional(), status: z.enum(['allowed', 'warning', 'rejected']), resets_at: z.number().int().optional() })), overage_status: z.string().optional(), overage_disabled_reason: z.string().optional(), is_using_overage: z.boolean().optional() })
 export type Profile = z.infer<typeof profile>
