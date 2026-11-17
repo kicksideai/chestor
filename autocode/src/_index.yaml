@@ -15,7 +15,7 @@ entries:
     component: wippy/agent
 
   - name: dep.bee.drivers
-    version: ">=0.1.25"
+    version: ">=0.1.26"
     kind: ns.dependency
     meta:
       comment: Declarative agent CLI drivers and the drivers library; the host binds activation to chestor.autocode.drivers:activation and supplies its own environment storages.
@@ -110,7 +110,7 @@ entries:
       base_path: chestor-autocode
       entry_point: index.js
       icon: tabler:robot
-      description: Starts agent tasks across your agent accounts and streams their output. Subscription logins are for personal use only; use API keys or your own endpoints for production or multiple users.
+      description: Starts agent tasks across your agent accounts and streams their output. Claude Code uses a personal subscription login. Other drivers may offer API keys and custom endpoints.
       props:
         type: object
         properties:

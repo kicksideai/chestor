@@ -382,8 +382,8 @@ local function cases()
         test.it("refuses malformed nested run state instead of discarding execution fields", function()
             local id = repo.create_run(uuid.v7(), identity, spec(uuid.v7()))
             for _, fixture in ipairs({
-                {column = "endpoint", value = '{"protocol":"anthropic-messages"}'},
-                {column = "endpoint", value = '{"protocol":"anthropic-messages","base_url":"https://example.com","model":42}'},
+                {column = "endpoint", value = '{"protocol":"openai-responses"}'},
+                {column = "endpoint", value = '{"protocol":"openai-responses","base_url":"https://example.com","model":42}'},
                 {column = "account_pool", value = '{"not":"an array"}'}}) do
                 local db = sql.get("app:db")
                 local _, err = db:execute("UPDATE chestor_autocode_runs SET " .. fixture.column .. " = $1 WHERE id = $2", {fixture.value, id})
@@ -582,7 +582,7 @@ local function cases()
             for _, failed in ipairs({false, true}) do
                 local user = identity_helper.member()
                 local created = identity_helper.request(user, "POST", "/autocode/accounts", {
-                    agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "deleted in flight", secret = "key"})
+                    agent = "claude", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", label = "deleted in flight", secret = "test-subscription"})
                 test.eq(created.status, 201, created.body)
                 local account = created.json.id
                 require("stubs").reset()
@@ -595,7 +595,7 @@ local function cases()
                 test.is_true(finished)
                 local intent = account_health.capture(failed and {outcome = "failed", error = {
                     code = "rate_limit", message = "rate limited", retryable = true}} or {outcome = "succeeded"},
-                    failed and "credential refresh failed" or nil, redact.new("key"))
+                    failed and "credential refresh failed" or nil, redact.new("test-subscription"))
                 test.is_nil(account_health.apply(repo.stored_run(id), intent))
                 test.is_true(repo.finish_run(id, failed and "failed" or "succeeded", "", "", {}))
                 local db = sql.get("app:db")

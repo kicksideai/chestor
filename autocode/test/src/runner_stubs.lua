@@ -442,7 +442,7 @@ end
 resources.ACCESS = {READ = 1, WRITE = 2, DELETE = 4, ADMIN = 8}
 M.context = {get = context_get}
 function M.preparation(run)
-    return {agent = run.agent, account_id = run.account_id, kind = {id = "env:ANTHROPIC_API_KEY"},
+    return {agent = run.agent, account_id = run.account_id, kind = {id = "env:CLAUDE_CODE_OAUTH_TOKEN"},
         secret = "secret", revision = 1, image = {id = run.image_id, ref = "image", home = "/home/agent",
             memory = "", cpus = "", pids_limit = 0, gpus = "", network = "none", extra_args = {}},
         workdir = "/work", launch = {executable = "agent", argv = {}, environment = {}, files = {}, readiness = "none"}}

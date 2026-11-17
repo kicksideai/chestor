@@ -46,11 +46,6 @@ entries:
     meta: { server: gateway }
     prefix: /api/public
 
-  - name: mock
-    kind: http.router
-    meta: { server: gateway }
-    prefix: /mock
-
   - name: dep.wippy.test
     kind: ns.dependency
     component: wippy/test
