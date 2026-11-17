@@ -10,7 +10,7 @@ const entries = {
 }
 
 export default defineConfig({
-  plugins: [vue({ template: { compilerOptions: { isCustomElement: (t) => t.startsWith('wc-') } } }), wippyComponentPlugin()],
+  plugins: [vue({ template: { compilerOptions: { isCustomElement: (t) => t.startsWith('wc-') } } }), wippyComponentPlugin({ required: true, lazyEntries: ['index', 'entry_create'] })],
   base: '',
   define: {
     'process.env.NODE_ENV': JSON.stringify('production'),

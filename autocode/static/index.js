@@ -1,33 +1,27 @@
-import { W as o, u as r } from "./wc-runtime-6vw183jT.js";
-import { l as s } from "./lazy-ZWC1tvFC.js";
-import { s as n } from "./styles-BbmDgjzB.js";
-import "@iconify/vue";
-import { define as p } from "@wippy-fe/proxy";
-const i = { props: { type: "object", properties: { route: { type: "string", default: "", description: "Path relative to /autocode; runs/<run_id> opens a run." } } } }, a = {
-  wippy: i
+import { W as o, l as r } from "./wc-runtime-CEQ5gZTA.js";
+import { s } from "./styles-CZu759Vv.js";
+import { define as i } from "@wippy-fe/proxy";
+const n = { props: { type: "object", properties: { route: { type: "string", default: "", description: "Path relative to /autocode; runs/<run_id> opens a run." } } } }, p = {
+  wippy: n
 };
 class e extends o {
   static get wippyConfig() {
     return {
-      propsSchema: a.wippy.props,
+      propsSchema: p.wippy.props,
       hostCssKeys: ["themeConfigUrl", "primeVueCssUrl", "iframeCssUrl"],
-      inlineCss: n
+      inlineCss: s
     };
   }
   static get vueConfig() {
     return {
-      lazyConfig: s(
-        () => import("./index-mount-hjO21ojS.js").then((t) => t.mountConfig),
-        "Could not load Autocode. Reload the page to try again.",
-        r
-      )
+      ...r(() => import("./index-mount-DfLX-ZLU.js").then((t) => t.mountConfig), { surface: "page", loading: "Loading…", failed: "Could not load Autocode. Reload the page to try again.", timeout: 3e4 })
     };
   }
 }
-async function y() {
+async function c() {
   return e;
 }
-p(import.meta.url, e);
+i(import.meta.url, e);
 export {
-  y as webComponent
+  c as webComponent
 };

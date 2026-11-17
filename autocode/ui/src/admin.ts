@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
-import { WippyVueElement, define, useEvents } from '@wippy-fe/webcomponent-vue'
+import { WippyVueElement, define, lazyVueConfig } from '@wippy-fe/webcomponent-vue'
 import type { WippyElementConfig, WippyPropsSchema } from '@wippy-fe/webcomponent-vue'
 import type { ComponentProps } from './types.ts'
-import { lazyPage } from './lazy'
+
 import stylesText from './styles.css?inline'
 
 // chestor-autocode-admin - the Autocode tab of the System settings, built as its
@@ -16,11 +16,7 @@ class ChestorAutocodeAdminElement extends WippyVueElement<ComponentProps, Record
 
   static get vueConfig() {
     return {
-      lazyConfig: lazyPage(
-        () => import('./admin-mount').then((module) => module.mountConfig),
-        'Could not load Autocode settings. Reload the page to try again.',
-        useEvents,
-      ),
+      ...lazyVueConfig(() => import('./admin-mount').then((module) => module.mountConfig), { surface: 'page', loading: 'Loading…', failed: 'Could not load Autocode settings. Reload the page to try again.', timeout: 30000 }),
     }
   }
 }

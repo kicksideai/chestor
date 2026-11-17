@@ -76,22 +76,6 @@ Lockfiles: `graph/ui/package-lock.json`
 
 LICENSE: [License text](#license-text-6a349742a6cb219d5a2fc8d0844f6d89a6efc62e20c664450d884fc7ff2d6015)
 
-### npm: @iconify/types@2.0.0
-
-License: MIT
-
-Lockfiles: `db-schema/ui/package-lock.json`, `graph/ui/package-lock.json`, `journal/ui/package-lock.json`, `workspace/ui/package-lock.json`
-
-license.txt: [License text](#license-text-045ce74712fc613fdd74d1c55f5140a08d623836ff2aca44132b38d68fbc67ad)
-
-### npm: @iconify/vue@5.0.3
-
-License: MIT
-
-Lockfiles: `db-schema/ui/package-lock.json`, `graph/ui/package-lock.json`, `journal/ui/package-lock.json`, `workspace/ui/package-lock.json`
-
-license.txt: [License text](#license-text-7cef50a4477dcd1f0ea036d3c7031430851ea21228e65658c6c84a57754e1b65)
-
 ### npm: @jridgewell/gen-mapping@0.3.13
 
 License: MIT
@@ -280,41 +264,23 @@ Lockfiles: `db-schema/ui/package-lock.json`, `graph/ui/package-lock.json`
 
 LICENSE: [License text](#license-text-0f844b1160603552a01662ac2999c14e5fb4df487e65619b9ed4406e43eb3c0b)
 
-### npm: @wippy-fe/theme@0.0.56
+### npm: @wippy-fe/theme@0.0.70
 
 License: UNLICENSED
 
-Lockfiles: `autocode/ui/package-lock.json`
+Lockfiles: `autocode/ui/package-lock.json`, `db-schema/ui/package-lock.json`, `graph/ui/package-lock.json`, `journal/ui/package-lock.json`, `roadmap/ui/package-lock.json`, `workspace/ui/package-lock.json`
 
-### npm: @wippy-fe/theme@0.0.61
-
-License: UNLICENSED
-
-Lockfiles: `db-schema/ui/package-lock.json`, `graph/ui/package-lock.json`, `journal/ui/package-lock.json`, `roadmap/ui/package-lock.json`, `workspace/ui/package-lock.json`
-
-### npm: @wippy-fe/webcomponent-core@0.0.56
+### npm: @wippy-fe/webcomponent-core@0.0.70
 
 License: UNLICENSED
 
-Lockfiles: `autocode/ui/package-lock.json`
+Lockfiles: `autocode/ui/package-lock.json`, `db-schema/ui/package-lock.json`, `graph/ui/package-lock.json`, `journal/ui/package-lock.json`, `roadmap/ui/package-lock.json`, `workspace/ui/package-lock.json`
 
-### npm: @wippy-fe/webcomponent-core@0.0.60
-
-License: UNLICENSED
-
-Lockfiles: `db-schema/ui/package-lock.json`, `graph/ui/package-lock.json`, `journal/ui/package-lock.json`, `roadmap/ui/package-lock.json`, `workspace/ui/package-lock.json`
-
-### npm: @wippy-fe/webcomponent-vue@0.0.56
+### npm: @wippy-fe/webcomponent-vue@0.0.70
 
 License: UNLICENSED
 
-Lockfiles: `autocode/ui/package-lock.json`
-
-### npm: @wippy-fe/webcomponent-vue@0.0.60
-
-License: UNLICENSED
-
-Lockfiles: `db-schema/ui/package-lock.json`, `graph/ui/package-lock.json`, `journal/ui/package-lock.json`, `roadmap/ui/package-lock.json`, `workspace/ui/package-lock.json`
+Lockfiles: `autocode/ui/package-lock.json`, `db-schema/ui/package-lock.json`, `graph/ui/package-lock.json`, `journal/ui/package-lock.json`, `roadmap/ui/package-lock.json`, `workspace/ui/package-lock.json`
 
 ### npm: ajv@8.20.0
 
@@ -1089,32 +1055,6 @@ IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
 CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-```
-
-## License text 045ce74712fc613fdd74d1c55f5140a08d623836ff2aca44132b38d68fbc67ad
-
-```text
-MIT License
-
-Copyright (c) 2021 - 2022 Vjacheslav Trushkin / Iconify OÜ
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
 ```
 
 ## License text 0f0ca96f50793990031ebc488a38f7292ff70bce8ab6a8e5eeda674abc32ccdf
@@ -1968,32 +1908,6 @@ THE SOFTWARE.
 MIT License
 
 Copyright (c) 2017 Evgeny Poberezkin
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-
-## License text 7cef50a4477dcd1f0ea036d3c7031430851ea21228e65658c6c84a57754e1b65
-
-```text
-MIT License
-
-Copyright (c) 2020-PRESENT Vjacheslav Trushkin
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

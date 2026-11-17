@@ -1,6 +1,5 @@
-import { W as o, u as r } from "./wc-runtime-BIZwvF6q.js";
-import { s, a as n } from "./styles-DP-xQddr.js";
-import "@iconify/vue";
+import { W as o, l as r } from "./wc-runtime-B0OetHdg.js";
+import { s } from "./styles-e3DM6Wqz.js";
 import { define as i } from "@wippy-fe/proxy";
 class e extends o {
   static get wippyConfig() {
@@ -12,19 +11,15 @@ class e extends o {
   }
   static get vueConfig() {
     return {
-      lazyConfig: n(
-        () => import("./lazy-mount-B9iUyzXB.js").then((t) => t.mountConfig),
-        "Could not load the workspace. Reload the page to try again.",
-        r
-      )
+      ...r(() => import("./lazy-mount-DxukQOL2.js").then((t) => t.mountConfig), { surface: "page", loading: "Loading…", failed: "Could not load the workspace. Reload the page to try again.", timeout: 3e4 })
     };
   }
 }
-async function f() {
+async function l() {
   return e;
 }
 i(import.meta.url, e);
 export {
-  f as webComponent
+  l as webComponent
 };
 //# sourceMappingURL=index.js.map

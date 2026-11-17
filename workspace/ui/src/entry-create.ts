@@ -1,6 +1,6 @@
-import { WippyVueElement, define, useEvents } from '@wippy-fe/webcomponent-vue'
+import { WippyVueElement, define, lazyVueConfig } from '@wippy-fe/webcomponent-vue'
 import type { WippyElementConfig, WippyPropsSchema } from '@wippy-fe/webcomponent-vue'
-import { lazyControl } from './lazy'
+
 import stylesText from './styles.css?inline'
 
 // wc-entry-create -- the canonical generic create element. A kind whose create.view
@@ -19,11 +19,7 @@ const PROPS_SCHEMA: WippyPropsSchema = {
   },
 }
 
-const EntryCreate = lazyControl(
-  () => import('./app/EntryCreate.vue'),
-  { loading: 'Loading the create form…', failed: 'Could not load the create form. Reload the page to try again.' },
-  useEvents,
-)
+
 
 class KicksideEntryCreateElement extends WippyVueElement<EntryCreateProps> {
   static get wippyConfig(): WippyElementConfig<EntryCreateProps> {
@@ -35,7 +31,7 @@ class KicksideEntryCreateElement extends WippyVueElement<EntryCreateProps> {
   }
 
   static get vueConfig() {
-    return { rootComponent: EntryCreate }
+    return lazyVueConfig(() => (() => import('./app/EntryCreate.vue'))().then(module => ({ rootComponent: module.default })), { surface: 'compact', loading: 'Loading the create form…', failed: 'Could not load the create form. Reload the page to try again.', delay: 200, timeout: 30000 })
   }
 }
 

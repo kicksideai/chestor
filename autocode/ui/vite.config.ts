@@ -20,7 +20,7 @@ const entries = {
 const customElement = (tag: string) => tag.startsWith('wc-') || tag.startsWith('chestor-') || tag.startsWith('kickside-')
 
 export default defineConfig(({ mode }) => ({
-  plugins: [vue({ template: { compilerOptions: { isCustomElement: customElement } } }), wippyComponentPlugin()],
+  plugins: [vue({ template: { compilerOptions: { isCustomElement: customElement } } }), wippyComponentPlugin({ required: true, lazyEntries: ['index', 'admin', 'driver-account', 'task-config'] })],
   // The kickside/ui-kit stylesheets are a build input `make ui-kit` materializes
   // from the Hub; they are bundled, never installed as an npm dependency.
   resolve: { alias: { '@kickside/ui-kit': resolve(moduleRoot, '.wippy/npm/@kickside/ui-kit') } },
