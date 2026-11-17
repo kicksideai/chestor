@@ -238,8 +238,16 @@ fragment.
 
 Driver text observations are folded per segment: `append` adds a delta;
 `replace` and `complete` replace the retained text with their full snapshot.
-A completion supersedes its streamed deltas in both the event log and result,
-including reasoning text. The locked `bee/drivers` 0.1.25 codec emits a small
+A completion supersedes its streamed deltas in the result and in held log text,
+including reasoning text. A non-text observation flushes the text held so far.
+Each segment/channel tracks its logged byte count: later appended text emits a
+new row containing only the unlogged suffix. Equal or shorter prefix snapshots
+add no row; an extending snapshot logs only its extension. A snapshot diverging
+from the retained logged prefix updates the result while leaving the log unchanged.
+Snapshots split into `replace` plus `append` pieces obey the same rule. Logged
+byte counts survive text-buffer eviction without retaining per-run text copies;
+segment buffers retain their existing count and byte bounds. Distinct segments
+with identical text remain separate events. The locked `bee/drivers` 0.1.25 codec emits a small
 completion as `complete`, and a chunked completion as `replace` followed by
 `append` pieces on the same segment, with or without preceding deltas.
 A distinct snapshot of that segment supersedes the previous snapshot; replacing
