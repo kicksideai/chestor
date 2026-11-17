@@ -1,6 +1,13 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.16](https://github.com/kicksideai/chestor/compare/autocode-v0.1.15...autocode-v0.1.16) (2026-11-17)
+
+
+### Bug Fixes
+
+* **autocode:** select traits in profile and task forms ([#62](https://github.com/kicksideai/chestor/issues/62)) ([67f13fa](https://github.com/kicksideai/chestor/commit/67f13fad2c963f8a43365385d1c318e7e41604cd))
+
 ## [0.1.15](https://github.com/kicksideai/chestor/compare/autocode-v0.1.14...autocode-v0.1.15) (2026-11-17)
 
 
