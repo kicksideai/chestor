@@ -1,6 +1,13 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.18](https://github.com/kicksideai/chestor/compare/autocode-v0.1.17...autocode-v0.1.18) (2026-11-17)
+
+
+### Bug Fixes
+
+* **autocode:** log segment suffixes without duplicate snapshots ([#66](https://github.com/kicksideai/chestor/issues/66)) ([026739a](https://github.com/kicksideai/chestor/commit/026739a2cea81130a741e811d854fc09550780ef))
+
 ## [0.1.17](https://github.com/kicksideai/chestor/compare/autocode-v0.1.16...autocode-v0.1.17) (2026-11-17)
 
 
