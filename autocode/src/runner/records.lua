@@ -10,8 +10,8 @@ type Kind = "assistant" | "reasoning" | "tool" | "tool_result" | "tool_error" | 
 type Event = {kind: Kind, text: string}
 type Text = {text: string, dropped: integer}
 type Segment = {channel: string, text: string, dropped: integer, answer: Text?, done: boolean, ordinal: integer, message: integer,
-    answer_message: integer?, answer_start: integer?, answer_dropped: integer?}
-type Folder = {rate_limits: {[string]: unknown}?, segments: {[string]: Segment}, order: {string}, filter: (string) -> string,
+    answer_message: integer?, answer_start: integer?, answer_dropped: integer?, position: integer, base: integer, divergent: boolean}
+type Folder = {rate_limits: {[string]: unknown}?, segments: {[string]: Segment}, emitted: {[string]: integer}, order: {string}, filter: (string) -> string,
     result_bytes: integer, event_text_bytes: integer, answer: Text?, answer_ordinal: integer, partial: Text?, partial_ordinal: integer, ordinal: integer, step: integer, message: integer}
 
 local M = {}
@@ -31,7 +31,7 @@ function M.clip(text: string, limit: integer?): string
 end
 
 function M.new(filter: (string) -> string, result_bytes: integer?, event_text_bytes: integer?): Folder
-    return {segments = {}, order = {}, filter = filter, ordinal = 0, answer_ordinal = 0, partial_ordinal = 0,
+    return {segments = {}, emitted = {}, order = {}, filter = filter, ordinal = 0, answer_ordinal = 0, partial_ordinal = 0,
         step = 0, message = 0, result_bytes = result_bytes or M.MAX_RESULT_BYTES, event_text_bytes = event_text_bytes or MAX_TEXT}
 end
 
@@ -80,17 +80,21 @@ local function remember(folder: Folder, segment: Segment)
     end
 end
 
-local function event_of(folder: Folder, segment: Segment): Event
-    return {kind = segment.channel == "reasoning_summary" and "reasoning" or "assistant",
-        text = clipped(folder.filter(segment.text), folder.event_text_bytes, segment.dropped)}
+local function emit(folder: Folder, id: string, segment: Segment, out: {Event})
+    remember(folder, segment)
+    local identity = segment.channel .. ":" .. id
+    local logged = folder.emitted[identity] or 0
+    if not segment.divergent and segment.position > logged then
+        local suffix = segment.text:sub(logged - segment.base + 1)
+        out[#out + 1] = {kind = segment.channel == "reasoning_summary" and "reasoning" or "assistant",
+            text = clipped(folder.filter(suffix), folder.event_text_bytes, segment.position - logged - #suffix)}
+        folder.emitted[identity] = segment.position
+    end
 end
 
 local function forget(folder: Folder, id: string, out: {Event})
     local segment: Segment? = folder.segments[id]
-    if segment then
-        remember(folder, segment)
-        if segment.text ~= "" then out[#out + 1] = event_of(folder, segment) end
-    end
+    if segment then emit(folder, id, segment, out) end
     folder.segments[id] = nil
     for index, held in ipairs(folder.order) do
         if held == id then table.remove(folder.order, index); return end
@@ -98,7 +102,12 @@ local function forget(folder: Folder, id: string, out: {Event})
 end
 
 local function flush(folder: Folder, out: {Event})
-    while #folder.order > 0 do forget(folder, folder.order[1], out) end
+    -- Flushing orders log text before a non-text event; it does not end the
+    -- segment. Keep its bounded folding state for later deltas or snapshots.
+    for _, id in ipairs(folder.order) do
+        local segment = folder.segments[id]
+        if segment then emit(folder, id, segment, out) end
+    end
 end
 
 local function text_observation(folder: Folder, data: {segment_id: string, operation: string, text: string, channel: string}, out: {Event})
@@ -119,7 +128,9 @@ local function text_observation(folder: Folder, data: {segment_id: string, opera
     if not segment then
         if #folder.order >= MAX_OPEN_SEGMENTS then forget(folder, folder.order[1], out) end
         folder.ordinal = folder.ordinal + 1
-        segment = {channel = data.channel, text = "", dropped = 0, done = false, ordinal = folder.ordinal, message = 0}
+        segment = {channel = data.channel, text = "", dropped = 0, done = false, ordinal = folder.ordinal, message = 0,
+            position = data.operation == "append" and (folder.emitted[data.channel .. ":" .. id] or 0) or 0,
+            base = data.operation == "append" and (folder.emitted[data.channel .. ":" .. id] or 0) or 0, divergent = false}
         if data.channel == "answer" then
             local answer: Text = {text = "", dropped = 0}
             segment.answer = answer
@@ -127,8 +138,13 @@ local function text_observation(folder: Folder, data: {segment_id: string, opera
         folder.segments[id] = segment
         folder.order[#folder.order + 1] = id
     end
+    local logged = folder.emitted[data.channel .. ":" .. id] or 0
     if data.operation ~= "append" then
-        segment.text, segment.dropped = "", 0
+        -- Keep the logged prefix in the existing bounded buffer. Comparing each
+        -- incoming piece also handles snapshots encoded as replace + appends.
+        segment.text = segment.text:sub(1, math.max(logged - segment.base, 0))
+        segment.dropped = math.min(segment.dropped, math.max(logged - segment.base - #segment.text, 0))
+        segment.position, segment.divergent = 0, false
         if data.operation == "replace" then segment.done = false end
         if segment.answer then
             local answer: Text = {text = "", dropped = 0}
@@ -140,7 +156,16 @@ local function text_observation(folder: Folder, data: {segment_id: string, opera
             folder.answer.dropped = segment.answer_dropped or 0
         end
     end
-    grow(segment, data.text, folder.event_text_bytes)
+    local start = math.max(segment.base - segment.position, 0)
+    local compared = math.min(#data.text, math.max(math.min(logged, segment.base + #segment.text) - segment.position, 0))
+    if compared > start and segment.text:sub(segment.position + start - segment.base + 1, segment.position + compared - segment.base) ~= data.text:sub(start + 1, compared) then
+        segment.divergent = true
+    end
+    if not segment.divergent then
+        local skip = math.min(#data.text, math.max(segment.base + #segment.text + segment.dropped - segment.position, 0))
+        grow(segment, data.text:sub(skip + 1), folder.event_text_bytes)
+    end
+    segment.position = segment.position + #data.text
     if segment.answer then grow(segment.answer, data.text, folder.result_bytes) end
     if data.operation == "complete" then
         if folder.message == 0 then folder.message = segment.done and segment.message or folder.step end
@@ -197,7 +222,7 @@ end
 -- terminal flushes held text and renders the terminal report.
 function M.terminal(folder: Folder, terminal: drivers.Terminal?): {Event}
     local out: {Event} = {}
-    flush(folder, out)
+    while #folder.order > 0 do forget(folder, folder.order[1], out) end
     if not terminal then return out end
     -- A succeeded run's answer is its stored result; the log records only
     -- that it succeeded.

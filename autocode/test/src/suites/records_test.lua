@@ -18,6 +18,207 @@ end
 
 local function cases()
     test.describe("autocode run records", function()
+        -- The implement run retained the answer, not its raw frames. Reconstruct
+        -- the interleaving through the installed codec using its recorded text.
+        test.it("emits a Claude segment once when a notice flushes its deltas before completion", function()
+            local answer = [==[I added `modulo(a, b)` to `calc.js`. It throws `RangeError` when `b` is 0 and otherwise returns `a % b`. I added four tests (positive, negative dividend, negative divisor, zero divisor) in `calc.test.js`. `node --test` passes all 6 tests, the change is committed on `e2e-1`, and I commented on E2E-1 with the branch and the change.
+
+BRANCH: e2e-1]==]
+            local folder = records.new(identity)
+            local state = claude_codec.new(false)
+            local events = {}
+            local frames = {
+                {type = "stream_event", event = {type = "message_start", message = {id = "implement"}}},
+                {type = "stream_event", event = {type = "content_block_delta", index = 0,
+                    delta = {type = "text_delta", text = answer:sub(1, 100)}}},
+                {type = "stream_event", event = {type = "content_block_delta", index = 0,
+                    delta = {type = "text_delta", text = answer:sub(101)}}},
+                {type = "system", subtype = "informational", content = "waiting"},
+                {type = "assistant", message = {id = "implement", content = {{type = "text", text = answer}}}},
+            }
+            for index, frame in ipairs(frames) do
+                local step = claude_codec.normalize(state, index, frame)
+                for _, event in ipairs(records.step(folder, {problems = {}, observations = step.observations})) do
+                    events[#events + 1] = event
+                end
+            end
+            for _, event in ipairs(records.terminal(folder, {outcome = "succeeded", answer = answer})) do
+                events[#events + 1] = event
+            end
+            local assistants = {}
+            for _, event in ipairs(events) do
+                if event.kind == "assistant" then assistants[#assistants + 1] = event.text end
+            end
+            test.eq(#assistants, 1, "a flushed segment's completion must not emit its answer again")
+            test.eq(assistants[1], answer)
+            test.eq(records.result(folder, nil), answer)
+        end)
+
+        for _, provider in ipairs({"Claude", "Codex"}) do
+            for _, channel in ipairs({"answer", "reasoning_summary"}) do
+                for _, chunked in ipairs({false, true}) do
+                    test.it("keeps flushed " .. provider .. " " .. channel .. " identity through a " ..
+                        (chunked and "chunked" or "small") .. " revised snapshot", function()
+                        local revised = chunked and ("revised " .. string.rep("界", codec_events.MAX_ESCAPED_BYTES) .. " tail") or "revised"
+                        local folder = records.new(identity, #revised * 2, #revised * 2)
+                        local codec = provider == "Claude" and claude_codec or codex_codec
+                        local state = codec.new(false)
+                        local events = {}
+                        local index = 0
+                        local function feed(frame)
+                            index = index + 1
+                            local step = codec.normalize(state, index, frame, {result_text = {"item", "text"}})
+                            for _, event in ipairs(records.step(folder, {problems = {}, observations = step.observations})) do
+                                events[#events + 1] = event
+                            end
+                            return step.observations
+                        end
+                        local function snapshot(id, value)
+                            if provider == "Claude" then
+                                local block = channel == "answer" and {type = "text", text = value} or {type = "thinking", thinking = value}
+                                return feed({type = "assistant", message = {id = id, content = {block}}})
+                            end
+                            return feed({type = "item.completed", item = {id = id,
+                                type = channel == "answer" and "agent_message" or "reasoning", text = value}})
+                        end
+                        snapshot("first", "draft")
+                        -- An unknown provider envelope becomes a non-text extension.
+                        feed({type = "provider_metadata"})
+                        test.eq(#events, 1)
+                        test.eq(events[1].text, "draft")
+                        local observations = snapshot("first", revised)
+                        if chunked then test.is_true(#observations > 1) end
+                        test.eq(records.result(folder, nil), channel == "answer" and revised or "")
+                        feed({type = "provider_metadata"})
+                        test.eq(#events, 1, "a revised snapshot must leave the emitted event unchanged")
+                        -- Equal text on a genuinely new segment must still be logged.
+                        snapshot("second", "draft")
+                        for _, event in ipairs(records.terminal(folder, nil)) do events[#events + 1] = event end
+                        test.eq(#events, 2)
+                        test.eq(events[2].text, "draft")
+                        test.eq(events[2].kind, channel == "answer" and "assistant" or "reasoning")
+                    end)
+                end
+            end
+        end
+
+        test.it("retains emitted identities after completed and capacity evictions", function()
+            for _, operation in ipairs({"append", "complete"}) do
+                local folder = records.new(identity)
+                local events = {}
+                for index = 1, 70 do
+                    for _, event in ipairs(text(folder, tostring(index), operation, "same text")) do events[#events + 1] = event end
+                end
+                -- The first segment was evicted, but its identity must survive.
+                for _, event in ipairs(text(folder, "1", "complete", "same text")) do events[#events + 1] = event end
+                for _, event in ipairs(records.terminal(folder, nil)) do events[#events + 1] = event end
+                test.eq(#events, 70)
+                for _, event in ipairs(events) do test.eq(event.text, "same text") end
+            end
+        end)
+
+        test.it("emits text after an empty flush and preserves distinct channels", function()
+            local folder = records.new(identity)
+            text(folder, "same", "complete", "")
+            test.eq(#records.terminal(folder, nil), 0)
+            text(folder, "same", "complete", "thought", "reasoning_summary")
+            local events = text(folder, "same", "complete", "answer")
+            test.eq(#events, 1)
+            test.eq(events[1].kind, "reasoning")
+            events = records.terminal(folder, nil)
+            test.eq(#events, 1)
+            test.eq(events[1].text, "answer")
+            test.eq(records.result(folder, nil), "answer")
+        end)
+
+        test.it("retains unfinished deltas across non-text observations", function()
+            local folder = records.new(identity)
+            text(folder, "answer", "append", "first")
+            local events = records.step(folder, {problems = {}, observations = {{data = {
+                type = "tool.call", tool_name = "Read", input = {text = "file.lua"},
+            }}}})
+            test.eq(events[1].text, "first")
+            test.eq(events[2].kind, "tool")
+            text(folder, "answer", "append", " second")
+            test.eq(records.result(folder, nil), "first second")
+            events = records.terminal(folder, nil)
+            test.eq(#events, 1)
+            test.eq(events[1].text, " second")
+        end)
+
+        for _, channel in ipairs({"answer", "reasoning_summary"}) do
+            test.it("logs only unlogged bytes across repeated " .. channel .. " flushes and snapshots", function()
+                local folder = records.new(identity)
+                local function flush()
+                    return records.step(folder, {problems = {}, observations = {{data = {type = "extension"}}}})
+                end
+                text(folder, "same", "append", "界", channel)
+                test.eq(flush()[1].text, "界")
+                text(folder, "same", "append", " second", channel)
+                test.eq(flush()[1].text, " second")
+                test.eq(#flush(), 0)
+                for _, value in ipairs({"界 second", "界", ""}) do
+                    text(folder, "same", "complete", value, channel)
+                    test.eq(#flush(), 0)
+                end
+                text(folder, "same", "complete", "界 second third", channel)
+                test.eq(flush()[1].text, " third")
+                -- A longer revision must not be mistaken for an extension.
+                text(folder, "same", "complete", "界 revised and much longer", channel)
+                test.eq(#flush(), 0)
+                text(folder, "same", "append", " still revised", channel)
+                test.eq(#flush(), 0)
+                text(folder, "same", "complete", "界 second third fourth", channel)
+                test.eq(flush()[1].text, " fourth")
+                test.eq(#records.terminal(folder, nil), 0)
+                test.eq(records.result(folder, nil), channel == "answer" and "界 second third fourth" or "")
+            end)
+        end
+
+        for _, provider in ipairs({"Claude", "Codex"}) do
+            for _, channel in ipairs({"answer", "reasoning_summary"}) do
+                for _, chunked in ipairs({false, true}) do
+                    test.it("logs only the extension of a " .. (chunked and "chunked " or "small ") ..
+                        provider .. " " .. channel .. " snapshot after flushing", function()
+                        local prefix = chunked and ("head " .. string.rep("界", codec_events.MAX_ESCAPED_BYTES)) or "界 draft"
+                        local folder = records.new(identity, #prefix * 3, #prefix * 3)
+                        local codec = provider == "Claude" and claude_codec or codex_codec
+                        local state = codec.new(false)
+                        local index = 0
+                        local function snapshot(value)
+                            index = index + 1
+                            local frame
+                            if provider == "Claude" then
+                                local block = channel == "answer" and {type = "text", text = value} or {type = "thinking", thinking = value}
+                                frame = {type = "assistant", message = {id = "same", content = {block}}}
+                            else
+                                frame = {type = "item.completed", item = {id = "same", type = channel == "answer" and "agent_message" or "reasoning", text = value}}
+                            end
+                            local step = codec.normalize(state, index, frame, {result_text = {"item", "text"}})
+                            if chunked then test.is_true(#step.observations > 1) end
+                            return records.step(folder, {problems = {}, observations = step.observations})
+                        end
+                        local function flush()
+                            return records.step(folder, {problems = {}, observations = {{data = {type = "extension"}}}})
+                        end
+                        snapshot(prefix)
+                        test.eq(flush()[1].text, prefix)
+                        test.eq(#snapshot(prefix .. " tail"), 0)
+                        local events = flush()
+                        test.eq(#events, 1)
+                        test.eq(events[1].text, " tail")
+                        test.eq(events[1].kind, channel == "answer" and "assistant" or "reasoning")
+                        snapshot(prefix .. " tail")
+                        test.eq(#flush(), 0)
+                        -- Divergence beyond the first codec chunk must also suppress logging.
+                        snapshot(prefix:sub(1, #prefix - 3) .. "改 and a longer revision")
+                        test.eq(#flush(), 0)
+                        test.eq(#records.terminal(folder, nil), 0)
+                    end)
+                end
+            end
+        end
+
         for _, provider in ipairs({"Claude", "Codex"}) do
             for _, streamed in ipairs({false, true}) do
                 test.it("retains a chunked " .. provider .. " completion " .. (streamed and "after streaming" or "without streaming"), function()
