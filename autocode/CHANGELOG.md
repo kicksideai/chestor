@@ -1,6 +1,13 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.15](https://github.com/kicksideai/chestor/compare/autocode-v0.1.14...autocode-v0.1.15) (2026-11-17)
+
+
+### Bug Fixes
+
+* **autocode:** preserve empty options and polish administration ([#54](https://github.com/kicksideai/chestor/issues/54)) ([72c91c1](https://github.com/kicksideai/chestor/commit/72c91c153329c5d21156843d818172de05687344))
+
 ## [0.1.14](https://github.com/kicksideai/chestor/compare/autocode-v0.1.13...autocode-v0.1.14) (2026-11-16)
 
 
