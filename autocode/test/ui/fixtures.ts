@@ -87,6 +87,7 @@ export function render<T extends Parameters<typeof mount>[0]>(component: T, prop
   return wrapper
 }
 export function respond(path: string) {
+  if (path === '/api/v1/agents/traits') return { traits: [] }
   if (path.endsWith('/catalog')) return catalog
   if (path.endsWith('/profiles')) return { profiles: [] }
   if (path.endsWith('/accounts')) return { accounts: [] }

@@ -24,6 +24,8 @@ entries:
     targets:
       - entry: chestor.autocode.api:catalog.user.endpoint
         path: .meta.router
+      - entry: chestor.autocode.api:tool_surface.user.endpoint
+        path: .meta.router
       - entry: chestor.autocode.api:profiles_list.user.endpoint
         path: .meta.router
       - entry: chestor.autocode.api:profiles_create.user.endpoint

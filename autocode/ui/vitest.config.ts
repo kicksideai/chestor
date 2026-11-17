@@ -4,7 +4,7 @@ import vue from '@vitejs/plugin-vue'
 
 const dependency = (path: string) => new URL(`./node_modules/${path}`, import.meta.url).pathname
 export default defineConfig({
-  plugins: [vue({ template: { compilerOptions: { isCustomElement: tag => tag.startsWith('chestor-') || tag.startsWith('kickside-') } } })],
+  plugins: [vue({ template: { compilerOptions: { isCustomElement: tag => tag.startsWith('wc-') || tag.startsWith('chestor-') || tag.startsWith('kickside-') } } })],
   server: { fs: { allow: ['..'] } },
   resolve: { alias: {
     '@iconify/vue': dependency('@iconify/vue/dist/iconify.mjs'),

@@ -25,6 +25,33 @@ local function cases()
             test.is_nil(prepare_err, tostring(prepare_err))
             return submitted.run_id, prepared
         end
+        test.it("previews the actor-scoped trait union and typed bound without accepting runs", function()
+            local user = f.member()
+            local function preview(body)
+                return identity.request(user, "POST", "/autocode/tool-surface", body)
+            end
+            local response = preview({agent = "claude", tools = {traits = {"app:gateway_dynamic_trait", "app:gateway_catalog_trait"},
+                context = {board_id = "board", catalog_id = "catalog"}}})
+            test.eq(response.status, 200, response.body)
+            test.eq(response.json.count, 2); test.eq(response.json.limit, configuration.MAX_GATEWAY_TOOLS)
+            local admin = identity.admin()
+            f.users[#f.users + 1] = admin
+            local over = identity.request(admin, "POST", "/autocode/tool-surface", {agent = "claude", tools = {traits = {"app.bound:trait"}, context = {count = configuration.MAX_GATEWAY_TOOLS + 1}}})
+            test.eq(over.status, 400, over.body); test.eq(over.json.kind, errors.INVALID)
+            test.eq(over.json.details.code, "autocode.tool_limit_exceeded")
+            test.eq(over.json.details.count, configuration.MAX_GATEWAY_TOOLS + 1)
+            test.eq(over.json.details.limit, configuration.MAX_GATEWAY_TOOLS); test.is_false(over.json.retryable)
+            for _, body in ipairs({{agent = "claude", tools = {tools = {"app:gateway_echo"}}},
+                {agent = "claude", tools = {traits = "invalid"}}, {agent = "claude", tools = {traits = {"app:gateway_dynamic_trait"}, context = {board_id = 5}}},
+                {agent = "claude", tools = {traits = {"app:gateway_dynamic_trait"}, context = {board_id = "board", unknown = "value"}}},
+                {agent = "missing", tools = {traits = {}}}}) do
+                local invalid = preview(body)
+                test.eq(invalid.status, 400, invalid.body); test.eq(invalid.json.kind, errors.INVALID)
+            end
+            local denied = identity.request(nil, "POST", "/autocode/tool-surface", {agent = "claude", tools = {traits = {}}})
+            test.is_true(denied.status == 401 or denied.status == 403, denied.body)
+            test.eq(#f.call(user, "list_runs", {}).runs, 0)
+        end)
         test.it("rejects independent tool selection at the resolver", function()
             local surface, err = gateway.resolve({tools = {"app:gateway_echo"}}, "claude")
             test.is_nil(surface); test.is_true(errors.is(err, errors.INVALID), tostring(err))

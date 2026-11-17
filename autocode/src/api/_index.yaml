@@ -35,6 +35,24 @@ entries:
     func: catalog
     path: /autocode/catalog
 
+  - name: tool_surface
+    kind: function.lua
+    meta:
+      comment: "POST /autocode/tool-surface - Resolve selected traits under the caller and report count against the driver bound, without accepting a run."
+    source: file://catalog.lua
+    method: preview
+    imports:
+      web: chestor.autocode.api:web
+      catalog: chestor.autocode.service:catalog
+
+  - name: tool_surface.user.endpoint
+    kind: http.endpoint
+    meta:
+      comment: "POST /autocode/tool-surface"
+    method: POST
+    func: tool_surface
+    path: /autocode/tool-surface
+
   - name: accounts_list
     kind: function.lua
     meta:

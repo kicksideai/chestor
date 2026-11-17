@@ -1,4 +1,7 @@
 -- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+local json = require("json")
+local gateway_surface = require("gateway_surface")
+local configuration = require("configuration")
 local client = require("client")
 local images = require("images")
 local accounts = require("accounts")
@@ -29,4 +32,29 @@ local function get(): (Object?, error?)
         can_images = allowed({"images_create", "images_update", "images_delete", "images_prepare"}),
         can_workspaces = allowed({"workspaces_create", "workspaces_delete"}), can_prune = allowed({"maintenance_prune"})}, nil
 end
-return {get = get}
+-- Use the submission DTO's field schemas and the admission resolver, without
+-- accepting a run or exposing tool descriptors to the browser.
+local function preview(input: Object): (Object?, error?)
+    local definition, read_err = registry.get("chestor.autocode:tasks")
+    if not definition then return nil, read_err end
+    for _, method in ipairs(definition.data.methods) do
+        if method.name == "submit_task" then
+            local declared = method.input_schemas[1].definition
+            if type(declared) == "string" then
+                local decoded, decode_err = json.decode(declared)
+                if not decoded then return nil, decode_err end
+                declared = decoded
+            end
+            local fields = declared.properties
+            local schema = {type = "object", additionalProperties = false, required = {"agent", "tools"},
+                properties = {agent = fields.agent, tools = fields.tools}}
+            local valid, problem = json.validate(schema, input)
+            if not valid then return nil, boundary.error(errors.INVALID, "autocode.invalid_request", tostring(problem)) end
+            local surface, err = gateway_surface.resolve(input.tools, input.agent :: string)
+            if err then return nil, err end
+            return {count = surface and #surface.tools or 0, limit = configuration.MAX_GATEWAY_TOOLS}, nil
+        end
+    end
+    return nil, boundary.error(errors.INTERNAL, "autocode.missing_method", "submit_task is not declared")
+end
+return {get = get, preview = preview}
