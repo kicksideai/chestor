@@ -18,7 +18,7 @@ local function cases()
             db:release(); f.release()
         end)
         local function run_for(user, tools)
-            local account = f.call(user, "add_account", {agent = "claude", label = "key", credential_kind = "env:ANTHROPIC_API_KEY", secret = "private-key"}, "chestor.autocode:accounts")
+            local account = f.call(user, "add_account", {agent = "claude", label = "Login", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", secret = "test-subscription"}, "chestor.autocode:accounts")
             local submitted, err = identity.call(user, "app:gateway_seed", {account_id = account.id, image_id = f.image_for(user), tools = tools})
             test.is_nil(err, tostring(err))
             local prepared, prepare_err = identity.call(user, "chestor.autocode.service:prepare", {run_id = submitted.run_id})
@@ -82,7 +82,7 @@ local function cases()
         test.it("accepts and prepares a 38-tool trait bundle", function()
             local user = identity.admin()
             f.users[#f.users + 1] = user
-            f.call(user, "add_account", {agent = "claude", label = "key", credential_kind = "env:ANTHROPIC_API_KEY", secret = "key"}, "chestor.autocode:accounts")
+            f.call(user, "add_account", {agent = "claude", label = "Login", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", secret = "test-subscription"}, "chestor.autocode:accounts")
             local declaration = {traits = {"app.bound:trait"}, context = {count = 38}}
             local submitted, err = f.call(user, "submit_task", {agent = "claude", image_id = f.image_for(user), prompt = "task", tools = declaration})
             test.is_nil(err, tostring(err)); test.not_nil(submitted.run_id)
@@ -94,7 +94,7 @@ local function cases()
             local user = identity.admin()
             f.users[#f.users + 1] = user
             local image = f.image_for(user)
-            f.call(user, "add_account", {agent = "claude", label = "key", credential_kind = "env:ANTHROPIC_API_KEY", secret = "key"}, "chestor.autocode:accounts")
+            f.call(user, "add_account", {agent = "claude", label = "Login", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", secret = "test-subscription"}, "chestor.autocode:accounts")
             local function declaration(count)
                 return {traits = {"app.bound:trait"}, context = {count = count}}
             end
@@ -114,7 +114,7 @@ local function cases()
             local user = identity.admin()
             f.users[#f.users + 1] = user
             local image = f.image_for(user)
-            f.call(user, "add_account", {agent = "claude", label = "key", credential_kind = "env:ANTHROPIC_API_KEY", secret = "key"}, "chestor.autocode:accounts")
+            f.call(user, "add_account", {agent = "claude", label = "Login", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", secret = "test-subscription"}, "chestor.autocode:accounts")
             local traits = {"chestor.autocode.traits:coding_admin", "chestor.autocode.traits:coding_tasks"}
             local base, base_err = identity.call(user, "app:gateway_resolve", {traits = traits})
             test.is_nil(base_err, tostring(base_err)); test.eq(#base.tools, 24)
@@ -155,7 +155,7 @@ local function cases()
                 local share = identity.request(id == image and image_owner or victim, "POST", "/component-access/share/" .. id, {subject_id = attacker.id, subject_type = "user", access_mask = 3})
                 test.eq(share.status, 200, share.body)
             end
-            local account = f.call(victim, "add_account", {agent = "claude", label = "victim", credential_kind = "env:ANTHROPIC_API_KEY", secret = "private-key"}, "chestor.autocode:accounts")
+            local account = f.call(victim, "add_account", {agent = "claude", label = "victim", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", secret = "test-subscription"}, "chestor.autocode:accounts")
             for _, target in ipairs({{kind = "image", id = image, meta = {gateway_endpoint = "attacker.example:8080"}},
                 {kind = "workspace", id = workspace.json.id, context = {gateway_endpoint = "attacker.example:8081"}}}) do
                 local changed, change_err = identity.call(attacker, "app:fixture_patch", target)
@@ -334,7 +334,7 @@ local function cases()
         test.it("dispatches under an administrator identity captured against a profile component", function()
             local user = identity.admin()
             f.users[#f.users + 1] = user
-            local account = f.call(user, "add_account", {agent = "claude", label = "key", credential_kind = "env:ANTHROPIC_API_KEY", secret = "private-key"}, "chestor.autocode:accounts")
+            local account = f.call(user, "add_account", {agent = "claude", label = "Login", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", secret = "test-subscription"}, "chestor.autocode:accounts")
             local image_id = f.image_for(user)
             local profile = f.call(user, "add_profile", {title = "Host profile", agent = "claude", image_id = image_id}, "chestor.autocode:profiles")
             local seeded, seed_err = identity.call(user, "app:gateway_seed", {account_id = account.id, image_id = image_id,
@@ -384,7 +384,7 @@ local function cases()
                     if grant == "group" then test.is_false(row.subject_type == "user" and row.subject_id == user.id) end
                 end
                 test.is_true(found)
-                local account = f.call(user, "add_account", {agent = "claude", label = "key", credential_kind = "env:ANTHROPIC_API_KEY", secret = "private-key"}, "chestor.autocode:accounts")
+                local account = f.call(user, "add_account", {agent = "claude", label = "Login", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", secret = "test-subscription"}, "chestor.autocode:accounts")
                 local image_id = f.image_for(user)
                 local seeded, seed_err = identity.call(user, "app:gateway_seed", {account_id = account.id, image_id = image_id,
                     component_id = board.board_id, tools = {traits = {"app:gateway_trait"}, context = {board_id = board.board_id}}})
@@ -411,7 +411,7 @@ local function cases()
         end
         test.it("returns an MCP tool error when the recorded authorizer loses root ADMIN", function()
             local user, other = f.member(), f.member()
-            local account = f.call(user, "add_account", {agent = "claude", label = "key", credential_kind = "env:ANTHROPIC_API_KEY", secret = "private-key"}, "chestor.autocode:accounts")
+            local account = f.call(user, "add_account", {agent = "claude", label = "Login", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", secret = "test-subscription"}, "chestor.autocode:accounts")
             local image_id = f.image_for(user)
             local profile = f.call(other, "add_profile", {title = "Revoked authorizer", agent = "claude", image_id = f.image_for(other)}, "chestor.autocode:profiles")
             local shared = identity.request(other, "POST", "/component-access/share/" .. profile.id,
@@ -444,7 +444,7 @@ local function cases()
             f.users[#f.users + 1] = granted
             for _, owner in ipairs({{user = admin, allowed = true}, {user = granted, allowed = true}, {user = f.member(), allowed = false}}) do
                 local caller = owner.user
-                local account = f.call(caller, "add_account", {agent = "claude", label = "key", credential_kind = "env:ANTHROPIC_API_KEY", secret = "private-key"}, "chestor.autocode:accounts")
+                local account = f.call(caller, "add_account", {agent = "claude", label = "Login", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", secret = "test-subscription"}, "chestor.autocode:accounts")
                 local image_id = f.image_for(caller)
                 local profile = f.call(caller, "add_profile", {title = "Host profile", agent = "claude", image_id = image_id}, "chestor.autocode:profiles")
                 local declaration = {traits = {"app:gateway_privileged_trait"}, context = {board_id = "local-context"}}
@@ -479,7 +479,7 @@ local function cases()
         end)
         test.it("accepts owner tool calls throughout the real runner lifecycle and revokes at outcome", function()
             local user = f.member()
-            local account = f.call(user, "add_account", {agent = "claude", label = "key", credential_kind = "env:ANTHROPIC_API_KEY", secret = "private-key"}, "chestor.autocode:accounts")
+            local account = f.call(user, "add_account", {agent = "claude", label = "Login", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", secret = "test-subscription"}, "chestor.autocode:accounts")
             local seeded, seed_err = identity.call(user, "app:gateway_seed", {account_id = account.id, image_id = f.image_for(user), tools = {traits = {"app:gateway_trait"}, context = {board_id = "live-board"}}})
             test.is_nil(seed_err, tostring(seed_err))
             local id, token = seeded.run_id, nil

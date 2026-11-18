@@ -10,9 +10,17 @@ local function cases()
         local fixture = require("contract_fixture").new()
         local users, member, call = fixture.users, fixture.member, fixture.call
         test.after_each(fixture.release)
+        test.it("refuses a Claude API-key account with a typed error", function()
+            local user = member()
+            local added, err = call(user, "add_account", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY",
+                label = "Unsupported credential", secret = "test-only"}, "chestor.autocode:accounts")
+            test.is_nil(added)
+            test.is_true(errors.is(err, errors.INVALID), tostring(err))
+            test.eq(err:details().code, "autocode.invalid_account")
+        end)
         test.it("publishes rolling account counts on the existing account activity projection", function()
             local user = member()
-            local added = call(user, "add_account", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "rolling", secret = "key"}, "chestor.autocode:accounts")
+            local added = call(user, "add_account", {agent = "claude", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", label = "rolling", secret = "test-subscription"}, "chestor.autocode:accounts")
             local id = user.id
             local db = sql.get("app:db")
             test.not_nil(db:execute([[INSERT INTO chestor_autocode_runs
@@ -40,10 +48,10 @@ local function cases()
         test.it("rotates the credential and endpoint, clears health, and keeps sharing absent", function()
             local user = member()
             local contract = "chestor.autocode:accounts"
-            local added = call(user, "add_account", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "rotate", secret = "old"}, contract)
-            repo.create_run(user.id, {actor_id = user.id, actor_context = "{}"}, {agent = "claude", account_id = added.id,
+            local added = call(user, "add_account", {agent = "codex", credential_kind = "env:CODEX_API_KEY", label = "rotate", secret = "old"}, contract)
+            repo.create_run(user.id, {actor_id = user.id, actor_context = "{}"}, {agent = "codex", account_id = added.id,
                 image_id = "fixture", options = {}, unattended = false, repo_url = "", prompt = "task", timeout_ms = 60000})
-            for _, patch in ipairs({{secret = "new"}, {endpoint = {protocol = "anthropic-messages", base_url = "https://example.com/v1", model = "model"}}}) do
+            for _, patch in ipairs({{secret = "new"}, {endpoint = {protocol = "openai-responses", base_url = "https://example.com/v1", model = "model"}}}) do
                 test.is_nil(repo.settle_account(added.id, "stale refusal", "2999-01-01T00:00:00Z"))
                 patch.id = added.id
                 local result, err = call(user, "update_account", patch, contract)
@@ -64,7 +72,7 @@ local function cases()
         test.it("returns native deletion acceptance through the account contract", function()
             local user = member()
             local contract = "chestor.autocode:accounts"
-            local added = call(user, "add_account", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "delete", secret = "key"}, contract)
+            local added = call(user, "add_account", {agent = "claude", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", label = "delete", secret = "test-subscription"}, contract)
             local removed, err = call(user, "remove_account", {id = added.id}, contract)
             test.is_nil(err, tostring(err))
             test.eq(removed.id, added.id)
@@ -78,7 +86,7 @@ local function cases()
         test.it("manages accounts through a separate credential-bearing contract", function()
             local user, other = member(), member()
             local contract = "chestor.autocode:accounts"
-            local added, err = call(user, "add_account", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "key", secret = "key"}, contract)
+            local added, err = call(user, "add_account", {agent = "claude", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", label = "Login", secret = "test-subscription"}, contract)
             test.is_nil(err, tostring(err))
             local _, denied = call(other, "update_account", {id = added.id, secret = "stolen"}, contract)
             test.is_true(errors.is(denied, errors.NOT_FOUND))
@@ -97,7 +105,7 @@ local function cases()
         end)
         test.it("filters disabled and unsupported accounts with admission's eligibility", function()
             local user = member()
-            local added = call(user, "add_account", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "key", secret = "key"}, "chestor.autocode:accounts")
+            local added = call(user, "add_account", {agent = "claude", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", label = "Login", secret = "test-subscription"}, "chestor.autocode:accounts")
             call(user, "update_account", {id = added.id, enabled = false}, "chestor.autocode:accounts")
             local available = call(user, "list_accounts", {})
             for _, account in ipairs(available.accounts) do test.is_true(account.id ~= added.id) end
@@ -110,7 +118,7 @@ local function cases()
         end)
         test.it("renders account counts and health from public component snapshots", function()
             local user = member()
-            local added = call(user, "add_account", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "key", secret = "key"}, "chestor.autocode:accounts")
+            local added = call(user, "add_account", {agent = "claude", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", label = "Login", secret = "test-subscription"}, "chestor.autocode:accounts")
             local _, err = component.set_runtime_meta(added.id, {last_error = "snapshot", runs_day = 42, failures_day = 7})
             test.is_nil(err)
             local all = call(user, "list_accounts", {include_unavailable = true})
@@ -122,7 +130,7 @@ local function cases()
         end)
         test.it("separates cooldown from account eligibility in the DTO", function()
             local user = member()
-            local added = call(user, "add_account", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "key", secret = "key"}, "chestor.autocode:accounts")
+            local added = call(user, "add_account", {agent = "claude", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", label = "Login", secret = "test-subscription"}, "chestor.autocode:accounts")
             repo.create_run(user.id, {actor_id = user.id, actor_context = "{}"}, {agent = "claude", account_id = added.id,
                 image_id = "fixture", options = {}, unattended = false, repo_url = "", prompt = "task", timeout_ms = 60000})
             test.is_nil(repo.settle_account(added.id, "busy", "2999-01-01T00:00:00Z"))
@@ -137,7 +145,7 @@ local function cases()
         end)
         test.it("explicitly enabling a cooling account clears its cooldown", function()
             local user = member()
-            local added = call(user, "add_account", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "key", secret = "key"}, "chestor.autocode:accounts")
+            local added = call(user, "add_account", {agent = "claude", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", label = "Login", secret = "test-subscription"}, "chestor.autocode:accounts")
             repo.create_run(user.id, {actor_id = user.id, actor_context = "{}"}, {agent = "claude", account_id = added.id,
                 image_id = "fixture", options = {}, unattended = false, repo_url = "", prompt = "task", timeout_ms = 60000})
             test.is_nil(repo.settle_account(added.id, "busy", "2999-01-01T00:00:00Z"))
@@ -153,10 +161,22 @@ local function cases()
             test.eq(response.json.settings_path, "/system/autocode")
             test.not_nil(response.json.default_image.settings)
             test.eq(response.json.account_limits.secret_bytes, 65536)
+            local claude
             for _, agent in ipairs(response.json.agents) do
                 test.not_nil(agent.icon)
                 for _, kind in ipairs(agent.credentials) do test.not_nil(kind.format) end
+                if agent.id == "claude" then claude = agent end
             end
+            test.not_nil(claude)
+            test.eq(#claude.endpoints, 0)
+            test.eq(#claude.credentials, 2)
+            local choices = {}
+            for _, kind in ipairs(claude.credentials) do
+                test.is_true(kind.subscription)
+                choices[kind.id] = kind.format
+            end
+            test.eq(choices["file:.claude/.credentials.json"], "json_object")
+            test.eq(choices["env:CLAUDE_CODE_OAUTH_TOKEN"], "single_line")
         end)
         test.it("publishes one named Autocode section and its fifteen settings through platform settings", function()
             local admin = identity.admin()
@@ -195,12 +215,12 @@ local function cases()
         end)
         test.it("replaces credentials and endpoints in place and rejects malformed endpoint URLs", function()
             local user = member()
-            local created = identity.request(user, "POST", "/autocode/accounts", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "key", secret = "key"})
+            local created = identity.request(user, "POST", "/autocode/accounts", {agent = "codex", credential_kind = "env:CODEX_API_KEY", label = "Key", secret = "test-key"})
             test.eq(created.status, 201, created.body)
             local path = "/autocode/accounts/" .. created.json.id
-            local updated = identity.request(user, "PUT", path, {secret = "replacement", endpoint = {protocol = "anthropic-messages", base_url = "https://example.com/v1"}})
+            local updated = identity.request(user, "PUT", path, {secret = "replacement", endpoint = {protocol = "openai-responses", base_url = "https://example.com/v1", model = "model"}})
             test.eq(updated.status, 200, updated.body)
-            local invalid = identity.request(user, "PUT", path, {endpoint = {protocol = "anthropic-messages", base_url = "https://:bad"}})
+            local invalid = identity.request(user, "PUT", path, {endpoint = {protocol = "openai-responses", base_url = "https://:bad", model = "model"}})
             test.eq(invalid.status, 400, invalid.body)
         end)
         test.it("rejects array request bodies before image settings can change", function()

@@ -86,7 +86,7 @@ local function cases()
                 test.is_true(valid, tostring(problem))
                 return result
             end
-            local account = invoke("add_coding_account", {agent = "claude", credential_kind = "env:ANTHROPIC_API_KEY", label = "tool key", secret = "test-only"})
+            local account = invoke("add_coding_account", {agent = "claude", credential_kind = "env:CLAUDE_CODE_OAUTH_TOKEN", label = "tool Login", secret = "test-only"})
             invoke("update_coding_account", {id = account.id, label = "renamed", secret = "replacement"})
             local _, denied = identity.call(other, TOOLS .. "update_coding_account", {id = account.id, label = "stolen"})
             test.is_true(errors.is(denied, errors.NOT_FOUND), tostring(denied))

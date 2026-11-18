@@ -115,7 +115,7 @@ entries:
       type: test
       suite: autocode_runs
       group: Autocode
-      comment: Submitted runs keep complete streamed answers, settle under the owner, stay the owner's, and retention prunes them.
+      comment: Submitted runs settle under the owner, stay the owner's, and retention prunes them.
     source: file://../../suites/runs_test.lua
     method: run
     modules: [time, funcs]
@@ -123,7 +123,6 @@ entries:
       test: wippy.test:test
       identity: app:identity
       build_fixture: app:build_fixture
-      anthropic: app:anthropic
       docker: chestor.autocode.infrastructure:docker
       repo: chestor.autocode.persist:repo
       jobs: kickside.core.jobs:jobs

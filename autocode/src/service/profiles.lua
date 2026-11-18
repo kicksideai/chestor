@@ -26,6 +26,7 @@ function M.validate(body: Object): error?
     if surface_err then return surface_err end
     local reach = values.object(body.endpoint)
     if reach and resources.text(reach.base_url) ~= "" then
+        if #driver.endpoints == 0 then return invalid(driver.title .. " does not support custom endpoints") end
         if not endpoint_url.valid_endpoint(resources.text(reach.base_url)) then return invalid("endpoint base URL must be an http(s) URL without credentials, query or fragment") end
     end
     if body.account_id and body.account_id ~= "" and type(body.account_pool) == "table" and #body.account_pool > 0 then return invalid("select an account or an account pool") end
