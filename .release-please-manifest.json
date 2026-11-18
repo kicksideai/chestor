@@ -1,8 +1,8 @@
 {
-  "autocode": "0.1.18",
-  "db-schema": "0.2.3",
-  "graph": "0.2.3",
-  "journal": "0.3.5",
-  "roadmap": "0.2.4",
-  "workspace": "0.2.7"
+  "autocode": "0.1.19",
+  "db-schema": "0.2.4",
+  "graph": "0.2.4",
+  "journal": "0.3.6",
+  "roadmap": "0.2.5",
+  "workspace": "0.2.8"
 }
