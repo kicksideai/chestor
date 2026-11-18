@@ -316,6 +316,43 @@ local function cases()
             test.is_true((state.cancel_reads or 0) < 15)
             test.eq(state.full_reads_during_stream or 0, 0)
         end)
+        test.it("saves a refreshed login once before stopping a cancelled container", function()
+            local state = stubs.reset()
+            state.cancel_silently, state.prepared = true, stubs.preparation(state.run)
+            state.prepared.kind.id = "file:.claude/.credentials.json"
+            state.prepared.secret = '{"token":"original"}'
+            state.refreshed_credential = '{"token":"refreshed"}'
+            test.is_true(runner.main({payload = {run_id = "run"}}).ok)
+            test.eq(state.run.status, "cancelled", state.run.error)
+            test.eq(state.stopped, 1)
+            test.eq(#state.credential_reads, 1)
+            test.eq(state.credential_reads[1].stopped, 0)
+            test.eq(state.credential_reads[1].path, "/home/agent/.claude/.credentials.json")
+            test.eq(state.credential_reads[1].limit, 65536)
+            test.eq(state.credential_saved_after_stops, 0)
+            test.eq(state.kept_credential.credential, state.refreshed_credential)
+            test.eq(state.kept_credential.revision, state.prepared.revision)
+            test.is_nil(state.account_error)
+        end)
+        test.it("records a failed login read and still stops cancellation without another read", function()
+            local state = stubs.reset()
+            state.cancel_silently, state.prepared = true, stubs.preparation(state.run)
+            state.prepared.kind.id = "file:.claude/.credentials.json"
+            state.prepared.secret = '{"token":"original"}'
+            state.credential_read_error = errors.new({kind = errors.UNAVAILABLE, message = "login read fails"})
+            test.is_true(runner.main({payload = {run_id = "run"}}).ok)
+            test.eq(state.run.status, "cancelled", state.run.error)
+            test.eq(state.stopped, 1)
+            test.eq(#state.credential_reads, 1)
+            test.eq(state.credential_reads[1].stopped, 0)
+            test.is_nil(state.kept_credential)
+            test.not_nil(state.account_error:find("login read fails", 1, true), state.account_error)
+            local reported = 0
+            for _, event in ipairs(state.events) do
+                if event.kind == "system" and event.text:find("login read fails", 1, true) then reported = reported + 1 end
+            end
+            test.eq(reported, 1)
+        end)
         test.it("uses the job deadline for inspect, create, attached output and cleanup", function()
             local state = stubs.reset()
             state.prepared = stubs.preparation(state.run)

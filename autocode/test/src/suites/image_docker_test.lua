@@ -119,7 +119,7 @@ RUN mkdir -p /opt/agent
                     end
                     local actual = output({"inspect", "--format", format, box.name})
                     if limits then test.eq(actual, limits) else limits = actual end
-                    output({"start", "-a", box.name})
+                    output({"start", box.name})
                 end
                 state.drivers = {{id = "claude", executable = "sh"}}
                 local probes = 0
@@ -239,18 +239,22 @@ RUN mkdir -p /opt/agent
             local ref = "autocode-test-clone:" .. generation
             references[#references + 1] = ref
             local built = build(component, generation, ref, "/opt/agent", [[FROM BASE
-RUN mkdir /opt/agent/source && cd /opt/agent/source && git init -b main && git config user.name fixture && git config user.email fixture@example.com && echo main > chosen && git add chosen && git commit -m main && git checkout -b selected && echo selected > chosen && git commit -am selected && git tag selected-tag && git checkout main
+RUN mkdir /opt/agent/source && cd /opt/agent/source && git init -b main && git config user.name fixture && git config user.email fixture@example.com && echo main > chosen && git add chosen && git commit -m main && git symbolic-ref HEAD refs/heads/selected && echo selected > chosen && git commit -am selected && git tag selected-tag && git symbolic-ref HEAD refs/heads/main
 ]])
             test.eq(built.status, "ready", built.log)
             for _, branch in ipairs({"", "selected", "selected-tag"}) do
-                local name = "autocode-ref-" .. uuid.v7()
-                containers[#containers + 1] = name
                 local launch = {executable = "sh", argv = {"-c", 'test "$(cat chosen)" = ' .. (branch == "" and "main" or "selected")}, environment = {}, files = {}, readiness = "none"}
                 local script = container.script({id = "env:KEY", variable = "KEY"}, "fixture", "/opt/agent", "/opt/agent/work", "/opt/agent/source", launch, 60, branch)
-                local args = {"run", "--rm", "--name", name, "--network", "none", "--entrypoint", "sh"}
-                for _, arg in ipairs({built.recipe.ref, "-c", container.entrypoint}) do args[#args + 1] = arg end
+                local prepared = stubs.preparation({agent = "claude", account_id = "account", image_id = component})
+                prepared.image.ref, prepared.image.home = built.recipe.ref, "/opt/agent"
+                prepared.workdir, prepared.launch = "/opt/agent/work", launch
+                local box = require("run_io").build(uuid.v7(), prepared, script.env)
+                containers[#containers + 1] = box.name
+                test.eq(docker.run(box.create, {isolation = box.isolation}), 0)
+                test.eq(docker.run({"start", box.name}), 0)
                 local lines = {}
-                local code, err = docker.run(args, {env = script.env, on_line = function(line) lines[#lines + 1] = line end})
+                local code, err = docker.run({"exec", "-i", box.name, "sh", "-s"},
+                    {stdin = box.stdin, on_line = function(line) lines[#lines + 1] = line end})
                 test.is_nil(err, tostring(err))
                 test.eq(code, 0, table.concat(lines, "\n"))
             end

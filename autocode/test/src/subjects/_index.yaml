@@ -167,6 +167,9 @@ entries:
     source: file://../owner_subject.lua
     modules: [security]
     imports:
+      funcs: app:stub_funcs
+      component_types: kickside.component:types
+      envelope: kickside.component:envelope
       image_state: chestor.autocode.domain:image_state
       repo: app:stub_repo
       gateway: chestor.autocode.service:gateway
@@ -258,6 +261,7 @@ entries:
       redact: chestor.autocode.runner:redact
       docker: app:stub_docker
       transport: chestor.autocode.service:transport
+      quote: chestor.autocode.infrastructure:quote
 
   - name: account_health_subject
     kind: library.lua

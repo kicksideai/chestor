@@ -21,6 +21,22 @@ local function fixture()
 end
 local function cases()
     test.describe("autocode Docker bounds", function()
+        test.it("reads mounted credentials as bounded bytes and never returns failed output", function()
+            local state = stubs.reset()
+            state.chunks = {"mounted-secret"}
+            local content, err = docker.read_file("container", "/login", 32)
+            test.is_nil(err); test.eq(content, "mounted-secret")
+            state = stubs.reset()
+            state.chunks = {string.rep("x", 33)}
+            local oversized, size_err = docker.read_file("container", "/login", 32)
+            test.is_nil(oversized); test.not_nil(size_err)
+            state = stubs.reset()
+            state.exec_steps = {{code = 1, chunks = {"secret-error-sentinel"}}}
+            local failed, read_err = docker.read_file("container", "/login", 32)
+            test.is_nil(failed); test.eq(read_err:message(), "container file read failed")
+            test.is_nil(tostring(read_err):find("secret-error-sentinel", 1, true))
+        end)
+
         test.it("classifies host failures by the private deadline marker", function()
             local host = require("host")
             for _, status in ipairs({124, 137}) do

@@ -133,3 +133,28 @@ see [admission and limit settings](docs/reference.md#spec-pending-admission-and-
 ## License
 
 [KickSide Community License 1.0](LICENSE). Dependencies retain their own licenses.
+
+
+## Credential storage and execution
+
+Account credentials are write-only on HTTP, account contracts and agent tools.
+Reads return presence only; account updates replace or clear the credential
+through Component's existing context write contract. The account binding declares
+its credential path as a string secret. Only the account preparation execution
+holds the exact owning-kind secret capability and the Component runtime-read
+permission. Preparation returns the merged internal context revision so refreshed
+credentials retain their existing compare-and-set behavior.
+
+Release Component's encrypted-secret capability before this account declaration
+and runtime read. Its normal update migration converts existing account rows in
+bounded transactions without changing context revisions, timestamps or identity.
+No manual migration step is required. Non-secret account metadata and sharing
+behavior retain their existing contracts.
+
+Run credentials reach the owning CLI after its container starts, over execution
+stdin. Docker create arguments, container configuration, labels and image layers
+carry no account or gateway credential. Login files and driver-declared credential
+files use tmpfs; refreshed login bytes are read from that mount before the existing
+container cleanup removes it. CLI output and durable run records retain their
+credential redaction. An interrupted run does not rely on credential files
+surviving the container.

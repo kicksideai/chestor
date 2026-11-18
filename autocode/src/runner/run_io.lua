@@ -8,6 +8,7 @@ local redact = require("redact")
 local docker = require("docker")
 local events = require("events")
 local transport = require("transport")
+local quote = require("quote")
 local container = require("container")
 local MAX_CREDENTIAL_BYTES = credentials.MAX_BYTES
 local KEEP_CREDENTIAL = "chestor.autocode.service:keep_credential"
@@ -45,15 +46,42 @@ local function build(run_id: string, prepared: Prepared, env: {[string]: string}
 
     end
     for _, arg in ipairs(settings_args(prepared.image)) do args[#args + 1] = arg end
-    for _, arg in ipairs({"--entrypoint", "sh", prepared.image.ref, "-c", container.entrypoint}) do args[#args + 1] = arg end
-    return {name = name, create = args, env = env, stdin = prepared.launch.stdin,
+    local mounts: {[string]: boolean} = {}
+    local function memory_file(path: string)
+        local parent = path:match("^(.*)/[^/]+$")
+        local target = prepared.image.home .. (parent and ("/" .. parent) or "")
+        if mounts[target] then return end
+        mounts[target] = true
+        args[#args + 1] = "--tmpfs"
+        args[#args + 1] = target .. ":rw,mode=1777"
+    end
+    if prepared.kind.file then memory_file(prepared.kind.file.path) end
+    for _, file in ipairs(prepared.launch.files) do
+        if file.secret_fields and #file.secret_fields > 0 then memory_file(file.path) end
+    end
+    for _, arg in ipairs({"--entrypoint", "sleep", prepared.image.ref, "infinity"}) do args[#args + 1] = arg end
+    local names: {string} = {}
+    for variable in pairs(env) do names[#names + 1] = variable end
+    table.sort(names)
+    local bootstrap: {string} = {"set -e"}
+    for _, variable in ipairs(names) do
+        bootstrap[#bootstrap + 1] = "export " .. variable .. "=" .. quote.posix(env[variable])
+    end
+    bootstrap[#bootstrap + 1] = "AUTOCODE_INPUT=" .. quote.posix(prepared.launch.stdin or "")
+    bootstrap[#bootstrap + 1] = 'printf %s "$AUTOCODE_INPUT" | eval "$AUTOCODE_SCRIPT"'
+    return {name = name, create = args, env = {}, stdin = table.concat(bootstrap, "\n") .. "\n",
         isolation = {name = name, image = prepared.image.ref, network = prepared.image.network, gpus = prepared.image.gpus ~= "",
             limits = prepared.image,
             mounts = workspace and {{source = workspace.host_path, target = prepared.workdir, readonly = not workspace.writable}} or {}}}
 end
 
 local function stream(prepared: Prepared, box: Container, redactor: redact.Redactor, emit: Emit,
-    cancelled: () -> (boolean?, error?), persist_error: () -> string?, deadline: string?): (Streamed?, error?)
+    cancelled: () -> (boolean?, error?), persist_error: () -> string?, keep_credential: () -> (), deadline: string?): (Streamed?, error?)
+    local started, start_err = docker.run({"start", box.name}, {deadline = deadline})
+    if start_err then return nil, start_err end
+    if started ~= 0 then
+        return nil, errors.new({kind = errors.UNAVAILABLE, message = "container start failed"})
+    end
     local reader, reader_err = drivers.reader(prepared.agent, false)
     if not reader then
         return nil, reader_err
@@ -68,14 +96,18 @@ local function stream(prepared: Prepared, box: Container, redactor: redact.Redac
     local native: error? = nil
     local stopped = false
     local cancel_seen = false
+    local function stop()
+        stopped = true
+        keep_credential()
+        local stop_err = docker.stop(box.name, deadline)
+        if stop_err then native = native or stop_err; emit("system", "container stop: " .. tostring(stop_err)) end
+    end
     local function check_cancel()
         local requested, read_err = cancelled()
         if read_err then native = native or read_err; stream_err = stream_err or ("cancellation read: " .. tostring(read_err)) end
         if requested then cancel_seen = true end
         if not stopped and (requested or read_err or persist_error()) then
-            stopped = true
-            local stop_err = docker.stop(box.name, deadline)
-            if stop_err then emit("system", "container stop: " .. tostring(stop_err)) end
+            stop()
         end
     end
     local last_log = ""
@@ -103,7 +135,7 @@ local function stream(prepared: Prepared, box: Container, redactor: redact.Redac
         end
         watch_done:send(true)
     end)
-    local code, docker_err = docker.run({"start", "-a", "-i", box.name}, {
+    local code, docker_err = docker.run({"exec", "-i", box.name, "sh", "-s"}, {
         deadline = deadline,
         stdin = box.stdin,
         on_line = function(line: string)
@@ -114,9 +146,7 @@ local function stream(prepared: Prepared, box: Container, redactor: redact.Redac
                 emit("log", last_log)
             end
             if not stopped and persist_error() then
-                stopped = true
-                local stop_err = docker.stop(box.name, deadline)
-                if stop_err then native = native or stop_err; emit("system", "container stop: " .. tostring(stop_err)) end
+                stop()
             end
         end,
         on_overflow = function(bytes: integer)
@@ -128,6 +158,7 @@ local function stream(prepared: Prepared, box: Container, redactor: redact.Redac
     subscription:close()
     settle(reader:finish())
     for _, event in ipairs(records.terminal(folder, terminal)) do emit(event.kind, event.text) end
+    if not stopped then keep_credential() end
 
     return {folder = folder, terminal = terminal, stream_error = stream_err, docker_error = docker_err,
         code = code, last_log = last_log, error_native = native, cancel_seen = cancel_seen}, nil
@@ -138,7 +169,7 @@ local function keep_credential(run_id: string, owner: Caller, prepared: Prepared
     local secret = prepared.secret
     local file = prepared.kind.file
     if file and file.write_back then
-        local content, copy_err = docker.copy_file(box.name, prepared.image.home .. "/" .. file.path, MAX_CREDENTIAL_BYTES, deadline)
+        local content, copy_err = docker.read_file(box.name, prepared.image.home .. "/" .. file.path, MAX_CREDENTIAL_BYTES, deadline)
         if not content then
             refresh_error = "credential refresh cannot be saved; re-add the account login: " .. tostring(copy_err)
             emit("system", refresh_error)

@@ -3,7 +3,7 @@
 -- credential and the driver's files into a fresh HOME, enter the working
 -- directory, clone the optional repository, and exec the driver's command
 -- under the run's timeout. Each step is fatal on failure. Every value the
--- script needs arrives through the container environment, never through argv.
+-- script needs arrives on attached stdin, never through container configuration.
 local json = require("json")
 local drivers = require("drivers")
 local credentials = require("credentials")
@@ -14,27 +14,6 @@ type Script = {env: {[string]: string}}
 
 local KILL_GRACE_SECONDS = 30
 local M = {}
-M.entrypoint = [=[
-AUTOCODE_TRANSFER_ITEM=0
-for AUTOCODE_TRANSFER_NAME in $AUTOCODE_TRANSFER_NAMES; do
-    eval 'AUTOCODE_TRANSFER_COUNT=$AUTOCODE_PAYLOAD_'"$AUTOCODE_TRANSFER_ITEM"_COUNT
-    AUTOCODE_TRANSFER_INDEX=0
-    AUTOCODE_TRANSFER_ENCODED=
-    while test "$AUTOCODE_TRANSFER_INDEX" -lt "$AUTOCODE_TRANSFER_COUNT"; do
-        eval 'AUTOCODE_TRANSFER_PART=$AUTOCODE_PAYLOAD_'"$AUTOCODE_TRANSFER_ITEM"_"$AUTOCODE_TRANSFER_INDEX"
-        AUTOCODE_TRANSFER_ENCODED=$AUTOCODE_TRANSFER_ENCODED$AUTOCODE_TRANSFER_PART
-        unset "AUTOCODE_PAYLOAD_${AUTOCODE_TRANSFER_ITEM}_$AUTOCODE_TRANSFER_INDEX"
-        AUTOCODE_TRANSFER_INDEX=$((AUTOCODE_TRANSFER_INDEX + 1))
-    done
-    AUTOCODE_TRANSFER_VALUE=$(printf '%b' "$AUTOCODE_TRANSFER_ENCODED"; printf .)
-    export "$AUTOCODE_TRANSFER_NAME=${AUTOCODE_TRANSFER_VALUE%.}" || exit 1
-    unset "AUTOCODE_PAYLOAD_${AUTOCODE_TRANSFER_ITEM}_COUNT"
-    AUTOCODE_TRANSFER_ITEM=$((AUTOCODE_TRANSFER_ITEM + 1))
-done
-unset AUTOCODE_TRANSFER_ITEM AUTOCODE_TRANSFER_NAMES AUTOCODE_TRANSFER_NAME AUTOCODE_TRANSFER_VALUE AUTOCODE_TRANSFER_COUNT AUTOCODE_TRANSFER_INDEX AUTOCODE_TRANSFER_ENCODED AUTOCODE_TRANSFER_PART
-eval "$AUTOCODE_SCRIPT"
-]=]
-
 type Limits = {memory: string?, cpus: string?, pids_limit: integer?, extra_args: {string}?}
 function M.limits(value: Limits?): {string}
     local args: {string} = {}

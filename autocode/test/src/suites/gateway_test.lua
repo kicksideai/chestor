@@ -9,10 +9,13 @@ local drivers = require("drivers")
 local configuration = require("configuration")
 local container = require("container")
 local http_client = require("http_client")
+local run_io = require("run_io")
+local build_container = run_io.build
 local function cases()
     test.describe("autocode per-run gateway", function()
         local f = require("contract_fixture").new()
         test.after_each(function()
+            run_io.build = build_container
             local db = sql.get("app:db")
             for _, user in ipairs(f.users) do db:execute("DELETE FROM autocode_test_notify_fault WHERE owner_id = $1", {user.id}) end
             db:release(); f.release()
@@ -502,7 +505,11 @@ local function cases()
                     end
                 end
             end
-            state.on_create = function(opts) token = opts.env.AUTOCODE_GATEWAY_TOKEN; check("prepared", "queued", nil) end
+            run_io.build = function(run_id, prepared, environment)
+                token = environment.AUTOCODE_GATEWAY_TOKEN
+                return build_container(run_id, prepared, environment)
+            end
+            state.on_create = function() check("prepared", "queued", nil) end
             state.on_attach = function() check("before output", "running", nil) end
             state.after_output = function() check("during tools", "running", nil) end
             state.terminal = {outcome = "succeeded", answer = "done"}

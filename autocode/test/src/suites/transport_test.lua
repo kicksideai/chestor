@@ -3,6 +3,38 @@ local test = require("test")
 local transport = require("transport")
 local function cases()
     test.describe("autocode transported preparation", function()
+        test.it("delivers credentials only on attached stdin and mounts login storage in memory", function()
+            local run = {agent = "claude", account_id = "account", image_id = "image"}
+            local prepared = require("stubs").preparation(run)
+            local secret = "docker-config-credential-sentinel"
+            prepared.secret = secret
+            prepared.kind = {id = "file:.login/auth.json", file = {path = ".login/auth.json", initialize = {}, write_back = true}}
+            local script = assert(require("container").script(prepared.kind, secret, prepared.image.home,
+                prepared.workdir, "", prepared.launch, 60))
+            local box = require("run_io").build("transport-test", prepared, script.env)
+            local args = table.concat(box.create, " ")
+            test.is_nil(args:find(secret, 1, true))
+            test.is_nil(args:find(" -e ", 1, true))
+            test.is_nil(next(box.env or {}))
+            test.not_nil(box.stdin:find(secret, 1, true))
+            test.not_nil(args:find("--tmpfs", 1, true))
+            test.not_nil(args:find(prepared.image.home .. "/.login", 1, true))
+        end)
+
+        test.it("keeps driver-injected credential files in memory with login files", function()
+            local prepared = require("stubs").preparation({agent = "claude", account_id = "account", image_id = "image"})
+            prepared.kind = {id = "file:.login/auth.json", file = {path = ".login/auth.json", initialize = {}, write_back = true}}
+            prepared.launch.files = {
+                {path = ".gateway/mcp.json", content = "{}", secret_fields = {{path = {"token"}, environment = "GATEWAY_TOKEN", prefix = ""}}},
+                {path = ".login/extra.json", content = "{}", secret_fields = {{path = {"token"}, environment = "GATEWAY_TOKEN", prefix = ""}}},
+            }
+            local box = require("run_io").build("transport-test", prepared, {})
+            local args = table.concat(box.create, " ")
+            test.not_nil((args:find(prepared.image.home .. "/.gateway:rw,mode=1777", 1, true)))
+            local _, count = args:gsub("%-%-tmpfs", "")
+            test.eq(count, 2)
+        end)
+
         test.it("supports configured shallow and full-history clones", function()
             local container = require("container")
             local launch = {executable = "agent", argv = {}, environment = {}, files = {}, readiness = "none"}

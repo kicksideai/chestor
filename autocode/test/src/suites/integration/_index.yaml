@@ -268,6 +268,21 @@ entries:
       actor: {id: app:test_runner}
       policies: [app:test_runtime]
 
+  - name: secret_runtime_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_secret_runtime, group: Autocode}
+    source: file://../../suites/secret_runtime_test.lua
+    method: run
+    modules: [time, uuid, json, sql, funcs]
+    imports:
+      test: wippy.test:test
+      identity: app:identity
+      docker: chestor.autocode.infrastructure:docker
+      repo: chestor.autocode.persist:repo
+    security:
+      actor: {id: app:test_runner}
+      policies: [app:test_runtime]
+
   - name: profiles_test
     kind: function.lua
     meta: {type: test, suite: autocode_profiles, group: Autocode}
@@ -298,6 +313,7 @@ entries:
       configuration: bee.drivers.binding:configuration
       drivers: bee.drivers:drivers
       container: chestor.autocode.infrastructure:container
+      run_io: app:run_io_subject
       repo: chestor.autocode.persist:repo
     security:
       actor: {id: app:test_runner}
