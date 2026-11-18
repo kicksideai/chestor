@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.8](https://github.com/kicksideai/chestor/compare/workspace-v0.2.7...workspace-v0.2.8) (2026-11-18)
+
+
+### Bug Fixes
+
+* **ui:** adopt SDK 0.0.70 and guard renderer attachment ([#68](https://github.com/kicksideai/chestor/issues/68)) ([dbd81cf](https://github.com/kicksideai/chestor/commit/dbd81cf1834b4778dfe9f4ddd12260f5d233c835))
+
 ## [0.2.7](https://github.com/kicksideai/chestor/compare/workspace-v0.2.6...workspace-v0.2.7) (2026-11-16)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.5](https://github.com/kicksideai/chestor/compare/roadmap-v0.2.4...roadmap-v0.2.5) (2026-11-18)
+
+
+### Bug Fixes
+
+* **ui:** adopt SDK 0.0.70 and guard renderer attachment ([#68](https://github.com/kicksideai/chestor/issues/68)) ([dbd81cf](https://github.com/kicksideai/chestor/commit/dbd81cf1834b4778dfe9f4ddd12260f5d233c835))
+
 ## [0.2.4](https://github.com/kicksideai/chestor/compare/roadmap-v0.2.3...roadmap-v0.2.4) (2026-11-16)
 
 

@@ -1,6 +1,14 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.19](https://github.com/kicksideai/chestor/compare/autocode-v0.1.18...autocode-v0.1.19) (2026-11-18)
+
+
+### Bug Fixes
+
+* **autocode:** require Claude subscription login ([#72](https://github.com/kicksideai/chestor/issues/72)) ([89d15d6](https://github.com/kicksideai/chestor/commit/89d15d6c4c9d717339bece1c101a7bcf11f9b4f1))
+* **ui:** adopt SDK 0.0.70 and guard renderer attachment ([#68](https://github.com/kicksideai/chestor/issues/68)) ([dbd81cf](https://github.com/kicksideai/chestor/commit/dbd81cf1834b4778dfe9f4ddd12260f5d233c835))
+
 ## [0.1.18](https://github.com/kicksideai/chestor/compare/autocode-v0.1.17...autocode-v0.1.18) (2026-11-17)
 
 
