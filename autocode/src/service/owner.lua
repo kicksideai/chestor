@@ -14,6 +14,9 @@ local transport = require("transport")
 local credentials = require("credentials")
 local gateway = require("gateway")
 local drivers = require("drivers")
+local funcs = require("funcs")
+local component_types = require("component_types")
+local envelope = require("envelope")
 
 type Recipe = transport.Recipe
 
@@ -54,10 +57,12 @@ local function prepare(args: {run_id: string}): ({[string]: unknown}?, error?)
         admitted, admit_err = runs.admit(request, true)
         if not admitted then return nil, admit_err end
     end
-    local snapshot, snapshot_err = resources.snapshot("account", admitted.account.id, resources.ACCESS.READ)
-    if not snapshot then return nil, snapshot_err end
-    local context = snapshot.context
-    local secret = context.values.credential
+    local snapshot, snapshot_err = funcs.call("kickside.component.system:read_runtime_context",
+        {component_id = admitted.account.id, access_mask = resources.ACCESS.READ})
+    if snapshot_err then return nil, snapshot_err end
+    local result_err = envelope.error_of(snapshot :: component_types.ServiceEnvelope?, "read_runtime_context")
+    if result_err then return nil, result_err end
+    local secret = snapshot.context.credential
     if type(secret) ~= "string" or secret == "" then
         return nil, errors.new({kind = errors.INVALID, message = "account " .. admitted.account.label .. " holds no credential"})
     end
@@ -76,7 +81,7 @@ local function prepare(args: {run_id: string}): ({[string]: unknown}?, error?)
         image = {id = image.id, ref = image.ref, home = image.home, memory = image.memory, cpus = image.cpus,
             pids_limit = image.pids_limit, gpus = image.gpus, network = image.network, extra_args = image.extra_args},
         workspace = admitted.workspace, workdir = admitted.workdir, launch = admitted.launch,
-        secret = secret, revision = context.revision}, nil
+        secret = secret, revision = math.floor(tonumber(snapshot.context_revision) or 0)}, nil
 end
 
 -- keep_credential stores a login file the CLI refreshed during the run, only

@@ -6,6 +6,11 @@ local io = require("io")
 local stubs = require("stubs")
 local function cases()
     test.describe("autocode nested mount isolation", function()
+        local containers = {}
+        test.after_each(function()
+            for _, name in ipairs(containers) do test.is_nil(docker.ensure_removed(name)) end
+            containers = {}
+        end)
         local image_ref = "autocode-mount-test:" .. uuid.v7()
         test.before_all(function()
             local code, err = docker.run({"build", "-t", image_ref, "-"}, {stdin = "FROM debian:bookworm-slim\n"})
@@ -19,10 +24,11 @@ local function cases()
             prepared.workdir = "/workspace"
             prepared.workspace = {id = "mount-test", host_path = "/sys", writable = false}
             local box = io.build(uuid.v7(), prepared, {AUTOCODE_SCRIPT = "stat -f -c %T /workspace/fs/cgroup"})
-            box.create[1] = "run"
-            table.insert(box.create, 2, "--rm")
+            containers[#containers + 1] = box.name
+            test.eq(docker.run(box.create, {isolation = box.isolation}), 0)
+            test.eq(docker.run({"start", box.name}), 0)
             local lines = {}
-            local code, err = docker.run(box.create, {env = box.env, on_line = function(line) lines[#lines + 1] = line end})
+            local code, err = docker.run({"exec", "-i", box.name, "sh", "-s"}, {stdin = box.stdin, on_line = function(line) lines[#lines + 1] = line end})
             test.is_nil(err); test.eq(code, 0)
             test.eq(table.concat(lines, ""), "sysfs")
         end)

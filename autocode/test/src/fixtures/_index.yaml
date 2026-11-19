@@ -123,8 +123,10 @@ entries:
     kind: function.lua
     source: file://../owner_subject.lua
     method: image_recipe
-    modules: [security]
+    modules: [security, funcs]
     imports:
+      component_types: kickside.component:types
+      envelope: kickside.component:envelope
       image_state: chestor.autocode.domain:image_state
       gateway: chestor.autocode.service:gateway
       limits: chestor.autocode.domain:limits

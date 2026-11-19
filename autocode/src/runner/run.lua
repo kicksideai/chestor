@@ -194,7 +194,7 @@ local function execute(run: repo.Run, job: {[string]: unknown}, trace_context: {
             details = {code = "autocode.queue_expired"}}))
     end
     local create_output: {string} = {}
-    local created, create_err = docker.run(box.create, {deadline = deadline, env = box.env, isolation = box.isolation, on_line = function(line: string)
+    local created, create_err = docker.run(box.create, {deadline = deadline, isolation = box.isolation, on_line = function(line: string)
         create_output[#create_output + 1] = line
         if line:match("^WARNING: ") then emit("system", line) end
     end})
@@ -221,7 +221,10 @@ local function execute(run: repo.Run, job: {[string]: unknown}, trace_context: {
     changed(live.RUNS_TOPIC)
     emit("system", "starting " .. prepared.agent .. " in " .. prepared.image.ref)
 
-    local streamed, stream_failure = run_io.stream(prepared, box, redactor, emit, cancelled, function(): string? return persist_err end, deadline)
+    local refresh_error: string? = nil
+    local streamed, stream_failure = run_io.stream(prepared, box, redactor, emit, cancelled,
+        function(): string? return persist_err end,
+        function() refresh_error = run_io.keep_credential(run_id, owner, prepared, box, emit, deadline) end, deadline)
     if not streamed then return fail(tostring(stream_failure), stream_failure) end
     local terminal, folder = streamed.terminal, streamed.folder
     local stream_err, docker_err, code = streamed.stream_error, streamed.docker_error, streamed.code
@@ -230,7 +233,6 @@ local function execute(run: repo.Run, job: {[string]: unknown}, trace_context: {
     local was_cancelled, final_read_err = cancelled()
     if final_read_err then stream_err = stream_err or ("cancellation read: " .. tostring(final_read_err)) end
     was_cancelled = was_cancelled or streamed.cancel_seen
-    local refresh_error = run_io.keep_credential(run_id, owner, prepared, box, emit, deadline)
     health = account_health.capture(terminal, refresh_error, redactor, records.limits(folder, terminal))
     local health_notify_err = live.account(run.account_id)
     notification_err = notification_err or health_notify_err

@@ -120,10 +120,10 @@ class ClientBoundary(unittest.TestCase):
 
     def test_container_restoration_requires_only_the_existing_posix_shell(self):
         value = "printf '%s' payload-survived"
-        payload = {'AUTOCODE_TRANSFER_NAMES': 'AUTOCODE_SCRIPT', 'AUTOCODE_PAYLOAD_0_COUNT': '1',
-                   'AUTOCODE_PAYLOAD_0_0': ''.join('\\0%03o' % c for c in value.encode()), 'PATH': '/no-utilities'}
-        entrypoint = re.search(r'M.entrypoint = \[=\[(.*?)\]=\]', (SOURCE / 'container.lua').read_text(), re.S)[1]
-        result = subprocess.run(['/bin/sh', '-c', entrypoint], env=payload, capture_output=True, text=True)
+        payload = {'AUTOCODE_SCRIPT': value, 'AUTOCODE_INPUT': '', 'PATH': '/no-utilities'}
+        source = (SOURCE.parent / 'runner/run_io.lua').read_text()
+        bootstrap = re.search(r"bootstrap\[#bootstrap \+ 1\] = '(.*?)'\n", source)[1]
+        result = subprocess.run(['/bin/sh', '-c', bootstrap], env=payload, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(result.stdout, 'payload-survived')
 

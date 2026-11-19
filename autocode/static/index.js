@@ -1,5 +1,5 @@
 import { W as o, l as r } from "./wc-runtime-CEQ5gZTA.js";
-import { s } from "./styles-CZu759Vv.js";
+import { s } from "./styles-Bsh0K-CX.js";
 import { define as i } from "@wippy-fe/proxy";
 const n = { props: { type: "object", properties: { route: { type: "string", default: "", description: "Path relative to /autocode; runs/<run_id> opens a run." } } } }, p = {
   wippy: n

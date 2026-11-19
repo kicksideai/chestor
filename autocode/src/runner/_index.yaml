@@ -35,6 +35,7 @@ entries:
       redact: chestor.autocode.runner:redact
       docker: chestor.autocode.infrastructure:docker
       transport: chestor.autocode.service:transport
+      quote: chestor.autocode.infrastructure:quote
       container: chestor.autocode.infrastructure:container
 
   - name: account_health

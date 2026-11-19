@@ -22,6 +22,11 @@ end
 local function cases()
     test.describe("autocode shared Docker client", function()
         local root = shell("pwd") .. "/.wippy/client-workspace"
+        local containers = {}
+        test.after_each(function()
+            for _, name in ipairs(containers) do test.is_nil(docker.ensure_removed(name)) end
+            containers = {}
+        end)
         local image_ref = "chestor-autocode-client-test:" .. uuid.v7()
         test.before_all(function()
             shell("mkdir -p " .. quote.posix(root))
@@ -62,11 +67,14 @@ local function cases()
                     local payload = "multi\nline\n" .. string.rep("x", 20000) .. "\n"
                     local env = {TOKEN = payload, HOME = "/opt/agent", DOCKER_CONFIG = "/container-only", AUTOCODE_SCRIPT = 'test "${#TOKEN}" = 20012 && test "$DOCKER_CONFIG" = /container-only && printf transport-survived'}
                     local box = require("io").build(uuid.v7(), prepared, env)
-                    box.create[1] = "run"; table.insert(box.create, 2, "--rm")
+                    containers[#containers + 1] = box.name
+                    test.eq(native.run(box.create, {isolation = box.isolation}), 0)
+                    test.eq(native.run({"start", box.name}), 0)
                     local lines = {}
-                    code, err = native.run(box.create, {env = box.env, on_line = function(line) lines[#lines + 1] = line end})
+                    code, err = native.run({"exec", "-i", box.name, "sh", "-s"}, {stdin = box.stdin, on_line = function(line) lines[#lines + 1] = line end})
                     test.is_nil(err); test.eq(code, 0, table.concat(lines, "\n"))
                     test.eq(table.concat(lines, ""), "transport-survived")
+                    test.is_nil(native.ensure_removed(box.name))
                 end
                 local code, err = native.run({"image", "inspect", built})
                 test.is_nil(err); test.eq(code, 0)
@@ -128,9 +136,11 @@ local function cases()
             local env = {NAMES = "literal-names", PAIR = "first", PAIR_0 = "second", HOME = root .. "/client-home", PATH = "/container-only-path", DOCKER_CONFIG = "/container-config", DOCKER_CONTEXT = "attacker-context", DOCKER_HOST = "unix:///absent-attacker.sock", VALUE = value, EXTRA = string.rep("\'", 65536),
                 AUTOCODE_SCRIPT = 'test "$PATH" = /container-only-path && test "$NAMES" = literal-names && test "$PAIR" = first && test "$PAIR_0" = second && test "$HOME" = ' .. quote.posix(root .. "/client-home") .. ' && test "$DOCKER_CONFIG" = /container-config && test "$DOCKER_CONTEXT" = attacker-context && test "$DOCKER_HOST" = unix:///absent-attacker.sock && test "$VALUE" = ' .. quote.posix(value) .. ' && test "${#EXTRA}" -eq 65536 && echo container-values-preserved'}
             local box = require("io").build(uuid.v7(), prepared, env)
-            box.create[1] = "run"; table.insert(box.create, 2, "--rm")
+            containers[#containers + 1] = box.name
+            test.eq(docker.run(box.create, {isolation = box.isolation}), 0)
+            test.eq(docker.run({"start", box.name}), 0)
             local lines = {}
-            local code, err = docker.run(box.create, {env = box.env, on_line = function(line) lines[#lines + 1] = line end})
+            local code, err = docker.run({"exec", "-i", box.name, "sh", "-s"}, {stdin = box.stdin, on_line = function(line) lines[#lines + 1] = line end})
             test.is_nil(err); test.eq(code, 0, table.concat(lines, "\n"))
             test.eq(table.concat(lines, ""), "container-values-preserved")
         end)
@@ -218,7 +228,8 @@ local function cases()
                             test.is_nil(err, tostring(err)); test.eq(code, 0, table.concat(lines, " "))
                             if not table.concat(case.args, " "):find("-il", 1, true) then
                                 lines = {}
-                                test.eq(docker.run({"start", "-a", box.name}, {on_line = function(line) lines[#lines + 1] = line end}), 0)
+                                test.eq(docker.run({"start", box.name}), 0)
+                                test.eq(docker.run({"exec", "-i", box.name, "sh", "-s"}, {stdin = box.stdin, on_line = function(line) lines[#lines + 1] = line end}), 0)
                                 test.eq(table.concat(lines, ""), "accepted")
                             end
                         end
@@ -245,7 +256,8 @@ local function cases()
                         local code, err = docker.run(box.create, {isolation = box.isolation, env = box.env})
                         test.is_nil(err, tostring(err)); test.eq(code, 0)
                         local output = {}
-                        test.eq(docker.run({"start", "-a", box.name}, {on_line = function(line) output[#output + 1] = line end}), 0)
+                        test.eq(docker.run({"start", box.name}), 0)
+                        test.eq(docker.run({"exec", "-i", box.name, "sh", "-s"}, {stdin = box.stdin, on_line = function(line) output[#output + 1] = line end}), 0)
                         test.eq(table.concat(output, ""), "approved")
                     end)
                     docker.ensure_removed(box.name)

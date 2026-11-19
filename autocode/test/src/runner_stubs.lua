@@ -95,9 +95,14 @@ function component.notify_access(id)
 end
 function execution_identity.from_row() return {} end
 function execution_identity.bind()
-    return {call = function(_, entry)
+    return {call = function(_, entry, args)
         if entry == "chestor.autocode.service:image_ready" then return component.set_runtime_meta("image", image_state.fields(M.state.build, true)) end
         if entry == "chestor.autocode.service:image_recipe" then return M.state.recipe or M.recipe_fixture(), M.state.recipe_error end
+        if entry == "chestor.autocode.service:keep_credential" then
+            M.state.kept_credential = args
+            M.state.credential_saved_after_stops = M.state.stopped
+            return true
+        end
         if entry ~= "chestor.autocode.service:prepare" then error("unexpected owner call: " .. entry) end
         M.state.prepared_called = true
         return M.state.prepared, M.state.prepare_error
@@ -157,11 +162,12 @@ function docker.run(args, opts)
         if M.state.create_error then return nil, M.state.create_error end
         return 0
     elseif args[1] == "start" then
-        if args[#args]:find("autocode-probe-", 1, true) then
+        if args[2] == "-a" then
             M.state.fetches = M.state.fetches + 1
             if M.state.runtime_missing then return 127 end
-            return 0
         end
+        return 0
+    elseif args[1] == "exec" then
         M.state.stop_signal = channel.new(1)
         if M.state.on_attach then M.state.on_attach() end
         M.state.attached = true
@@ -230,6 +236,14 @@ end
 function docker.stop(_, deadline)
     record_deadline("stop", deadline); M.state.stopped = M.state.stopped + 1
     if M.state.stop_signal then M.state.stop_signal:send(true) end
+end
+function docker.read_file(_, path, limit, deadline)
+    record_deadline("read_file", deadline)
+    M.state.credential_reads = M.state.credential_reads or {}
+    table.insert(M.state.credential_reads, {path = path, limit = limit, stopped = M.state.stopped})
+    if M.state.credential_read_error then return nil, M.state.credential_read_error end
+    if M.state.stopped > 0 then return nil, errors.new({kind = errors.UNAVAILABLE, message = "container is stopped"}) end
+    return M.state.refreshed_credential
 end
 function docker.remove(name, deadline)
     if M.state.on_remove then M.state.on_remove() end
@@ -347,7 +361,10 @@ end
 function drivers.get(id)
     if id ~= "claude" then error("unexpected driver: " .. id) end
     if M.state.missing_driver then return nil, errors.new({kind = errors.NOT_FOUND, message = "driver removed"}) end
-    return {id = "claude", credentials = {files = {{path = ".login.json", content_format = "json", write_back = true, initialize = {}}}, variables = {}, subscriptions = {}}}
+    return {id = "claude", credentials = {
+        files = {{path = ".login.json", content_format = "json", write_back = true, initialize = {}}},
+        variables = {"CLAUDE_CODE_OAUTH_TOKEN"}, subscriptions = {"CLAUDE_CODE_OAUTH_TOKEN"},
+    }}
 end
 function exec.get(id)
     if id ~= "chestor.autocode:docker" and id ~= M.state.executor then error("unexpected executor: " .. id) end
