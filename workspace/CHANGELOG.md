@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.9](https://github.com/kicksideai/chestor/compare/workspace-v0.2.8...workspace-v0.2.9) (2026-11-19)
+
+
+### Bug Fixes
+
+* **workspace:** reap upload references during owner teardown ([#73](https://github.com/kicksideai/chestor/issues/73)) ([1227816](https://github.com/kicksideai/chestor/commit/12278161f720ad88285c5116d191a903a5dbd6af))
+
 ## [0.2.8](https://github.com/kicksideai/chestor/compare/workspace-v0.2.7...workspace-v0.2.8) (2026-11-18)
 
 

@@ -8,6 +8,7 @@ local DEPENDENCIES = {
     ["kickside/component"] = "*",
     ["kickside/core"] = "*",
     ["kickside/contract"] = "*",
+    ["kickside/execution"] = "*",
     ["kickside/renderers"] = "*",
     ["kickside/widgets"] = "*",
 }
@@ -94,7 +95,7 @@ local function define_tests()
                 count = count + 1
                 test.eq(version, DEPENDENCIES[component], "unexpected production dependency " .. component)
             end
-            test.eq(count, 5)
+            test.eq(count, 6)
             for component, version in pairs(DEPENDENCIES) do
                 test.eq(found[component], version, "missing production dependency " .. component)
             end
