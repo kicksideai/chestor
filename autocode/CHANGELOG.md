@@ -1,6 +1,16 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.20](https://github.com/kicksideai/chestor/compare/autocode-v0.1.19...autocode-v0.1.20) (2026-11-19)
+
+
+### Bug Fixes
+
+* **autocode:** encrypt component account credentials ([d34a41d](https://github.com/kicksideai/chestor/commit/d34a41d5fea38a5c3db7e2b8f972ae8acfb87292))
+* **autocode:** encrypt component account credentials ([#31](https://github.com/kicksideai/chestor/issues/31)) ([d34a41d](https://github.com/kicksideai/chestor/commit/d34a41d5fea38a5c3db7e2b8f972ae8acfb87292))
+* **autocode:** require published Component credential support ([e12e3cc](https://github.com/kicksideai/chestor/commit/e12e3cc29187d90cfbcdc845f65d36529a5724fa))
+* preserve account credentials and deletion progress ([6c67daa](https://github.com/kicksideai/chestor/commit/6c67daacbeff752f430cd6ad43eebb1ba5d6431e))
+
 ## [0.1.19](https://github.com/kicksideai/chestor/compare/autocode-v0.1.18...autocode-v0.1.19) (2026-11-18)
 
 
