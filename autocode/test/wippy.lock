@@ -8,50 +8,50 @@ modules:
     - name: chestor/autocode
       version: 0.0.0
     - name: kickside/agents
-      version: 0.2.18
-      hash: 974b78fc5536861a21589358738dcc828cfb4a8c4336b7fd7e157ced7d720860
+      version: 0.2.21
+      hash: 2c1e0802511d0b5ac8647877f9ec9bae41bd8957da7688f08dda7f534f0a8cf3
     - name: kickside/automation
-      version: 0.2.30
-      hash: 2e3157c6ca087c537a4751fbf88e0f4d1eaf79e4b4673cd262ec41784f42fb42
+      version: 0.2.33
+      hash: d1be35c2b0840324d5344341976324d49cc37aac9942cd20f777d6391e6a1ce4
     - name: kickside/blocks
-      version: 0.1.44
-      hash: 1b129211e35a658ccd1ef6c94e33cfe2a01a0137543284a0f4ecdf2142dcb3e5
+      version: 0.1.45
+      hash: e49e02e3772344e20902f2e2928be5364b156370e11c26e9402c36cba89dcd97
     - name: kickside/component
-      version: 0.3.22
-      hash: e9713a4e86b1e0655bcb56e3d024a52188d3ee2b209f625be83b38a501671db4
+      version: 0.3.24
+      hash: 8189896d129c8bd5b3d7ad7381c3a87a021bdd26239b6c3656ad3cb29a29f9b7
     - name: kickside/connection
-      version: 0.5.8
-      hash: ea82b5e6a35ec42ed6090cb538dc9c1579d0bec5c0113d275e277cead42814a5
+      version: 0.5.10
+      hash: db97d27c825775252be469b221dce68a4a54f379c64d1c4315601005b5e60689
     - name: kickside/contract
-      version: 0.3.8
-      hash: c297c02ca276a5963bd688b6b022e54fcfe03450e30cf496481c14f963ae8134
+      version: 0.3.11
+      hash: 7cd4d294eefa31657b270eea7de50fe2d006b77ba484535fa87e8bddd469c2da
     - name: kickside/core
-      version: 0.3.21
-      hash: 95528870ccc4463aa2784d8a75b4a41796f84a28ac7e31dfe8e6669ddbf4627c
+      version: 0.3.26
+      hash: 47413443c410273de9b710fb88624a073aa1842ca52b399842282a25263bfc10
     - name: kickside/doc2md
       version: 0.8.28
       hash: 075f61918db65641b3d7a0a625e2715a1b4c64462c6a6f1edf7d3d8d3c3e8b0a
     - name: kickside/execution
-      version: 0.2.8
-      hash: 7ffa847541cce7d03424bad43828fb08e9b077b6a08b3fe857cd0a22fa589e97
+      version: 0.2.10
+      hash: 7d326f660768fc2a41401c7dee258c32fa7c0dbf4d4c468fb24b86057db62c02
     - name: kickside/jobs
-      version: 0.1.82
-      hash: ceaf5cfe99bf608238a714f910398782b92f8c965794088202cbdfbd7104b198
+      version: 0.1.88
+      hash: 0f85747c1338cc835a1aae5b129401c816e63b02c4613ee50e10fac706c2073b
     - name: kickside/realtime-dispatch
       version: 0.1.1
       hash: 6f0fa3625683510a1565afff3b40b6726ea5604b940b1627b787f6615683264d
     - name: kickside/security
-      version: 0.2.29
-      hash: a6d67f3d5a528485e569e0cbc350c6fbfa6fd04c4183d3f05b9154be6a7e5d0f
+      version: 0.2.30
+      hash: 745b4d9c93fb10cd225c7b088cb668b495bc64f7c91ad14b72589aaa9b0d0513
     - name: kickside/settings
-      version: 0.3.11
-      hash: 62442d919a00a615d4bc9baf41f9b31a8658dc138f995ce32d4f133fc60f5428
+      version: 0.3.12
+      hash: 8cda86ca85efa5924938c01141f1a19a22264bcd2bd4c327a2b83d7c666f9b2f
     - name: kickside/uploads
-      version: 0.3.20
-      hash: e268d0b123f6b3d744fc13a9fb5ae1339e649ef4cd397d151fd5e49e0972761a
+      version: 0.3.26
+      hash: 3e103a8d2724e8b3f50beceeb7dd6529b27a7b14009c333290f2d7707ce3c90b
     - name: kickside/users
-      version: 0.2.24
-      hash: c1e42fd386cf9fa085d35918b28627a74fd90cdd14f9369d3e7924f3fe31e511
+      version: 0.2.25
+      hash: 0768214d4ac8590e69ace6834fcfa8f3b6649ffc1d386e3e75af4971032df9c2
     - name: wippy/agent
       version: 0.5.13
       hash: 857b603fc6f036b053380bf6c8f00f42f6eb2720fe3df5f8fcb436a35dfdddf1

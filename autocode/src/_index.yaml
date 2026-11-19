@@ -29,7 +29,7 @@ entries:
     component: kickside/contract
 
   - name: dep.kickside.component
-    version: ">=0.3.18"
+    version: ">=0.3.23"
     kind: ns.dependency
     meta:
       comment: Component service - accounts, images and workspaces are component kinds with grants and teardown.

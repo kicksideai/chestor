@@ -48,7 +48,7 @@ Assign the `chestor.autocode.security:module_management` policy to image/workspa
 
 The optional per-run gateway uses the host-installed `kickside/agents` tools contract; ordinary runs add no Agents, Connection, Uploads or Relay bindings.
 
-The module depends on `bee/drivers` 0.1.26 or newer, `kickside/component`, `kickside/contract`,
+The module depends on `bee/drivers` 0.1.26 or newer, `kickside/component` 0.3.23 or newer, `kickside/contract`,
 `kickside/jobs`, `kickside/execution`, `kickside/settings`, `kickside/blocks`,
 and `wippy/migration`. Bind `bee.drivers:activation` to
 `chestor.autocode.drivers:activation`. Bind `bee.drivers:host_environment` and
