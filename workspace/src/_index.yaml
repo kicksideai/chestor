@@ -24,6 +24,11 @@ entries:
     version: '*'
     component: kickside/contract
 
+  - name: dep.kickside.execution
+    kind: ns.dependency
+    version: '*'
+    component: kickside/execution
+
   - name: dep.kickside.renderers
     kind: ns.dependency
     version: '*'
@@ -128,6 +133,18 @@ entries:
     imports:
       handlers: chestor.workspace.binding:handlers
 
+  - name: file_reap_owner
+    kind: function.lua
+    meta:
+      private: true
+      comment: Schedule Workspace file-reference deletion under Uploads owner teardown.
+    source: file://uploads_owner_cleanup.lua
+    method: run
+    modules: [security, uuid]
+    imports:
+      component: kickside.component:component
+      execution_identity: kickside.execution:execution_identity
+
   - name: file_reap_stage.universal
     kind: registry.entry
     meta:
@@ -137,6 +154,7 @@ entries:
     priority: 10
     title: Workspace file reap
     func: chestor.workspace:file_reap_stage
+    owner_func: chestor.workspace:file_reap_owner
 
   # ── Built-in component KINDS. There is no "workspace.entry" class: folder/
   # file/link are ordinary components whose contract.binding meta self-describes
