@@ -22,8 +22,10 @@ local function run(input: any): (any?, error?)
     while true do
         local rows, read_err = component.list_system({
             impl_ids = {"chestor.workspace:file"},
-            meta = {upload_id = upload_id, owner = owner_id},
-            include = {meta = false},
+            -- Start with the indexed upload ID. An owner metadata filter would
+            -- collect every file of this owner for each upload being erased.
+            meta = {upload_id = upload_id},
+            include = {meta = true},
             order_by = {field = "component_id", direction = "ASC"},
             after_component_id = after,
             limit = PAGE_SIZE,
@@ -34,11 +36,13 @@ local function run(input: any): (any?, error?)
         end
         for _, row in ipairs(rows) do
             local id = row.component_id
-            local deleted, delete_err = component.system_delete(id, "reparent_root")
-            if not deleted then
-                local details = delete_err and delete_err:details()
-                if not details or details.cleanup_pending ~= true or details.wait_for ~= "deletion_job" then
-                    return nil, delete_err or errors.new({kind = errors.INTERNAL, message = "Workspace file deletion was not accepted"})
+            if row.meta and row.meta.owner == owner_id then
+                local deleted, delete_err = component.system_delete(id, "reparent_root")
+                if not deleted then
+                    local details = delete_err and delete_err:details()
+                    if not details or details.cleanup_pending ~= true or details.wait_for ~= "deletion_job" then
+                        return nil, delete_err or errors.new({kind = errors.INTERNAL, message = "Workspace file deletion was not accepted"})
+                    end
                 end
             end
             after = id
