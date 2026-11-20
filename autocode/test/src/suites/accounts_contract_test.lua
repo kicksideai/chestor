@@ -178,40 +178,97 @@ local function cases()
             test.eq(choices["file:.claude/.credentials.json"], "json_object")
             test.eq(choices["env:CLAUDE_CODE_OAUTH_TOKEN"], "single_line")
         end)
-        test.it("publishes one named Autocode section and its fifteen settings through platform settings", function()
+        test.it("serves fifteen limits in Autocode and omits the generic defaults block", function()
             local admin = identity.admin()
             users[#users + 1] = admin
             local blocks = identity.request(admin, "GET", "/settings/blocks")
             test.eq(blocks.status, 200, blocks.body)
-            local count = 0
             for _, block in ipairs(blocks.json.blocks) do
-                if block.namespace == "chestor.autocode" then
-                    count = count + 1
-                    test.eq(block.key, "autocode")
-                    test.eq(block.title, "Autocode")
-                    test.eq(block.icon, "tabler:robot")
-                    test.eq(block.group, "Application")
-                    test.eq(block.order, 80)
-                end
+                test.is_false(block.namespace == "chestor.autocode" or block.key == "autocode")
             end
-            test.eq(count, 1)
-            local response = identity.request(admin, "GET", "/settings?namespace=chestor.autocode")
+            local response = identity.request(admin, "GET", "/autocode/limits")
             test.eq(response.status, 200, response.body)
             test.eq(#response.json.settings, 15)
             local by_key = {}
             for _, setting in ipairs(response.json.settings) do by_key[setting.key] = setting end
-            test.eq(by_key.run_event_count.value_type, "int")
-            test.eq(by_key.run_event_bytes.value_type, "int")
-            test.eq(by_key.workflow_delivery_timeout.value_type, "duration")
-            test.eq(by_key.queue_timeout.value_type, "duration")
-            for _, key in ipairs({"pending_runs_per_owner", "pending_runs_global", "result_bytes", "event_text_bytes", "build_log_bytes", "clone_depth"}) do
-                test.eq(by_key[key].value_type, "int")
-                test.is_true(by_key[key].editable)
+            test.eq(by_key.run_timeout.value, "2h")
+            test.eq(by_key.run_timeout.overridden, false)
+            test.eq(by_key.queue_timeout.category, "Queue")
+            test.eq(by_key.run_retention.category, "Retention")
+            test.eq(by_key.run_event_bytes.unit, "bytes")
+
+            local function run_timeout()
+                local current = identity.request(admin, "GET", "/autocode/limits")
+                test.eq(current.status, 200, current.body)
+                for _, setting in ipairs(current.json.settings) do
+                    if setting.key == "run_timeout" then return setting end
+                end
+                error("run timeout is missing")
             end
-            test.eq(by_key.run_retention.title, "Run and log retention")
-            test.eq(by_key.run_retention.category, "Runs")
-            test.eq(by_key.image_build_timeout.category, "Images and Docker")
-            test.is_true(by_key.image_build_timeout.order < by_key.build_cache_retention.order)
+            local saved = identity.request(admin, "PUT", "/settings", {namespace = "chestor.autocode", key = "run_timeout", value = "75m"})
+            local changed = run_timeout()
+            local reset = identity.request(admin, "PUT", "/settings", {namespace = "chestor.autocode", key = "run_timeout"})
+            test.eq(saved.status, 200, saved.body)
+            test.eq(changed.value, "75m")
+            test.is_true(changed.overridden)
+            test.eq(reset.status, 200, reset.body)
+            local restored = run_timeout()
+            test.eq(restored.value, "2h")
+            test.is_false(restored.overridden)
+        end)
+        test.it("discovers distinct provider editors and preserves resource permissions during account management", function()
+            local admin = identity.admin()
+            users[#users + 1] = admin
+            local owner, other = member(), member()
+            local created = identity.request(owner, "POST", "/autocode/accounts",
+                {agent = "codex", credential_kind = "env:CODEX_API_KEY", label = "Managed", secret = "test-secret-for-management"})
+            test.eq(created.status, 201, created.body)
+            local id = created.json.id
+            local path = "/autocode/management/accounts"
+            local selected = path .. "?agent=codex"
+            local response = identity.request(admin, "GET", path)
+            test.eq(response.status, 200, response.body)
+            local providers = {}
+            for _, provider in ipairs(response.json.providers) do providers[provider.agent] = provider end
+            test.eq(providers.claude.provider_id, "bee.drivers.claude.binding:binding")
+            test.eq(providers.claude.create_ui_id, "chestor-autocode-claude-accounts")
+            test.eq(providers.codex.create_ui_id, "chestor-autocode-codex-accounts")
+
+            test.eq(identity.request(other, "GET", path).status, 403)
+            test.eq(identity.request(other, "GET", "/autocode/limits").status, 403)
+            test.eq(identity.request(other, "PUT", "/settings", {namespace = "chestor.autocode", key = "run_timeout", value = "90m"}).status, 403)
+            test.eq(identity.request(other, "PUT", "/autocode/accounts/" .. id, {enabled = false}).status, 404)
+
+            local function find_account(user, url)
+                local account_response = identity.request(user, "GET", url)
+                test.eq(account_response.status, 200, account_response.body)
+                test.is_nil(account_response.body:find("test-secret-for-management", 1, true))
+                for _, account in ipairs(account_response.json.accounts) do
+                    if account.id == id then return account end
+                end
+                return nil
+            end
+            test.is_nil(find_account(admin, selected), "account management uses the existing component grants")
+            local grant = identity.request(owner, "POST", "/component-access/share/" .. id,
+                {subject_type = "user", subject_id = admin.id, access_mask = 15})
+            test.eq(grant.status, 200, grant.body)
+            local account = find_account(admin, selected)
+            test.not_nil(account)
+            test.is_true(account.shareable)
+            test.is_true(account.writable)
+            test.is_true(account.deletable)
+            test.eq(account.runs_day, 0)
+            test.is_nil(find_account(other, "/autocode/accounts"))
+            test.eq(identity.request(admin, "PUT", "/autocode/accounts/" .. id, {label = "Renamed", enabled = false}).status, 200)
+            account = find_account(admin, selected)
+            test.eq(account.label, "Renamed")
+            test.is_false(account.enabled)
+            test.eq(identity.request(admin, "POST", "/component-access/share/" .. id,
+                {subject_type = "user", subject_id = other.id, access_mask = 1}).status, 200)
+            account = find_account(other, "/autocode/accounts")
+            test.not_nil(account)
+            test.is_false(account.writable)
+            test.eq(identity.request(admin, "DELETE", "/autocode/accounts/" .. id).status, 200)
         end)
         test.it("replaces credentials and endpoints in place and rejects malformed endpoint URLs", function()
             local user = member()

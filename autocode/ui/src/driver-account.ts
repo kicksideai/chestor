@@ -1,35 +1,31 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
-import { WippyVueElement, define, lazyVueConfig } from '@wippy-fe/webcomponent-vue'
-import type { WippyElementConfig, WippyPropsSchema } from '@wippy-fe/webcomponent-vue'
+import { WippyVueElement, lazyVueConfig } from '@wippy-fe/webcomponent-vue'
+import type { WippyElementConfig, WippyPropsSchema, WippyVueMountConfig } from '@wippy-fe/webcomponent-vue'
+import styles from './styles.css?inline'
 
-import stylesText from './driver-account.css?inline'
-import type { DriverAccountConfig, DriverAccountEvents } from './driver-account-types.ts'
+export interface ProviderProps { providerId?: string }
+export interface ProviderEvents { 'connection-saved': { success: true } }
 
-
-
-// chestor-autocode-driver-account - the credential card of one agent driver, built as
-// its own bundle (driver-account.js) and registered as its own view.component
-// so any surface that holds agent accounts mounts it by tag. The host passes
-// `config` {driver, busy, error, saved} and stores the `submit` it emits.
-const PROPS_SCHEMA = {
+const props = {
   type: 'object',
   properties: {
-    config: { type: 'object', default: {}, description: 'Driver credential card: { driver, busy, error, saved }' },
+    'provider-id': { type: 'string', default: '', description: 'Registry ID of the Autocode driver binding.' },
   },
 } satisfies WippyPropsSchema
 
-class DriverAccountElement extends WippyVueElement<{ config?: DriverAccountConfig }, DriverAccountEvents> {
-  static get wippyConfig(): WippyElementConfig<{ config?: DriverAccountConfig }> {
-    return { propsSchema: PROPS_SCHEMA, hostCssKeys: ['themeConfigUrl'] as const, inlineCss: stylesText }
+export class DriverAccountsElement extends WippyVueElement<ProviderProps, ProviderEvents> {
+  static get wippyConfig(): WippyElementConfig<ProviderProps> {
+    return {
+      propsSchema: props,
+      hostCssKeys: ['themeConfigUrl', 'primeVueCssUrl', 'iframeCssUrl'] as const,
+      inlineCss: styles + ':host, :host > div { height: auto; }',
+    }
   }
 
-  static get vueConfig() {
-    return lazyVueConfig(() => (() => import('./app/driver-account.vue'))().then(module => ({ rootComponent: module.default })), { surface: 'compact', loading: 'Loading the driver account card…', failed: 'Could not load the driver account card. Reload the page to try again.', delay: true ? 0 : 200, timeout: 30000 })
-  }
 }
 
-export async function webComponent() {
-  return DriverAccountElement
+export function providerAccountsConfig(load: () => Promise<WippyVueMountConfig>) {
+  return lazyVueConfig(load, {
+    surface: 'compact', loading: 'Loading accounts…', failed: 'Could not load accounts.', timeout: 30000,
+  })
 }
-
-define(import.meta.url, DriverAccountElement)

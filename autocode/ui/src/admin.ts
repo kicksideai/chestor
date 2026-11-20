@@ -4,6 +4,7 @@ import type { WippyElementConfig, WippyPropsSchema } from '@wippy-fe/webcomponen
 import type { ComponentProps } from './types.ts'
 
 import stylesText from './styles.css?inline'
+import adminStyles from './admin.css?inline'
 
 // chestor-autocode-admin - the Autocode tab of the System settings, built as its
 // own bundle (admin.js) from the page's sources and styles.
@@ -11,7 +12,7 @@ const PROPS_SCHEMA = { type: 'object', properties: {} } satisfies WippyPropsSche
 
 class ChestorAutocodeAdminElement extends WippyVueElement<ComponentProps, Record<string, never>> {
   static get wippyConfig(): WippyElementConfig<ComponentProps> {
-    return { propsSchema: PROPS_SCHEMA, hostCssKeys: ['themeConfigUrl', 'primeVueCssUrl', 'iframeCssUrl'] as const, inlineCss: stylesText }
+    return { propsSchema: PROPS_SCHEMA, hostCssKeys: ['themeConfigUrl', 'primeVueCssUrl', 'iframeCssUrl'] as const, inlineCss: stylesText + adminStyles }
   }
 
   static get vueConfig() {

@@ -3,17 +3,6 @@ version: "1.0"
 namespace: chestor.autocode
 
 entries:
-  - name: settings.block.autocode
-    kind: registry.entry
-    meta:
-      type: kickside.settings:block
-    key: autocode
-    title: Autocode
-    icon: tabler:robot
-    group: Application
-    order: 80
-    namespace: chestor.autocode
-
   - name: setting.run_timeout
     kind: registry.entry
     meta:
@@ -24,13 +13,14 @@ entries:
     value_type: duration
     default: 2h
     title: Run timeout
-    category: Runs
-    order: 10
-    description: "How long an agent task may run (at least `1m`, at most 7 days / `168h`); the CLI is stopped and the run fails after it."
+    category: Time limits
+    order: 110
+    unit: hours / minutes
+    description: "Stop a running task when it reaches this limit. Enter 1m to 168h."
     scope: global
     validate_func: chestor.autocode:validate_duration
     editable: true
-    visible: true
+    visible: false
 
   - name: setting.account_cooldown
     kind: registry.entry
@@ -42,13 +32,14 @@ entries:
     value_type: duration
     default: 30m
     title: Account cooldown
-    category: Runs
-    order: 20
-    description: "How long an account rests after the provider refuses a run with a retryable fault such as a rate limit (a duration such as `30m`)."
+    category: Time limits
+    order: 140
+    unit: hours / minutes
+    description: "Keep an account out of rotation after a retryable provider error, such as a rate limit."
     scope: global
     validate_func: chestor.autocode:validate_duration
     editable: true
-    visible: true
+    visible: false
 
   - name: setting.run_retention
     kind: registry.entry
@@ -61,13 +52,14 @@ entries:
     default: 720h
     confirm_decrease: true
     title: Run and log retention
-    category: Runs
-    order: 30
-    description: "Retention deletes settled runs and their event logs older than this duration (for example, `720h`)."
+    category: Retention
+    order: 310
+    unit: hours / minutes
+    description: "Delete finished runs and their logs after this time. Shorter retention can delete existing history."
     scope: global
     validate_func: chestor.autocode:validate_duration
     editable: true
-    visible: true
+    visible: false
 
   - name: setting.build_cache_retention
     kind: registry.entry
@@ -79,13 +71,14 @@ entries:
     value_type: duration
     default: 24h
     title: Build cache retention
-    category: Images and Docker
-    order: 50
-    description: "How long unused build cache stays on the shared Docker host before manual cleanup removes it (a duration such as `24h`)."
+    category: Retention
+    order: 320
+    unit: hours / minutes
+    description: "Keep unused cache at least this long when you run Docker cleanup."
     scope: global
     validate_func: chestor.autocode:validate_duration
     editable: true
-    visible: true
+    visible: false
 
   - name: setting.image_build_timeout
     kind: registry.entry
@@ -97,13 +90,14 @@ entries:
     value_type: duration
     default: 30m
     title: Image build timeout
-    category: Images and Docker
-    order: 40
-    description: "Image build and probe deadline (at least 1m, at most 168h)."
+    category: Time limits
+    order: 120
+    unit: hours / minutes
+    description: "Stop building and probing an image when it reaches this limit. Enter 1m to 168h."
     scope: global
     validate_func: chestor.autocode:validate_duration
     editable: true
-    visible: true
+    visible: false
 
   - name: validate_duration
     kind: function.lua
@@ -121,13 +115,14 @@ entries:
     value_type: int
     default: 4096
     title: Run event count
-    category: Runs
-    order: 31
-    description: "Maximum stored events per run, including the head and one truncation notice (4 to 100000)."
+    category: Sizes
+    order: 440
+    unit: events
+    description: "Maximum number of events kept for one run."
     scope: global
     validate_func: chestor.autocode:validate_duration
     editable: true
-    visible: true
+    visible: false
 
   - name: setting.run_event_bytes
     kind: registry.entry
@@ -137,13 +132,14 @@ entries:
     value_type: int
     default: 8388608
     title: Run event bytes
-    category: Runs
-    order: 32
-    description: "Maximum UTF-8 bytes of stored event kinds and text per run (1024 to 1073741824)."
+    category: Sizes
+    order: 450
+    unit: bytes
+    description: "Maximum total space for event names and text in one run."
     scope: global
     validate_func: chestor.autocode:validate_duration
     editable: true
-    visible: true
+    visible: false
 
   - name: setting.workflow_delivery_timeout
     kind: registry.entry
@@ -153,13 +149,14 @@ entries:
     value_type: duration
     default: 24h
     title: Workflow delivery window
-    category: Runs
-    order: 33
-    description: "How long workflow delivery retries after run settlement; expiry records an outcome and releases normal run retention."
+    category: Time limits
+    order: 130
+    unit: hours / minutes
+    description: "Stop retrying delivery of a finished run to its workflow after this time."
     scope: global
     validate_func: chestor.autocode:validate_duration
     editable: true
-    visible: true
+    visible: false
 
   - name: setting.pending_runs_per_owner
     kind: registry.entry
@@ -169,13 +166,14 @@ entries:
     value_type: int
     default: 128
     title: Pending runs per owner
-    category: Runs
-    order: 11
-    description: "Maximum unfinished runs admitted for one owner (1 to 100000). Settled runs release capacity."
+    category: Queue
+    order: 220
+    unit: runs
+    description: "Maximum unfinished runs for one owner."
     scope: global
     validate_func: chestor.autocode:validate_duration
     editable: true
-    visible: true
+    visible: false
 
   - name: setting.pending_runs_global
     kind: registry.entry
@@ -185,13 +183,14 @@ entries:
     value_type: int
     default: 4096
     title: Pending runs globally
-    category: Runs
-    order: 12
-    description: "Maximum unfinished runs across all owners (1 to 1000000). Matching idempotency replays reuse capacity."
+    category: Queue
+    order: 230
+    unit: runs
+    description: "Maximum unfinished runs across all owners."
     scope: global
     validate_func: chestor.autocode:validate_duration
     editable: true
-    visible: true
+    visible: false
 
   - name: setting.queue_timeout
     kind: registry.entry
@@ -201,13 +200,14 @@ entries:
     value_type: duration
     default: 24h
     title: Queue expiry window
-    category: Runs
-    order: 13
-    description: "Maximum time a run may remain queued without starting. Expiry purges its inactive Jobs slot and records a failed outcome; an active lease defers expiry until release."
+    category: Queue
+    order: 210
+    unit: hours / minutes
+    description: "Fail a run if it waits this long without starting."
     scope: global
     validate_func: chestor.autocode:validate_duration
     editable: true
-    visible: true
+    visible: false
 
   - name: setting.result_bytes
     kind: registry.entry
@@ -217,13 +217,14 @@ entries:
     value_type: int
     default: 1048576
     title: Result bytes
-    category: Runs
-    order: 14
-    description: "Maximum UTF-8 bytes in the result head (1024 to 67108864), followed by a truncation notice when needed."
+    category: Sizes
+    order: 410
+    unit: bytes
+    description: "Maximum text kept in a run result."
     scope: global
     validate_func: chestor.autocode:validate_duration
     editable: true
-    visible: true
+    visible: false
 
   - name: setting.event_text_bytes
     kind: registry.entry
@@ -233,13 +234,14 @@ entries:
     value_type: int
     default: 8000
     title: Event text bytes
-    category: Runs
-    order: 15
-    description: "Maximum UTF-8 bytes in each event text head (256 to 1048576), followed by a truncation notice. The total run event byte budget also applies."
+    category: Sizes
+    order: 430
+    unit: bytes
+    description: "Maximum text kept from each run event."
     scope: global
     validate_func: chestor.autocode:validate_duration
     editable: true
-    visible: true
+    visible: false
 
   - name: setting.build_log_bytes
     kind: registry.entry
@@ -249,13 +251,14 @@ entries:
     value_type: int
     default: 65536
     title: Build log bytes
-    category: Images and Docker
-    order: 41
-    description: "Maximum retained UTF-8 build log bytes (1024 to 16777216). Keeps a rolling tail of lines; oversized lines keep their head."
+    category: Sizes
+    order: 420
+    unit: bytes
+    description: "Maximum text kept from the end of an image build log."
     scope: global
     validate_func: chestor.autocode:validate_duration
     editable: true
-    visible: true
+    visible: false
 
   - name: setting.clone_depth
     kind: registry.entry
@@ -265,10 +268,11 @@ entries:
     value_type: int
     default: 50
     title: Git clone depth
-    category: Runs
-    order: 16
-    description: "Repository clone depth (0 to 1000000); zero clones full history."
+    category: Sizes
+    order: 460
+    unit: commits
+    description: "Number of commits to fetch in a Git clone. Enter 0 to fetch the full history."
     scope: global
     validate_func: chestor.autocode:validate_duration
     editable: true
-    visible: true
+    visible: false

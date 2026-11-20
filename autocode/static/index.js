@@ -1,4 +1,4 @@
-import { W as o, l as r } from "./wc-runtime-CEQ5gZTA.js";
+import { W as o, l as r } from "./wc-runtime-DbdXH-lj.js";
 import { s } from "./styles-Bsh0K-CX.js";
 import { define as i } from "@wippy-fe/proxy";
 const n = { props: { type: "object", properties: { route: { type: "string", default: "", description: "Path relative to /autocode; runs/<run_id> opens a run." } } } }, p = {
@@ -14,7 +14,7 @@ class e extends o {
   }
   static get vueConfig() {
     return {
-      ...r(() => import("./index-mount-DuBYgyZw.js").then((t) => t.mountConfig), { surface: "page", loading: "Loading…", failed: "Could not load Autocode. Reload the page to try again.", timeout: 3e4 })
+      ...r(() => import("./index-mount-BHt4Q7jE.js").then((t) => t.mountConfig), { surface: "page", loading: "Loading…", failed: "Could not load Autocode. Reload the page to try again.", timeout: 3e4 })
     };
   }
 }

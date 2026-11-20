@@ -2,19 +2,20 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
 import { Icon } from '@iconify/vue'
+import Button from 'primevue/button'
 import ToggleSwitch from 'primevue/toggleswitch'
 import { type Account } from './api.ts'
 import { relativeTime, useRunClock, accountState, shortTime } from './presentation.ts'
 
 // One account in its agent's list, with ownership and editable actions.
-const props = defineProps<{ account: Account; kindLabel: string; ownerLabel: string }>()
+const props = withDefaults(defineProps<{ account: Account; kindLabel: string; ownerLabel: string; management?: boolean; editCredentials?: boolean }>(), { editCredentials: true })
 const emit = defineEmits<{ toggle: []; rename: [label: string]; remove: []; edit: [] }>()
 
 const STATE_LABEL = { ready: 'ready', cooling: 'cooling down', disabled: 'disabled', unavailable: 'unavailable' } as const
 const now = useRunClock()
 const state = computed(() => accountState(props.account, now.value))
 
-const ownership = computed(() => props.account.mine ? '' : `Shared with you by ${props.ownerLabel}`)
+const ownership = computed(() => props.account.mine ? '' : props.management ? `Owned by ${props.ownerLabel}` : `Shared with you by ${props.ownerLabel}`)
 
 const renaming = ref(false)
 const draft = ref('')
@@ -35,14 +36,14 @@ function finishRename() {
 </script>
 
 <template>
-  <li class="ac-row ac-account ac-hover-actions" :class="{ off: !account.enabled || !account.usable }">
+  <li class="ac-row ac-account" :class="{ 'ac-hover-actions': !management, off: !account.enabled || !account.usable }">
     <div class="ac-account-main">
       <div class="ac-row-title">
         <span class="kx-tag-sm ac-tone" :class="state">{{ STATE_LABEL[state] }}</span>
         <input v-if="renaming" ref="input" v-model="draft" class="ac-rename kx-focus-halo" aria-label="Account label"
           @keydown.enter.prevent="finishRename" @keydown.escape.prevent="renaming = false" @blur="finishRename" />
         <span v-else class="ac-row-name">{{ account.label }}</span>
-        <span v-if="account.subscription" class="kx-tag-sm ac-tone">personal</span>
+        <span v-if="account.subscription" class="kx-tag-sm ac-tone">{{ management ? 'subscription' : 'personal' }}</span>
       </div>
       <div class="ac-muted">
         {{ kindLabel }} · {{ account.runs_day }} {{ account.runs_day === 1 ? 'task' : 'tasks' }} in the last 24 hours · {{ account.failures_day }} {{ account.failures_day === 1 ? 'failure' : 'failures' }}
@@ -50,7 +51,7 @@ function finishRename() {
       </div>
       <div v-if="ownership" class="ac-muted">{{ ownership }}</div>
       <div v-if="!account.usable" class="ac-muted ac-strong"><Icon icon="tabler:lock" /> {{ account.unavailable_reason || 'Account unavailable for tasks' }}</div>
-      <div v-else-if="account.subscription" class="ac-muted">Subscription login: personal use only</div>
+      <div v-else-if="account.subscription && !management" class="ac-muted">Subscription login: personal use only</div>
       <div v-if="account.endpoint" class="ac-muted ac-mono">{{ account.endpoint.protocol }} · {{ account.endpoint.base_url }}{{ account.endpoint.model ? ' · ' + account.endpoint.model : '' }}</div>
       <div v-if="state === 'cooling' && account.cooldown_until" class="ac-muted">Available at {{ shortTime(account.cooldown_until) }}</div>
       <div v-for="window in account.rate_limits?.windows ?? []" :key="window.window" class="ac-muted">
@@ -61,10 +62,14 @@ function finishRename() {
 
     </div>
     <div class="ac-row-actions">
-      <ToggleSwitch v-if="account.writable" :model-value="account.enabled"
+      <Button v-if="management && account.writable" type="button" text size="small" severity="secondary"
+        :label="account.enabled ? 'Disable' : 'Enable'" :aria-label="account.enabled ? 'Disable account' : 'Enable account'"
+        @click="emit('toggle')" />
+      <ToggleSwitch v-else-if="account.writable" :model-value="account.enabled"
         :aria-label="account.enabled ? 'Disable account' : 'Enable account'" @change="emit('toggle')" />
       <button v-if="account.writable" type="button" class="ac-icon-btn kx-focus-outline" title="Rename" aria-label="Rename account" @click="startRename"><Icon icon="tabler:pencil" /></button>
-      <button v-if="account.writable" type="button" class="ac-icon-btn kx-focus-outline" title="Edit credential and endpoint" aria-label="Edit account" @click="emit('edit')"><Icon icon="tabler:key" /></button>
+      <button v-if="account.writable && editCredentials" type="button" class="ac-icon-btn kx-focus-outline" title="Edit credential and endpoint" aria-label="Edit account" @click="emit('edit')"><Icon icon="tabler:key" /></button>
+      <slot name="actions" />
       <button v-if="account.deletable" type="button" class="ac-icon-btn kx-focus-outline" title="Delete" aria-label="Delete account" @click="emit('remove')"><Icon icon="tabler:trash" /></button>
     </div>
   </li>

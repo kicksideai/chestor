@@ -155,7 +155,6 @@ entries:
         - chestor.autocode:setting.image_build_timeout
         - chestor.autocode:setting.run_retention
         - chestor.autocode:setting.run_timeout
-        - chestor.autocode:settings.block.autocode
         - chestor.autocode:settings_tab
         - chestor.autocode:settings_tab_view
         - chestor.autocode:task_config_view

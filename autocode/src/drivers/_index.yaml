@@ -19,3 +19,41 @@ entries:
         - bee.drivers.muse.binding:binding
         - bee.drivers.opencode.binding:binding
         - bee.drivers.pi.binding:binding
+
+  - name: claude_account_view
+    kind: ns.requirement
+    default: chestor.autocode:claude_accounts_view
+    meta:
+      value_kind: registry.entry
+      comment: Account setup and management view for the bundled claude driver.
+    targets:
+      - entry: bee.drivers.claude.binding:binding
+        path: .meta.component.create.view
+
+  - name: codex_account_view
+    kind: ns.requirement
+    default: chestor.autocode:codex_accounts_view
+    meta:
+      value_kind: registry.entry
+      comment: Account setup and management view for the bundled codex driver.
+    targets:
+      - entry: bee.drivers.codex.binding:binding
+        path: .meta.component.create.view
+
+  - name: driver_account_view
+    kind: ns.requirement
+    default: chestor.autocode:driver_accounts_view
+    meta:
+      value_kind: registry.entry
+      comment: Account setup and management view for the bundled drivers.
+    targets:
+      - entry: bee.drivers.agy.binding:binding
+        path: .meta.component.create.view
+      - entry: bee.drivers.grok.binding:binding
+        path: .meta.component.create.view
+      - entry: bee.drivers.muse.binding:binding
+        path: .meta.component.create.view
+      - entry: bee.drivers.opencode.binding:binding
+        path: .meta.component.create.view
+      - entry: bee.drivers.pi.binding:binding
+        path: .meta.component.create.view

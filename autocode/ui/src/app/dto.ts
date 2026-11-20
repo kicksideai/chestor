@@ -10,7 +10,7 @@ export const agentInfo = z.object({ id: z.string(), title: z.string(), icon: z.s
 export const imageRunSettings = z.object({ memory: z.string(), cpus: z.string(), pids_limit: z.number().int(), gpus: z.string(), network: z.string(), extra_args: strings, allows: strings })
 export const defaultImage = z.object({ ref: z.string(), label: z.string(), home: z.string(), dockerfile: z.string(), settings: imageRunSettings.optional() })
 export const accountLimits = z.object({ label_bytes: z.number().int().positive(), secret_bytes: z.number().int().positive(), endpoint_url_bytes: z.number().int().positive(), endpoint_model_bytes: z.number().int().positive() })
-export const catalog = z.object({ agents: z.array(agentInfo), default_image: defaultImage, can_images: z.boolean(), can_workspaces: z.boolean(), can_prune: z.boolean(), build_cache_retention: z.string(), settings_path: z.string().optional(), limits_path: z.string().optional(), account_limits: accountLimits.optional() })
+export const catalog = z.object({ agents: z.array(agentInfo), default_image: defaultImage, can_images: z.boolean(), can_workspaces: z.boolean(), can_prune: z.boolean(), build_cache_retention: z.string(), settings_path: z.string().optional(), can_limits: z.boolean().optional(), can_accounts: z.boolean().optional(), account_limits: accountLimits.optional() })
 // usable describes eligibility; cooldown_until separately controls readiness.
 export const rateLimits = z.object({ windows: z.array(z.object({ window: z.string(), utilization: z.number().optional(), status: z.enum(['allowed', 'warning', 'rejected']), resets_at: z.number().int().optional() })), overage_status: z.string().optional(), overage_disabled_reason: z.string().optional(), is_using_overage: z.boolean().optional() })
 export type Profile = z.infer<typeof profile>
@@ -18,8 +18,18 @@ export type ProfileInput = Omit<Profile, 'id' | 'owner_user_id' | 'owner' | 'wri
 export const account = z.object({
   id: z.string(), agent: z.string(), label: z.string(), credential_kind: z.string(), subscription: z.boolean(), enabled: z.boolean(),
   rate_limits: rateLimits.optional(), endpoint: endpoint.optional(), owner_user_id: z.string(), owner: z.string(), mine: z.boolean(), usable: z.boolean(), unavailable_reason: z.string().optional(),
-  writable: z.boolean(), deletable: z.boolean(), last_used_at: z.string(), cooldown_until: z.string(), last_error: z.string(), runs_day: z.number().int(), failures_day: z.number().int(),
+  writable: z.boolean(), deletable: z.boolean(), shareable: z.boolean().optional(), last_used_at: z.string(), cooldown_until: z.string(), last_error: z.string(), runs_day: z.number().int(), failures_day: z.number().int(),
 })
+const limitValue = z.union([z.string(), z.number().int()])
+export const limit = z.object({
+  key: z.string(), title: z.string(), category: z.string(), description: z.string(), unit: z.string(), order: z.number(),
+  value_type: z.enum(['duration', 'int']), value: limitValue, default: limitValue, overridden: z.boolean(),
+})
+export type Limit = z.infer<typeof limit>
+export const accountProvider = z.object({
+  agent: z.string(), title: z.string(), icon: z.string().optional(), provider_id: z.string(), create_ui_id: z.string().optional(),
+})
+export type AccountProvider = z.infer<typeof accountProvider>
 // Component metadata may contain an unrecognised image status.
 export const image = z.object({ id: z.string(), ref: z.string(), label: z.string(), home: z.string(), status: z.string(), usable: z.boolean(), agents: strings, last_error: z.string(), owner_user_id: z.string(), owner: z.string(), writable: z.boolean(), deletable: z.boolean(), shareable: z.boolean() })
 export const imageDetail = z.object({ image, build_log: z.string(), dockerfile: z.string().optional(), settings: imageRunSettings.optional() })
