@@ -24,6 +24,10 @@ entries:
     targets:
       - entry: chestor.autocode.api:catalog.user.endpoint
         path: .meta.router
+      - entry: chestor.autocode.api:limits.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:accounts_management.endpoint
+        path: .meta.router
       - entry: chestor.autocode.api:tool_surface.user.endpoint
         path: .meta.router
       - entry: chestor.autocode.api:profiles_list.user.endpoint
@@ -121,15 +125,6 @@ entries:
     targets:
       - entry: chestor.autocode:settings_tab
         path: .path
-
-  - name: limits_path
-    kind: ns.requirement
-    default: ""
-    meta:
-      comment: Host-mounted URL for Autocode run limits and retention in shared Settings; empty hides the navigation link.
-    targets:
-      - entry: chestor.autocode:settings_tab
-        path: .limits_path
 
   - name: gateway_endpoint
     kind: ns.requirement

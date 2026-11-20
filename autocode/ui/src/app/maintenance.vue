@@ -41,7 +41,7 @@ async function prune() {
         <Icon :icon="pruning ? 'tabler:loader-2' : 'tabler:trash-x'" :class="{ spin: pruning }" /> {{ pruning ? 'Cleaning…' : 'Clean up Docker' }}
       </button>
     </div>
-    <p class="ac-hint">Prune stopped Autocode containers, dangling images and build cache across the Docker host. Tagged images stay.</p>
+    <p class="ac-hint">Remove stopped Autocode containers and dangling images. Cleanup keeps unused build cache younger than {{ catalog.build_cache_retention }}. Tagged images stay.</p>
     <p v-if="error" class="kx-err">{{ error }}</p>
     <pre v-if="output" class="ac-pre">{{ output }}</pre>
   </section>

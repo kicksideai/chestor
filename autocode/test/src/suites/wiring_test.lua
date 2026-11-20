@@ -70,13 +70,13 @@ local function cases()
             db:release()
             test.not_nil(json.encode(rows):find("chestor_autocode_runs_workspace_active", 1, true), json.encode(rows))
         end)
-        test.it("groups and orders the published settings for runs then images and Docker", function()
+        test.it("orders the inline time limits and retention settings", function()
             local expected = {
-                {key = "run_timeout", title = "Run timeout", category = "Runs", order = 10},
-                {key = "account_cooldown", title = "Account cooldown", category = "Runs", order = 20},
-                {key = "run_retention", title = "Run and log retention", category = "Runs", order = 30},
-                {key = "image_build_timeout", title = "Image build timeout", category = "Images and Docker", order = 40},
-                {key = "build_cache_retention", title = "Build cache retention", category = "Images and Docker", order = 50},
+                {key = "run_timeout", title = "Run timeout", category = "Time limits", order = 110},
+                {key = "account_cooldown", title = "Account cooldown", category = "Time limits", order = 140},
+                {key = "run_retention", title = "Run and log retention", category = "Retention", order = 310},
+                {key = "image_build_timeout", title = "Image build timeout", category = "Time limits", order = 120},
+                {key = "build_cache_retention", title = "Build cache retention", category = "Retention", order = 320},
             }
             for _, setting in ipairs(expected) do
                 local entry = registry.get("chestor.autocode:setting." .. setting.key)
@@ -88,7 +88,7 @@ local function cases()
                 test.eq(entry.data.category, setting.category)
                 test.eq(entry.data.order, setting.order)
                 test.eq(entry.data.value_type, "duration")
-                test.eq(entry.data.visible, true)
+                test.eq(entry.data.visible, false)
                 test.eq(entry.data.editable, true)
                 test.eq(entry.data.validate_func, "chestor.autocode:validate_duration")
             end

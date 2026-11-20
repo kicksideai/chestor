@@ -824,6 +824,12 @@ function Kr(e) {
 function we(e) {
   return typeof Element < "u" ? e instanceof Element : e !== null && typeof e == "object" && e.nodeType === 1 && typeof e.nodeName == "string";
 }
+function Vi() {
+  if (window.getSelection) {
+    let e = window.getSelection() || {};
+    e.empty ? e.empty() : e.removeAllRanges && e.rangeCount > 0 && e.getRangeAt(0).getClientRects().length > 0 && e.removeAllRanges();
+  }
+}
 function Re(e, t = {}) {
   if (we(e)) {
     let n = (r, o) => {
@@ -880,6 +886,10 @@ function Qr(e) {
 }
 function Jr(e, t) {
   return e ? e.offsetHeight : 0;
+}
+function Ii() {
+  if (window.getSelection) return window.getSelection().toString();
+  if (document.getSelection) return document.getSelection().toString();
 }
 function ht(e) {
   if (e) {
@@ -2610,7 +2620,7 @@ function Jo(e, t) {
   }
   return (t === "string" ? String : Number)(e);
 }
-var Vi = {
+var Mi = {
   name: "BaseIcon",
   extends: Bo,
   props: {
@@ -3061,7 +3071,7 @@ function fi(e, t) {
   }
   return (t === "string" ? String : Number)(e);
 }
-var Ii = ai.extend("ripple", {
+var Di = ai.extend("ripple", {
   watch: {
     "config.ripple": function(t) {
       t ? (this.createRipple(this.$host), this.bindEvents(this.$host), this.$host.setAttribute("data-pd-ripple", !0), this.$host.style.overflow = "hidden", this.$host.style.position = "relative") : (this.remove(this.$host), this.$host.removeAttribute("data-pd-ripple"));
@@ -3388,23 +3398,25 @@ function Ci() {
     Ht(this);
   };
 }
-const Mi = {
+const Ui = {
   install: (e) => {
     Ci(), e.use(Vo, { theme: "none" });
   }
 };
 export {
   C as B,
-  Mi as P,
-  Ii as R,
+  Ii as M,
+  Ui as P,
+  Di as R,
   Ri as W,
-  Ai as a,
-  Ni as b,
-  x as c,
-  Vi as d,
-  $e as e,
+  Ni as a,
+  ji as b,
+  $e as c,
+  x as d,
+  Bo as e,
   Hr as f,
   Li as l,
-  Bo as s,
-  ji as u
+  Vi as p,
+  Mi as s,
+  Ai as u
 };

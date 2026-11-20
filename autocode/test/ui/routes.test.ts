@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 import { mocks, normal, render, respond, run, summary } from './fixtures.ts'
 import { describe, expect, it, vi } from 'vitest'
-import { flushPromises, type VueWrapper } from '@vue/test-utils'
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
+import PrimeVue from 'primevue/config'
 import { reactive } from 'vue'
 import Autocode from '../../ui/src/app/autocode.vue'
 import Admin from '../../ui/src/app/admin.vue'
@@ -23,12 +24,61 @@ describe('run deep links', () => {
       expect(w.get('a[href="/custom/manage"]').text()).toContain('Images, workspaces and Docker')
     }
   })
-  it('links resource management to the host-bound run limits and retention page', async () => {
+  it('edits and resets limits inside the Autocode tab', async () => {
     normal()
-    mocks.get.mockImplementation(async path => ({ data: { success: true, ...respond(path), ...(path.endsWith('/catalog') ? { can_images: true, limits_path: '/custom/limits' } : {}) } }))
+    const path = '/api/v1/autocode/limits'
+    let value = '2h'
+    let overridden = false
+    mocks.get.mockImplementation(async url => ({ data: { success: true, ...(url === path
+      ? { settings: [{ key: 'run_timeout', title: 'Run timeout', description: 'Stop a run after this time.', value_type: 'duration',
+        value, default: '2h', unit: 'h or m', category: 'Time limits', order: 10, overridden }] }
+      : { ...respond(url), can_limits: true }) } }))
+    mocks.put.mockImplementation(async (_url, change) => {
+      value = change.value ?? '2h'
+      overridden = change.value !== null
+      return { data: { success: true } }
+    })
+    const w = mount(Admin, { global: { plugins: [[PrimeVue, { unstyled: true }]] } })
+    try {
+      await flushPromises()
+      await button(w, 'Limits').trigger('click')
+      await flushPromises()
+      expect(w.text()).toContain('Time limits')
+      expect(w.text()).toContain('Stop a run after this time.')
+      await w.get('input').setValue('75m')
+      await w.get('form').trigger('submit')
+      await flushPromises()
+      expect(mocks.put).toHaveBeenLastCalledWith('/api/v1/settings', { namespace: 'chestor.autocode', key: 'run_timeout', value: '75m' })
+      expect(w.text()).toContain('Override')
+      await w.get('[aria-label="Reset Run timeout to default"]').trigger('click')
+      await flushPromises()
+      expect(mocks.put).toHaveBeenLastCalledWith('/api/v1/settings', { namespace: 'chestor.autocode', key: 'run_timeout', value: null })
+      expect(w.get('input').element.value).toBe('2h')
+    } finally {
+      w.unmount()
+    }
+  })
+
+  it('mounts the provider editor returned by registry discovery and refreshes its summary', async () => {
+    normal()
+    const path = '/api/v1/autocode/management/accounts'
+    const provider = { agent: 'agent', title: 'Agent', provider_id: 'external:binding', create_ui_id: 'external-agent-accounts' }
+    mocks.get.mockImplementation(async url => ({ data: { success: true, ...(url === path
+      ? { accounts: [], providers: [provider] }
+      : { ...respond(url), can_accounts: true }) } }))
     const w = render(Admin)
     await flushPromises()
-    expect(w.get('a[href="/custom/limits"]').text()).toBe('Run limits and retention')
+    await button(w, 'Accounts').trigger('click')
+    await flushPromises()
+    expect(w.text()).toContain('Set up an account')
+    await button(w, 'Agent').trigger('click')
+    await flushPromises()
+    const editor = w.get('external-agent-accounts')
+    expect(editor.attributes('provider-id')).toBe('external:binding')
+    mocks.get.mockClear()
+    editor.element.dispatchEvent(new CustomEvent('connection-saved', { detail: { success: true } }))
+    await flushPromises()
+    expect(mocks.get).toHaveBeenCalledWith(path)
   })
   it('follows live output through the page scroll owner and respects scrolling away', async () => {
     normal()

@@ -135,6 +135,63 @@ entries:
         properties:
           config: {type: object, default: {}, description: Host-provided component configuration.}
 
+  - name: driver_accounts_view
+    kind: registry.entry
+    meta:
+      type: view.component
+      title: Driver accounts
+      announced: true
+      auto_register: false
+      tag_name: chestor-autocode-provider-accounts
+      base_path: chestor-autocode
+      entry_point: provider-accounts.js
+      description: Manage accounts for one registered Autocode driver. Load by tag and pass the driver binding ID as provider-id. Emits connection-saved after an account changes.
+      props:
+        type: object
+        properties:
+          provider-id:
+            type: string
+            default: ""
+            description: Registry ID of the provider binding that owns this account editor.
+
+  - name: claude_accounts_view
+    kind: registry.entry
+    meta:
+      type: view.component
+      title: Claude accounts
+      announced: true
+      auto_register: false
+      tag_name: chestor-autocode-claude-accounts
+      base_path: chestor-autocode
+      entry_point: claude-accounts.js
+      description: Manage accounts for one registered Autocode driver. Load by tag and pass the driver binding ID as provider-id. Emits connection-saved after an account changes.
+      props:
+        type: object
+        properties:
+          provider-id:
+            type: string
+            default: ""
+            description: Registry ID of the provider binding that owns this account editor.
+
+  - name: codex_accounts_view
+    kind: registry.entry
+    meta:
+      type: view.component
+      title: Codex accounts
+      announced: true
+      auto_register: false
+      tag_name: chestor-autocode-codex-accounts
+      base_path: chestor-autocode
+      entry_point: codex-accounts.js
+      description: Manage accounts for one registered Autocode driver. Load by tag and pass the driver binding ID as provider-id. Emits connection-saved after an account changes.
+      props:
+        type: object
+        properties:
+          provider-id:
+            type: string
+            default: ""
+            description: Registry ID of the provider binding that owns this account editor.
+
   - name: task_config_view
     kind: registry.entry
     meta:
@@ -161,14 +218,14 @@ entries:
       tag_name: chestor-autocode-admin
       base_path: chestor-autocode
       entry_point: admin.js
-      description: Agent images, host workspaces and Docker maintenance for autocode, and who may use each.
+      description: Manage Autocode images, workspaces, Docker maintenance, run limits and driver accounts in System settings.
       props: {}
 
   - name: settings_tab
     kind: registry.entry
     meta:
       type: ui.settings_tab
-      comment: Autocode images, workspaces and Docker maintenance.
+      comment: Autocode images, workspaces, Docker maintenance, limits and accounts.
     access: chestor.autocode.api:images_create.endpoint
     key: autocode
     label: Autocode

@@ -35,6 +35,46 @@ entries:
     func: catalog
     path: /autocode/catalog
 
+  - name: limits
+    kind: function.lua
+    meta:
+      comment: "GET /autocode/limits - Effective values and defaults for the inline Limits editor."
+    source: file://management.lua
+    method: limits
+    modules: [registry, security]
+    imports:
+      accounts: chestor.autocode.service:accounts
+      boundary: chestor.autocode.service:boundary
+      client: chestor.autocode.service:client
+      values: chestor.autocode.service:values
+      web: chestor.autocode.api:web
+
+  - name: limits.endpoint
+    kind: http.endpoint
+    method: GET
+    func: limits
+    path: /autocode/limits
+
+  - name: accounts_management
+    kind: function.lua
+    meta:
+      comment: "GET /autocode/management/accounts - Active providers, their registered account editors and caller-visible accounts."
+    source: file://management.lua
+    method: accounts
+    modules: [registry, security]
+    imports:
+      accounts: chestor.autocode.service:accounts
+      boundary: chestor.autocode.service:boundary
+      client: chestor.autocode.service:client
+      values: chestor.autocode.service:values
+      web: chestor.autocode.api:web
+
+  - name: accounts_management.endpoint
+    kind: http.endpoint
+    method: GET
+    func: accounts_management
+    path: /autocode/management/accounts
+
   - name: tool_surface
     kind: function.lua
     meta:

@@ -37,14 +37,13 @@ entry with Docker on the executor's own PATH, a POSIX shell, coreutils, awk and 
 - **`chestor.autocode:api_router`**: Authenticated HTTP router.
 - **`chestor.autocode:ui_server`**: HTTP server for the built UI.
 - **`chestor.autocode:settings_path`**: Actual mounted settings-tab URL; empty hides the link.
-- **`chestor.autocode:limits_path`**: Actual mounted Autocode section of shared Settings for run limits and retention; empty hides the link from management. Bind both paths in the host so Tasks, Profiles and Accounts link to Images/Workspaces/Docker, which links to limits and retention. For a shell mounting management at `/system/autocode` and shared Settings at `/system/settings`, use those respective URLs. A host that supports selecting a Settings section by URL may bind that section URL instead.
 - **`chestor.autocode:docker_executor`**: Host `exec.native` entry that runs the Docker CLI.
 - **`chestor.autocode:docker_context`**: Optional Docker CLI context override; empty preserves the executor’s environment and selected context, authentication and plugins.
 - **`chestor.autocode:gateway_endpoint`**: Host and port reachable from run containers for the bearer-authenticated run gateway.
 - **`chestor.autocode:workspace_roots`**: Comma-separated absolute directories allowed for workspace mounts; empty admits none.
 - **`chestor.autocode.security:user_security_scope`**: Defaults to `kickside.security.groups:members`.
 
-Assign the `chestor.autocode.security:module_management` policy to image/workspace managers, and the separate `chestor.autocode.security:tool_access` policy to agent-tool users. These are capabilities, not host requirement bindings.
+Assign the `chestor.autocode.security:module_management` policy to Autocode managers, and the separate `chestor.autocode.security:tool_access` policy to agent-tool users. These are capabilities, not host requirement bindings.
 
 The optional per-run gateway uses the host-installed `kickside/agents` tools contract; ordinary runs add no Agents, Connection, Uploads or Relay bindings.
 
@@ -57,6 +56,12 @@ and `wippy/migration`. Bind `bee.drivers:activation` to
 no storage file paths. The normalized tool catalog is supplied by `kickside/agents`; bind its transitive HTTP, storage and relay requirements through the host install plan, as shown in the standalone harness. Account credentials are delivered per run;
 the host process environment is excluded. The test harness owns separate
 storages for these bindings.
+
+## System settings
+
+System → Autocode includes Images, Workspaces, Docker, Limits and Accounts. Limits use the platform Settings contract and its standard write and reset API. The definitions are hidden from Application defaults.
+
+An activated `harness.driver` binding can point `meta.component.create.view` to an announced `view.component`. Autocode follows Connections discovery and loads the view by its registered tag. The editor receives the binding ID in `provider-id` and emits `connection-saved` or `oauth-result` with `{ success, error? }` after a change. Editors can read `GET /api/v1/autocode/management/accounts?provider_id=<binding-id>` and use the existing account and component-access endpoints. The account list and all actions follow the caller's resource grants.
 
 ## Deployment
 

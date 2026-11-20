@@ -45,7 +45,7 @@ local function secret(kind: credentials.Kind, value: unknown): (string?, error?)
     if problem then return nil, invalid(problem) end
     return trimmed, nil
 end
-function M.list(request: Object): (Object?, error?)
+function M.list(request: Object, management: boolean?): (Object?, error?)
     local actor = security.actor()
     if not actor then return nil, boundary.error(errors.PERMISSION_DENIED, "autocode.access_denied", "authentication required") end
     local all, err, next_offset = resources.list("account", request.limit :: integer?, request.offset :: integer?)
@@ -66,11 +66,14 @@ function M.list(request: Object): (Object?, error?)
             local reach: Endpoint? = nil
             if base_url ~= "" then reach = {protocol = text(meta.endpoint_protocol), base_url = base_url, model = model ~= "" and model or nil} end
             if admitted or request.include_unavailable == true then
+                local shareable: boolean? = nil
+                if management then shareable = resources.has(account.access, resources.ACCESS.ADMIN) end
                 views[#views + 1] = {id = account.id, agent = agent, label = text(meta.title), credential_kind = text(meta.credential_kind),
                     subscription = resources.flag(meta.subscription, false), enabled = resources.flag(meta.enabled, true), endpoint = reach,
                     owner_user_id = account.owner_user_id, owner = account.owner_user_id, mine = account.owner_user_id == actor:id(), usable = admitted ~= nil,
                     unavailable_reason = not admitted and reason or nil, writable = resources.has(account.access, resources.ACCESS.WRITE),
-                    deletable = resources.has(account.access, resources.ACCESS.DELETE), last_used_at = state.last_used_at,
+                    deletable = resources.has(account.access, resources.ACCESS.DELETE),
+                    shareable = shareable, last_used_at = state.last_used_at,
                     rate_limits = type(meta.rate_limits) == "string" and meta.rate_limits ~= "" and json.decode(meta.rate_limits) or nil,
                     cooldown_until = state.cooldown_until, last_error = state.last_error, runs_day = state.runs_day, failures_day = state.failures_day}
             end

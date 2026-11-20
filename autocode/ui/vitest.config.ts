@@ -11,6 +11,7 @@ export default defineConfig({
     '@wippy-fe/proxy': dependency('@wippy-fe/proxy/index.mjs'),
     '@wippy-fe/webcomponent-vue': dependency('@wippy-fe/webcomponent-vue/dist/index.js'),
     vitest: dependency('vitest/dist/index.js'),
+    'primevue/config': dependency('primevue/config/index.mjs'),
     vue: dependency('vue/dist/vue.runtime.esm-bundler.js'),
     '@vue/test-utils': dependency('@vue/test-utils/dist/vue-test-utils.esm-bundler.mjs'),
     ajv: dependency('ajv/dist/ajv.js'),

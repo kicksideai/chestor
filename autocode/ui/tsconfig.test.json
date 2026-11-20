@@ -6,6 +6,7 @@
       "vitest": ["./node_modules/vitest"],
       "ajv": ["./node_modules/ajv"],
       "@vue/test-utils": ["./node_modules/@vue/test-utils"],
+      "primevue/config": ["./node_modules/primevue/config"],
       "vue": ["./node_modules/vue"]
     },
     "types": ["vite/client", "node"]

@@ -73,6 +73,12 @@ export const autocode = {
   updateProfile: (id: string, body: Partial<dto.ProfileInput>) => call('put', `/profiles/${encodeURIComponent(id)}`, idResponse, body),
   deleteProfile: (id: string) => call('delete', `/profiles/${encodeURIComponent(id)}`, success),
   catalog: () => call('get', '/catalog', dto.catalog),
+  limits: () => call('get', '/limits', z.object({ settings: z.array(dto.limit) })).then(r => r.settings),
+  saveLimit: (key: string, value: string | number | null) => request('put', '/api/v1/settings', success, { namespace: 'chestor.autocode', key, value }),
+  managedAccounts: (filter?: { agent: string } | { provider_id: string }) => call(
+    'get', '/management/accounts' + (filter ? '?' + new URLSearchParams(filter).toString() : ''),
+    z.object({ accounts: z.array(dto.account), providers: z.array(dto.accountProvider), agent: z.string().optional() }),
+  ),
   accounts: () => call('get', '/accounts', z.object({ accounts: z.array(dto.account) })).then(r => r.accounts),
   createAccount: (body: DriverAccountSubmit) => call('post', '/accounts', idResponse, body),
   updateAccount: (id: string, body: { label?: string; enabled?: boolean; secret?: string; endpoint?: { base_url: string; protocol?: string; model?: string } }) => call('put', `/accounts/${encodeURIComponent(id)}`, idResponse.extend({ health_error: errorFields.extend({ message: z.string() }).optional() }), body),

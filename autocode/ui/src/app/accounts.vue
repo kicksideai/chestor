@@ -12,12 +12,19 @@ import AppDialog from './app-dialog.vue'
 import AgentPicker from './agent-picker.vue'
 import { agentIcon, useRunClock, accountState, errorText } from './presentation.ts'
 import AccountRow from './account-row.vue'
+import ShareControl from './share-control.vue'
 import { accountSubmission } from '../driver-account-types.ts'
 
 const alive = useAlive()
 const topicIds = ref<string[]>([])
-const props = defineProps<{ query: string; selectedAgent: string }>()
-const emit = defineEmits<{ count: [value: number] }>()
+const props = withDefaults(defineProps<{
+  query: string
+  selectedAgent: string
+  management?: boolean
+  providerId?: string
+  allowSetup?: boolean
+}>(), { allowSetup: true })
+const emit = defineEmits<{ count: [value: number]; changed: [] }>()
 const adding = ref(false)
 const editing = ref<Account | null>(null)
 function open() { editing.value = null; saveError.value = ''; adding.value = true }
@@ -63,9 +70,17 @@ async function annotate(list: Account[]) {
   if (alive()) owners.value = { ...owners.value, ...labels }
 }
 
+async function fetchAccounts() {
+  if (!props.management) return autocode.accounts()
+  const filter = props.providerId ? { provider_id: props.providerId } : { agent: props.selectedAgent }
+  const result = await autocode.managedAccounts(filter)
+  if (alive() && result.agent) agent.value = result.agent
+  return result.accounts
+}
+
 const refresh = serial(async () => {
   try {
-    const list = await reconcile(autocode.accounts, list => list.map(a => a.id), topicIds, alive, list => {
+    const list = await reconcile(fetchAccounts, list => list.map(a => a.id), topicIds, alive, list => {
       accounts.value = list
       loaded.value = true
       error.value = ''
@@ -91,6 +106,7 @@ async function attempt(action: () => Promise<unknown>, failure: string) {
     await action()
     if (!alive()) return
     await refresh()
+    if (alive()) emit('changed')
   } catch (e) {
     if (alive()) error.value = errorText(e, failure)
   }
@@ -117,6 +133,7 @@ async function submit(event: Event) {
     saved.value++
     adding.value = false
     await refresh()
+    if (alive()) emit('changed')
   } catch (e) {
     if (alive()) saveError.value = errorText(e, 'Could not save the account.')
   } finally {
@@ -147,6 +164,7 @@ async function remove(a: Account) {
 }
 
 onMounted(() => {
+  if (!props.allowSetup) return
   loadByTagName('chestor-autocode-driver-account', { timeoutMs: 8000 }).catch(() => { if (alive()) error.value = 'The driver account card could not load.' })
 })
 </script>
@@ -156,20 +174,27 @@ onMounted(() => {
     <p v-if="error" class="kx-err inline">{{ error }} <button type="button" class="ac-link kx-focus-outline" @click="refresh">Retry</button></p>
     <p v-if="warning" class="kx-err inline" role="status">{{ warning }}</p>
     <div v-if="!loaded && !error" class="kx-loading">Loading accounts…</div>
-    <div v-if="loaded && !accounts.length" class="kx-empty">
+    <div v-if="management && loaded && allowSetup" class="ac-card-head ac-provider-actions">
+      <p v-if="!accounts.length" class="ac-hint">No accounts configured.</p>
+      <Button label="Add account" :disabled="!agentInfo" @click="open"><template #icon><Icon icon="tabler:plus" aria-hidden="true" /></template></Button>
+    </div>
+    <div v-if="!management && loaded && !accounts.length" class="kx-empty">
       <div class="kx-empty-ico"><Icon icon="tabler:key" /></div><div class="kx-empty-title">No accounts yet</div>
       <div class="kx-empty-sub">Add an API key, your own endpoint or a personal subscription login.</div>
       <Button label="Add account" @click="open"><template #icon><Icon icon="tabler:plus" /></template></Button>
     </div>
-    <div v-else-if="loaded && !groups.length" class="kx-empty"><div class="kx-empty-title">No matches</div><div class="kx-empty-sub">Try another account or agent.</div></div>
+    <div v-else-if="!management && loaded && !groups.length" class="kx-empty"><div class="kx-empty-title">No matches</div><div class="kx-empty-sub">Try another account or agent.</div></div>
     <section v-for="g in groups" :key="g.agent.id" class="ac-stack">
-      <div class="ac-card-head"><h2 class="ac-card-title"><Icon :icon="agentIcon(g.agent.id, catalog.agents)" />{{ g.agent.title }}</h2><span class="ac-muted">{{ g.accounts.filter(a => a.usable && accountState(a, now) === 'ready').length }} of {{ g.accounts.length }} ready</span></div>
+      <div v-if="!management" class="ac-card-head"><h2 class="ac-card-title"><Icon :icon="agentIcon(g.agent.id, catalog.agents)" />{{ g.agent.title }}</h2><span class="ac-muted">{{ g.accounts.filter(a => a.usable && accountState(a, now) === 'ready').length }} of {{ g.accounts.length }} ready</span></div>
       <ul class="ac-account-grid">
-        <AccountRow v-for="a in g.accounts" :key="a.id" :account="a" :kind-label="kindLabel(a)" :owner-label="owners[a.owner_user_id] || a.owner_user_id" @edit="edit(a)" @toggle="toggle(a)" @rename="(label: string) => rename(a, label)" @remove="remove(a)" />
+        <AccountRow v-for="a in g.accounts" :key="a.id" :account="a" :kind-label="kindLabel(a)" :owner-label="owners[a.owner_user_id] || a.owner_user_id" :management="management" :edit-credentials="allowSetup" @edit="edit(a)" @toggle="toggle(a)"
+          @rename="(label: string) => rename(a, label)" @remove="remove(a)">
+          <template v-if="management && a.shareable" #actions><ShareControl :id="a.id" :title="a.label" /></template>
+        </AccountRow>
       </ul>
     </section>
     <AppDialog v-if="adding" :title="editing ? 'Edit account' : 'Add account'" :busy="saving" @close="adding = false">
-      <div class="ac-form"><AgentPicker v-if="!editing" :disabled="saving" v-model="agent" :agents="catalog.agents" /><p v-if="!editing" class="ac-hint">Tasks balance across your ready accounts automatically.</p><chestor-autocode-driver-account v-if="agentInfo" :config.attr="card" @submit="submit" /><p v-else class="kx-err" role="alert">This account’s agent is unavailable.</p></div>
+      <div class="ac-form"><AgentPicker v-if="!editing && !management" :disabled="saving" v-model="agent" :agents="catalog.agents" /><p v-if="!editing && !management" class="ac-hint">Tasks balance across your ready accounts automatically.</p><chestor-autocode-driver-account v-if="agentInfo" :config.attr="card" @submit="submit" /><p v-else class="kx-err" role="alert">This account’s agent is unavailable.</p></div>
     </AppDialog>
   </div>
 </template>
