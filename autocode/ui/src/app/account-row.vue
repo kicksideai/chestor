@@ -2,6 +2,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
 import { Icon } from '@iconify/vue'
+import Button from 'primevue/button'
 import ToggleSwitch from 'primevue/toggleswitch'
 import { type Account } from './api.ts'
 import { relativeTime, useRunClock, accountState, shortTime } from './presentation.ts'
@@ -35,7 +36,7 @@ function finishRename() {
 </script>
 
 <template>
-  <li class="ac-row ac-account ac-hover-actions" :class="{ off: !account.enabled || !account.usable }">
+  <li class="ac-row ac-account" :class="{ 'ac-hover-actions': !management, off: !account.enabled || !account.usable }">
     <div class="ac-account-main">
       <div class="ac-row-title">
         <span class="kx-tag-sm ac-tone" :class="state">{{ STATE_LABEL[state] }}</span>
@@ -61,7 +62,10 @@ function finishRename() {
 
     </div>
     <div class="ac-row-actions">
-      <ToggleSwitch v-if="account.writable" :model-value="account.enabled"
+      <Button v-if="management && account.writable" type="button" text size="small" severity="secondary"
+        :label="account.enabled ? 'Disable' : 'Enable'" :aria-label="account.enabled ? 'Disable account' : 'Enable account'"
+        @click="emit('toggle')" />
+      <ToggleSwitch v-else-if="account.writable" :model-value="account.enabled"
         :aria-label="account.enabled ? 'Disable account' : 'Enable account'" @change="emit('toggle')" />
       <button v-if="account.writable" type="button" class="ac-icon-btn kx-focus-outline" title="Rename" aria-label="Rename account" @click="startRename"><Icon icon="tabler:pencil" /></button>
       <button v-if="account.writable && editCredentials" type="button" class="ac-icon-btn kx-focus-outline" title="Edit credential and endpoint" aria-label="Edit account" @click="emit('edit')"><Icon icon="tabler:key" /></button>

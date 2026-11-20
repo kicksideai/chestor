@@ -8,7 +8,7 @@ class r extends i {
   }
   static get vueConfig() {
     return {
-      ...a(() => import("./admin-mount-Bu2GrAGD.js").then((e) => e.mountConfig), { surface: "page", loading: "Loading…", failed: "Could not load Autocode settings. Reload the page to try again.", timeout: 3e4 })
+      ...a(() => import("./admin-mount-_1CSJAkh.js").then((e) => e.mountConfig), { surface: "page", loading: "Loading…", failed: "Could not load Autocode settings. Reload the page to try again.", timeout: 3e4 })
     };
   }
 }

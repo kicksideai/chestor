@@ -1,13 +1,13 @@
-import { ref as y, provide as _t, inject as Rt, computed as R, openBlock as r, createElementBlock as d, mergeProps as C, createElementVNode as f, renderSlot as I, createTextVNode as V, toDisplayString as c, resolveComponent as st, resolveDirective as Dt, withDirectives as vt, createBlock as L, resolveDynamicComponent as Ut, withCtx as M, createCommentVNode as p, normalizeClass as D, defineComponent as W, watch as nt, Fragment as E, createVNode as S, unref as v, onMounted as ft, nextTick as mt, onBeforeUnmount as Mt, renderList as q, withKeys as bt, withModifiers as gt, vModelText as Kt, onUnmounted as Ht, createSlots as qt } from "vue";
-import { b as yt, s as Jt, B as at, c as kt, d as ot, e as dt, f as K, R as Xt } from "./wc-runtime-DbdXH-lj.js";
-import { c as wt, s as $t, a as N, e as H, b as xt, d as Ct, f as St, g as pt, h as Yt, u as Wt, l as Zt, r as Gt, p as Qt } from "./presentation-JHHKyan-.js";
+import { ref as y, provide as Rt, inject as Dt, computed as D, openBlock as r, createElementBlock as l, mergeProps as C, createElementVNode as m, renderSlot as I, createTextVNode as V, toDisplayString as c, resolveComponent as st, resolveDirective as _t, withDirectives as vt, createBlock as T, resolveDynamicComponent as Ut, withCtx as M, createCommentVNode as p, normalizeClass as _, defineComponent as W, watch as ot, Fragment as L, createVNode as S, unref as h, onMounted as ft, nextTick as mt, onBeforeUnmount as Mt, renderList as q, withKeys as bt, withModifiers as gt, vModelText as Kt, onUnmounted as Ht, createSlots as qt } from "vue";
+import { b as yt, s as Jt, B as at, c as kt, d as et, e as lt, f as K, R as Xt } from "./wc-runtime-DbdXH-lj.js";
+import { c as wt, s as $t, a as E, e as H, b as xt, d as Ct, f as St, g as pt, h as Yt, u as Wt, l as Zt, r as Gt, p as Qt } from "./presentation-JHHKyan-.js";
 import { Icon as B } from "@iconify/vue";
 import { loadByTagName as Pt, host as tn } from "@wippy-fe/proxy";
 import { a as nn } from "./driver-account-types-BP_E6MTO.js";
-function _o() {
+function Ro() {
   const t = wt(), n = y(null), o = y(""), e = $t(async () => {
     try {
-      const b = await N.catalog();
+      const b = await E.catalog();
       if (!t()) return;
       n.value = b, o.value = "";
     } catch (b) {
@@ -15,12 +15,12 @@ function _o() {
       o.value = H(b, "Could not load the agent catalog.");
     }
   }, t);
-  return _t("catalog", n), yt(e), { catalog: n, error: o, load: e };
+  return Rt("catalog", n), yt(e), { catalog: n, error: o, load: e };
 }
 function on() {
-  const t = Rt("catalog");
+  const t = Dt("catalog");
   if (!t) throw new Error("Autocode catalog provider is missing.");
-  return R(() => {
+  return D(() => {
     if (!t.value) throw new Error("Autocode catalog is not loaded.");
     return t.value;
   });
@@ -30,7 +30,7 @@ var Ft = {
   extends: Jt
 };
 function en(t) {
-  return ln(t) || dn(t) || an(t) || rn();
+  return dn(t) || ln(t) || an(t) || rn();
 }
 function rn() {
   throw new TypeError(`Invalid attempt to spread non-iterable instance.
@@ -38,30 +38,30 @@ In order to be iterable, non-array objects must have a [Symbol.iterator]() metho
 }
 function an(t, n) {
   if (t) {
-    if (typeof t == "string") return et(t, n);
+    if (typeof t == "string") return rt(t, n);
     var o = {}.toString.call(t).slice(8, -1);
-    return o === "Object" && t.constructor && (o = t.constructor.name), o === "Map" || o === "Set" ? Array.from(t) : o === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(o) ? et(t, n) : void 0;
+    return o === "Object" && t.constructor && (o = t.constructor.name), o === "Map" || o === "Set" ? Array.from(t) : o === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(o) ? rt(t, n) : void 0;
   }
 }
-function dn(t) {
+function ln(t) {
   if (typeof Symbol < "u" && t[Symbol.iterator] != null || t["@@iterator"] != null) return Array.from(t);
 }
-function ln(t) {
-  if (Array.isArray(t)) return et(t);
+function dn(t) {
+  if (Array.isArray(t)) return rt(t);
 }
-function et(t, n) {
+function rt(t, n) {
   (n == null || n > t.length) && (n = t.length);
   for (var o = 0, e = Array(n); o < n; o++) e[o] = t[o];
   return e;
 }
-function un(t, n, o, e, b, l) {
-  return r(), d("svg", C({
+function un(t, n, o, e, b, d) {
+  return r(), l("svg", C({
     width: "14",
     height: "14",
     viewBox: "0 0 14 14",
     fill: "none",
     xmlns: "http://www.w3.org/2000/svg"
-  }, t.pti()), en(n[0] || (n[0] = [f("path", {
+  }, t.pti()), en(n[0] || (n[0] = [m("path", {
     d: "M6.99701 14C5.85441 13.999 4.72939 13.7186 3.72012 13.1832C2.71084 12.6478 1.84795 11.8737 1.20673 10.9284C0.565504 9.98305 0.165424 8.89526 0.041387 7.75989C-0.0826496 6.62453 0.073125 5.47607 0.495122 4.4147C0.917119 3.35333 1.59252 2.4113 2.46241 1.67077C3.33229 0.930247 4.37024 0.413729 5.4857 0.166275C6.60117 -0.0811796 7.76026 -0.0520535 8.86188 0.251112C9.9635 0.554278 10.9742 1.12227 11.8057 1.90555C11.915 2.01493 11.9764 2.16319 11.9764 2.31778C11.9764 2.47236 11.915 2.62062 11.8057 2.73C11.7521 2.78503 11.688 2.82877 11.6171 2.85864C11.5463 2.8885 11.4702 2.90389 11.3933 2.90389C11.3165 2.90389 11.2404 2.8885 11.1695 2.85864C11.0987 2.82877 11.0346 2.78503 10.9809 2.73C9.9998 1.81273 8.73246 1.26138 7.39226 1.16876C6.05206 1.07615 4.72086 1.44794 3.62279 2.22152C2.52471 2.99511 1.72683 4.12325 1.36345 5.41602C1.00008 6.70879 1.09342 8.08723 1.62775 9.31926C2.16209 10.5513 3.10478 11.5617 4.29713 12.1803C5.48947 12.7989 6.85865 12.988 8.17414 12.7157C9.48963 12.4435 10.6711 11.7264 11.5196 10.6854C12.3681 9.64432 12.8319 8.34282 12.8328 7C12.8328 6.84529 12.8943 6.69692 13.0038 6.58752C13.1132 6.47812 13.2616 6.41667 13.4164 6.41667C13.5712 6.41667 13.7196 6.47812 13.8291 6.58752C13.9385 6.69692 14 6.84529 14 7C14 8.85651 13.2622 10.637 11.9489 11.9497C10.6356 13.2625 8.85432 14 6.99701 14Z",
     fill: "currentColor"
   }, null, -1)])), 16);
@@ -146,7 +146,7 @@ var cn = `
   root: function(n) {
     var o = n.props, e = n.instance;
     return ["p-badge p-component", {
-      "p-badge-circle": ot(o.value) && String(o.value).length === 1,
+      "p-badge-circle": et(o.value) && String(o.value).length === 1,
       "p-badge-dot": kt(o.value) && !e.$slots.default,
       "p-badge-sm": o.size === "small",
       "p-badge-lg": o.size === "large",
@@ -165,7 +165,7 @@ var cn = `
   classes: sn
 }), gn = {
   name: "BaseBadge",
-  extends: dt,
+  extends: lt,
   props: {
     value: {
       type: [String, Number],
@@ -226,10 +226,10 @@ var At = {
     }
   }
 }, vn = ["data-p"];
-function fn(t, n, o, e, b, l) {
-  return r(), d("span", C({
+function fn(t, n, o, e, b, d) {
+  return r(), l("span", C({
     class: t.cx("root"),
-    "data-p": l.dataP
+    "data-p": d.dataP
   }, t.ptmi("root")), [I(t.$slots, "default", {}, function() {
     return [V(c(t.value), 1)];
   })], 16, vn);
@@ -933,7 +933,7 @@ var wn = {
   classes: wn
 }), xn = {
   name: "BaseButton",
-  extends: dt,
+  extends: lt,
   props: {
     label: {
       type: String,
@@ -1053,7 +1053,7 @@ function Sn(t, n) {
   }
   return (n === "string" ? String : Number)(t);
 }
-var rt = {
+var tt = {
   name: "Button",
   extends: xn,
   inheritAttrs: !1,
@@ -1120,27 +1120,27 @@ var rt = {
     ripple: Xt
   }
 }, Pn = ["data-p"], Fn = ["data-p"];
-function An(t, n, o, e, b, l) {
-  var k = st("SpinnerIcon"), s = st("Badge"), u = Dt("ripple");
+function An(t, n, o, e, b, d) {
+  var w = st("SpinnerIcon"), s = st("Badge"), u = _t("ripple");
   return t.asChild ? I(t.$slots, "default", {
     key: 1,
-    class: D(t.cx("root")),
-    a11yAttrs: l.a11yAttrs
-  }) : vt((r(), L(Ut(t.as), C({
+    class: _(t.cx("root")),
+    a11yAttrs: d.a11yAttrs
+  }) : vt((r(), T(Ut(t.as), C({
     key: 0,
     class: t.cx("root"),
-    "data-p": l.dataP
-  }, l.attrs), {
+    "data-p": d.dataP
+  }, d.attrs), {
     default: M(function() {
       return [I(t.$slots, "default", {}, function() {
         return [t.loading ? I(t.$slots, "loadingicon", C({
           key: 0,
           class: [t.cx("loadingIcon"), t.cx("icon")]
         }, t.ptm("loadingIcon")), function() {
-          return [t.loadingIcon ? (r(), d("span", C({
+          return [t.loadingIcon ? (r(), l("span", C({
             key: 0,
             class: [t.cx("loadingIcon"), t.cx("icon"), t.loadingIcon]
-          }, t.ptm("loadingIcon")), null, 16)) : (r(), L(k, C({
+          }, t.ptm("loadingIcon")), null, 16)) : (r(), T(w, C({
             key: 1,
             class: [t.cx("loadingIcon"), t.cx("icon")],
             spin: ""
@@ -1149,20 +1149,20 @@ function An(t, n, o, e, b, l) {
           key: 1,
           class: [t.cx("icon")]
         }, t.ptm("icon")), function() {
-          return [t.icon ? (r(), d("span", C({
+          return [t.icon ? (r(), l("span", C({
             key: 0,
             class: [t.cx("icon"), t.icon, t.iconClass],
-            "data-p": l.dataIconP
+            "data-p": d.dataIconP
           }, t.ptm("icon")), null, 16, Pn)) : p("", !0)];
-        }), t.label ? (r(), d("span", C({
+        }), t.label ? (r(), l("span", C({
           key: 2,
           class: t.cx("label")
         }, t.ptm("label"), {
-          "data-p": l.dataLabelP
-        }), c(t.label), 17, Fn)) : p("", !0), t.badge ? (r(), L(s, {
+          "data-p": d.dataLabelP
+        }), c(t.label), 17, Fn)) : p("", !0), t.badge ? (r(), T(s, {
           key: 3,
           value: t.badge,
-          class: D(t.badgeClass),
+          class: _(t.badgeClass),
           severity: t.badgeSeverity,
           unstyled: t.unstyled,
           pt: t.ptm("pcBadge")
@@ -1172,7 +1172,7 @@ function An(t, n, o, e, b, l) {
     _: 3
   }, 16, ["class", "data-p"])), [[u]]);
 }
-rt.render = An;
+tt.render = An;
 const Bn = {
   key: 1,
   class: "kx-err",
@@ -1185,44 +1185,44 @@ const Bn = {
   },
   setup(t) {
     const n = t, o = y(!1), e = y(null), b = y("");
-    function l() {
+    function d() {
       o.value = !1;
     }
-    return nt(e, async (k) => {
-      if (k) {
+    return ot(e, async (w) => {
+      if (w) {
         b.value = "";
         try {
-          if (customElements.get("kickside-share") || await Pt("kickside-share", { timeoutMs: 8e3 }), e.value !== k) return;
+          if (customElements.get("kickside-share") || await Pt("kickside-share", { timeoutMs: 8e3 }), e.value !== w) return;
           const s = document.createElement("kickside-share");
           s.setAttribute("config", JSON.stringify({
             resource_id: n.id,
             title: n.title,
             access_url: `/api/v1/component-access/grants/${encodeURIComponent(n.id)}`,
             share_url: `/api/v1/component-access/share/${encodeURIComponent(n.id)}`
-          })), s.style.display = "block", s.addEventListener("close", l), k.appendChild(s);
+          })), s.style.display = "block", s.addEventListener("close", d), w.appendChild(s);
         } catch (s) {
           b.value = H(s, "Could not open sharing.");
         }
       }
-    }), (k, s) => (r(), d(E, null, [
-      f("button", {
+    }), (w, s) => (r(), l(L, null, [
+      m("button", {
         type: "button",
         class: "ac-icon-btn kx-focus-outline",
         title: "Share",
         "aria-label": "Share",
         onClick: s[0] || (s[0] = (u) => o.value = !0)
       }, [
-        S(v(B), { icon: "tabler:share" })
+        S(h(B), { icon: "tabler:share" })
       ]),
-      o.value ? (r(), d("div", {
+      o.value ? (r(), l("div", {
         key: 0,
         ref_key: "shareHost",
         ref: e
       }, null, 512)) : p("", !0),
-      b.value ? (r(), d("span", Bn, c(b.value), 1)) : p("", !0)
+      b.value ? (r(), l("span", Bn, c(b.value), 1)) : p("", !0)
     ], 64));
   }
-}), In = ["aria-label", "aria-busy"], Vn = { class: "ac-dialog-header" }, Tn = ["disabled"], Nn = { class: "ac-dialog-content" }, Ln = /* @__PURE__ */ W({
+}), In = ["aria-label", "aria-busy"], Vn = { class: "ac-dialog-header" }, Tn = ["disabled"], Nn = { class: "ac-dialog-content" }, En = /* @__PURE__ */ W({
   __name: "app-dialog",
   props: {
     title: {},
@@ -1232,49 +1232,49 @@ const Bn = {
   emits: ["close"],
   setup(t, { emit: n }) {
     const o = t, e = n, b = y(null);
-    function l(s) {
+    function d(s) {
       s.preventDefault(), o.busy || e("close");
     }
-    function k(s) {
+    function w(s) {
       const u = b.value;
       if (!u || s.target !== u) return;
-      const w = u.getBoundingClientRect();
-      (s.clientX < w.left || s.clientX > w.right || s.clientY < w.top || s.clientY > w.bottom) && l(s);
+      const $ = u.getBoundingClientRect();
+      (s.clientX < $.left || s.clientX > $.right || s.clientY < $.top || s.clientY > $.bottom) && d(s);
     }
     return ft(async () => {
       await mt(), b.value && !b.value.open && b.value.showModal();
     }), Mt(() => {
       b.value?.open && b.value.close();
-    }), (s, u) => (r(), d("dialog", {
+    }), (s, u) => (r(), l("dialog", {
       ref_key: "dialog",
       ref: b,
-      class: D(["ac-dialog", { "ac-dialog-wide": t.wide }]),
+      class: _(["ac-dialog", { "ac-dialog-wide": t.wide }]),
       "aria-label": t.title,
       "aria-modal": "true",
       "aria-busy": t.busy || void 0,
-      onCancel: l,
-      onClose: u[1] || (u[1] = (w) => !t.busy && e("close")),
-      onClick: k
+      onCancel: d,
+      onClose: u[1] || (u[1] = ($) => !t.busy && e("close")),
+      onClick: w
     }, [
-      f("header", Vn, [
-        f("h2", null, c(t.title), 1),
-        f("button", {
+      m("header", Vn, [
+        m("h2", null, c(t.title), 1),
+        m("button", {
           type: "button",
           class: "ac-icon-btn kx-focus-outline",
           "aria-label": "Close dialog",
           disabled: t.busy,
-          onClick: u[0] || (u[0] = (w) => e("close"))
+          onClick: u[0] || (u[0] = ($) => e("close"))
         }, "×", 8, Tn)
       ]),
-      f("div", Nn, [
+      m("div", Nn, [
         I(s.$slots, "default")
       ])
     ], 42, In));
   }
 });
-var En = {
+var Ln = {
   name: "BaseEditableHolder",
-  extends: dt,
+  extends: lt,
   emits: ["update:modelValue", "value-change"],
   props: {
     modelValue: {
@@ -1369,12 +1369,12 @@ var En = {
     findNonEmpty: function() {
       for (var n = arguments.length, o = new Array(n), e = 0; e < n; e++)
         o[e] = arguments[e];
-      return o.find(ot);
+      return o.find(et);
     }
   },
   computed: {
     $filled: function() {
-      return ot(this.d_value);
+      return et(this.d_value);
     },
     $invalid: function() {
       var n, o;
@@ -1414,7 +1414,7 @@ const On = {
   class: "ac-chips",
   role: "group",
   "aria-label": "Agent"
-}, jn = ["disabled", "aria-pressed", "onClick"], _n = ["disabled", "value"], Rn = ["value"], Dn = /* @__PURE__ */ W({
+}, jn = ["disabled", "aria-pressed", "onClick"], Rn = ["disabled", "value"], Dn = ["value"], _n = /* @__PURE__ */ W({
   __name: "agent-picker",
   props: {
     agents: {},
@@ -1423,22 +1423,22 @@ const On = {
   },
   emits: ["update:modelValue"],
   setup(t) {
-    return (n, o) => t.agents.length <= 6 ? (r(), d("div", On, [
-      (r(!0), d(E, null, q(t.agents, (e) => (r(), d("button", {
+    return (n, o) => t.agents.length <= 6 ? (r(), l("div", On, [
+      (r(!0), l(L, null, q(t.agents, (e) => (r(), l("button", {
         key: e.id,
         disabled: t.disabled,
         type: "button",
-        class: D(["ac-chip kx-focus-halo", { active: t.modelValue === e.id }]),
+        class: _(["ac-chip kx-focus-halo", { active: t.modelValue === e.id }]),
         "aria-pressed": t.modelValue === e.id,
         onClick: (b) => n.$emit("update:modelValue", e.id)
       }, [
-        S(v(B), {
-          icon: v(xt)(e.id, t.agents),
+        S(h(B), {
+          icon: h(xt)(e.id, t.agents),
           "aria-hidden": "true"
         }, null, 8, ["icon"]),
         V(c(e.title), 1)
       ], 10, jn))), 128))
-    ])) : (r(), d("select", {
+    ])) : (r(), l("select", {
       key: 1,
       disabled: t.disabled,
       class: "kx-focus-halo",
@@ -1446,11 +1446,11 @@ const On = {
       value: t.modelValue,
       onChange: o[0] || (o[0] = (e) => n.$emit("update:modelValue", e.target.value))
     }, [
-      (r(!0), d(E, null, q(t.agents, (e) => (r(), d("option", {
+      (r(!0), l(L, null, q(t.agents, (e) => (r(), l("option", {
         key: e.id,
         value: e.id
-      }, c(e.title), 9, Rn))), 128))
-    ], 40, _n));
+      }, c(e.title), 9, Dn))), 128))
+    ], 40, Rn));
   }
 });
 var Un = `
@@ -1590,7 +1590,7 @@ var Un = `
   inlineStyles: Mn
 }), qn = {
   name: "BaseToggleSwitch",
-  extends: En,
+  extends: Ln,
   props: {
     trueValue: {
       type: null,
@@ -1678,47 +1678,47 @@ var Un = `
     }
   }
 }, Jn = ["data-p-checked", "data-p-disabled", "data-p"], Xn = ["id", "checked", "tabindex", "disabled", "readonly", "aria-checked", "aria-labelledby", "aria-label", "aria-invalid"], Yn = ["data-p"], Wn = ["data-p"];
-function Zn(t, n, o, e, b, l) {
-  return r(), d("div", C({
+function Zn(t, n, o, e, b, d) {
+  return r(), l("div", C({
     class: t.cx("root"),
     style: t.sx("root")
-  }, l.getPTOptions("root"), {
-    "data-p-checked": l.checked,
+  }, d.getPTOptions("root"), {
+    "data-p-checked": d.checked,
     "data-p-disabled": t.disabled,
-    "data-p": l.dataP
-  }), [f("input", C({
+    "data-p": d.dataP
+  }), [m("input", C({
     id: t.inputId,
     type: "checkbox",
     role: "switch",
     class: [t.cx("input"), t.inputClass],
     style: t.inputStyle,
-    checked: l.checked,
+    checked: d.checked,
     tabindex: t.tabindex,
     disabled: t.disabled,
     readonly: t.readonly,
-    "aria-checked": l.checked,
+    "aria-checked": d.checked,
     "aria-labelledby": t.ariaLabelledby,
     "aria-label": t.ariaLabel,
     "aria-invalid": t.invalid || void 0,
     onFocus: n[0] || (n[0] = function() {
-      return l.onFocus && l.onFocus.apply(l, arguments);
+      return d.onFocus && d.onFocus.apply(d, arguments);
     }),
     onBlur: n[1] || (n[1] = function() {
-      return l.onBlur && l.onBlur.apply(l, arguments);
+      return d.onBlur && d.onBlur.apply(d, arguments);
     }),
     onChange: n[2] || (n[2] = function() {
-      return l.onChange && l.onChange.apply(l, arguments);
+      return d.onChange && d.onChange.apply(d, arguments);
     })
-  }, l.getPTOptions("input")), null, 16, Xn), f("div", C({
+  }, d.getPTOptions("input")), null, 16, Xn), m("div", C({
     class: t.cx("slider")
-  }, l.getPTOptions("slider"), {
-    "data-p": l.dataP
-  }), [f("div", C({
+  }, d.getPTOptions("slider"), {
+    "data-p": d.dataP
+  }), [m("div", C({
     class: t.cx("handle")
-  }, l.getPTOptions("handle"), {
-    "data-p": l.dataP
+  }, d.getPTOptions("handle"), {
+    "data-p": d.dataP
   }), [I(t.$slots, "handle", {
-    checked: l.checked
+    checked: d.checked
   })], 16, Wn)], 16, Yn)], 16, Jn);
 }
 Bt.render = Zn;
@@ -1760,104 +1760,113 @@ const Gn = { class: "ac-account-main" }, Qn = { class: "ac-row-title" }, to = ["
   },
   emits: ["toggle", "rename", "remove", "edit"],
   setup(t, { emit: n }) {
-    const o = t, e = n, b = { ready: "ready", cooling: "cooling down", disabled: "disabled", unavailable: "unavailable" }, l = Ct(), k = R(() => St(o.account, l.value)), s = R(() => o.account.mine ? "" : o.management ? `Owned by ${o.ownerLabel}` : `Shared with you by ${o.ownerLabel}`), u = y(!1), w = y(""), Z = y(null);
+    const o = t, e = n, b = { ready: "ready", cooling: "cooling down", disabled: "disabled", unavailable: "unavailable" }, d = Ct(), w = D(() => St(o.account, d.value)), s = D(() => o.account.mine ? "" : o.management ? `Owned by ${o.ownerLabel}` : `Shared with you by ${o.ownerLabel}`), u = y(!1), $ = y(""), Z = y(null);
     function F() {
-      w.value = o.account.label, u.value = !0, mt(() => Z.value?.select());
+      $.value = o.account.label, u.value = !0, mt(() => Z.value?.select());
     }
     function G() {
       if (!u.value) return;
       u.value = !1;
-      const P = w.value.trim();
+      const P = $.value.trim();
       P && P !== o.account.label && e("rename", P);
     }
-    return (P, $) => (r(), d("li", {
-      class: D(["ac-row ac-account ac-hover-actions", { off: !t.account.enabled || !t.account.usable }])
+    return (P, k) => (r(), l("li", {
+      class: _(["ac-row ac-account", { "ac-hover-actions": !t.management, off: !t.account.enabled || !t.account.usable }])
     }, [
-      f("div", Gn, [
-        f("div", Qn, [
-          f("span", {
-            class: D(["kx-tag-sm ac-tone", k.value])
-          }, c(b[k.value]), 3),
-          u.value ? vt((r(), d("input", {
+      m("div", Gn, [
+        m("div", Qn, [
+          m("span", {
+            class: _(["kx-tag-sm ac-tone", w.value])
+          }, c(b[w.value]), 3),
+          u.value ? vt((r(), l("input", {
             key: 0,
             ref_key: "input",
             ref: Z,
-            "onUpdate:modelValue": $[0] || ($[0] = (m) => w.value = m),
+            "onUpdate:modelValue": k[0] || (k[0] = (f) => $.value = f),
             class: "ac-rename kx-focus-halo",
             "aria-label": "Account label",
             onKeydown: [
               bt(gt(G, ["prevent"]), ["enter"]),
-              $[1] || ($[1] = bt(gt((m) => u.value = !1, ["prevent"]), ["escape"]))
+              k[1] || (k[1] = bt(gt((f) => u.value = !1, ["prevent"]), ["escape"]))
             ],
             onBlur: G
           }, null, 40, to)), [
-            [Kt, w.value]
-          ]) : (r(), d("span", no, c(t.account.label), 1)),
-          t.account.subscription ? (r(), d("span", oo, c(t.management ? "subscription" : "personal"), 1)) : p("", !0)
+            [Kt, $.value]
+          ]) : (r(), l("span", no, c(t.account.label), 1)),
+          t.account.subscription ? (r(), l("span", oo, c(t.management ? "subscription" : "personal"), 1)) : p("", !0)
         ]),
-        f("div", eo, [
+        m("div", eo, [
           V(c(t.kindLabel) + " · " + c(t.account.runs_day) + " " + c(t.account.runs_day === 1 ? "task" : "tasks") + " in the last 24 hours · " + c(t.account.failures_day) + " " + c(t.account.failures_day === 1 ? "failure" : "failures") + " · ", 1),
-          t.account.last_used_at ? (r(), d("span", {
+          t.account.last_used_at ? (r(), l("span", {
             key: 0,
-            title: v(pt)(t.account.last_used_at)
-          }, "last used " + c(v(Yt)(t.account.last_used_at, v(l))), 9, ro)) : (r(), d("span", ao, "never used"))
+            title: h(pt)(t.account.last_used_at)
+          }, "last used " + c(h(Yt)(t.account.last_used_at, h(d))), 9, ro)) : (r(), l("span", ao, "never used"))
         ]),
-        s.value ? (r(), d("div", lo, c(s.value), 1)) : p("", !0),
-        t.account.usable ? t.account.subscription && !t.management ? (r(), d("div", uo, "Subscription login: personal use only")) : p("", !0) : (r(), d("div", io, [
-          S(v(B), { icon: "tabler:lock" }),
+        s.value ? (r(), l("div", lo, c(s.value), 1)) : p("", !0),
+        t.account.usable ? t.account.subscription && !t.management ? (r(), l("div", uo, "Subscription login: personal use only")) : p("", !0) : (r(), l("div", io, [
+          S(h(B), { icon: "tabler:lock" }),
           V(" " + c(t.account.unavailable_reason || "Account unavailable for tasks"), 1)
         ])),
-        t.account.endpoint ? (r(), d("div", co, c(t.account.endpoint.protocol) + " · " + c(t.account.endpoint.base_url) + c(t.account.endpoint.model ? " · " + t.account.endpoint.model : ""), 1)) : p("", !0),
-        k.value === "cooling" && t.account.cooldown_until ? (r(), d("div", so, "Available at " + c(v(pt)(t.account.cooldown_until)), 1)) : p("", !0),
-        (r(!0), d(E, null, q(t.account.rate_limits?.windows ?? [], (m) => (r(), d("div", {
-          key: m.window,
+        t.account.endpoint ? (r(), l("div", co, c(t.account.endpoint.protocol) + " · " + c(t.account.endpoint.base_url) + c(t.account.endpoint.model ? " · " + t.account.endpoint.model : ""), 1)) : p("", !0),
+        w.value === "cooling" && t.account.cooldown_until ? (r(), l("div", so, "Available at " + c(h(pt)(t.account.cooldown_until)), 1)) : p("", !0),
+        (r(!0), l(L, null, q(t.account.rate_limits?.windows ?? [], (f) => (r(), l("div", {
+          key: f.window,
           class: "ac-muted"
         }, [
-          V(c(m.window.replace("seven_day", "7-day").replace("five_hour", "5-hour").replaceAll("_", " ")) + ": " + c(m.utilization === void 0 ? m.status : `${Math.round(m.utilization * 100)}% used`), 1),
-          m.resets_at ? (r(), d(E, { key: 0 }, [
-            V(", resets " + c(new Date(m.resets_at * 1e3).toLocaleString(void 0, { weekday: "short", hour: "2-digit", minute: "2-digit" })), 1)
+          V(c(f.window.replace("seven_day", "7-day").replace("five_hour", "5-hour").replaceAll("_", " ")) + ": " + c(f.utilization === void 0 ? f.status : `${Math.round(f.utilization * 100)}% used`), 1),
+          f.resets_at ? (r(), l(L, { key: 0 }, [
+            V(", resets " + c(new Date(f.resets_at * 1e3).toLocaleString(void 0, { weekday: "short", hour: "2-digit", minute: "2-digit" })), 1)
           ], 64)) : p("", !0)
         ]))), 128)),
-        t.account.rate_limits?.overage_status ? (r(), d("div", bo, "Overage: " + c(t.account.rate_limits.overage_status) + c(t.account.rate_limits.overage_disabled_reason ? " · " + t.account.rate_limits.overage_disabled_reason : ""), 1)) : p("", !0),
-        t.account.last_error ? (r(), d("div", go, c(t.account.last_error), 1)) : p("", !0)
+        t.account.rate_limits?.overage_status ? (r(), l("div", bo, "Overage: " + c(t.account.rate_limits.overage_status) + c(t.account.rate_limits.overage_disabled_reason ? " · " + t.account.rate_limits.overage_disabled_reason : ""), 1)) : p("", !0),
+        t.account.last_error ? (r(), l("div", go, c(t.account.last_error), 1)) : p("", !0)
       ]),
-      f("div", po, [
-        t.account.writable ? (r(), L(v(Bt), {
+      m("div", po, [
+        t.management && t.account.writable ? (r(), T(h(tt), {
           key: 0,
+          type: "button",
+          text: "",
+          size: "small",
+          severity: "secondary",
+          label: t.account.enabled ? "Disable" : "Enable",
+          "aria-label": t.account.enabled ? "Disable account" : "Enable account",
+          onClick: k[2] || (k[2] = (f) => e("toggle"))
+        }, null, 8, ["label", "aria-label"])) : t.account.writable ? (r(), T(h(Bt), {
+          key: 1,
           "model-value": t.account.enabled,
           "aria-label": t.account.enabled ? "Disable account" : "Enable account",
-          onChange: $[2] || ($[2] = (m) => e("toggle"))
+          onChange: k[3] || (k[3] = (f) => e("toggle"))
         }, null, 8, ["model-value", "aria-label"])) : p("", !0),
-        t.account.writable ? (r(), d("button", {
-          key: 1,
+        t.account.writable ? (r(), l("button", {
+          key: 2,
           type: "button",
           class: "ac-icon-btn kx-focus-outline",
           title: "Rename",
           "aria-label": "Rename account",
           onClick: F
         }, [
-          S(v(B), { icon: "tabler:pencil" })
+          S(h(B), { icon: "tabler:pencil" })
         ])) : p("", !0),
-        t.account.writable && t.editCredentials ? (r(), d("button", {
-          key: 2,
+        t.account.writable && t.editCredentials ? (r(), l("button", {
+          key: 3,
           type: "button",
           class: "ac-icon-btn kx-focus-outline",
           title: "Edit credential and endpoint",
           "aria-label": "Edit account",
-          onClick: $[3] || ($[3] = (m) => e("edit"))
+          onClick: k[4] || (k[4] = (f) => e("edit"))
         }, [
-          S(v(B), { icon: "tabler:key" })
+          S(h(B), { icon: "tabler:key" })
         ])) : p("", !0),
         I(P.$slots, "actions"),
-        t.account.deletable ? (r(), d("button", {
-          key: 3,
+        t.account.deletable ? (r(), l("button", {
+          key: 4,
           type: "button",
           class: "ac-icon-btn kx-focus-outline",
           title: "Delete",
           "aria-label": "Delete account",
-          onClick: $[4] || ($[4] = (m) => e("remove"))
+          onClick: k[5] || (k[5] = (f) => e("remove"))
         }, [
-          S(v(B), { icon: "tabler:trash" })
+          S(h(B), { icon: "tabler:trash" })
         ])) : p("", !0)
       ])
     ], 2));
@@ -1894,7 +1903,7 @@ const Gn = { class: "ac-account-main" }, Qn = { class: "ac-row-title" }, to = ["
   key: 3,
   class: "kx-err",
   role: "alert"
-}, Ro = /* @__PURE__ */ W({
+}, Do = /* @__PURE__ */ W({
   __name: "accounts",
   props: {
     query: {},
@@ -1905,42 +1914,42 @@ const Gn = { class: "ac-account-main" }, Qn = { class: "ac-row-title" }, to = ["
   },
   emits: ["count", "changed"],
   setup(t, { expose: n, emit: o }) {
-    const e = wt(), b = y([]), l = t, k = o, s = y(!1), u = y(null);
-    function w() {
-      u.value = null, _.value = "", s.value = !0;
+    const e = wt(), b = y([]), d = t, w = o, s = y(!1), u = y(null);
+    function $() {
+      u.value = null, R.value = "", s.value = !0;
     }
     function Z(a) {
-      u.value = a, T.value = a.agent, _.value = "", s.value = !0;
+      u.value = a, N.value = a.agent, R.value = "", s.value = !0;
     }
-    n({ open: w });
-    const F = on(), G = Ct(), P = y([]), $ = y({}), m = y(""), U = y(""), O = y(!1), j = y(!1), _ = y(""), lt = y(0), T = y(l.selectedAgent || F.value.agents[0]?.id || "");
-    nt(() => l.selectedAgent, (a) => {
-      a && (T.value = a);
+    n({ open: $ });
+    const F = on(), G = Ct(), P = y([]), k = y({}), f = y(""), U = y(""), O = y(!1), j = y(!1), R = y(""), dt = y(0), N = y(d.selectedAgent || F.value.agents[0]?.id || "");
+    ot(() => d.selectedAgent, (a) => {
+      a && (N.value = a);
     });
-    const tt = R(() => F.value.agents.find((a) => a.id === T.value)), zt = R(() => JSON.stringify({ driver: tt.value, busy: j.value, error: _.value, saved: lt.value, account: u.value ? { id: u.value.id, label: u.value.label, credential_kind: u.value.credential_kind, endpoint: u.value.endpoint } : void 0, limits: F.value.account_limits })), it = R(() => [...F.value.agents, ...[...new Set(P.value.map((a) => a.agent))].filter((a) => !F.value.agents.some((i) => i.id === a)).map((a) => ({ id: a, title: `Unavailable agent: ${a}`, icon: "tabler:terminal-2" }))].map((a) => ({ agent: a, accounts: P.value.filter((i) => i.agent === a.id && [i.label, a.title, i.credential_kind].join(" ").toLowerCase().includes(l.query.toLowerCase())) })).filter((a) => a.accounts.length));
+    const nt = D(() => F.value.agents.find((a) => a.id === N.value)), zt = D(() => JSON.stringify({ driver: nt.value, busy: j.value, error: R.value, saved: dt.value, account: u.value ? { id: u.value.id, label: u.value.label, credential_kind: u.value.credential_kind, endpoint: u.value.endpoint } : void 0, limits: F.value.account_limits })), it = D(() => [...F.value.agents, ...[...new Set(P.value.map((a) => a.agent))].filter((a) => !F.value.agents.some((i) => i.id === a)).map((a) => ({ id: a, title: `Unavailable agent: ${a}`, icon: "tabler:terminal-2" }))].map((a) => ({ agent: a, accounts: P.value.filter((i) => i.agent === a.id && [i.label, a.title, i.credential_kind].join(" ").toLowerCase().includes(d.query.toLowerCase())) })).filter((a) => a.accounts.length));
     function It(a) {
       return F.value.agents.find((i) => i.id === a.agent)?.credentials.find((i) => i.id === a.credential_kind)?.label ?? a.credential_kind;
     }
     async function Vt(a) {
-      const i = [...new Set(a.filter((g) => !g.mine).map((g) => g.owner_user_id))].filter((g) => !(g in $.value)), h = await Qt(i);
-      e() && ($.value = { ...$.value, ...h });
+      const i = [...new Set(a.filter((g) => !g.mine).map((g) => g.owner_user_id))].filter((g) => !(g in k.value)), v = await Qt(i);
+      e() && (k.value = { ...k.value, ...v });
     }
     async function Tt() {
-      if (!l.management) return N.accounts();
-      const a = l.providerId ? { provider_id: l.providerId } : { agent: l.selectedAgent }, i = await N.managedAccounts(a);
-      return e() && i.agent && (T.value = i.agent), i.accounts;
+      if (!d.management) return E.accounts();
+      const a = d.providerId ? { provider_id: d.providerId } : { agent: d.selectedAgent }, i = await E.managedAccounts(a);
+      return e() && i.agent && (N.value = i.agent), i.accounts;
     }
     const z = $t(async () => {
       try {
-        const a = await Gt(Tt, (i) => i.map((h) => h.id), b, e, (i) => {
-          P.value = i, O.value = !0, m.value = "";
+        const a = await Gt(Tt, (i) => i.map((v) => v.id), b, e, (i) => {
+          P.value = i, O.value = !0, f.value = "";
         }, () => {
           z();
         });
         if (!e() || (await Vt(a), !e())) return;
-        O.value = !0, m.value = "";
+        O.value = !0, f.value = "";
       } catch (a) {
-        e() && (m.value = H(a, "Could not load accounts."));
+        e() && (f.value = H(a, "Could not load accounts."));
       }
     }, e);
     Wt(() => b.value, () => {
@@ -1951,47 +1960,47 @@ const Gn = { class: "ac-account-main" }, Qn = { class: "ac-row-title" }, to = ["
     });
     Ht(Nt), yt(z);
     async function ut(a, i) {
-      m.value = "", U.value = "";
+      f.value = "", U.value = "";
       try {
         if (await a(), !e()) return;
-        await z(), e() && k("changed");
-      } catch (h) {
-        e() && (m.value = H(h, i));
+        await z(), e() && w("changed");
+      } catch (v) {
+        e() && (f.value = H(v, i));
       }
     }
-    async function Lt(a) {
+    async function Et(a) {
       if (!(a instanceof CustomEvent)) return;
       const i = nn.safeParse(a.detail);
       if (j.value) return;
-      if (!i.success || i.data.agent !== T.value || u.value && (!u.value.writable || i.data.credential_kind !== u.value.credential_kind)) {
-        _.value = "Invalid account submission.";
+      if (!i.success || i.data.agent !== N.value || u.value && (!u.value.writable || i.data.credential_kind !== u.value.credential_kind)) {
+        R.value = "Invalid account submission.";
         return;
       }
-      const h = i.data;
-      _.value = "", j.value = !0;
+      const v = i.data;
+      R.value = "", j.value = !0;
       try {
         if (u.value) {
-          const g = await N.updateAccount(u.value.id, {
-            label: h.label,
-            endpoint: h.endpoint ?? { base_url: "" },
-            ...h.secret ? { secret: h.secret } : {}
+          const g = await E.updateAccount(u.value.id, {
+            label: v.label,
+            endpoint: v.endpoint ?? { base_url: "" },
+            ...v.secret ? { secret: v.secret } : {}
           });
           if (!e()) return;
           U.value = g.health_error ? `Account saved, but its health could not be refreshed: ${g.health_error.message}` : "";
-        } else await N.createAccount(h);
+        } else await E.createAccount(v);
         if (!e()) return;
-        lt.value++, s.value = !1, await z(), e() && k("changed");
+        dt.value++, s.value = !1, await z(), e() && w("changed");
       } catch (g) {
-        e() && (_.value = H(g, "Could not save the account."));
+        e() && (R.value = H(g, "Could not save the account."));
       } finally {
         e() && (j.value = !1);
       }
     }
-    nt(P, (a) => k("count", a.length));
-    const ct = (a, i, h) => ut(async () => {
-      const g = await N.updateAccount(a.id, i);
+    ot(P, (a) => w("count", a.length));
+    const ct = (a, i, v) => ut(async () => {
+      const g = await E.updateAccount(a.id, i);
       e() && g.health_error && (U.value = `Account saved, but its health could not be refreshed: ${g.health_error.message}`);
-    }, h), Et = (a) => ct(a, { enabled: !a.enabled }, "Could not update the account."), Ot = (a, i) => ct(a, { label: i }, "Could not rename the account.");
+    }, v), Lt = (a) => ct(a, { enabled: !a.enabled }, "Could not update the account."), Ot = (a, i) => ct(a, { label: i }, "Could not rename the account.");
     async function jt(a) {
       const i = await tn.confirm({
         header: "Delete account",
@@ -2001,33 +2010,33 @@ const Gn = { class: "ac-account-main" }, Qn = { class: "ac-row-title" }, to = ["
         rejectLabel: "Cancel",
         acceptClass: "p-button-danger"
       });
-      e() && i && await ut(() => N.deleteAccount(a.id), "Could not delete the account.");
+      e() && i && await ut(() => E.deleteAccount(a.id), "Could not delete the account.");
     }
     return ft(() => {
-      l.allowSetup && Pt("chestor-autocode-driver-account", { timeoutMs: 8e3 }).catch(() => {
-        e() && (m.value = "The driver account card could not load.");
+      d.allowSetup && Pt("chestor-autocode-driver-account", { timeoutMs: 8e3 }).catch(() => {
+        e() && (f.value = "The driver account card could not load.");
       });
-    }), (a, i) => (r(), d("div", vo, [
-      m.value ? (r(), d("p", fo, [
-        V(c(m.value) + " ", 1),
-        f("button", {
+    }), (a, i) => (r(), l("div", vo, [
+      f.value ? (r(), l("p", fo, [
+        V(c(f.value) + " ", 1),
+        m("button", {
           type: "button",
           class: "ac-link kx-focus-outline",
           onClick: i[0] || (i[0] = //@ts-ignore
-          (...h) => v(z) && v(z)(...h))
+          (...v) => h(z) && h(z)(...v))
         }, "Retry")
       ])) : p("", !0),
-      U.value ? (r(), d("p", mo, c(U.value), 1)) : p("", !0),
-      !O.value && !m.value ? (r(), d("div", yo, "Loading accounts…")) : p("", !0),
-      t.management && O.value && t.allowSetup ? (r(), d("div", ko, [
-        P.value.length ? p("", !0) : (r(), d("p", wo, "No accounts configured.")),
-        S(v(rt), {
+      U.value ? (r(), l("p", mo, c(U.value), 1)) : p("", !0),
+      !O.value && !f.value ? (r(), l("div", yo, "Loading accounts…")) : p("", !0),
+      t.management && O.value && t.allowSetup ? (r(), l("div", ko, [
+        P.value.length ? p("", !0) : (r(), l("p", wo, "No accounts configured.")),
+        S(h(tt), {
           label: "Add account",
-          disabled: !tt.value,
-          onClick: w
+          disabled: !nt.value,
+          onClick: $
         }, {
           icon: M(() => [
-            S(v(B), {
+            S(h(B), {
               icon: "tabler:plus",
               "aria-hidden": "true"
             })
@@ -2035,48 +2044,48 @@ const Gn = { class: "ac-account-main" }, Qn = { class: "ac-row-title" }, to = ["
           _: 1
         }, 8, ["disabled"])
       ])) : p("", !0),
-      !t.management && O.value && !P.value.length ? (r(), d("div", $o, [
-        f("div", xo, [
-          S(v(B), { icon: "tabler:key" })
+      !t.management && O.value && !P.value.length ? (r(), l("div", $o, [
+        m("div", xo, [
+          S(h(B), { icon: "tabler:key" })
         ]),
-        i[3] || (i[3] = f("div", { class: "kx-empty-title" }, "No accounts yet", -1)),
-        i[4] || (i[4] = f("div", { class: "kx-empty-sub" }, "Add an API key, your own endpoint or a personal subscription login.", -1)),
-        S(v(rt), {
+        i[3] || (i[3] = m("div", { class: "kx-empty-title" }, "No accounts yet", -1)),
+        i[4] || (i[4] = m("div", { class: "kx-empty-sub" }, "Add an API key, your own endpoint or a personal subscription login.", -1)),
+        S(h(tt), {
           label: "Add account",
-          onClick: w
+          onClick: $
         }, {
           icon: M(() => [
-            S(v(B), { icon: "tabler:plus" })
+            S(h(B), { icon: "tabler:plus" })
           ]),
           _: 1
         })
-      ])) : !t.management && O.value && !it.value.length ? (r(), d("div", Co, [...i[5] || (i[5] = [
-        f("div", { class: "kx-empty-title" }, "No matches", -1),
-        f("div", { class: "kx-empty-sub" }, "Try another account or agent.", -1)
+      ])) : !t.management && O.value && !it.value.length ? (r(), l("div", Co, [...i[5] || (i[5] = [
+        m("div", { class: "kx-empty-title" }, "No matches", -1),
+        m("div", { class: "kx-empty-sub" }, "Try another account or agent.", -1)
       ])])) : p("", !0),
-      (r(!0), d(E, null, q(it.value, (h) => (r(), d("section", {
-        key: h.agent.id,
+      (r(!0), l(L, null, q(it.value, (v) => (r(), l("section", {
+        key: v.agent.id,
         class: "ac-stack"
       }, [
-        t.management ? p("", !0) : (r(), d("div", So, [
-          f("h2", Po, [
-            S(v(B), {
-              icon: v(xt)(h.agent.id, v(F).agents)
+        t.management ? p("", !0) : (r(), l("div", So, [
+          m("h2", Po, [
+            S(h(B), {
+              icon: h(xt)(v.agent.id, h(F).agents)
             }, null, 8, ["icon"]),
-            V(c(h.agent.title), 1)
+            V(c(v.agent.title), 1)
           ]),
-          f("span", Fo, c(h.accounts.filter((g) => g.usable && v(St)(g, v(G)) === "ready").length) + " of " + c(h.accounts.length) + " ready", 1)
+          m("span", Fo, c(v.accounts.filter((g) => g.usable && h(St)(g, h(G)) === "ready").length) + " of " + c(v.accounts.length) + " ready", 1)
         ])),
-        f("ul", Ao, [
-          (r(!0), d(E, null, q(h.accounts, (g) => (r(), L(ho, {
+        m("ul", Ao, [
+          (r(!0), l(L, null, q(v.accounts, (g) => (r(), T(ho, {
             key: g.id,
             account: g,
             "kind-label": It(g),
-            "owner-label": $.value[g.owner_user_id] || g.owner_user_id,
+            "owner-label": k.value[g.owner_user_id] || g.owner_user_id,
             management: t.management,
             "edit-credentials": t.allowSetup,
             onEdit: (Q) => Z(g),
-            onToggle: (Q) => Et(g),
+            onToggle: (Q) => Lt(g),
             onRename: (Q) => Ot(g, Q),
             onRemove: (Q) => jt(g)
           }, qt({ _: 2 }, [
@@ -2093,27 +2102,27 @@ const Gn = { class: "ac-account-main" }, Qn = { class: "ac-row-title" }, to = ["
           ]), 1032, ["account", "kind-label", "owner-label", "management", "edit-credentials", "onEdit", "onToggle", "onRename", "onRemove"]))), 128))
         ])
       ]))), 128)),
-      s.value ? (r(), L(Ln, {
+      s.value ? (r(), T(En, {
         key: 6,
         title: u.value ? "Edit account" : "Add account",
         busy: j.value,
-        onClose: i[2] || (i[2] = (h) => s.value = !1)
+        onClose: i[2] || (i[2] = (v) => s.value = !1)
       }, {
         default: M(() => [
-          f("div", Bo, [
-            !u.value && !t.management ? (r(), L(Dn, {
+          m("div", Bo, [
+            !u.value && !t.management ? (r(), T(_n, {
               key: 0,
               disabled: j.value,
-              modelValue: T.value,
-              "onUpdate:modelValue": i[1] || (i[1] = (h) => T.value = h),
-              agents: v(F).agents
+              modelValue: N.value,
+              "onUpdate:modelValue": i[1] || (i[1] = (v) => N.value = v),
+              agents: h(F).agents
             }, null, 8, ["disabled", "modelValue", "agents"])) : p("", !0),
-            !u.value && !t.management ? (r(), d("p", zo, "Tasks balance across your ready accounts automatically.")) : p("", !0),
-            tt.value ? (r(), d("chestor-autocode-driver-account", {
+            !u.value && !t.management ? (r(), l("p", zo, "Tasks balance across your ready accounts automatically.")) : p("", !0),
+            nt.value ? (r(), l("chestor-autocode-driver-account", {
               key: 2,
               "^config": zt.value,
-              onSubmit: Lt
-            }, null, 40, Io)) : (r(), d("p", Vo, "This account’s agent is unavailable."))
+              onSubmit: Et
+            }, null, 40, Io)) : (r(), l("p", Vo, "This account’s agent is unavailable."))
           ])
         ]),
         _: 1
@@ -2123,11 +2132,11 @@ const Gn = { class: "ac-account-main" }, Qn = { class: "ac-row-title" }, to = ["
 });
 export {
   zn as _,
-  Ln as a,
-  rt as b,
-  Ro as c,
-  _o as d,
-  Dn as e,
-  En as s,
+  En as a,
+  tt as b,
+  Do as c,
+  Ro as d,
+  _n as e,
+  Ln as s,
   on as u
 };

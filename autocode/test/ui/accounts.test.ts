@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 import { mocks, account, driver, render, respond, normal } from './fixtures.ts'
 import { describe, expect, it } from 'vitest'
-import { flushPromises } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
+import PrimeVue from 'primevue/config'
 import Accounts from '../../ui/src/app/accounts.vue'
 import AccountRow from '../../ui/src/app/account-row.vue'
 describe('accounts', () => {
@@ -31,6 +32,25 @@ describe('accounts', () => {
     await flushPromises()
     expect(w.text()).toContain('Orphan')
     expect(w.find('[aria-label="Delete account"]').exists()).toBe(false)
+  })
+  it('offers an explicit enable or disable action in the provider editor', async () => {
+    const w = mount(AccountRow, {
+      props: {
+        account: { ...account, enabled: true, writable: true },
+        kindLabel: 'Key',
+        ownerLabel: '',
+        management: true,
+      },
+      global: { plugins: [[PrimeVue, { unstyled: true }]] },
+    })
+    try {
+      const action = w.get('button[aria-label="Disable account"]')
+      expect(action.text()).toBe('Disable')
+      await action.trigger('click')
+      expect(w.emitted('toggle')).toEqual([[]])
+    } finally {
+      w.unmount()
+    }
   })
   it('shows delete for a DELETE-only account and hides WRITE actions', () => {
     const w = render(AccountRow, { account: { ...account, writable: false, deletable: true }, kindLabel: 'Key', ownerLabel: '' })
