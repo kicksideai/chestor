@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.10](https://github.com/kicksideai/chestor/compare/workspace-v0.2.9...workspace-v0.2.10) (2026-11-20)
+
+
+### Bug Fixes
+
+* **workspace:** build with the corrected deletion spinner styles ([#76](https://github.com/kicksideai/chestor/issues/76)) ([825b77b](https://github.com/kicksideai/chestor/commit/825b77b10a88dea4f7c2ecfb1120a43b4e0f3930))
+
 ## [0.2.9](https://github.com/kicksideai/chestor/compare/workspace-v0.2.8...workspace-v0.2.9) (2026-11-19)
 
 
