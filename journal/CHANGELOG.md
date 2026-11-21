@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.7](https://github.com/kicksideai/chestor/compare/journal-v0.3.6...journal-v0.3.7) (2026-11-21)
+
+
+### Bug Fixes
+
+* **journal:** recover missing graph rows on projection rewind ([#86](https://github.com/kicksideai/chestor/issues/86)) ([6723fea](https://github.com/kicksideai/chestor/commit/6723fea0df3022fe07a2591373c188aa8016a2c8))
+
 ## [0.3.6](https://github.com/kicksideai/chestor/compare/journal-v0.3.5...journal-v0.3.6) (2026-11-18)
 
 
