@@ -1,6 +1,7 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import PageHead from './page-head.vue'
 import Button from 'primevue/button'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
@@ -20,6 +21,12 @@ const error = ref('')
 const busy = ref('')
 const loaded = ref(false)
 const status = ref('')
+const limitSummary = computed(() => {
+  if (!loaded.value) return undefined
+  const count = limits.value.length
+  const overridden = limits.value.filter(limit => limit.overridden).length
+  return `${count} ${count === 1 ? 'limit' : 'limits'} · ${overridden} overridden`
+})
 const groups = computed(() => {
   const map = new Map<string, Limit[]>()
   for (const limit of [...limits.value].sort((a, b) => a.order - b.order)) {
@@ -80,11 +87,10 @@ async function save(limit: Limit, reset = false) {
 </script>
 
 <template>
-  <section class="ac-stack ac-limits" aria-labelledby="ac-limits-title">
-    <div>
-      <h2 id="ac-limits-title" class="ac-card-title">Limits</h2>
-      <p class="ac-hint">These defaults apply to Autocode tasks. Enter durations like 30m or 2h.</p>
-    </div>
+  <section class="ac-stack ac-limits" aria-label="Limits">
+    <PageHead title="Limits" icon="tabler:adjustments"
+      subtitle="Set task resource defaults and run retention. Enter durations such as 30m or 2h."
+      :count="limitSummary" />
     <p v-if="!loaded && !error" class="kx-loading" role="status">Loading limits…</p>
     <div v-if="error" class="kx-err" role="alert">{{ error }} <Button label="Retry" severity="secondary" text size="small" @click="load" /></div>
     <p v-if="status" class="ac-limit-status" role="status">{{ status }}</p>

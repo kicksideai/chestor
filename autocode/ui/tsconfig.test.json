@@ -3,6 +3,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
+      "@kickside/ui-kit/*": ["./.wippy/npm/@kickside/ui-kit/*"],
       "vitest": ["./node_modules/vitest"],
       "ajv": ["./node_modules/ajv"],
       "@vue/test-utils": ["./node_modules/@vue/test-utils"],

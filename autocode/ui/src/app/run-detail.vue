@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
+import Disclosure from '@kickside/ui-kit/Disclosure.vue'
 import { useRequiredCatalog } from './catalog.ts'
 import { ref, computed, nextTick, onUnmounted, onMounted } from 'vue'
 import { config, host } from '@wippy-fe/proxy'
@@ -217,10 +218,10 @@ function usageLine(usage: Run['usage']) {
           <span v-if="run.workspace_id">{{ workspaceLabel(run.workspace_id) }}</span><span v-if="runModel(run)">{{ runModel(run) }}</span><span v-if="usageLine(run.usage)">{{ usageLine(run.usage) }}</span>
         </div>
       </header>
-      <details class="ac-detail-section"><summary class="kx-focus-outline">Effective options</summary>
+      <Disclosure class="ac-detail-section" label="Effective options">
         <pre class="ac-pre">{{ JSON.stringify(run.options, null, 2) }}</pre>
         <p v-if="run.endpoint" class="ac-muted">{{ run.endpoint.protocol }} · {{ run.endpoint.base_url }} · {{ run.endpoint.model }}</p>
-      </details>
+      </Disclosure>
       <section v-if="run.usage.models" class="ac-detail-section" aria-label="Usage by model">
         <h3>Usage by model</h3>
         <p v-for="(usage, model) in run.usage.models" :key="model" class="ac-muted">{{ model }} · {{ usageLine(usage) }}</p>

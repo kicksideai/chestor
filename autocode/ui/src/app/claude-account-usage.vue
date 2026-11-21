@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
+import Disclosure from '@kickside/ui-kit/Disclosure.vue'
 import { computed } from 'vue'
 import type { Account } from './dto.ts'
 import AccountUsage from './account-usage.vue'
@@ -20,9 +21,8 @@ const hasDetails = computed(() => !!props.account.rate_limits?.windows.length ||
 <template>
   <AccountUsage :account="account" />
   <p v-if="overage" class="ac-hint">{{ overage }}</p>
-  <details v-if="hasDetails" class="ac-account-details">
-    <summary class="kx-focus-outline">Usage details</summary>
+  <Disclosure v-if="hasDetails" class="ac-account-details" label="Usage details">
     <div v-for="window in account.rate_limits?.windows" :key="window.window"><code>{{ window.window }} · {{ window.status }}</code></div>
     <div v-if="overage"><code>{{ account.rate_limits?.overage_disabled_reason || account.rate_limits?.overage_status }}</code></div>
-  </details>
+  </Disclosure>
 </template>

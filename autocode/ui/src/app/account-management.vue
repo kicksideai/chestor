@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
+import Disclosure from '@kickside/ui-kit/Disclosure.vue'
 import { computed, nextTick, ref, watch } from 'vue'
 import { Icon } from '@iconify/vue'
 import Button from 'primevue/button'
@@ -15,7 +16,6 @@ import PageHead from './page-head.vue'
 import ProviderChoice from './provider-choice.vue'
 
 const props = withDefaults(defineProps<{ active?: boolean }>(), { active: true })
-const emit = defineEmits<{ status: [value: string] }>()
 const providers = ref<AccountProvider[]>([])
 const accounts = ref<Account[]>([])
 const selected = ref('')
@@ -58,12 +58,13 @@ const more = computed(() => choices.value.filter(provider => !provider.total && 
 const current = computed(() => choices.value.find(provider => provider.provider_id === selected.value))
 
 watch(() => props.active, active => { if (!active) selected.value = '' })
-watch(() => {
+const status = computed(() => {
   if (!loaded.value) return undefined
-  if (!accounts.value.length) return 'No accounts'
+  if (!accounts.value.length) return 'No accounts yet'
   const ready = accounts.value.filter(account => accountHealth(account, now.value).state === 'ready').length
   return `${ready} of ${accounts.value.length} ready`
-}, value => { if (value !== undefined) emit('status', value) })
+})
+
 
 async function choose(id: string, event: MouseEvent) {
   if (event.currentTarget instanceof HTMLElement) previousChoice = event.currentTarget
@@ -103,7 +104,7 @@ useHostVisibilityRefresh(load)
         </Button>
       </div>
       <div ref="detailHeading" tabindex="-1">
-        <PageHead :title="current.name" :subtitle="current.hint" :icon="current.icon || 'tabler:key'" />
+        <PageHead :title="current.name" :subtitle="current.hint" :count="current.total ? `${current.ready} of ${current.total} ready` : current.status" :icon="current.icon || 'tabler:key'" />
       </div>
       <AccountProviderMount v-if="current.create_ui_id" :key="current.provider_id"
         :tag="current.create_ui_id" :provider-id="current.provider_id" @changed="load" />
@@ -114,8 +115,8 @@ useHostVisibilityRefresh(load)
       </template>
     </div>
     <div v-if="loaded" v-show="!current" class="ac-stack">
-      <PageHead title="Accounts" subtitle="Connect a provider to run tasks, see usage, and manage access." icon="tabler:key" />
-      <p v-if="!choices.length" class="ac-muted">No Autocode providers are installed.</p>
+      <PageHead title="Accounts" subtitle="Connect a provider to run tasks, see usage, and manage access." icon="tabler:key" :count="status" />
+      <p v-if="!choices.length" class="ac-muted">Install an Autocode provider in System → Modules, then return here to connect an account.</p>
       <nav v-else aria-label="Account providers" class="ac-stack">
         <div v-if="preferred.length" class="ac-provider-grid">
           <ProviderChoice v-for="provider in preferred" :key="provider.provider_id" :data-account-provider="provider.provider_id"
@@ -123,14 +124,13 @@ useHostVisibilityRefresh(load)
             :status="provider.status" :severity="provider.severity" :count="provider.total ? `${provider.ready} of ${provider.total} ready` : undefined"
             @click="choose(provider.provider_id, $event)" />
         </div>
-        <details v-if="more.length" class="ac-more-providers" :open="!preferred.length || undefined">
-          <summary class="kx-focus-outline">More providers <span class="ac-muted">{{ more.length }}</span></summary>
+        <Disclosure v-if="more.length" :label="`More providers · ${more.length}`" :open="!preferred.length">
           <div class="ac-provider-grid">
             <ProviderChoice v-for="provider in more" :key="provider.provider_id" :data-account-provider="provider.provider_id"
               :title="provider.name" :hint="provider.hint" :icon="provider.icon || 'tabler:terminal-2'"
               :status="provider.status" :severity="provider.severity" @click="choose(provider.provider_id, $event)" />
           </div>
-        </details>
+        </Disclosure>
       </nav>
     </div>
   </section>

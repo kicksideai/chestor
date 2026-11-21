@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
+import Disclosure from '@kickside/ui-kit/Disclosure.vue'
 import { errorText } from './presentation.ts'
 import { ref, computed, watch, nextTick } from 'vue'
 import { useProps, useEvents, useHostVisibilityRefresh } from '@wippy-fe/webcomponent-vue'
@@ -181,7 +182,7 @@ useHostVisibilityRefresh(serial(async () => {
         <input type="checkbox" class="kx-focus-outline" :checked="inherited.include_input !== false" @change="set({ include_input: ($event.target as HTMLInputElement).checked })" />
         Pass the node's input to the agent after the task
       </label>
-      <details class="ac-advanced"><summary class="kx-focus-outline">Advanced</summary><div class="tc">
+      <Disclosure class="ac-advanced" label="Advanced"><div class="tc">
       <label v-if="driver?.unattended" class="tc-check">
         <input type="checkbox" class="kx-focus-outline" :checked="inherited.unattended !== false" @change="set({ unattended: ($event.target as HTMLInputElement).checked })" />
         Unattended: skip permission prompts
@@ -206,7 +207,7 @@ useHostVisibilityRefresh(serial(async () => {
         <span class="tc-lbl">Repository ref</span>
         <input class="tc-input tc-mono kx-focus-halo" aria-label="Repository ref" :value="inherited.repo_ref" placeholder="Default branch" @change="set({ repo_ref: ($event.target as HTMLInputElement).value.trim() })" />
       </label>
-      </div></details>
+      </div></Disclosure>
       <p class="tc-hint">Output: <code>run_id</code>, <code>status</code>, <code>answer</code>, <code>error</code>, <code>usage</code>, <code>agent</code>, <code>account_id</code>; next nodes read them as <code>output.answer</code>.</p>
     </template>
   </div>
