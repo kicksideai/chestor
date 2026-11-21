@@ -7,6 +7,7 @@ import { z } from 'zod'
 import * as dto from './dto.ts'
 import type { ImageSettings } from './dto.ts'
 export type * from './dto.ts'
+import { deviceResult, type DeviceRequest } from './codex-device-api.ts'
 import type { DriverAccountSubmit } from '../driver-account-types.ts'
 
 const errorFields = z.object({ kind: z.string().optional(), code: z.string().optional(), retryable: z.boolean().optional(), details: z.record(z.unknown()).optional() })
@@ -79,7 +80,9 @@ export const autocode = {
     'get', '/management/accounts' + (filter ? '?' + new URLSearchParams(filter).toString() : ''),
     z.object({ accounts: z.array(dto.account), providers: z.array(dto.accountProvider), agent: z.string().optional() }),
   ),
+  codexDevice: (body: DeviceRequest) => call('post', '/management/accounts/codex/device', deviceResult, body),
   accounts: () => call('get', '/accounts', z.object({ accounts: z.array(dto.account) })).then(r => r.accounts),
+  connectAccount: (body: DriverAccountSubmit) => call('post', '/management/accounts/connect', idResponse.extend({ checked: z.boolean() }), body),
   createAccount: (body: DriverAccountSubmit) => call('post', '/accounts', idResponse, body),
   updateAccount: (id: string, body: { label?: string; enabled?: boolean; secret?: string; endpoint?: { base_url: string; protocol?: string; model?: string } }) => call('put', `/accounts/${encodeURIComponent(id)}`, idResponse.extend({ health_error: errorFields.extend({ message: z.string() }).optional() }), body),
   deleteAccount: (id: string) => call('delete', `/accounts/${encodeURIComponent(id)}`, success),

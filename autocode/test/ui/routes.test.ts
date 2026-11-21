@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
-import { mocks, normal, render, respond, run, summary } from './fixtures.ts'
+import { account, mocks, normal, render, respond, run, summary } from './fixtures.ts'
 import { describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import PrimeVue from 'primevue/config'
@@ -13,6 +13,37 @@ const hostProps = reactive(mocks.props)
 const button = (w: VueWrapper, label: string) => w.findAll('button').find(b => b.text().includes(label))!
 
 describe('run deep links', () => {
+  it('shows authorized settings in a section rail with live status and a single current section', async () => {
+    normal()
+    mocks.get.mockImplementation(async path => ({ data: { success: true, ...respond(path), ...(path.endsWith('/catalog')
+      ? { can_images: true, can_accounts: true }
+      : path.endsWith('/management/accounts') ? { accounts: [{ ...account, usable: true }], providers: [] } : {}) } }))
+    const w = render(Admin)
+    await flushPromises()
+    const rail = w.get('nav[aria-label="Autocode sections"]')
+    const sections = rail.findAll('[role=option]')
+    expect(sections.map(section => section.attributes('aria-label'))).toEqual(['Images', 'Accounts'])
+    expect(sections[0]!.text()).toContain('1 image')
+    expect(sections[1]!.text()).toContain('1 of 1 ready')
+    expect(sections[0]!.attributes('aria-selected')).toBe('true')
+    await sections[1]!.trigger('click')
+    expect(sections[0]!.attributes('aria-selected')).toBe('false')
+    expect(sections[1]!.attributes('aria-selected')).toBe('true')
+    expect(mocks.emit).toHaveBeenCalledWith('navigate', { path: '/system/autocode?section=accounts' })
+    expect(w.get('main h1').text()).toBe('Accounts')
+  })
+  it('restores a selected section from a settings route without opening a forbidden section', async () => {
+    mocks.props.value.route = 'system/autocode?section=accounts'
+    mocks.get.mockImplementation(async path => ({ data: { success: true, ...respond(path), ...(path.endsWith('/catalog')
+      ? { can_images: true, can_accounts: true }
+      : path.endsWith('/management/accounts') ? { accounts: [], providers: [] } : {}) } }))
+    const w = render(Admin)
+    await flushPromises()
+    expect(w.get('[role=option][aria-selected=true]').attributes('aria-label')).toBe('Accounts')
+    hostProps.value.route = 'system/autocode?section=limits'
+    await flushPromises()
+    expect(w.get('[role=option][aria-selected=true]').attributes('aria-label')).toBe('Images')
+  })
   it('links every task area to host-bound image and workspace management', async () => {
     normal()
     mocks.get.mockImplementation(async path => ({ data: { success: true, ...respond(path), ...(path.endsWith('/catalog') ? { can_images: true, settings_path: '/custom/manage' } : {}) } }))
@@ -41,7 +72,7 @@ describe('run deep links', () => {
     const w = mount(Admin, { global: { plugins: [[PrimeVue, { unstyled: true }]] } })
     try {
       await flushPromises()
-      await button(w, 'Limits').trigger('click')
+      await w.get('[role=option][aria-label=Limits]').trigger('click')
       await flushPromises()
       expect(w.text()).toContain('Time limits')
       expect(w.text()).toContain('Stop a run after this time.')
@@ -68,9 +99,9 @@ describe('run deep links', () => {
       : { ...respond(url), can_accounts: true }) } }))
     const w = render(Admin)
     await flushPromises()
-    await button(w, 'Accounts').trigger('click')
+    await w.get('[role=option][aria-label=Accounts]').trigger('click')
     await flushPromises()
-    expect(w.text()).toContain('Set up an account')
+    expect(w.text()).toContain('Not set up')
     await button(w, 'Agent').trigger('click')
     await flushPromises()
     const editor = w.get('external-agent-accounts')
@@ -79,6 +110,24 @@ describe('run deep links', () => {
     editor.element.dispatchEvent(new CustomEvent('connection-saved', { detail: { success: true } }))
     await flushPromises()
     expect(mocks.get).toHaveBeenCalledWith(path)
+  })
+  it('lists configured providers first and keeps Codex and Claude Code outside More providers', async () => {
+    const providers = [
+      { agent: 'agy', title: 'Antigravity CLI', provider_id: 'agy' },
+      { agent: 'pi', title: 'Pi CLI', provider_id: 'pi' },
+      { agent: 'claude', title: 'Claude', provider_id: 'claude' },
+      { agent: 'codex', title: 'Codex CLI', provider_id: 'codex' },
+    ]
+    mocks.get.mockImplementation(async url => ({ data: { success: true, ...(url.endsWith('/management/accounts')
+      ? { accounts: [{ ...account, agent: 'pi', usable: true }], providers }
+      : { ...respond(url), can_accounts: true }) } }))
+    const w = render(Admin)
+    await flushPromises()
+    const list = w.get('nav[aria-label="Account providers"]')
+    expect(list.findAll(':scope > div button .kx-card-name').map(name => name.text())).toEqual(['Pi', 'Codex', 'Claude Code'])
+    expect(list.get('details').element.open).toBe(false)
+    expect(list.get('details').text()).toContain('Antigravity')
+    expect(list.text()).toContain('1 of 1 ready')
   })
   it('follows live output through the page scroll owner and respects scrolling away', async () => {
     normal()
@@ -177,9 +226,10 @@ describe('run deep links', () => {
     const w = render(component)
     await flushPromises()
     expect(w.text()).toContain(count)
-    await w.get('button.ac-tab[aria-pressed="true"]').trigger('click')
+    const selector = component === Admin ? '[role=option][aria-selected=true]' : 'button.ac-tab[aria-pressed=true]'
+    await w.get(selector).trigger('click')
     await flushPromises()
-    expect(w.get('button.ac-tab[aria-pressed="true"]').text()).toBe(tab)
+    expect(w.get(selector).text()).toContain(tab)
     expect(w.text()).toContain(count)
   })
 

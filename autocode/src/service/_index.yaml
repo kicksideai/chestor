@@ -192,7 +192,7 @@ entries:
 - name: prepare
   kind: function.lua
   security:
-    policies: [chestor.autocode.security:account_secret_dispatch, chestor.autocode.security:account_secret_read]
+    policies: [chestor.autocode.security:account_secret_dispatch, chestor.autocode.security:account_secret_read, chestor.autocode.security:codex_oauth, chestor.autocode.security:codex_refresh_lock]
   meta:
     comment: Runs under the run owner - admits the recorded run again with the owner's current grants and reads the account credential.
   source: file://owner.lua
@@ -200,7 +200,10 @@ entries:
   modules: &owner_modules
     - security
     - funcs
+    - time
   imports: &owner_imports
+    codex_auth: chestor.autocode.drivers:codex_auth
+    codex_device: chestor.autocode.drivers:codex_device
     component_types: kickside.component:types
     envelope: kickside.component:envelope
     image_state: chestor.autocode.domain:image_state

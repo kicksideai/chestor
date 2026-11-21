@@ -81,7 +81,8 @@ function M.list(request: Object, management: boolean?): (Object?, error?)
     end
     return {accounts = views, next_offset = next_offset}, nil
 end
-function M.add_account(args: unknown): (Object?, error?)
+type Verify = (string, string, Object?) -> (boolean?, error?)
+function M.add_account(args: unknown, verify: Verify?): (Object?, error?)
     local body, input_err = boundary.input("chestor.autocode:accounts", "add_account", args)
     if not body then return nil, input_err end
     local agent = values.text(body.agent, 64) or ""
@@ -98,11 +99,17 @@ function M.add_account(args: unknown): (Object?, error?)
     if not credential then return nil, secret_err end
     local reach, reach_err = endpoint(body, driver, kind)
     if reach_err then return nil, reach_err end
+    local checked: boolean? = nil
+    if verify then
+        local check_err: error?
+        checked, check_err = verify(kind.id, credential, reach)
+        if check_err then return nil, check_err end
+    end
     local id, err = resources.register("account", {title = label, agent = driver.id, credential_kind = kind.id,
         subscription = kind.subscription, enabled = true, runs_day = 0, failures_day = 0, endpoint_protocol = reach and reach.protocol or "",
         endpoint_base_url = reach and reach.base_url or "", endpoint_model = reach and reach.model or ""}, {credential = credential})
     if not id then return nil, boundary.native(err) end
-    return {id = id}, nil
+    return {id = id, checked = checked}, nil
 end
 function M.update_account(args: unknown): (Object?, error?)
     local body, input_err = boundary.input("chestor.autocode:accounts", "update_account", args)

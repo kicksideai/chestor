@@ -1,8 +1,9 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <!-- Native dialog stays in this shadow root while the browser top layer handles focus and modality. See docs/reference.md#frontend-dialog-deviation. -->
 <script setup lang="ts">
+import { Icon } from '@iconify/vue'
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-const props = defineProps<{ title: string; wide?: boolean; busy?: boolean }>()
+const props = defineProps<{ title: string; wide?: boolean; busy?: boolean; icon?: string }>()
 const emit = defineEmits<{ close: [] }>()
 const dialog = ref<HTMLDialogElement | null>(null)
 function cancel(event: Event) {
@@ -24,7 +25,11 @@ onBeforeUnmount(() => { if (dialog.value?.open) dialog.value.close() })
 
 <template>
   <dialog ref="dialog" :class="['ac-dialog', { 'ac-dialog-wide': wide }]" :aria-label="title" aria-modal="true" :aria-busy="busy || undefined" @cancel="cancel" @close="!busy && emit('close')" @click="backdrop">
-    <header class="ac-dialog-header"><h2>{{ title }}</h2><button type="button" class="ac-icon-btn kx-focus-outline" aria-label="Close dialog" :disabled="busy" @click="emit('close')">×</button></header>
+    <header class="ac-dialog-header">
+      <span v-if="icon" class="kx-modal-head-icon"><Icon :icon="icon" aria-hidden="true" /></span>
+      <h2 :class="{ 'kx-modal-head-title': icon }">{{ title }}</h2>
+      <button type="button" class="ac-icon-btn kx-focus-outline" aria-label="Close dialog" :disabled="busy" @click="emit('close')">×</button>
+    </header>
     <div class="ac-dialog-content"><slot /></div>
   </dialog>
 </template>

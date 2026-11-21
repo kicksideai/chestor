@@ -81,6 +81,29 @@ subscription token `CLAUDE_CODE_OAUTH_TOKEN`. An undeclared kind returns `Invali
 with code `autocode.invalid_account`. Other CLIs advertise their own credential
 kinds through `list_agents`.
 
+### System account setup
+
+System → Autocode uses the host route's `section` query parameter for Images,
+Workspaces, Docker, Limits and Accounts. Account management mounts the
+`meta.component.create.view` registered by the driver binding, passes its ID
+as `provider-id` and refreshes readiness on `connection-saved`.
+
+Bundled providers validate pasted credentials before storing them. The management
+connect endpoint checks supported API keys against the issuer's read-only API
+and saves only after acceptance. CLI imports and credentials for custom
+endpoints are format-checked. A task confirms those credentials with the provider.
+
+Codex owns ChatGPT device sign-in. The management endpoint starts, polls and
+cancels one short-lived authorization for the authenticated operator.
+Only the verification link, user code and opaque ticket go to the browser.
+An approved sign-in exchanges the authorization on the server and writes the
+official `chatgpt` auth cache through the account's encrypted private context.
+A reconnect requires the existing Codex subscription account and its owner.
+The runner serializes OAuth renewal by account, checks the stored revision
+when saving a rotated cache, and keeps the existing CLI writeback revision
+check for login files. Claude Code guides users through its terminal
+`claude setup-token` flow and supports importing its CLI login file.
+
 `submit_task.prompt` remains bounded to 16,384 UTF-8 bytes. Optional `input`
 accepts JSON with a separate bound of 65,536 UTF-8 bytes after serialization.
 The Block passes node input through this field when `include_input` is enabled;

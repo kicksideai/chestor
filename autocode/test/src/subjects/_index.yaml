@@ -165,8 +165,10 @@ entries:
   - name: owner_subject
     kind: library.lua
     source: file://../owner_subject.lua
-    modules: [security]
+    modules: [security, time]
     imports:
+      codex_auth: chestor.autocode.drivers:codex_auth
+      codex_device: chestor.autocode.drivers:codex_device
       funcs: app:stub_funcs
       component_types: kickside.component:types
       envelope: kickside.component:envelope

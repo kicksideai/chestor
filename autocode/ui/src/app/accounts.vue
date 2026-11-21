@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
 import { useRequiredCatalog } from './catalog.ts'
-import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { defineComponent, h, ref, computed, onMounted, watch, onUnmounted, type Component } from 'vue'
 import { Icon } from '@iconify/vue'
 import { host, loadByTagName } from '@wippy-fe/proxy'
 import { useHostVisibilityRefresh } from '@wippy-fe/webcomponent-vue'
@@ -12,7 +12,8 @@ import AppDialog from './app-dialog.vue'
 import AgentPicker from './agent-picker.vue'
 import { agentIcon, useRunClock, accountState, errorText } from './presentation.ts'
 import AccountRow from './account-row.vue'
-import ShareControl from './share-control.vue'
+import Message from 'primevue/message'
+import { providerProduct } from './account-health.ts'
 import { accountSubmission } from '../driver-account-types.ts'
 
 const alive = useAlive()
@@ -23,13 +24,20 @@ const props = withDefaults(defineProps<{
   management?: boolean
   providerId?: string
   allowSetup?: boolean
+  provider?: 'claude' | 'codex'
 }>(), { allowSetup: true })
+defineSlots<{
+  guide(): unknown
+  usage(props: { account: Account }): unknown
+  setup(props: { account?: Account; labelBytes?: number; busy: (busy: boolean) => void; saved: () => void; credential: Component }): unknown
+}>()
 const emit = defineEmits<{ count: [value: number]; changed: [] }>()
 const adding = ref(false)
 const editing = ref<Account | null>(null)
-function open() { editing.value = null; saveError.value = ''; adding.value = true }
+function open() { editing.value = null; saveError.value = ''; setupResult.value = ''; adding.value = true }
 function edit(account: Account) {
   editing.value = account
+  setupResult.value = ''
   agent.value = account.agent
   saveError.value = ''
   adding.value = true
@@ -43,14 +51,22 @@ const error = ref('')
 const warning = ref('')
 const loaded = ref(false)
 const saving = ref(false)
+const signingIn = ref(false)
+const setupResult = ref('')
 const saveError = ref('')
 const saved = ref(0)
 
 const agent = ref(props.selectedAgent || catalog.value.agents[0]?.id || '')
 watch(() => props.selectedAgent, value => { if (value) agent.value = value })
-const agentInfo = computed(() => catalog.value.agents.find((a) => a.id === agent.value))
+const agentInfo = computed(() => {
+  const info = catalog.value.agents.find(a => a.id === agent.value)
+  if (!info || !props.management) return info
+  return { ...info, title: providerProduct(info.id, info.title).name, credentials: info.credentials.map(credential => ({
+    ...credential, ...credentialCopy(credential),
+  })) }
+})
 // The driver's credential card, mounted by tag; it emits `submit`.
-const card = computed(() => JSON.stringify({ driver: agentInfo.value, busy: saving.value, error: saveError.value, saved: saved.value, account: editing.value ? { id: editing.value.id, label: editing.value.label, credential_kind: editing.value.credential_kind, endpoint: editing.value.endpoint } : undefined, limits: catalog.value.account_limits }))
+const card = computed(() => JSON.stringify({ driver: agentInfo.value, busy: saving.value, error: saveError.value, saved: saved.value, guided: props.management, initialKind: props.provider === 'claude' ? 'env:CLAUDE_CODE_OAUTH_TOKEN' : undefined, account: editing.value ? { id: editing.value.id, label: editing.value.label, credential_kind: editing.value.credential_kind, endpoint: editing.value.endpoint } : undefined, limits: catalog.value.account_limits }))
 
 // Accounts grouped under the agents the catalog lists, in catalog order.
 const groups = computed(() => [...catalog.value.agents, ...[...new Set(accounts.value.map(a => a.agent))]
@@ -59,8 +75,35 @@ const groups = computed(() => [...catalog.value.agents, ...[...new Set(accounts.
   .map((a) => ({ agent: a, accounts: accounts.value.filter((x) => x.agent === a.id && [x.label, a.title, x.credential_kind].join(' ').toLowerCase().includes(props.query.toLowerCase())) }))
   .filter((g) => g.accounts.length))
 
+const keyIssuers: Record<string, string> = {
+  ANTHROPIC: 'Anthropic', CODEX: 'OpenAI', DEEPSEEK: 'DeepSeek', GEMINI: 'Gemini', GROQ: 'Groq',
+  META: 'Meta', MISTRAL: 'Mistral', OPENAI: 'OpenAI', OPENROUTER: 'OpenRouter', XAI: 'xAI',
+}
+
+function credentialCopy(credential: { id: string; label: string; hint?: string; file?: string; subscription?: boolean }) {
+  if (!props.management) return { label: credential.label, hint: credential.hint }
+  if (credential.file) return { label: 'CLI login file', hint: credential.hint }
+  if (credential.subscription) return { label: 'Subscription token', hint: 'Paste the subscription token from the provider.' }
+  const prefix = credential.id.match(/^env:([A-Z]+)_API_KEY$/)?.[1]
+  const issuer = prefix && keyIssuers[prefix]
+  return { label: issuer ? `${issuer} API key` : credential.label, hint: 'Paste the key generated in the provider dashboard.' }
+}
+
 function kindLabel(a: Account) {
-  return catalog.value.agents.find((x) => x.id === a.agent)?.credentials.find((c) => c.id === a.credential_kind)?.label ?? a.credential_kind
+  const credential = catalog.value.agents.find(x => x.id === a.agent)?.credentials.find(c => c.id === a.credential_kind)
+  return credential ? credentialCopy(credential).label : props.management ? 'Saved credential' : a.credential_kind
+}
+
+const nativeReconnect = (a: Account) => props.provider === 'codex' && a.mine && a.credential_kind === 'file:.codex/auth.json'
+const credentialEditor = defineComponent({
+  name: 'CredentialEditor',
+  setup: () => () => h('chestor-autocode-driver-account', { config: card.value, onSubmit: submit }),
+})
+function signInBusy(value: boolean) { signingIn.value = value }
+async function signedIn() {
+  setupResult.value = 'The Codex account is ready to run tasks.'
+  await refresh()
+  if (alive()) emit('changed')
 }
 
 // Keep the ownership line for accounts shared with the caller.
@@ -128,10 +171,15 @@ async function submit(event: Event) {
       })
       if (!alive()) return
       warning.value = updated.health_error ? `Account saved, but its health could not be refreshed: ${updated.health_error.message}` : ''
+    } else if (props.management) {
+      const connected = await autocode.connectAccount(account)
+      if (alive()) setupResult.value = connected.checked
+        ? 'The provider accepted the credential. Your account is ready to run tasks.'
+        : 'Credential saved. Run a task to confirm this account can connect to the provider.'
     } else await autocode.createAccount(account)
     if (!alive()) return
     saved.value++
-    adding.value = false
+    if (!props.management || editing.value) adding.value = false
     await refresh()
     if (alive()) emit('changed')
   } catch (e) {
@@ -175,7 +223,7 @@ onMounted(() => {
     <p v-if="warning" class="kx-err inline" role="status">{{ warning }}</p>
     <div v-if="!loaded && !error" class="kx-loading">Loading accounts…</div>
     <div v-if="management && loaded && allowSetup" class="ac-card-head ac-provider-actions">
-      <p v-if="!accounts.length" class="ac-hint">No accounts configured.</p>
+      <p class="ac-hint">{{ accounts.length ? `${accounts.length} ${accounts.length === 1 ? 'account' : 'accounts'}` : 'No accounts yet' }}</p>
       <Button label="Add account" :disabled="!agentInfo" @click="open"><template #icon><Icon icon="tabler:plus" aria-hidden="true" /></template></Button>
     </div>
     <div v-if="!management && loaded && !accounts.length" class="kx-empty">
@@ -187,14 +235,34 @@ onMounted(() => {
     <section v-for="g in groups" :key="g.agent.id" class="ac-stack">
       <div v-if="!management" class="ac-card-head"><h2 class="ac-card-title"><Icon :icon="agentIcon(g.agent.id, catalog.agents)" />{{ g.agent.title }}</h2><span class="ac-muted">{{ g.accounts.filter(a => a.usable && accountState(a, now) === 'ready').length }} of {{ g.accounts.length }} ready</span></div>
       <ul class="ac-account-grid">
-        <AccountRow v-for="a in g.accounts" :key="a.id" :account="a" :kind-label="kindLabel(a)" :owner-label="owners[a.owner_user_id] || a.owner_user_id" :management="management" :edit-credentials="allowSetup" @edit="edit(a)" @toggle="toggle(a)"
+        <AccountRow v-for="a in g.accounts" :key="a.id" :account="a" :kind-label="kindLabel(a)" :owner-label="owners[a.owner_user_id] || a.owner_user_id" :management="management" :edit-credentials="allowSetup" :native-reconnect="nativeReconnect(a)" @edit="edit(a)" @toggle="toggle(a)"
           @rename="(label: string) => rename(a, label)" @remove="remove(a)">
-          <template v-if="management && a.shareable" #actions><ShareControl :id="a.id" :title="a.label" /></template>
+          <template v-if="$slots.usage" #usage="scope"><slot name="usage" v-bind="scope" /></template>
         </AccountRow>
       </ul>
     </section>
-    <AppDialog v-if="adding" :title="editing ? 'Edit account' : 'Add account'" :busy="saving" @close="adding = false">
-      <div class="ac-form"><AgentPicker v-if="!editing && !management" :disabled="saving" v-model="agent" :agents="catalog.agents" /><p v-if="!editing && !management" class="ac-hint">Tasks balance across your ready accounts automatically.</p><chestor-autocode-driver-account v-if="agentInfo" :config.attr="card" @submit="submit" /><p v-else class="kx-err" role="alert">This account’s agent is unavailable.</p></div>
+    <AppDialog v-if="adding" :title="editing ? 'Edit account' : 'Add account'" :busy="saving || signingIn" :icon="management ? agentInfo?.icon : undefined" @close="adding = false">
+      <div class="ac-form">
+        <template v-if="setupResult">
+          <Message severity="success" :closable="false" role="status">{{ setupResult }}</Message>
+          <div class="ac-setup-actions"><Button label="Done" @click="adding = false" /></div>
+        </template>
+        <template v-else-if="management && (!editing || nativeReconnect(editing))">
+          <slot name="setup" :account="editing ?? undefined" :labelBytes="catalog.account_limits?.label_bytes"
+            :busy="signInBusy" :saved="signedIn" :credential="credentialEditor">
+            <slot name="guide">
+              <p class="ac-hint">Add a credential from the provider dashboard or from the CLI on a machine that is already signed in.</p>
+            </slot>
+            <component v-if="agentInfo" :is="credentialEditor" />
+          </slot>
+        </template>
+        <template v-else>
+          <AgentPicker v-if="!editing && !management" :disabled="saving" v-model="agent" :agents="catalog.agents" />
+          <p v-if="!editing && !management" class="ac-hint">Tasks balance across your ready accounts automatically.</p>
+          <component v-if="agentInfo" :is="credentialEditor" />
+          <p v-else class="kx-err" role="alert">This account’s agent is unavailable.</p>
+        </template>
+      </div>
     </AppDialog>
   </div>
 </template>

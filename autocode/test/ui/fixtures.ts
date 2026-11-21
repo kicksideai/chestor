@@ -3,6 +3,7 @@ import { afterEach, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { ref, reactive } from 'vue'
 import Ajv from 'ajv'
+import PrimeVue from 'primevue/config'
 import type { AgentInfo } from '../../ui/src/app/api.ts'
 
 const mocks = vi.hoisted(() => ({ get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn(), confirm: vi.fn(), callbacks: new Map<string, () => void>(), props: { value: { route: '', config: {} as Record<string, unknown> } }, emit: vi.fn() }))
@@ -27,7 +28,10 @@ export function requestContractErrors(method: string, path: string, body?: unkno
   const account = route.match(/^\/accounts\/([^/]+)$/)
   const run = route.match(/^\/runs\/([^/]+)(\/cancel)?$/)
   const profile = route.match(/^\/profiles\/([^/]+)$/)
-  if (route === '/profiles') {
+  if (route === '/management/accounts/connect' && method === 'post') {
+    contract = 'add_account'
+    input = body as Record<string, unknown>
+  } else if (route === '/profiles') {
     contract = method === 'get' ? 'list_profiles' : 'add_profile'
     input = method === 'get' ? {} : body as Record<string, unknown>
   } else if (profile) {
@@ -85,7 +89,7 @@ export const summary = { ...run, prompt_summary: run.prompt }
 export const option = { name: 'config', label: 'Configuration', description: '', section: '', group: '', order: 1, type: 'json', schema: { type: 'object' } }
 const wrappers: { unmount: () => void }[] = []
 export function render<T extends Parameters<typeof mount>[0]>(component: T, props?: NonNullable<Parameters<typeof mount<T>>[1]>['props'], agents?: AgentInfo[]) {
-  const wrapper = mount(component, { props, global: { provide: { catalog: ref({ ...catalog, agents: agents ?? catalog.agents }) }, stubs: { Icon: true, Button: true, AppDialog: { name: 'AppDialog', template: '<div><slot /></div>' } } } })
+  const wrapper = mount(component, { props, global: { plugins: [[PrimeVue, { unstyled: true }]], provide: { catalog: ref({ ...catalog, agents: agents ?? catalog.agents }) }, stubs: { Icon: true, Button: true, AppDialog: { name: 'AppDialog', template: '<div><slot /></div>' } } } })
   wrappers.push(wrapper)
   return wrapper
 }

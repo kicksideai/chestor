@@ -219,7 +219,10 @@ entries:
       base_path: chestor-autocode
       entry_point: admin.js
       description: Manage Autocode images, workspaces, Docker maintenance, run limits and driver accounts in System settings.
-      props: {}
+      props:
+        type: object
+        properties:
+          route: {type: string, default: "", description: Host settings route.}
 
   - name: settings_tab
     kind: registry.entry

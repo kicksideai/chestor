@@ -7,6 +7,7 @@ import { accountLimits, agentInfo, endpoint } from './app/dto.ts'
 // host's save; the host bumps saved after it stores an account.
 export const driverAccountConfig = z.object({
   driver: agentInfo,
+  guided: z.boolean().optional(), initialKind: z.string().optional(),
   busy: z.boolean().optional(), error: z.string().optional(), saved: z.number().optional(), limits: accountLimits.optional(),
   account: z.object({ id: z.string(), label: z.string(), credential_kind: z.string(), endpoint: endpoint.optional() }).optional(),
 })

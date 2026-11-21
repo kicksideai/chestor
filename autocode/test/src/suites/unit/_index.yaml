@@ -323,3 +323,13 @@ entries:
     security:
       actor: {id: app:test_runner}
       policies: [app:test_runtime]
+
+  - name: device_login_test
+    kind: function.lua
+    meta: {type: test, suite: autocode_device_login, group: Autocode}
+    source: file://../../suites/device_login_test.lua
+    method: run
+    modules: [base64, json]
+    imports:
+      test: wippy.test:test
+      device: chestor.autocode.drivers:codex_device

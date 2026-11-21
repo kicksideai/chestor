@@ -364,3 +364,43 @@ entries:
     method: POST
     path: /hook/{action_id}
     func: run_hook
+
+  - name: codex_device
+    kind: function.lua
+    meta: {comment: Start, poll or cancel the caller's Codex device sign-in.}
+    source: file://codex_device.lua
+    method: handler
+    security:
+      policies: [chestor.autocode.security:codex_oauth, chestor.autocode.security:codex_sign_in_store, chestor.autocode.security:codex_sign_in_lock, chestor.autocode.security:codex_refresh_lock]
+    modules: [security, store, time, uuid]
+    imports:
+      accounts: chestor.autocode.service:accounts
+      auth: chestor.autocode.drivers:codex_auth
+      device: chestor.autocode.drivers:codex_device
+      resources: chestor.autocode.components:resources
+      values: chestor.autocode.service:values
+      web: chestor.autocode.api:web
+
+  - name: codex_device.endpoint
+    kind: http.endpoint
+    method: POST
+    func: codex_device
+    path: /autocode/management/accounts/codex/device
+
+  - name: account_connect
+    kind: function.lua
+    meta: {comment: Check and add one provider credential to the caller's Autocode accounts.}
+    source: file://account_connect.lua
+    method: handler
+    security:
+      policies: [chestor.autocode.security:account_check_http]
+    imports:
+      accounts: chestor.autocode.service:accounts
+      check: chestor.autocode.drivers:account_check
+      web: chestor.autocode.api:web
+
+  - name: account_connect.endpoint
+    kind: http.endpoint
+    method: POST
+    func: account_connect
+    path: /autocode/management/accounts/connect
