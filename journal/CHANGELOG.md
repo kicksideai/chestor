@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.8](https://github.com/kicksideai/chestor/compare/journal-v0.3.7...journal-v0.3.8) (2026-11-21)
+
+
+### Bug Fixes
+
+* **journal:** preserve event identity on state rewind ([#89](https://github.com/kicksideai/chestor/issues/89)) ([0771cad](https://github.com/kicksideai/chestor/commit/0771cad43cf4c757551563e8ae53a215a9a8153d))
+
 ## [0.3.7](https://github.com/kicksideai/chestor/compare/journal-v0.3.6...journal-v0.3.7) (2026-11-21)
 
 
