@@ -63,12 +63,12 @@ local function with_db(fn: (any) -> ())
     handle:release()
 end
 
-local function project(handle: any, journal_id: string, events: { any }): string?
+local function project(handle: any, journal_id: string, events: { any }, recover: boolean?): error?
     local tx, begin_err = handle:begin()
     if begin_err or not tx then
-        return "failed to begin graph projection test transaction: " .. tostring(begin_err)
+        return errors.new({ message = "failed to begin graph projection test transaction: " .. tostring(begin_err) })
     end
-    local project_err = projector.project_events(tx, journal_id, events)
+    local project_err = projector.project_events(tx, journal_id, events, recover)
     if project_err then
         tx:rollback()
         return project_err
@@ -222,6 +222,88 @@ local function define_tests()
                 test.eq(map.edges[1].from, "task:task-1")
                 test.eq(map.edges[1].to, "task:parent-1")
                 test.eq(map.edges[1].metadata.rule, "task_parent")
+            end)
+        end)
+
+        test.it("repairs missing fact nodes and edges without undoing later removals", function()
+            local journal_id = "journal-graph-rewind"
+            with_db(function(db)
+                local parent = event(1, types.EVENT.ENTRY_APPENDED, { event_id = "parent", event_type = "finding" })
+                local lost = event(2, types.EVENT.ENTRY_APPENDED, {
+                    event_id = "lost", event_type = "finding", parent_event_id = "parent",
+                })
+                local removed = event(3, types.EVENT.ENTRY_APPENDED, {
+                    event_id = "removed", event_type = "finding", parent_event_id = "parent",
+                })
+                local detached = event(4, types.EVENT.ENTRY_APPENDED, {
+                    event_id = "detached", event_type = "finding", parent_event_id = "parent",
+                })
+                test.is_nil(project(db, journal_id, { parent, lost, removed, detached }))
+                local original, original_err = reader.window(db, journal_id, "map", {})
+                test.is_nil(original_err)
+                local by_from: any = {}
+                for _, edge in ipairs(original.edges) do by_from[edge.from] = edge.id end
+                local lost_edge = by_from["event:lost"]
+                local removed_edge = by_from["event:removed"]
+                local detached_edge = by_from["event:detached"]
+                test.not_nil(lost_edge)
+                test.not_nil(removed_edge)
+                test.not_nil(detached_edge)
+                local operation = event(5, types.EVENT.GRAPH_OPS_REQUESTED, {
+                    graph_id = "map", request_id = "author",
+                    operations = {
+                        { op = "edge.add", id = "manual", from = "event:parent", to = "event:lost", metadata = { note = "keep" } },
+                        { op = "node.update", id = "event:removed", label = "renamed before removal" },
+                        { op = "node.remove", id = "event:removed" },
+                        { op = "edge.remove", id = detached_edge },
+                    },
+                })
+                test.is_nil(project(db, journal_id, { operation }))
+                local manual, manual_err = writer.edge(db, journal_id, "map", "manual")
+                test.is_nil(manual_err)
+                test.not_nil(manual)
+                test.is_nil(ops.exec(db, "DELETE FROM chestor_journal_graph_nodes WHERE journal_id = ? AND id = ?", { journal_id, "event:lost" }))
+                test.is_nil(ops.exec(db, "DELETE FROM chestor_journal_graph_edges WHERE journal_id = ? AND id = ?", { journal_id, lost_edge }))
+                local last_revision = nil
+                for _ = 1, 2 do
+                    test.is_nil(project(db, journal_id, { lost, removed, detached, operation }, true))
+                    local repaired = reader.window(db, journal_id, "map", {})
+                    local nodes: any = {}
+                    local edges: any = {}
+                    for _, node in ipairs(repaired.nodes) do nodes[node.id] = node end
+                    for _, edge in ipairs(repaired.edges) do edges[edge.id] = edge end
+                    test.eq(repaired.graph.last_source_seq, 4)
+                    if last_revision then test.eq(repaired.graph.revision, last_revision) end
+                    last_revision = repaired.graph.revision
+                    test.eq(nodes["event:lost"].ref_id, "lost")
+                    test.is_nil(nodes["event:removed"])
+                    test.not_nil(nodes["event:detached"])
+                    test.not_nil(edges[lost_edge])
+                    test.is_nil(edges[removed_edge])
+                    test.is_nil(edges[detached_edge])
+                    local current_manual, current_err = writer.edge(db, journal_id, "map", "manual")
+                    test.is_nil(current_err)
+                    test.eq(ops.canonical(current_manual), ops.canonical(manual))
+                end
+            end)
+        end)
+
+        test.it("reports a source gap when a later partial graph edit has lost its base row", function()
+            local journal_id = "journal-graph-incomplete-rewind"
+            with_db(function(db)
+                local fact = event(1, types.EVENT.ENTRY_APPENDED, { event_id = "edited", event_type = "finding" })
+                local patch = event(2, types.EVENT.GRAPH_OPS_REQUESTED, {
+                    graph_id = "map", request_id = "partial",
+                    operations = { { op = "node.update", id = "event:edited", label = "manually edited" } },
+                })
+                test.is_nil(project(db, journal_id, { fact, patch }))
+                test.is_nil(ops.exec(db, "DELETE FROM chestor_journal_graph_nodes WHERE journal_id = ? AND id = ?", { journal_id, "event:edited" }))
+                local replay_err = project(db, journal_id, { fact, patch }, true)
+                test.is_true(errors.is(replay_err, errors.CONFLICT))
+                test.eq((replay_err :: error):details().reason, "source_gap")
+                local node, node_err = writer.node(db, journal_id, "map", "event:edited")
+                test.is_nil(node_err)
+                test.is_nil(node)
             end)
         end)
 

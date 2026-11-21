@@ -139,6 +139,135 @@ local function apply_change(tx: any, journal_id: string, change: any, revision: 
     return nil
 end
 
+local function source_gap(graph_id: string, target_id: string, source_seq: number): error
+    return errors.new({
+        kind = errors.CONFLICT,
+        message = "Journal graph source gap: cannot recover " .. graph_id .. "/" .. target_id
+            .. " from sequence " .. tostring(source_seq),
+        details = { reason = "source_gap", graph_id = graph_id, target_id = target_id, source_seq = source_seq },
+    })
+end
+
+local function request_removed_target(tx: any, journal_id: string, graph_id: string, latest: any,
+    target_type: string, target_id: string): (boolean, error?)
+    local delta = db.decode(latest.payload_json, {})
+    local request_id = trim(delta.request_id)
+    if request_id == "" then return false, nil end
+    local request, request_err = writer.request(tx, journal_id, request_id)
+    if request_err then return false, request_err end
+    if not request or request.status ~= "applied" or request.graph_id ~= graph_id
+        or request.graph_revision ~= latest.revision then
+        return false, nil
+    end
+    local payload = db.decode(request.payload_json, {})
+    local operations = payload.operations or {}
+    local remove, add = target_type .. ".remove", target_type .. ".add"
+    for index = #operations, 1, -1 do
+        local op = operations[index]
+        if op.id == target_id and (op.op == remove or op.op == add) then
+            return op.op == remove, nil
+        end
+    end
+    return false, nil
+end
+
+local function restore_target(tx: any, journal_id: string, target: any, source_event_id: string,
+    source_seq: number, revision: number): (boolean, error?)
+    local graph_id, target_type, target_id = tostring(target.graph_id), tostring(target.target_type), tostring(target.target_id)
+    local read_target = target_type == "node" and writer.node or writer.edge
+    local present, read_err = read_target(tx, journal_id, graph_id, target_id)
+    if read_err or present then return false, read_err end
+    local changes, change_err = writer.latest_target_changes(tx, journal_id, graph_id, target_type, target_id)
+    if change_err then return false, change_err end
+    local latest = changes[1]
+    local snapshot = target.fallback
+    if latest then
+        if changes[2] and changes[2].revision == latest.revision then
+            local removed, remove_err = request_removed_target(tx, journal_id, graph_id, latest, target_type, target_id)
+            if remove_err or removed then return false, remove_err end
+            return false, source_gap(graph_id, target_id, source_seq)
+        end
+        if latest.operation == target_type .. ".remove" then return false, nil end
+        if latest.operation ~= target_type .. ".upsert" then
+            return false, source_gap(graph_id, target_id, source_seq)
+        end
+        snapshot = db.decode(latest.payload_json, nil)
+    end
+    if type(snapshot) ~= "table" or snapshot.id ~= target_id then
+        return false, source_gap(graph_id, target_id, source_seq)
+    end
+    if target_type == "edge" then
+        -- Removing a node also deletes its incident edges. It remains a
+        -- removal even if a subsequent event reintroduced that endpoint.
+        local removed, remove_err = writer.endpoint_removed_after(tx, journal_id, graph_id, snapshot, tonumber(latest.revision) or 0)
+        if remove_err or removed then return false, remove_err end
+    end
+    local change: any = { graph_id = graph_id, evidence = source_event_id, seq = source_seq }
+    change[target_type] = snapshot
+    local write_err = apply_change(tx, journal_id, change, revision, "projector")
+    if write_err and writer.is_error(write_err, errors.NOT_FOUND, writer.ERROR.ENDPOINTS_MISSING) then
+        return false, source_gap(graph_id, target_id, source_seq)
+    end
+    return write_err == nil, write_err
+end
+
+-- A rewind re-delivers older facts against a graph with newer applied
+-- commands. Repair only missing rows, using the last recorded full values.
+-- Exact event nodes in the built-in map can also be recovered from a fact the
+-- graph never materialized. Named graph membership may have changed since.
+local function repair_replayed_fact(tx: any, journal_id: string, structural_changes: any,
+    event_id: string, source_seq: number): error?
+    local targets, targets_err = writer.missing_projection_targets(tx, journal_id, event_id, source_seq)
+    if targets_err then return targets_err end
+    local map_target_id = "event:" .. event_id
+    local map_target: any = nil
+    local has_map_target = false
+    for _, target in ipairs(targets) do
+        if target.graph_id == MAP_GRAPH_ID and target.target_type == "node" and target.target_id == map_target_id then
+            map_target = target
+            has_map_target = true
+        end
+    end
+    for _, item in ipairs(structural_changes) do
+        if item.graph_id == MAP_GRAPH_ID and item.node and item.node.id == map_target_id then
+            map_target = map_target or { graph_id = MAP_GRAPH_ID, target_type = "node", target_id = map_target_id }
+            map_target.fallback = item.node
+        end
+    end
+    if map_target and not has_map_target then
+        local existing, read_err = writer.node(tx, journal_id, MAP_GRAPH_ID, map_target_id)
+        if read_err then return read_err end
+        if not existing then targets[#targets + 1] = map_target end
+    end
+    table.sort(targets, function(left: any, right: any): boolean
+        if left.graph_id ~= right.graph_id then return left.graph_id < right.graph_id end
+        if left.target_type ~= right.target_type then return left.target_type > right.target_type end
+        return left.target_id < right.target_id
+    end)
+    local current_id = ""
+    local current: any = nil
+    local repaired: any = {}
+    for _, target in ipairs(targets) do
+        local graph_id = tostring(target.graph_id)
+        if graph_id ~= current_id then
+            local loaded, graph_err = writer.graph(tx, journal_id, graph_id, true)
+            if graph_err then return graph_err end
+            current, current_id = loaded, graph_id
+        end
+        if current and (tonumber(current.last_source_seq) or 0) >= source_seq then
+            local revision = (tonumber(current.graph_revision) or 0) + 1
+            local restored, restore_err = restore_target(tx, journal_id, target, event_id, source_seq, revision)
+            if restore_err then return restore_err end
+            if restored then repaired[graph_id] = revision end
+        end
+    end
+    for graph_id, revision in pairs(repaired) do
+        local finish_err = writer.finish_revision(tx, journal_id, graph_id, revision, nil)
+        if finish_err then return finish_err end
+    end
+    return nil
+end
+
 -- The deriver's lookups, bound to this transaction. node_for_event resolves a
 -- referenced event to the map node it projected; previous walks the derivation
 -- index for the most recent record under a shared key.
@@ -169,8 +298,12 @@ local function index_facts(tx: any, journal_id: string, changes: any, body: any,
     return nil
 end
 
-local function fold_structural(tx: any, journal_id: string, raw_event: any): error?
+local function fold_structural(tx: any, journal_id: string, raw_event: any, recovery_end: number): error?
     local changes, public_type, body, source_event_id, source_seq = structural.default_changes(raw_event)
+    if source_seq > 0 and source_seq <= recovery_end then
+        local repair_err = repair_replayed_fact(tx, journal_id, changes, source_event_id, source_seq)
+        if repair_err then return repair_err end
+    end
     -- Relations the fact already carries become edges in the same pass that
     -- materializes its node, so a map arrives connected rather than as
     -- unrelated records waiting for someone to link them.
@@ -433,9 +566,15 @@ local function fold_operations(tx: any, journal_id: string, raw_event: any): err
         "operations", request, "applied", nil, revision)
 end
 
-function M.project_events(tx: any, journal_id: string, events: any): error?
+function M.project_events(tx: any, journal_id: string, events: any, recover: boolean?): error?
     local defaults_err = writer.ensure_defaults(tx, journal_id)
     if defaults_err then return defaults_err end
+    local recovery_end = 0
+    if recover then
+        local previous, previous_err = writer.last_source_seq(tx, journal_id)
+        if previous_err then return previous_err end
+        recovery_end = previous or 0
+    end
     for _, raw_event in ipairs(type(events) == "table" and events or {}) do
         local kind = tostring((raw_event :: any).type or "")
         local err = nil
@@ -444,7 +583,7 @@ function M.project_events(tx: any, journal_id: string, events: any): error?
         elseif kind == types.EVENT.GRAPH_OPS_REQUESTED then
             err = fold_operations(tx, journal_id, raw_event)
         elseif types.EVENT_SET[kind] then
-            err = fold_structural(tx, journal_id, raw_event)
+            err = fold_structural(tx, journal_id, raw_event, recovery_end)
         end
         if err then return err end
     end
@@ -462,7 +601,8 @@ function M.run(input: any, component: any): (any?, error?)
     local tx, begin_err = handle:begin()
     if begin_err then handle:release(); return nil, errors.wrap(begin_err, "failed to begin journal graph transaction") end
     if not tx then handle:release(); return nil, errors.new({ kind = errors.INTERNAL, message = "journal graph transaction did not open" }) end
-    local project_err = M.project_events(tx, journal_id, input.events)
+    local cursor = type(input.cursor) == "table" and input.cursor or {}
+    local project_err = M.project_events(tx, journal_id, input.events, (tonumber(cursor.generation) or 1) > 1)
     if project_err then tx:rollback(); handle:release(); return nil, project_err end
     local page, catalog_err = reader.catalog_page(tx, journal_id, { limit = 200 })
     if catalog_err then tx:rollback(); handle:release(); return nil, catalog_err end
