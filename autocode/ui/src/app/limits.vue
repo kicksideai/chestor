@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import PageHead from './page-head.vue'
+import SettingsHead from './settings-head.vue'
 import Button from 'primevue/button'
 import InputNumber from 'primevue/inputnumber'
 import InputText from 'primevue/inputtext'
@@ -88,7 +88,7 @@ async function save(limit: Limit, reset = false) {
 
 <template>
   <section class="ac-stack ac-limits" aria-label="Limits">
-    <PageHead title="Limits" icon="tabler:adjustments"
+    <SettingsHead title="Limits"
       subtitle="Set task resource defaults and run retention. Enter durations such as 30m or 2h."
       :count="limitSummary" />
     <p v-if="!loaded && !error" class="kx-loading" role="status">Loading limits…</p>

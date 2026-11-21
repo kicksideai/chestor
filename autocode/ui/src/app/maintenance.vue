@@ -2,7 +2,7 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
 import Disclosure from '@kickside/ui-kit/Disclosure.vue'
-import PageHead from './page-head.vue'
+import SettingsHead from './settings-head.vue'
 import { ref } from 'vue'
 import { useRequiredCatalog } from './catalog.ts'
 import { Icon } from '@iconify/vue'
@@ -38,8 +38,8 @@ async function prune() {
 </script>
 
 <template>
-  <section class="ac-stack ac-narrow">
-    <PageHead title="Docker cleanup" icon="tabler:brand-docker"
+  <section class="ac-stack">
+    <SettingsHead title="Docker cleanup"
       subtitle="Reclaim disk space used by finished tasks and old builds."
       :count="`Cache retention · ${catalog.build_cache_retention}`">
       <template #actions>
@@ -47,8 +47,8 @@ async function prune() {
           <template #icon><Icon icon="tabler:trash-x" aria-hidden="true" /></template>
         </Button>
       </template>
-    </PageHead>
-    <div class="ac-card">
+    </SettingsHead>
+    <div class="ac-card ac-narrow">
       <p class="ac-hint">Remove stopped Autocode containers, dangling images and unused build cache older than the retention window. The cache is shared with other modules. Tagged images stay.</p>
       <p v-if="error" class="kx-err" role="alert">{{ error }} Check the Docker host and try again.</p>
       <template v-if="output">

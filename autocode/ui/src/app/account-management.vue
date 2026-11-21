@@ -2,7 +2,6 @@
 <script setup lang="ts">
 import Disclosure from '@kickside/ui-kit/Disclosure.vue'
 import { computed, nextTick, ref, watch } from 'vue'
-import { Icon } from '@iconify/vue'
 import Button from 'primevue/button'
 import { useHostVisibilityRefresh } from '@wippy-fe/webcomponent-vue'
 import { autocode } from './api.ts'
@@ -12,7 +11,7 @@ import { errorText, useRunClock } from './presentation.ts'
 import { accountHealth, providerProduct } from './account-health.ts'
 import AccountProviderMount from './account-provider-mount.vue'
 import AccountList from './accounts.vue'
-import PageHead from './page-head.vue'
+import SettingsHead from './settings-head.vue'
 import ProviderChoice from './provider-choice.vue'
 
 const props = withDefaults(defineProps<{ active?: boolean }>(), { active: true })
@@ -98,13 +97,10 @@ useHostVisibilityRefresh(load)
     <p v-if="!loaded && !error" class="kx-loading" role="status">Loading account providers…</p>
     <p v-if="error" class="kx-err inline" role="alert">{{ error }} <Button label="Retry" severity="secondary" text size="small" @click="load" /></p>
     <div v-if="current" class="ac-stack">
-      <div>
-        <Button label="All providers" text severity="secondary" size="small" @click="back">
-          <template #icon><Icon icon="tabler:arrow-left" aria-hidden="true" /></template>
-        </Button>
-      </div>
       <div ref="detailHeading" tabindex="-1">
-        <PageHead :title="current.name" :subtitle="current.hint" :count="current.total ? `${current.ready} of ${current.total} ready` : current.status" :icon="current.icon || 'tabler:key'" />
+        <SettingsHead :title="current.name" :subtitle="current.hint" :count="current.total ? `${current.ready} of ${current.total} ready` : current.status">
+          <template #actions><Button label="All providers" text severity="secondary" size="small" @click="back" /></template>
+        </SettingsHead>
       </div>
       <AccountProviderMount v-if="current.create_ui_id" :key="current.provider_id"
         :tag="current.create_ui_id" :provider-id="current.provider_id" @changed="load" />
@@ -115,7 +111,7 @@ useHostVisibilityRefresh(load)
       </template>
     </div>
     <div v-if="loaded" v-show="!current" class="ac-stack">
-      <PageHead title="Accounts" subtitle="Connect a provider to run tasks, see usage, and manage access." icon="tabler:key" :count="status" />
+      <SettingsHead title="Accounts" subtitle="Connect a provider to run tasks, see usage, and manage access." :count="status" />
       <p v-if="!choices.length" class="ac-muted">Install an Autocode provider in System → Modules, then return here to connect an account.</p>
       <nav v-else aria-label="Account providers" class="ac-stack">
         <div v-if="preferred.length" class="ac-provider-grid">
