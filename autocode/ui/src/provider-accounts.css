@@ -15,7 +15,6 @@
 .ac-usage-meter { height: 5px; }
 .ac-usage-limited { --p-progressbar-value-background: var(--p-warn-color); }
 .ac-account-details { color: var(--p-text-muted-color); font-size: 12px; overflow-wrap: anywhere; }
-.ac-account-details > summary, .ac-advanced-credential > summary { width: fit-content; cursor: pointer; }
 .ac-setup-steps { display: grid; gap: 8px; margin-block: 0; padding-inline-start: 1.25rem; }
 .ac-device-code > code { background: var(--kx-overlay-hover); border-radius: var(--kx-radius-8); font-size: 1.15rem; letter-spacing: .08em; padding: 8px 12px; }
 .ac-advanced-credential { border-top: 1px solid var(--p-content-border-color); padding-block-start: 12px; }

@@ -1,28 +1,28 @@
-import { defineComponent as U, ref as m, computed as E, onBeforeUnmount as W, openBlock as s, createElementBlock as h, Fragment as O, createElementVNode as i, toDisplayString as w, createVNode as o, unref as l, withCtx as r, createTextVNode as P, createBlock as b, createCommentVNode as V, resolveDynamicComponent as j } from "vue";
-import { _ as Y } from "./provider-accounts.vue_vue_type_script_setup_true_lang-DHbWoS7X.js";
+import { defineComponent as U, ref as h, computed as E, onBeforeUnmount as W, openBlock as s, createElementBlock as x, Fragment as O, createElementVNode as i, toDisplayString as w, createVNode as o, unref as l, withCtx as c, createTextVNode as P, createBlock as y, createCommentVNode as V, resolveDynamicComponent as Y } from "vue";
+import { a as G, _ as j } from "./Disclosure.vue_vue_type_script_setup_true_lang-CrWwplXA.js";
+import { _ as H } from "./provider-accounts.vue_vue_type_script_setup_true_lang-Dcpi-bPZ.js";
 import { Icon as q } from "@iconify/vue";
-import { d as G, j as S } from "./accounts.vue_vue_type_script_setup_true_lang-DBO9rQIp.js";
-import { s as H } from "./index-Db2E5nsu.js";
-import { a as B } from "./presentation-Bq-Cf4TV.js";
-const J = {
+import { s as S, h as B } from "./accounts.vue_vue_type_script_setup_true_lang-BS36zsOI.js";
+import { s as J } from "./index-BBR9l5Id.js";
+const K = {
   class: "ac-stack",
   "aria-label": "ChatGPT sign-in"
-}, K = { class: "ac-device-code" }, L = {
+}, L = { class: "ac-device-code" }, M = {
   class: "ac-muted",
   role: "status"
-}, M = { class: "ac-setup-actions" }, Q = {
+}, Q = { class: "ac-setup-actions" }, X = {
   key: 0,
   class: "ac-field"
-}, X = { class: "ac-setup-actions" }, Z = /* @__PURE__ */ U({
+}, Z = { class: "ac-setup-actions" }, ee = /* @__PURE__ */ U({
   __name: "codex-device-setup",
   props: {
     account: {},
     labelBytes: {}
   },
   emits: ["busy", "saved"],
-  setup(g, { emit: k }) {
-    const _ = g, c = k, u = m(_.account?.label ?? "Codex"), n = m(), t = m("start"), C = E(() => !!n.value), x = E(() => !!u.value.trim() && new TextEncoder().encode(u.value.trim()).length <= (_.labelBytes ?? 200)), d = m("");
-    let p, v = !1, f = !1, D = !1;
+  setup(b, { emit: g }) {
+    const _ = b, v = g, r = h(_.account?.label ?? "Codex"), n = h(), t = h("start"), k = E(() => !!n.value), C = E(() => !!r.value.trim() && new TextEncoder().encode(r.value.trim()).length <= (_.labelBytes ?? 200)), u = h("");
+    let m, d = !1, f = !1, D = !1;
     const N = {
       expired: "The code expired. Start again for a new one.",
       denied: "ChatGPT declined the request. Start again when you are ready to approve it.",
@@ -35,76 +35,76 @@ const J = {
       return e in N ? N[e] : "";
     });
     function T(e) {
-      t.value = e, n.value = void 0, c("busy", !1), e === "ready" && c("saved");
+      t.value = e, n.value = void 0, v("busy", !1), e === "ready" && v("saved");
     }
     function A(e) {
-      clearTimeout(p), p = setTimeout(() => {
+      clearTimeout(m), m = setTimeout(() => {
         I();
       }, e * 1e3);
     }
     async function I() {
       const e = n.value;
-      if (!e || v || D) return;
+      if (!e || d || D) return;
       const a = f ? "cancel" : "poll";
       D = !0;
       try {
-        const y = await B.codexDevice({ action: a, ticket: e.ticket });
-        if (v || n.value !== e) return;
-        "retry_after" in y ? (t.value = f ? "cancelling" : y.state, A(f && a === "poll" ? 0 : y.retry_after)) : T(y.state);
+        const p = await G.codexDevice({ action: a, ticket: e.ticket });
+        if (d || n.value !== e) return;
+        "retry_after" in p ? (t.value = f ? "cancelling" : p.state, A(f && a === "poll" ? 0 : p.retry_after)) : T(p.state);
       } catch {
-        !v && n.value === e && (f && a === "poll" ? A(0) : T("unavailable"));
+        !d && n.value === e && (f && a === "poll" ? A(0) : T("unavailable"));
       } finally {
         D = !1;
       }
     }
     async function z() {
-      if (!(v || !x.value || t.value === "starting" || C.value || t.value === "rate_limited")) {
-        f = !1, d.value = "", t.value = "starting", c("busy", !0);
+      if (!(d || !C.value || t.value === "starting" || k.value || t.value === "rate_limited")) {
+        f = !1, u.value = "", t.value = "starting", v("busy", !0);
         try {
-          const e = await B.codexDevice({ action: "start", label: u.value.trim(), account_id: _.account?.id });
-          if (v) {
-            "ticket" in e && B.codexDevice({ action: "cancel", ticket: e.ticket }).catch(() => {
+          const e = await G.codexDevice({ action: "start", label: r.value.trim(), account_id: _.account?.id });
+          if (d) {
+            "ticket" in e && G.codexDevice({ action: "cancel", ticket: e.ticket }).catch(() => {
             });
             return;
           }
-          "ticket" in e ? (n.value = e, t.value = "waiting", A(e.retry_after)) : (T(e.state), e.state === "rate_limited" && (p = setTimeout(() => {
+          "ticket" in e ? (n.value = e, t.value = "waiting", A(e.retry_after)) : (T(e.state), e.state === "rate_limited" && (m = setTimeout(() => {
             t.value = "start";
           }, e.retry_after * 1e3)));
         } catch {
-          v || T("unavailable");
+          d || T("unavailable");
         }
       }
     }
     function F() {
-      clearTimeout(p), f = !0, t.value = "cancelling", I();
+      clearTimeout(m), f = !0, t.value = "cancelling", I();
     }
     async function R() {
       if (n.value)
         try {
-          await navigator.clipboard.writeText(n.value.user_code), d.value = "Code copied";
+          await navigator.clipboard.writeText(n.value.user_code), u.value = "Code copied";
         } catch {
-          d.value = "Select the code to copy it.";
+          u.value = "Select the code to copy it.";
         }
     }
     return W(() => {
-      v = !0, clearTimeout(p), n.value && B.codexDevice({ action: "cancel", ticket: n.value.ticket }).catch(() => {
+      d = !0, clearTimeout(m), n.value && G.codexDevice({ action: "cancel", ticket: n.value.ticket }).catch(() => {
       });
-    }), (e, a) => (s(), h("section", J, [
-      C.value && n.value ? (s(), h(O, { key: 0 }, [
+    }), (e, a) => (s(), x("section", K, [
+      k.value && n.value ? (s(), x(O, { key: 0 }, [
         a[1] || (a[1] = i("ol", { class: "ac-setup-steps" }, [
           i("li", null, "Open ChatGPT in a new tab and sign in with the account you want to use."),
           i("li", null, "Enter this code to approve access for Codex.")
         ], -1)),
-        i("div", K, [
+        i("div", L, [
           i("code", null, w(n.value.user_code), 1),
-          o(l(G), {
+          o(l(S), {
             label: "Copy code",
             text: "",
             severity: "secondary",
             size: "small",
             onClick: R
           }, {
-            icon: r(() => [
+            icon: c(() => [
               o(l(q), {
                 icon: "tabler:copy",
                 "aria-hidden": "true"
@@ -112,17 +112,17 @@ const J = {
             ]),
             _: 1
           }),
-          i("span", L, w(d.value), 1)
+          i("span", M, w(u.value), 1)
         ]),
-        i("div", M, [
-          o(l(G), {
+        i("div", Q, [
+          o(l(S), {
             as: "a",
             label: "Open ChatGPT",
             href: n.value.verification_url,
             target: "_blank",
             rel: "noopener noreferrer"
           }, {
-            icon: r(() => [
+            icon: c(() => [
               o(l(q), {
                 icon: "tabler:external-link",
                 "aria-hidden": "true"
@@ -130,7 +130,7 @@ const J = {
             ]),
             _: 1
           }, 8, ["href"]),
-          o(l(G), {
+          o(l(S), {
             text: "",
             severity: "secondary",
             label: "Cancel sign-in",
@@ -138,67 +138,67 @@ const J = {
             onClick: F
           }, null, 8, ["disabled"])
         ]),
-        o(l(S), {
+        o(l(B), {
           severity: "info",
           closable: !1,
           role: "status"
         }, {
-          default: r(() => [
+          default: c(() => [
             P(w(t.value === "cancelling" ? "Cancelling sign-in…" : t.value === "rate_limited" ? "ChatGPT asked us to slow down. We’ll check again shortly." : "Waiting for approval in ChatGPT…"), 1)
           ]),
           _: 1
         })
-      ], 64)) : t.value === "ready" ? (s(), b(l(S), {
+      ], 64)) : t.value === "ready" ? (s(), y(l(B), {
         key: 1,
         severity: "success",
         closable: !1,
         role: "status"
       }, {
-        default: r(() => [...a[2] || (a[2] = [
+        default: c(() => [...a[2] || (a[2] = [
           P(" Codex is ready to run tasks with this ChatGPT account. ", -1)
         ])]),
         _: 1
-      })) : (s(), h(O, { key: 2 }, [
+      })) : (s(), x(O, { key: 2 }, [
         a[5] || (a[5] = i("p", { class: "ac-hint" }, "Connect your personal ChatGPT account to run tasks with Codex. Enable device code authorization in ChatGPT security settings if asked.", -1)),
-        g.account ? V("", !0) : (s(), h("label", Q, [
+        b.account ? V("", !0) : (s(), x("label", X, [
           a[3] || (a[3] = i("span", null, "Account name", -1)),
-          o(l(H), {
-            modelValue: u.value,
-            "onUpdate:modelValue": a[0] || (a[0] = (y) => u.value = y),
+          o(l(J), {
+            modelValue: r.value,
+            "onUpdate:modelValue": a[0] || (a[0] = (p) => r.value = p),
             disabled: t.value === "starting",
             autocomplete: "off"
           }, null, 8, ["modelValue", "disabled"])
         ])),
-        $.value ? (s(), b(l(S), {
+        $.value ? (s(), y(l(B), {
           key: 1,
           severity: t.value === "cancelled" ? "secondary" : "warn",
           closable: !1,
           role: "status"
         }, {
-          default: r(() => [
+          default: c(() => [
             P(w($.value), 1)
           ]),
           _: 1
         }, 8, ["severity"])) : V("", !0),
-        t.value === "rate_limited" ? (s(), b(l(S), {
+        t.value === "rate_limited" ? (s(), y(l(B), {
           key: 2,
           severity: "warn",
           closable: !1,
           role: "status"
         }, {
-          default: r(() => [...a[4] || (a[4] = [
+          default: c(() => [...a[4] || (a[4] = [
             P("ChatGPT asked us to slow down. Try again in a moment.", -1)
           ])]),
           _: 1
         })) : V("", !0),
-        i("div", X, [
-          o(l(G), {
-            label: g.account ? "Reconnect with ChatGPT" : "Sign in with ChatGPT",
-            disabled: !x.value || t.value === "rate_limited",
+        i("div", Z, [
+          o(l(S), {
+            label: b.account ? "Reconnect with ChatGPT" : "Sign in with ChatGPT",
+            disabled: !C.value || t.value === "rate_limited",
             loading: t.value === "starting",
             onClick: z
           }, {
-            icon: r(() => [
+            icon: c(() => [
               o(l(q), {
                 icon: "tabler:brand-openai",
                 "aria-hidden": "true"
@@ -210,28 +210,31 @@ const J = {
       ], 64))
     ]));
   }
-}), ee = {
-  key: 0,
-  class: "ac-advanced-credential"
-}, se = /* @__PURE__ */ U({
+}), se = /* @__PURE__ */ U({
   __name: "codex-provider-accounts",
-  setup(g) {
-    const k = m(!1);
-    return (_, c) => (s(), b(Y, { provider: "codex" }, {
-      setup: r(({ account: u, labelBytes: n, busy: t, saved: C, credential: x }) => [
-        o(Z, {
-          account: u,
+  setup(b) {
+    const g = h(!1);
+    return (_, v) => (s(), y(H, { provider: "codex" }, {
+      setup: c(({ account: r, labelBytes: n, busy: t, saved: k, credential: C }) => [
+        o(ee, {
+          account: r,
           "label-bytes": n,
-          onBusy: (d) => {
-            k.value = d, t(d);
+          onBusy: (u) => {
+            g.value = u, t(u);
           },
-          onSaved: C
+          onSaved: k
         }, null, 8, ["account", "label-bytes", "onBusy", "onSaved"]),
-        k.value ? V("", !0) : (s(), h("details", ee, [
-          c[0] || (c[0] = i("summary", { class: "kx-focus-outline" }, "Advanced · Paste a credential", -1)),
-          c[1] || (c[1] = i("p", { class: "ac-hint" }, "Use an OpenAI API key or upload the login file from an existing Codex installation.", -1)),
-          (s(), b(j(x)))
-        ]))
+        g.value ? V("", !0) : (s(), y(j, {
+          key: 0,
+          class: "ac-advanced-credential",
+          label: "Advanced · Paste a credential"
+        }, {
+          default: c(() => [
+            v[0] || (v[0] = i("p", { class: "ac-hint" }, "Use an OpenAI API key or upload the login file from an existing Codex installation.", -1)),
+            (s(), y(Y(C)))
+          ]),
+          _: 2
+        }, 1024))
       ]),
       _: 1
     }));

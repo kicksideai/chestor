@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
+import Disclosure from '@kickside/ui-kit/Disclosure.vue'
 import { computed, nextTick, ref } from 'vue'
 import { Icon } from '@iconify/vue'
 import Button from 'primevue/button'
@@ -70,10 +71,9 @@ function finishRename() {
       <p v-if="account.subscription" class="ac-hint">A subscription login runs tasks for its owner.</p>
       <slot name="usage" :account="account"><AccountUsage :account="account" /></slot>
       <span class="ac-muted">{{ account.runs_day }} {{ account.runs_day === 1 ? 'task' : 'tasks' }} in the last 24 hours<template v-if="account.failures_day"> · {{ account.failures_day }} failed</template></span>
-      <details v-if="health.code" class="ac-account-details">
-        <summary class="kx-focus-outline">Technical details</summary>
+      <Disclosure v-if="health.code" class="ac-account-details" label="Technical details">
         <code>{{ health.code }}</code>
-      </details>
+      </Disclosure>
     </div>
     <div v-if="items.length" class="ac-account-menu">
       <Button type="button" text rounded severity="secondary" size="small" :aria-label="`Actions for ${account.label}`"

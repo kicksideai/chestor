@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [vue({ template: { compilerOptions: { isCustomElement: tag => tag.startsWith('wc-') || tag.startsWith('chestor-') || tag.startsWith('kickside-') } } })],
   server: { fs: { allow: ['..'] } },
   resolve: { alias: {
+    '@kickside/ui-kit': new URL('./.wippy/npm/@kickside/ui-kit', import.meta.url).pathname,
     '@iconify/vue': dependency('@iconify/vue/dist/iconify.mjs'),
     '@wippy-fe/proxy': dependency('@wippy-fe/proxy/index.mjs'),
     '@wippy-fe/webcomponent-vue': dependency('@wippy-fe/webcomponent-vue/dist/index.js'),

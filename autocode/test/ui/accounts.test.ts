@@ -30,7 +30,7 @@ describe('accounts', () => {
       expect(w.text()).toContain('Weekly limit reached, resets')
       expect(w.text()).toContain('Your organization has disabled extra usage.')
       expect(w.get('[role=progressbar]').attributes('aria-valuenow')).toBe('100')
-      expect(w.get('details').findAll('code').map(code => code.text())).toEqual(['seven_day · rejected', 'org_level_disabled'])
+      expect(w.get('.kx-disclosure').findAll('code').map(code => code.text())).toEqual(['seven_day · rejected', 'org_level_disabled'])
       expect(w.text()).not.toContain('CLAUDE_CODE_OAUTH_TOKEN')
       await w.get('[aria-haspopup=menu]').trigger('click')
       const edit = w.findAll('[role=menuitem]').find(item => item.text() === 'Edit credential')

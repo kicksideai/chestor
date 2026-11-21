@@ -33,6 +33,10 @@ defineSlots<{
 }>()
 const emit = defineEmits<{ count: [value: number]; changed: [] }>()
 const adding = ref(false)
+const providerName = computed(() => agentInfo.value?.title)
+const dialogTitle = computed(() => props.management && providerName.value
+  ? editing.value ? `Edit ${providerName.value} account` : `Add ${providerName.value} account`
+  : editing.value ? 'Edit account' : 'Add account')
 const editing = ref<Account | null>(null)
 function open() { editing.value = null; saveError.value = ''; setupResult.value = ''; adding.value = true }
 function edit(account: Account) {
@@ -50,6 +54,8 @@ const owners = ref<Record<string, string>>({})
 const error = ref('')
 const warning = ref('')
 const loaded = ref(false)
+const credentialError = ref('')
+const credentialLoading = ref(false)
 const saving = ref(false)
 const signingIn = ref(false)
 const setupResult = ref('')
@@ -211,10 +217,19 @@ async function remove(a: Account) {
   if (alive() && ok) await attempt(() => autocode.deleteAccount(a.id), 'Could not delete the account.')
 }
 
-onMounted(() => {
+async function loadCredentialEditor() {
   if (!props.allowSetup) return
-  loadByTagName('chestor-autocode-driver-account', { timeoutMs: 8000 }).catch(() => { if (alive()) error.value = 'The driver account card could not load.' })
-})
+  credentialLoading.value = true
+  credentialError.value = ''
+  try {
+    await loadByTagName('chestor-autocode-driver-account', { timeoutMs: 8000 })
+  } catch {
+    if (alive()) credentialError.value = 'The credential form could not load.'
+  } finally {
+    if (alive()) credentialLoading.value = false
+  }
+}
+onMounted(loadCredentialEditor)
 </script>
 
 <template>
@@ -223,7 +238,7 @@ onMounted(() => {
     <p v-if="warning" class="kx-err inline" role="status">{{ warning }}</p>
     <div v-if="!loaded && !error" class="kx-loading">Loading accounts…</div>
     <div v-if="management && loaded && allowSetup" class="ac-card-head ac-provider-actions">
-      <p class="ac-hint">{{ accounts.length ? `${accounts.length} ${accounts.length === 1 ? 'account' : 'accounts'}` : 'No accounts yet' }}</p>
+      <p v-if="!accounts.length" class="ac-hint">Add an account to let tasks use this provider.</p>
       <Button label="Add account" :disabled="!agentInfo" @click="open"><template #icon><Icon icon="tabler:plus" aria-hidden="true" /></template></Button>
     </div>
     <div v-if="!management && loaded && !accounts.length" class="kx-empty">
@@ -241,8 +256,12 @@ onMounted(() => {
         </AccountRow>
       </ul>
     </section>
-    <AppDialog v-if="adding" :title="editing ? 'Edit account' : 'Add account'" :busy="saving || signingIn" :icon="management ? agentInfo?.icon : undefined" @close="adding = false">
+    <AppDialog v-if="adding" :title="dialogTitle" :busy="saving || signingIn" :icon="management ? agentInfo?.icon : undefined" @close="adding = false">
       <div class="ac-form">
+        <p v-if="credentialLoading" class="kx-loading" role="status">Loading the credential form…</p>
+        <p v-else-if="credentialError" class="kx-err" role="alert">{{ credentialError }}
+          <Button label="Retry" severity="secondary" text size="small" @click="loadCredentialEditor" />
+        </p>
         <template v-if="setupResult">
           <Message severity="success" :closable="false" role="status">{{ setupResult }}</Message>
           <div class="ac-setup-actions"><Button label="Done" @click="adding = false" /></div>
@@ -253,14 +272,14 @@ onMounted(() => {
             <slot name="guide">
               <p class="ac-hint">Add a credential from the provider dashboard or from the CLI on a machine that is already signed in.</p>
             </slot>
-            <component v-if="agentInfo" :is="credentialEditor" />
+            <component v-if="agentInfo && !credentialError && !credentialLoading" :is="credentialEditor" />
           </slot>
         </template>
         <template v-else>
           <AgentPicker v-if="!editing && !management" :disabled="saving" v-model="agent" :agents="catalog.agents" />
           <p v-if="!editing && !management" class="ac-hint">Tasks balance across your ready accounts automatically.</p>
-          <component v-if="agentInfo" :is="credentialEditor" />
-          <p v-else class="kx-err" role="alert">This account’s agent is unavailable.</p>
+          <component v-if="agentInfo && !credentialError && !credentialLoading" :is="credentialEditor" />
+          <p v-else-if="!agentInfo" class="kx-err" role="alert">Install this account’s agent to edit its credential.</p>
         </template>
       </div>
     </AppDialog>

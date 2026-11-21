@@ -1,4 +1,5 @@
 /* SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 */
+@import "@kickside/ui-kit/kx-disclosure.css";
 @import "@wippy-fe/theme/theme-config.css";
 /* Shared Kickside frontend vocabulary from the kickside/ui-kit module,
    materialized by `make ui-kit` into ui/.wippy/npm. */

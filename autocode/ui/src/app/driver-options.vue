@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
+import Disclosure from '@kickside/ui-kit/Disclosure.vue'
 import { computed, ref, watch, useId } from 'vue'
 import Ajv, { type ValidateFunction } from 'ajv'
 import addFormats from 'ajv-formats'
@@ -106,8 +107,7 @@ function fallback(option: DriverOption): string {
 </script>
 
 <template>
-  <details class="ac-options">
-    <summary class="kx-focus-outline">Driver options<span v-if="setCount" class="ac-muted"> · {{ setCount }} set</span></summary>
+  <Disclosure class="ac-options" :label="setCount ? `Driver options · ${setCount} set` : 'Driver options'">
     <input v-model="filter" class="ac-mono ac-options-filter kx-focus-halo" placeholder="Filter options" aria-label="Filter driver options" />
     <div v-for="(o, index) in visible" :key="o.name" class="ac-option">
       <div v-if="index === 0 || o.section !== visible[index - 1].section || o.group !== visible[index - 1].group" class="ac-muted">{{ [o.section, o.group].filter(Boolean).join(' · ') }}</div>
@@ -126,5 +126,5 @@ function fallback(option: DriverOption): string {
       <small v-if="invalid[o.name]" :id="`${prefix}-${o.name}-error`" class="kx-err" role="alert">{{ invalid[o.name] }}</small>
     </div>
     <p v-if="!visible.length" class="ac-muted">No matching options.</p>
-  </details>
+  </Disclosure>
 </template>

@@ -1,9 +1,9 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
-import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
 import { config, on } from '@wippy-fe/proxy'
 import { useEvents, useProps } from '@wippy-fe/webcomponent-vue'
-import Listbox from 'primevue/listbox'
+import SettingsRail from '@kickside/ui-kit/SettingsRail.vue'
 import type { ComponentEvents, ComponentProps } from '../types.ts'
 import { Icon } from '@iconify/vue'
 import { useCatalog } from './catalog.ts'
@@ -41,41 +41,30 @@ function sectionFromPath(path?: string): Section | undefined {
   return sections.find(item => item.id === value)?.id
 }
 
-async function select(value: Section | null) {
-  if (!value) {
-    // Listbox permits deselecting an option. A settings view always has a
-    // current section, including after tapping the selected row.
-    listboxValue.value = null
-    await nextTick()
-    listboxValue.value = section.value ?? null
-    return
-  }
-  if (value === section.value) return
-  selected.value = value
+function select(value: string) {
+  const item = allowedSections.value.find(section => section.id === value)
+  if (!item || item.id === section.value) return
+  selected.value = item.id
   emit('navigate', { path: settingsPath.value + '?section=' + value })
 }
 const allowedSections = computed(() => sections.filter(section => catalog.value?.[section.permission]))
 const active = computed(() => allowedSections.value.find(section => section.id === selected.value) ?? allowedSections.value[0])
 const section = computed(() => active.value?.id)
-const listboxValue = ref<Section | null>(null)
-watch(section, value => { listboxValue.value = value ?? null }, { immediate: true })
+const railGroups = computed(() => [
+  { heading: 'Execution', items: allowedSections.value.filter(item => item.id === 'images' || item.id === 'workspaces' || item.id === 'docker') },
+  { heading: 'Configuration', items: allowedSections.value.filter(item => item.id === 'limits' || item.id === 'accounts') },
+].filter(group => group.items.length).map(group => ({
+  heading: group.heading, items: group.items.map(({ id, label, icon }) => ({ value: id, label, icon })),
+})))
 const query = ref('')
 const imageCount = ref<number>()
 const workspaceCount = ref<number>()
-const accountStatus = ref<string>()
 const content = ref<HTMLElement>()
 const images = ref<InstanceType<typeof ImagesTab> | null>(null)
 const workspaces = ref<InstanceType<typeof WorkspacesTab> | null>(null)
-const hints = computed<Record<Section, string>>(() => ({
-  images: resourceCount(imageCount.value, 'image', 'images') ?? 'Execution images',
-  workspaces: resourceCount(workspaceCount.value, 'workspace', 'workspaces') ?? 'Host directories',
-  docker: `${catalog.value?.build_cache_retention} cache retention`,
-  limits: 'Run and resource defaults',
-  accounts: accountStatus.value ?? 'Provider credentials',
-}))
 const resource = computed(() => {
-  if (section.value === 'images') return { title: 'Images', subtitle: 'Manage the container images that run tasks.', icon: 'tabler:box', action: imageCount.value ? 'Add image' : undefined }
-  if (section.value === 'workspaces') return { title: 'Workspaces', subtitle: 'Manage the host directories that tasks can use.', icon: 'tabler:folder', action: workspaceCount.value ? 'Add workspace' : undefined }
+  if (section.value === 'images') return { title: 'Images', subtitle: 'Manage the container images that run tasks.', icon: 'tabler:box', count: resourceCount(imageCount.value, 'image', 'images'), action: imageCount.value ? 'Add image' : undefined }
+  if (section.value === 'workspaces') return { title: 'Workspaces', subtitle: 'Manage the host directories that tasks can use.', icon: 'tabler:folder', count: resourceCount(workspaceCount.value, 'workspace', 'workspaces'), action: workspaceCount.value ? 'Add workspace' : undefined }
 })
 watch(section, () => {
   query.value = ''
@@ -98,29 +87,17 @@ function create() {
       {{ error }} <button class="ac-link kx-focus-outline" type="button" @click="load">Retry</button>
     </p>
     <div v-else-if="!catalog" class="kx-loading" role="status"><Icon icon="tabler:loader-2" class="spin" aria-hidden="true" /> Loading…</div>
-    <p v-else-if="!section" class="ac-muted">No management areas are available.</p>
-    <div v-else class="kx-shell">
-      <nav class="kx-rail" aria-label="Autocode sections">
-        <div class="kx-rail-body">
-          <Listbox :model-value="listboxValue" :options="allowedSections" option-label="label" option-value="id"
-            aria-label="Autocode settings" scroll-height="none" :select-on-focus="false" :meta-key-selection="true" @update:model-value="select">
-            <template #option="{ option }">
-              <span class="ac-section">
-                <Icon :icon="option.icon" aria-hidden="true" />
-                <span>{{ option.label }}<small>{{ hints[option.id as Section] }}</small></span>
-              </span>
-            </template>
-          </Listbox>
-        </div>
-      </nav>
-      <main class="kx-main" :aria-label="active?.label">
-        <div ref="content" class="kx-main-scroll">
-          <PageHead v-if="resource" v-bind="resource" v-model:query="query" :placeholder="`Search ${section}…`" @create="create" />
+    <p v-else-if="!section" class="ac-muted">Ask an administrator for access to the Autocode settings you need.</p>
+    <div v-else class="ac-settings-layout">
+      <SettingsRail label="Autocode settings" :value="section" :groups="railGroups" @update:value="select" />
+      <main ref="content" class="ac-settings-pane" :aria-label="active?.label">
+        <div class="ac-settings-content">
+          <PageHead v-if="resource" v-bind="resource" v-model:query="query" :placeholder="resource.count && resource.action ? `Search ${section}…` : undefined" @create="create" />
           <ImagesTab v-if="catalog.can_images" v-show="section === 'images'" ref="images" :query="section === 'images' ? query : ''" @count="imageCount = $event" />
           <WorkspacesTab v-if="catalog.can_workspaces" v-show="section === 'workspaces'" ref="workspaces" :query="section === 'workspaces' ? query : ''" @count="workspaceCount = $event" />
           <MaintenanceTab v-if="section === 'docker'" />
           <LimitsTab v-if="section === 'limits'" @saved="load" />
-          <AccountsTab v-if="catalog.can_accounts" v-show="section === 'accounts'" :active="section === 'accounts'" @status="accountStatus = $event" />
+          <AccountsTab v-if="catalog.can_accounts" v-show="section === 'accounts'" :active="section === 'accounts'" />
         </div>
       </main>
     </div>

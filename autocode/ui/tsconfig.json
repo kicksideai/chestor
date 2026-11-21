@@ -10,6 +10,7 @@
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "bundler",
+    "paths": { "@kickside/ui-kit/*": ["./.wippy/npm/@kickside/ui-kit/*"] },
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,

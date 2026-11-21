@@ -1,5 +1,8 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
+import Button from 'primevue/button'
+import Disclosure from '@kickside/ui-kit/Disclosure.vue'
+import PageHead from './page-head.vue'
 import { ref } from 'vue'
 import { useRequiredCatalog } from './catalog.ts'
 import { Icon } from '@iconify/vue'
@@ -22,6 +25,7 @@ async function prune() {
   })
   if (!ok) return
   error.value = ''
+  output.value = ''
   pruning.value = true
   try {
     output.value = await autocode.prune()
@@ -34,15 +38,23 @@ async function prune() {
 </script>
 
 <template>
-  <section class="ac-card ac-narrow">
-    <div class="ac-card-head">
-      <h2 class="ac-card-title"><Icon icon="tabler:brand-docker" />Docker cleanup</h2>
-      <button type="button" class="ac-btn kx-focus-halo" :disabled="pruning" @click="prune">
-        <Icon :icon="pruning ? 'tabler:loader-2' : 'tabler:trash-x'" :class="{ spin: pruning }" /> {{ pruning ? 'Cleaning…' : 'Clean up Docker' }}
-      </button>
+  <section class="ac-stack ac-narrow">
+    <PageHead title="Docker cleanup" icon="tabler:brand-docker"
+      subtitle="Reclaim disk space used by finished tasks and old builds."
+      :count="`Cache retention · ${catalog.build_cache_retention}`">
+      <template #actions>
+        <Button label="Clean up Docker" :loading="pruning" :disabled="pruning" @click="prune">
+          <template #icon><Icon icon="tabler:trash-x" aria-hidden="true" /></template>
+        </Button>
+      </template>
+    </PageHead>
+    <div class="ac-card">
+      <p class="ac-hint">Remove stopped Autocode containers, dangling images and unused build cache older than the retention window. The cache is shared with other modules. Tagged images stay.</p>
+      <p v-if="error" class="kx-err" role="alert">{{ error }} Check the Docker host and try again.</p>
+      <template v-if="output">
+        <p role="status">Cleanup finished.</p>
+        <Disclosure label="Technical details"><pre class="ac-pre">{{ output }}</pre></Disclosure>
+      </template>
     </div>
-    <p class="ac-hint">Remove stopped Autocode containers and dangling images. Cleanup keeps unused build cache younger than {{ catalog.build_cache_retention }}. Tagged images stay.</p>
-    <p v-if="error" class="kx-err">{{ error }}</p>
-    <pre v-if="output" class="ac-pre">{{ output }}</pre>
   </section>
 </template>

@@ -1,18 +1,18 @@
-import { i as be, u as We, a as Je, P as Be } from "./wc-runtime-DgMRDxeK.js";
-import { defineComponent as ke, ref as d, computed as G, onMounted as Ue, watch as fe, openBlock as a, createElementBlock as s, createElementVNode as e, withDirectives as q, vModelText as ae, Fragment as W, renderList as Y, toDisplayString as r, vModelSelect as le, createVNode as L, unref as o, createTextVNode as N, createCommentVNode as m, isRef as pe, vModelCheckbox as He, createBlock as oe, onUnmounted as ge, normalizeClass as re, nextTick as Ve, withCtx as _e, withModifiers as Re } from "vue";
+import { b as be, u as Je, a as Be, P as He } from "./wc-runtime-CvWl7e3g.js";
+import { defineComponent as ke, ref as d, computed as j, onMounted as Ue, watch as me, openBlock as a, createElementBlock as s, createElementVNode as e, withDirectives as q, vModelText as ae, Fragment as W, renderList as Y, toDisplayString as r, vModelSelect as le, createVNode as I, unref as o, createTextVNode as N, createCommentVNode as m, isRef as pe, withCtx as fe, vModelCheckbox as je, createBlock as oe, onUnmounted as _e, normalizeClass as re, nextTick as Ve, withModifiers as Re } from "vue";
 import { Icon as J } from "@iconify/vue";
 import { host as he, config as Ge } from "@wippy-fe/proxy";
-import { u as me, k as je, d as Ce, b as Ie, h as Fe, g as ze } from "./accounts.vue_vue_type_script_setup_true_lang-DBO9rQIp.js";
-import { _ as Ke } from "./page-head.vue_vue_type_script_setup_true_lang-CFR2RYpf.js";
-import { a as j, e as se, f as Qe, g as $e, d as Le, l as Te, b as Ae, h as Ee, i as Se, t as Xe, s as xe, A as Ye, c as qe, u as Pe, r as Ne } from "./presentation-Bq-Cf4TV.js";
-import { d as Ze, e as et, u as tt, _ as Oe, a as De } from "./trait-tools.vue_vue_type_script_setup_true_lang-Dwhp8hSF.js";
-const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "ac-field" }, st = ["value"], nt = { class: "ac-field" }, ut = {
+import { u as ye, j as Fe, s as Ce, a as Ie, f as ze, e as Ke } from "./accounts.vue_vue_type_script_setup_true_lang-BS36zsOI.js";
+import { _ as Qe } from "./page-head.vue_vue_type_script_setup_true_lang-DuTqRM3S.js";
+import { a as G, e as se, _ as Le, f as Xe, g as $e, d as Te, l as Ae, b as Ee, h as Se, i as qe, t as Ye, s as xe, A as Ze, c as Pe, u as Ne, r as Oe } from "./Disclosure.vue_vue_type_script_setup_true_lang-CrWwplXA.js";
+import { d as et, e as tt, u as at, _ as De, a as Me } from "./trait-tools.vue_vue_type_script_setup_true_lang-wf7bmzEl.js";
+const lt = ["disabled"], ot = { class: "ac-field ac-composer" }, st = { class: "ac-field" }, nt = ["value"], ut = { class: "ac-field" }, it = {
   key: 0,
   class: "ac-muted"
-}, it = {
+}, rt = {
   key: 1,
   class: "ac-muted"
-}, rt = { class: "ac-picker-row" }, ct = { class: "ac-field" }, dt = ["value"], vt = { value: "" }, pt = ["value"], kt = { class: "ac-field" }, ft = ["value"], mt = ["value"], yt = { class: "ac-field" }, gt = ["value"], _t = ["value"], bt = { class: "ac-advanced" }, ht = { class: "ac-form" }, $t = { class: "ac-field" }, xt = { class: "ac-field" }, wt = { class: "ac-field" }, Ct = {
+}, ct = { class: "ac-picker-row" }, dt = { class: "ac-field" }, vt = ["value"], pt = { value: "" }, ft = ["value"], kt = { class: "ac-field" }, mt = ["value"], yt = ["value"], gt = { class: "ac-field" }, _t = ["value"], bt = ["value"], ht = { class: "ac-form" }, $t = { class: "ac-field" }, xt = { class: "ac-field" }, wt = { class: "ac-field" }, Ct = {
   key: 0,
   class: "ac-check"
 }, Ut = {
@@ -28,10 +28,10 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
   },
   emits: ["started", "goto", "agentChanged", "cancel", "busy"],
   setup(ee, { emit: B }) {
-    const Z = ee, i = B, C = me(), F = d(null), U = d([]), b = d(""), A = d({}), h = G(() => U.value.find((n) => n.id === b.value));
+    const Z = ee, u = B, C = ye(), F = d(null), U = d([]), b = d(""), A = d({}), h = j(() => U.value.find((n) => n.id === b.value));
     Ue(async () => {
       try {
-        U.value = await j.profiles();
+        U.value = await G.profiles();
       } catch (n) {
         ie.value = se(n, "Could not load profiles.");
       }
@@ -39,81 +39,81 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
     function V() {
       A.value = {};
     }
-    function I(n) {
+    function L(n) {
       b.value ? A.value = { ...A.value, ...n } : w.value = { ...w.value, ...n };
     }
     function O() {
       const n = C.value.settings_path;
       n && F.value?.dispatchEvent(new CustomEvent("navigate", { detail: { path: n }, bubbles: !0, composed: !0 }));
     }
-    const w = d({ agent: Ze(C.value, Z.accounts), account_id: "", image_id: "", workspace_id: "", repo_url: "" }), $ = G(() => et(b.value ? A.value : w.value, h.value)), { now: R, driver: x, agentAccounts: D, ready: T, agentImages: p, invalidOptions: z, optionValues: E, invalidImage: _, invalidAccount: g, invalidWorkspace: K, selectAgent: Q } = tt($, {
+    const w = d({ agent: et(C.value, Z.accounts), account_id: "", image_id: "", workspace_id: "", repo_url: "" }), $ = j(() => tt(b.value ? A.value : w.value, h.value)), { now: R, driver: x, agentAccounts: D, ready: T, agentImages: p, invalidOptions: z, optionValues: E, invalidImage: _, invalidAccount: g, invalidWorkspace: K, selectAgent: Q } = at($, {
       catalog: () => C.value,
       accounts: () => Z.accounts,
       images: () => Z.images,
       workspaces: () => Z.workspaces
-    }, "live", () => !!b.value), P = G({
+    }, "live", () => !!b.value), P = j({
       get: () => $.value.agent ?? "",
       set: (n) => {
         if (n === $.value.agent) return;
-        const u = Q(n);
-        I({ agent: n, account_id: u.account_id, image_id: u.image_id, options: u.options, unattended: u.unattended });
+        const i = Q(n);
+        L({ agent: n, account_id: i.account_id, image_id: i.image_id, options: i.options, unattended: i.unattended });
       }
     });
     function X(n) {
-      return G({ get: () => $.value[n] ?? "", set: (u) => I({ [n]: u }) });
+      return j({ get: () => $.value[n] ?? "", set: (i) => L({ [n]: i }) });
     }
-    const H = X("account_id"), S = X("image_id"), k = X("workspace_id"), l = X("repo_url"), t = X("repo_ref"), c = G({ get: () => $.value.run_timeout ?? "", set: (n) => I({ run_timeout: n }) }), v = d(""), M = G({ get: () => E.value, set: (n) => I({ options: n }) }), ue = G({ get: () => $.value.unattended ?? !!x.value?.unattended, set: (n) => I({ unattended: n }) }), ce = G({ get: () => $.value.tools, set: (n) => I({ tools: n }) }), de = d(!1), ne = d(!1), ie = d("");
-    function ye(n) {
-      return Qe(n, R.value) === "cooling" ? `${n.label} (cooling down${n.cooldown_until ? " until " + $e(n.cooldown_until) : ""})` : n.label;
+    const H = X("account_id"), S = X("image_id"), f = X("workspace_id"), l = X("repo_url"), t = X("repo_ref"), c = j({ get: () => $.value.run_timeout ?? "", set: (n) => L({ run_timeout: n }) }), v = d(""), M = j({ get: () => E.value, set: (n) => L({ options: n }) }), ue = j({ get: () => $.value.unattended ?? !!x.value?.unattended, set: (n) => L({ unattended: n }) }), ce = j({ get: () => $.value.tools, set: (n) => L({ tools: n }) }), de = d(!1), ne = d(!1), ie = d("");
+    function ge(n) {
+      return Xe(n, R.value) === "cooling" ? `${n.label} (cooling down${n.cooldown_until ? " until " + $e(n.cooldown_until) : ""})` : n.label;
     }
-    fe(P, (n) => i("agentChanged", n), { immediate: !0 });
+    me(P, (n) => u("agentChanged", n), { immediate: !0 });
     let te;
-    fe([b, P, H, S, k, l, t, c, v, M, ue, ce], () => {
+    me([b, P, H, S, f, l, t, c, v, M, ue, ce], () => {
       te = void 0;
     }, { deep: !0, flush: "sync" });
     async function y() {
       if (!(ne.value || de.value)) {
-        ie.value = "", ne.value = !0, i("busy", !0);
+        ie.value = "", ne.value = !0, u("busy", !0);
         try {
           const n = {
             tools: ce.value,
             agent: P.value,
             account_id: H.value,
             image_id: S.value,
-            workspace_id: k.value,
+            workspace_id: f.value,
             repo_url: l.value,
             repo_ref: t.value.trim() || void 0,
             timeout: c.value.trim() || void 0,
             prompt: v.value,
             options: $.value.options ?? {},
             unattended: ue.value
-          }, { run_timeout: u, ...f } = A.value, ve = b.value ? {
+          }, { run_timeout: i, ...k } = A.value, ve = b.value ? {
             profile_id: b.value,
             prompt: v.value,
             options: $.value.options ?? {},
-            ...f,
-            ...u !== void 0 ? { timeout: u } : {}
+            ...k,
+            ...i !== void 0 ? { timeout: i } : {}
           } : n, we = JSON.stringify(ve);
           (!te || te.snapshot !== we) && (te = { snapshot: we, key: crypto.randomUUID(), body: { ...ve, options: JSON.parse(JSON.stringify(ve.options)) } });
-          const { run_id: Me } = await j.startRun({ ...te.body, idempotency_key: te.key });
-          te = void 0, v.value = "", i("started", Me);
+          const { run_id: We } = await G.startRun({ ...te.body, idempotency_key: te.key });
+          te = void 0, v.value = "", u("started", We);
         } catch (n) {
           ie.value = se(n, "Could not start the task.");
         } finally {
-          ne.value = !1, i("busy", !1);
+          ne.value = !1, u("busy", !1);
         }
       }
     }
-    return (n, u) => (a(), s("fieldset", {
+    return (n, i) => (a(), s("fieldset", {
       ref_key: "root",
       ref: F,
       class: "ac-form ac-new",
       disabled: ne.value
     }, [
-      e("label", lt, [
-        u[16] || (u[16] = e("span", null, "Prompt", -1)),
+      e("label", ot, [
+        i[16] || (i[16] = e("span", null, "Prompt", -1)),
         q(e("textarea", {
-          "onUpdate:modelValue": u[0] || (u[0] = (f) => v.value = f),
+          "onUpdate:modelValue": i[0] || (i[0] = (k) => v.value = k),
           autofocus: "",
           rows: "8",
           class: "kx-focus-halo",
@@ -122,40 +122,40 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
           [ae, v.value]
         ])
       ]),
-      e("label", ot, [
-        u[18] || (u[18] = e("span", null, "Profile", -1)),
+      e("label", st, [
+        i[18] || (i[18] = e("span", null, "Profile", -1)),
         q(e("select", {
-          "onUpdate:modelValue": u[1] || (u[1] = (f) => b.value = f),
+          "onUpdate:modelValue": i[1] || (i[1] = (k) => b.value = k),
           "aria-label": "Profile",
           class: "kx-focus-halo",
           onChange: V
         }, [
-          u[17] || (u[17] = e("option", { value: "" }, "Custom task", -1)),
-          (a(!0), s(W, null, Y(U.value, (f) => (a(), s("option", {
-            key: f.id,
-            value: f.id
-          }, r(f.title), 9, st))), 128))
+          i[17] || (i[17] = e("option", { value: "" }, "Custom task", -1)),
+          (a(!0), s(W, null, Y(U.value, (k) => (a(), s("option", {
+            key: k.id,
+            value: k.id
+          }, r(k.title), 9, nt))), 128))
         ], 544), [
           [le, b.value]
         ])
       ]),
-      e("div", nt, [
-        u[19] || (u[19] = e("span", null, "Agent", -1)),
-        L(je, {
+      e("div", ut, [
+        i[19] || (i[19] = e("span", null, "Agent", -1)),
+        I(Fe, {
           modelValue: P.value,
-          "onUpdate:modelValue": u[2] || (u[2] = (f) => P.value = f),
+          "onUpdate:modelValue": i[2] || (i[2] = (k) => P.value = k),
           agents: o(C).agents
         }, null, 8, ["modelValue", "agents"])
       ]),
-      P.value && !o(D).length ? (a(), s("p", ut, [
+      P.value && !o(D).length ? (a(), s("p", it, [
         N(" No " + r(o(x)?.title) + " accounts you can run on. ", 1),
         e("button", {
           class: "ac-link kx-focus-outline",
           type: "button",
-          onClick: u[3] || (u[3] = (f) => i("goto", "accounts", P.value))
+          onClick: i[3] || (i[3] = (k) => u("goto", "accounts", P.value))
         }, "Add an account")
       ])) : m("", !0),
-      o(p).length ? m("", !0) : (a(), s("p", it, [
+      o(p).length ? m("", !0) : (a(), s("p", rt, [
         N(" No usable image with " + r(o(x)?.title ?? P.value) + ". " + r(o(C).can_images ? "Prepare an image in Autocode management." : "Ask an administrator to prepare and share an image.") + " ", 1),
         o(C).can_images && o(C).settings_path ? (a(), s("button", {
           key: 0,
@@ -164,131 +164,136 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
           onClick: O
         }, "Manage images")) : m("", !0)
       ])),
-      e("div", rt, [
-        e("label", ct, [
-          u[20] || (u[20] = e("span", null, "Account", -1)),
+      e("div", ct, [
+        e("label", dt, [
+          i[20] || (i[20] = e("span", null, "Account", -1)),
           q(e("select", {
-            "onUpdate:modelValue": u[4] || (u[4] = (f) => pe(H) ? H.value = f : null),
+            "onUpdate:modelValue": i[4] || (i[4] = (k) => pe(H) ? H.value = k : null),
             class: "kx-focus-halo"
           }, [
             b.value && o(g) ? (a(), s("option", {
               key: 0,
               value: o(H)
-            }, r(o(H)) + " (unavailable)", 9, dt)) : m("", !0),
-            e("option", vt, "Auto (" + r(o(T).length) + " ready)", 1),
-            (a(!0), s(W, null, Y(o(D), (f) => (a(), s("option", {
-              key: f.id,
-              value: f.id
-            }, r(ye(f)), 9, pt))), 128))
+            }, r(o(H)) + " (unavailable)", 9, vt)) : m("", !0),
+            e("option", pt, "Auto (" + r(o(T).length) + " ready)", 1),
+            (a(!0), s(W, null, Y(o(D), (k) => (a(), s("option", {
+              key: k.id,
+              value: k.id
+            }, r(ge(k)), 9, ft))), 128))
           ], 512), [
             [le, o(H)]
           ])
         ]),
         e("label", kt, [
-          u[21] || (u[21] = e("span", null, "Image", -1)),
+          i[21] || (i[21] = e("span", null, "Image", -1)),
           q(e("select", {
-            "onUpdate:modelValue": u[5] || (u[5] = (f) => pe(S) ? S.value = f : null),
+            "onUpdate:modelValue": i[5] || (i[5] = (k) => pe(S) ? S.value = k : null),
             class: "kx-focus-halo"
           }, [
             b.value && o(_) && o(S) ? (a(), s("option", {
               key: 0,
               value: o(S)
-            }, r(o(S)) + " (unavailable)", 9, ft)) : m("", !0),
-            (a(!0), s(W, null, Y(o(p), (f) => (a(), s("option", {
-              key: f.id,
-              value: f.id
-            }, r(f.label), 9, mt))), 128))
+            }, r(o(S)) + " (unavailable)", 9, mt)) : m("", !0),
+            (a(!0), s(W, null, Y(o(p), (k) => (a(), s("option", {
+              key: k.id,
+              value: k.id
+            }, r(k.label), 9, yt))), 128))
           ], 512), [
             [le, o(S)]
           ])
         ]),
-        e("label", yt, [
-          u[23] || (u[23] = e("span", null, "Workspace", -1)),
+        e("label", gt, [
+          i[23] || (i[23] = e("span", null, "Workspace", -1)),
           q(e("select", {
-            "onUpdate:modelValue": u[6] || (u[6] = (f) => pe(k) ? k.value = f : null),
+            "onUpdate:modelValue": i[6] || (i[6] = (k) => pe(f) ? f.value = k : null),
             class: "kx-focus-halo"
           }, [
-            u[22] || (u[22] = e("option", { value: "" }, "Scratch directory", -1)),
+            i[22] || (i[22] = e("option", { value: "" }, "Scratch directory", -1)),
             b.value && o(K) ? (a(), s("option", {
               key: 0,
-              value: o(k)
-            }, r(o(k)) + " (unavailable)", 9, gt)) : m("", !0),
-            (a(!0), s(W, null, Y(ee.workspaces, (f) => (a(), s("option", {
-              key: f.id,
-              value: f.id
-            }, r(f.name) + r(f.writable ? "" : " (read-only)"), 9, _t))), 128))
+              value: o(f)
+            }, r(o(f)) + " (unavailable)", 9, _t)) : m("", !0),
+            (a(!0), s(W, null, Y(ee.workspaces, (k) => (a(), s("option", {
+              key: k.id,
+              value: k.id
+            }, r(k.name) + r(k.writable ? "" : " (read-only)"), 9, bt))), 128))
           ], 512), [
-            [le, o(k)]
+            [le, o(f)]
           ])
         ])
       ]),
-      e("details", bt, [
-        u[28] || (u[28] = e("summary", { class: "kx-focus-outline" }, "Advanced", -1)),
-        e("div", ht, [
-          e("label", $t, [
-            u[24] || (u[24] = e("span", null, "Git repository", -1)),
-            q(e("input", {
-              "onUpdate:modelValue": u[7] || (u[7] = (f) => pe(l) ? l.value = f : null),
-              class: "ac-mono kx-focus-halo",
-              placeholder: "Optional: https://github.com/org/repo.git"
-            }, null, 512), [
-              [ae, o(l)]
-            ])
-          ]),
-          e("label", xt, [
-            u[25] || (u[25] = e("span", null, "Repository ref", -1)),
-            q(e("input", {
-              "onUpdate:modelValue": u[8] || (u[8] = (f) => pe(t) ? t.value = f : null),
-              "aria-label": "Repository ref",
-              class: "ac-mono kx-focus-halo",
-              placeholder: "Default branch"
-            }, null, 512), [
-              [ae, o(t)]
-            ])
-          ]),
-          e("label", wt, [
-            u[26] || (u[26] = e("span", null, "Run timeout", -1)),
-            q(e("input", {
-              "onUpdate:modelValue": u[9] || (u[9] = (f) => c.value = f),
-              maxlength: "64",
-              class: "ac-mono kx-focus-halo",
-              placeholder: "Use configured timeout"
-            }, null, 512), [
-              [ae, c.value]
-            ])
-          ]),
-          o(x)?.unattended ? (a(), s("label", Ct, [
-            q(e("input", {
-              "onUpdate:modelValue": u[10] || (u[10] = (f) => ue.value = f),
-              type: "checkbox",
-              class: "kx-focus-outline"
-            }, null, 512), [
-              [He, ue.value]
+      I(Le, {
+        class: "ac-advanced",
+        label: "Advanced"
+      }, {
+        default: fe(() => [
+          e("div", ht, [
+            e("label", $t, [
+              i[24] || (i[24] = e("span", null, "Git repository", -1)),
+              q(e("input", {
+                "onUpdate:modelValue": i[7] || (i[7] = (k) => pe(l) ? l.value = k : null),
+                class: "ac-mono kx-focus-halo",
+                placeholder: "Optional: https://github.com/org/repo.git"
+              }, null, 512), [
+                [ae, o(l)]
+              ])
             ]),
-            u[27] || (u[27] = N(" Unattended · skip permission prompts when the image allows it ", -1))
-          ])) : m("", !0),
-          L(Oe, {
-            modelValue: ce.value,
-            "onUpdate:modelValue": u[11] || (u[11] = (f) => ce.value = f),
-            agent: P.value,
-            onInvalid: u[12] || (u[12] = (f) => de.value = f)
-          }, null, 8, ["modelValue", "agent"]),
-          o(x) ? (a(), oe(De, {
-            key: b.value + o(x).id,
-            modelValue: M.value,
-            "onUpdate:modelValue": u[13] || (u[13] = (f) => M.value = f),
-            options: o(x).options,
-            defaults: { ...ue.value ? o(x).unattended : {}, ...h.value?.options },
-            onInvalid: u[14] || (u[14] = (f) => z.value = f)
-          }, null, 8, ["modelValue", "options", "defaults"])) : m("", !0)
-        ])
-      ]),
+            e("label", xt, [
+              i[25] || (i[25] = e("span", null, "Repository ref", -1)),
+              q(e("input", {
+                "onUpdate:modelValue": i[8] || (i[8] = (k) => pe(t) ? t.value = k : null),
+                "aria-label": "Repository ref",
+                class: "ac-mono kx-focus-halo",
+                placeholder: "Default branch"
+              }, null, 512), [
+                [ae, o(t)]
+              ])
+            ]),
+            e("label", wt, [
+              i[26] || (i[26] = e("span", null, "Run timeout", -1)),
+              q(e("input", {
+                "onUpdate:modelValue": i[9] || (i[9] = (k) => c.value = k),
+                maxlength: "64",
+                class: "ac-mono kx-focus-halo",
+                placeholder: "Use configured timeout"
+              }, null, 512), [
+                [ae, c.value]
+              ])
+            ]),
+            o(x)?.unattended ? (a(), s("label", Ct, [
+              q(e("input", {
+                "onUpdate:modelValue": i[10] || (i[10] = (k) => ue.value = k),
+                type: "checkbox",
+                class: "kx-focus-outline"
+              }, null, 512), [
+                [je, ue.value]
+              ]),
+              i[27] || (i[27] = N(" Unattended · skip permission prompts when the image allows it ", -1))
+            ])) : m("", !0),
+            I(De, {
+              modelValue: ce.value,
+              "onUpdate:modelValue": i[11] || (i[11] = (k) => ce.value = k),
+              agent: P.value,
+              onInvalid: i[12] || (i[12] = (k) => de.value = k)
+            }, null, 8, ["modelValue", "agent"]),
+            o(x) ? (a(), oe(Me, {
+              key: b.value + o(x).id,
+              modelValue: M.value,
+              "onUpdate:modelValue": i[13] || (i[13] = (k) => M.value = k),
+              options: o(x).options,
+              defaults: { ...ue.value ? o(x).unattended : {}, ...h.value?.options },
+              onInvalid: i[14] || (i[14] = (k) => z.value = k)
+            }, null, 8, ["modelValue", "options", "defaults"])) : m("", !0)
+          ])
+        ]),
+        _: 1
+      }),
       ie.value ? (a(), s("p", Ut, r(ie.value), 1)) : m("", !0),
       e("footer", Vt, [
         e("button", {
           type: "button",
           class: "ac-btn kx-focus-halo",
-          onClick: u[15] || (u[15] = (f) => i("cancel"))
+          onClick: i[15] || (i[15] = (k) => u("cancel"))
         }, "Cancel"),
         e("button", {
           type: "button",
@@ -296,11 +301,11 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
           disabled: ne.value || de.value || o(z) > 0 || !b.value && (!P.value || !(o(H) || o(T).length) || !o(S)) || !v.value.trim(),
           onClick: y
         }, [
-          L(o(J), { icon: "tabler:player-play" }),
+          I(o(J), { icon: "tabler:player-play" }),
           N(" " + r(ne.value ? "Starting…" : "Start"), 1)
         ], 8, Rt)
       ])
-    ], 8, at));
+    ], 8, lt));
   }
 }), Lt = {
   key: 0,
@@ -313,46 +318,46 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
 }, At = {
   key: 2,
   class: "kx-loading"
-}, Et = { class: "ac-detail-head" }, St = { class: "ac-card-head" }, qt = ["disabled"], Pt = { class: "ac-detail-title" }, Nt = { class: "ac-run-meta ac-detail-meta" }, Ot = ["title"], Dt = { key: 0 }, Mt = { key: 1 }, Wt = { key: 2 }, Jt = { key: 3 }, Bt = { key: 4 }, Ht = { key: 5 }, Gt = { class: "ac-detail-section" }, jt = { class: "ac-pre" }, Ft = {
+}, Et = { class: "ac-detail-head" }, St = { class: "ac-card-head" }, qt = ["disabled"], Pt = { class: "ac-detail-title" }, Nt = { class: "ac-run-meta ac-detail-meta" }, Ot = ["title"], Dt = { key: 0 }, Mt = { key: 1 }, Wt = { key: 2 }, Jt = { key: 3 }, Bt = { key: 4 }, Ht = { key: 5 }, jt = { class: "ac-pre" }, Gt = {
   key: 0,
   class: "ac-muted"
-}, zt = {
+}, Ft = {
   key: 0,
   class: "ac-detail-section",
   "aria-label": "Usage by model"
-}, Kt = {
+}, zt = {
   key: 1,
   class: "kx-err",
   role: "alert"
-}, Qt = {
+}, Kt = {
   class: "ac-detail-section",
   "aria-labelledby": "ac-prompt-heading"
-}, Xt = { class: "ac-section-head" }, Yt = ["aria-expanded"], Zt = {
+}, Qt = { class: "ac-section-head" }, Xt = ["aria-expanded"], Yt = {
   key: 2,
   class: "ac-detail-section ac-result",
   "aria-labelledby": "ac-result-heading"
-}, ea = { class: "ac-section-head" }, ta = { id: "ac-result-heading" }, aa = { class: "ac-row-actions" }, la = ["aria-expanded"], oa = {
+}, Zt = { class: "ac-section-head" }, ea = { id: "ac-result-heading" }, ta = { class: "ac-row-actions" }, aa = ["aria-expanded"], la = {
   key: 0,
   class: "kx-err",
   role: "alert"
-}, sa = {
+}, oa = {
   key: 3,
   class: "kx-err",
   role: "alert"
-}, na = {
+}, sa = {
   class: "ac-detail-section",
   "aria-labelledby": "ac-log-heading"
-}, ua = { class: "ac-section-head" }, ia = { class: "ac-muted" }, ra = ["disabled"], ca = ["disabled"], da = {
+}, na = { class: "ac-section-head" }, ua = { class: "ac-muted" }, ia = ["disabled"], ra = ["disabled"], ca = {
   class: "ac-stream",
   tabindex: "0",
   "aria-label": "Task log"
-}, va = { class: "ac-event-kind" }, pa = { class: "ac-event-text" }, ka = {
+}, da = { class: "ac-event-kind" }, va = { class: "ac-event-text" }, pa = {
   key: 0,
   class: "ac-muted ac-pulse"
 }, fa = {
   key: 1,
   class: "ac-muted"
-}, ma = 500, ya = /* @__PURE__ */ ke({
+}, ka = 500, ma = /* @__PURE__ */ ke({
   __name: "run-detail",
   props: {
     runId: {},
@@ -361,12 +366,12 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
     workspaces: {}
   },
   setup(ee) {
-    const B = ee, Z = me(), i = d(null), C = d([]), F = d(0), U = d(!1), b = d(!1);
+    const B = ee, Z = ye(), u = d(null), C = d([]), F = d(0), U = d(!1), b = d(!1);
     let A;
-    const h = d(!1), V = d(""), I = d(!1), O = d(null), w = d(!1), $ = d("");
+    const h = d(!1), V = d(""), L = d(!1), O = d(null), w = d(!1), $ = d("");
     let R = null;
-    const x = d(!1), D = d(!1), T = d(!1), p = d(""), z = Le(), E = G(() => (i.value?.prompt.length ?? 0) > 500 || (i.value?.prompt.split(`
-`).length ?? 0) > 5), _ = G(() => (i.value?.result.length ?? 0) > 1800 || (i.value?.result.split(`
+    const x = d(!1), D = d(!1), T = d(!1), p = d(""), z = Te(), E = j(() => (u.value?.prompt.length ?? 0) > 500 || (u.value?.prompt.split(`
+`).length ?? 0) > 5), _ = j(() => (u.value?.result.length ?? 0) > 1800 || (u.value?.result.split(`
 `).length ?? 0) > 10);
     let g = !0, K = !0, Q, P;
     const X = (y) => y.status === "queued" || y.status === "running";
@@ -375,56 +380,56 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
     }
     Ue(() => {
       R = O.value?.closest(".ac") ?? null, R?.addEventListener("scroll", H, { passive: !0 });
-    }), ge(() => {
+    }), _e(() => {
       R?.removeEventListener("scroll", H), R = null;
     });
     const S = xe(async () => {
       try {
-        const y = A ?? (i.value ? void 0 : 0);
+        const y = A ?? (u.value ? void 0 : 0);
         A = void 0;
-        let n = await j.run(B.runId, y === void 0 ? F.value : void 0, y);
+        let n = await G.run(B.runId, y === void 0 ? F.value : void 0, y);
         if (!g) return;
         if (y === void 0 && (n.more || h.value && n.events.length)) {
-          if (n = await j.run(B.runId, void 0, 0), !g) return;
+          if (n = await G.run(B.runId, void 0, 0), !g) return;
           C.value = n.events, U.value = n.more, h.value = !1;
         } else if (y !== void 0)
           C.value = n.events, U.value = n.more, h.value = y !== 0;
         else if (n.events.length) {
-          const u = Math.max(0, C.value.length + n.events.length - ma);
-          u && C.value.splice(0, u), C.value.push(...n.events), U.value = U.value || u > 0;
+          const i = Math.max(0, C.value.length + n.events.length - ka);
+          i && C.value.splice(0, i), C.value.push(...n.events), U.value = U.value || i > 0;
         }
-        I.value = !1, i.value = n.run, h.value || (F.value = n.next_seq), await Ve(), g && K && R && R.scrollTo({ top: R.scrollHeight }), V.value = "";
+        L.value = !1, u.value = n.run, h.value || (F.value = n.next_seq), await Ve(), g && K && R && R.scrollTo({ top: R.scrollHeight }), V.value = "";
       } catch (y) {
         if (!g) return;
-        I.value = y instanceof Ye && y.code === "autocode.run_not_found", I.value && (i.value = null, C.value = []), V.value = I.value ? "" : se(y, "Could not load the task.");
+        L.value = y instanceof Ze && y.code === "autocode.run_not_found", L.value && (u.value = null, C.value = []), V.value = L.value ? "" : se(y, "Could not load the task.");
       } finally {
         b.value = !1;
       }
     });
-    function k() {
+    function f() {
       b.value || !C.value.length || (K = !1, b.value = !0, A = C.value[0].seq, S());
     }
     function l() {
       b.value || (K = !0, b.value = !0, A = 0, S());
     }
-    const t = Te.run(B.runId, () => {
+    const t = Ae.run(B.runId, () => {
       S();
     });
-    be(S), ge(() => {
+    be(S), _e(() => {
       g = !1, t(), clearTimeout(P), clearTimeout(Q);
     });
     async function c() {
       try {
-        if (!i.value || !await he.confirm({
+        if (!u.value || !await he.confirm({
           header: "Cancel task",
-          message: `Cancel "${i.value.prompt.split(`
-`)[0]}" (${i.value.id})? Execution will stop; task history will remain.`,
+          message: `Cancel "${u.value.prompt.split(`
+`)[0]}" (${u.value.id})? Execution will stop; task history will remain.`,
           icon: "tabler:player-stop",
           acceptLabel: "Cancel task",
           rejectLabel: "Keep task",
           acceptClass: "p-button-danger"
         })) return;
-        await j.cancelRun(B.runId), await S();
+        await G.cancelRun(B.runId), await S();
       } catch (y) {
         V.value = se(y, "Could not cancel the task.");
       }
@@ -433,7 +438,7 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
       try {
         await navigator.clipboard.writeText(y);
       } catch {
-        const n = document.createElement("textarea"), u = O.value?.getRootNode(), f = u instanceof ShadowRoot || u instanceof Document ? u.activeElement : null, ve = f instanceof HTMLElement ? f : null;
+        const n = document.createElement("textarea"), i = O.value?.getRootNode(), k = i instanceof ShadowRoot || i instanceof Document ? i.activeElement : null, ve = k instanceof HTMLElement ? k : null;
         n.value = y, n.readOnly = !0, n.style.cssText = "position:fixed;opacity:0;pointer-events:none;", O.value?.append(n);
         try {
           if (n.select(), !document.execCommand("copy")) throw new Error("Copy failed");
@@ -444,7 +449,7 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
     }
     async function M() {
       try {
-        await v(i.value?.result ?? ""), T.value = !0, p.value = "", clearTimeout(P), P = setTimeout(() => {
+        await v(u.value?.result ?? ""), T.value = !0, p.value = "", clearTimeout(P), P = setTimeout(() => {
           T.value = !1;
         }, 2e3);
       } catch {
@@ -473,7 +478,7 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
     function ie(y) {
       return B.workspaces.find((n) => n.id === y)?.name ?? "Unlisted workspace";
     }
-    function ye(y) {
+    function ge(y) {
       return B.images.find((n) => n.id === y)?.label ?? "Unlisted image";
     }
     function te(y) {
@@ -485,7 +490,7 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
       ref: O,
       class: "ac-form ac-detail"
     }, [
-      I.value ? (a(), s("div", Lt, [...n[2] || (n[2] = [
+      L.value ? (a(), s("div", Lt, [...n[2] || (n[2] = [
         e("h1", null, "Run not found", -1),
         e("p", null, "This run does not exist or you do not have access to it.", -1)
       ])])) : m("", !0),
@@ -495,102 +500,107 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
           type: "button",
           class: "ac-link kx-focus-outline",
           onClick: n[0] || (n[0] = //@ts-ignore
-          (...u) => o(S) && o(S)(...u))
+          (...i) => o(S) && o(S)(...i))
         }, "Retry")
       ])) : m("", !0),
-      !i.value && !V.value && !I.value ? (a(), s("div", At, [
-        L(o(J), {
+      !u.value && !V.value && !L.value ? (a(), s("div", At, [
+        I(o(J), {
           icon: "tabler:loader-2",
           class: "spin"
         }),
         n[3] || (n[3] = N(" Loading the task…", -1))
-      ])) : i.value ? (a(), s(W, { key: 3 }, [
+      ])) : u.value ? (a(), s(W, { key: 3 }, [
         e("header", Et, [
           e("div", St, [
             e("span", {
-              class: re(["kx-tag-sm ac-tone", i.value.status])
-            }, r(i.value.status), 3),
+              class: re(["kx-tag-sm ac-tone", u.value.status])
+            }, r(u.value.status), 3),
             e("button", {
               type: "button",
               class: "ac-btn kx-focus-halo",
               "aria-live": "polite",
               onClick: ue
             }, [
-              L(o(J), {
+              I(o(J), {
                 icon: w.value ? "tabler:check" : "tabler:link"
               }, null, 8, ["icon"]),
               N(r(w.value ? "Link copied" : "Copy link"), 1)
             ]),
-            X(i.value) ? (a(), s("button", {
+            X(u.value) ? (a(), s("button", {
               key: 0,
               type: "button",
               class: "ac-btn danger kx-focus-halo",
-              disabled: i.value.cancel_requested,
+              disabled: u.value.cancel_requested,
               onClick: c
             }, [
-              L(o(J), { icon: "tabler:player-stop" }),
-              N(" " + r(i.value.cancel_requested ? "Cancelling…" : "Cancel"), 1)
+              I(o(J), { icon: "tabler:player-stop" }),
+              N(" " + r(u.value.cancel_requested ? "Cancelling…" : "Cancel"), 1)
             ], 8, qt)) : m("", !0)
           ]),
-          e("h1", Pt, r(i.value.prompt.split(`
+          e("h1", Pt, r(u.value.prompt.split(`
 `)[0]), 1),
           e("div", Nt, [
             e("span", null, [
-              L(o(J), {
-                icon: o(Ae)(i.value.agent, o(Z).agents)
+              I(o(J), {
+                icon: o(Ee)(u.value.agent, o(Z).agents)
               }, null, 8, ["icon"]),
-              N(r(o(Z).agents.find((u) => u.id === i.value?.agent)?.title ?? i.value.agent), 1)
+              N(r(o(Z).agents.find((i) => i.id === u.value?.agent)?.title ?? u.value.agent), 1)
             ]),
-            e("span", null, r(ne(i.value.account_id)), 1),
-            e("span", null, r(ye(i.value.image_id)), 1),
+            e("span", null, r(ne(u.value.account_id)), 1),
+            e("span", null, r(ge(u.value.image_id)), 1),
             e("span", {
-              title: o($e)(i.value.started_at || i.value.created_at)
-            }, r(i.value.started_at ? "Started" : "Queued") + " " + r(o(Ee)(i.value.started_at || i.value.created_at, o(z))), 9, Ot),
-            i.value.started_at ? (a(), s("span", Dt, r(o(Se)(i.value, o(z))) + " " + r(X(i.value) ? "elapsed" : "duration"), 1)) : m("", !0),
-            i.value.timeout_ms ? (a(), s("span", Mt, r(o(Xe)(i.value.timeout_ms)), 1)) : m("", !0),
-            e("span", null, r(i.value.unattended ? "Unattended" : "Attended"), 1),
-            i.value.workflow ? (a(), s("span", Wt, "Workflow")) : m("", !0),
-            i.value.workspace_id ? (a(), s("span", Jt, r(ie(i.value.workspace_id)), 1)) : m("", !0),
-            de(i.value) ? (a(), s("span", Bt, r(de(i.value)), 1)) : m("", !0),
-            te(i.value.usage) ? (a(), s("span", Ht, r(te(i.value.usage)), 1)) : m("", !0)
+              title: o($e)(u.value.started_at || u.value.created_at)
+            }, r(u.value.started_at ? "Started" : "Queued") + " " + r(o(Se)(u.value.started_at || u.value.created_at, o(z))), 9, Ot),
+            u.value.started_at ? (a(), s("span", Dt, r(o(qe)(u.value, o(z))) + " " + r(X(u.value) ? "elapsed" : "duration"), 1)) : m("", !0),
+            u.value.timeout_ms ? (a(), s("span", Mt, r(o(Ye)(u.value.timeout_ms)), 1)) : m("", !0),
+            e("span", null, r(u.value.unattended ? "Unattended" : "Attended"), 1),
+            u.value.workflow ? (a(), s("span", Wt, "Workflow")) : m("", !0),
+            u.value.workspace_id ? (a(), s("span", Jt, r(ie(u.value.workspace_id)), 1)) : m("", !0),
+            de(u.value) ? (a(), s("span", Bt, r(de(u.value)), 1)) : m("", !0),
+            te(u.value.usage) ? (a(), s("span", Ht, r(te(u.value.usage)), 1)) : m("", !0)
           ])
         ]),
-        e("details", Gt, [
-          n[4] || (n[4] = e("summary", { class: "kx-focus-outline" }, "Effective options", -1)),
-          e("pre", jt, r(JSON.stringify(i.value.options, null, 2)), 1),
-          i.value.endpoint ? (a(), s("p", Ft, r(i.value.endpoint.protocol) + " · " + r(i.value.endpoint.base_url) + " · " + r(i.value.endpoint.model), 1)) : m("", !0)
-        ]),
-        i.value.usage.models ? (a(), s("section", zt, [
-          n[5] || (n[5] = e("h3", null, "Usage by model", -1)),
-          (a(!0), s(W, null, Y(i.value.usage.models, (u, f) => (a(), s("p", {
-            key: f,
+        I(Le, {
+          class: "ac-detail-section",
+          label: "Effective options"
+        }, {
+          default: fe(() => [
+            e("pre", jt, r(JSON.stringify(u.value.options, null, 2)), 1),
+            u.value.endpoint ? (a(), s("p", Gt, r(u.value.endpoint.protocol) + " · " + r(u.value.endpoint.base_url) + " · " + r(u.value.endpoint.model), 1)) : m("", !0)
+          ]),
+          _: 1
+        }),
+        u.value.usage.models ? (a(), s("section", Ft, [
+          n[4] || (n[4] = e("h3", null, "Usage by model", -1)),
+          (a(!0), s(W, null, Y(u.value.usage.models, (i, k) => (a(), s("p", {
+            key: k,
             class: "ac-muted"
-          }, r(f) + " · " + r(te(u)), 1))), 128))
+          }, r(k) + " · " + r(te(i)), 1))), 128))
         ])) : m("", !0),
-        $.value ? (a(), s("p", Kt, r($.value), 1)) : m("", !0),
-        e("section", Qt, [
-          e("div", Xt, [
-            n[6] || (n[6] = e("h3", { id: "ac-prompt-heading" }, "Prompt", -1)),
+        $.value ? (a(), s("p", zt, r($.value), 1)) : m("", !0),
+        e("section", Kt, [
+          e("div", Qt, [
+            n[5] || (n[5] = e("h3", { id: "ac-prompt-heading" }, "Prompt", -1)),
             E.value ? (a(), s("button", {
               key: 0,
               type: "button",
               class: "ac-link kx-focus-outline",
               "aria-expanded": x.value,
               "aria-controls": "ac-prompt-text",
-              onClick: n[1] || (n[1] = (u) => x.value = !x.value)
-            }, r(x.value ? "Collapse prompt" : "Expand prompt"), 9, Yt)) : m("", !0)
+              onClick: n[1] || (n[1] = (i) => x.value = !x.value)
+            }, r(x.value ? "Collapse prompt" : "Expand prompt"), 9, Xt)) : m("", !0)
           ]),
           e("pre", {
             id: "ac-prompt-text",
             class: re(["ac-pre ac-prompt", { expanded: x.value || !E.value }])
           }, [
-            e("span", null, r(i.value.prompt), 1)
+            e("span", null, r(u.value.prompt), 1)
           ], 2)
         ]),
-        i.value.result ? (a(), s("section", Zt, [
-          e("div", ea, [
-            e("h3", ta, r(i.value.status === "succeeded" ? "Result" : "Partial result"), 1),
-            e("div", aa, [
+        u.value.result ? (a(), s("section", Yt, [
+          e("div", Zt, [
+            e("h3", ea, r(u.value.status === "succeeded" ? "Result" : "Partial result"), 1),
+            e("div", ta, [
               _.value ? (a(), s("button", {
                 key: 0,
                 type: "button",
@@ -598,87 +608,87 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
                 "aria-expanded": D.value,
                 "aria-controls": "ac-result-text",
                 onClick: ce
-              }, r(D.value ? "Collapse result" : "Expand result"), 9, la)) : m("", !0),
+              }, r(D.value ? "Collapse result" : "Expand result"), 9, aa)) : m("", !0),
               e("button", {
                 type: "button",
                 class: "ac-btn kx-focus-halo",
                 onClick: M
               }, [
-                L(o(J), {
+                I(o(J), {
                   icon: T.value ? "tabler:check" : "tabler:copy"
                 }, null, 8, ["icon"]),
                 N(r(T.value ? "Copied" : "Copy"), 1)
               ])
             ])
           ]),
-          p.value ? (a(), s("p", oa, r(p.value), 1)) : m("", !0),
+          p.value ? (a(), s("p", la, r(p.value), 1)) : m("", !0),
           e("pre", {
             id: "ac-result-text",
             class: re(["ac-pre ac-result-text", { expanded: D.value }]),
             tabindex: "0",
             "aria-label": "Result"
-          }, r(i.value.result), 3)
+          }, r(u.value.result), 3)
         ])) : m("", !0),
-        i.value.error ? (a(), s("p", sa, r(i.value.error), 1)) : m("", !0),
-        e("section", na, [
-          e("div", ua, [
-            n[7] || (n[7] = e("h3", { id: "ac-log-heading" }, "Log", -1)),
-            e("span", ia, r(C.value.length) + " events", 1)
+        u.value.error ? (a(), s("p", oa, r(u.value.error), 1)) : m("", !0),
+        e("section", sa, [
+          e("div", na, [
+            n[6] || (n[6] = e("h3", { id: "ac-log-heading" }, "Log", -1)),
+            e("span", ua, r(C.value.length) + " events", 1)
           ]),
           U.value ? (a(), s("button", {
             key: 0,
             type: "button",
             class: "ac-link kx-focus-outline",
             disabled: b.value,
-            onClick: k
-          }, r(b.value ? "Loading…" : "Load earlier"), 9, ra)) : m("", !0),
+            onClick: f
+          }, r(b.value ? "Loading…" : "Load earlier"), 9, ia)) : m("", !0),
           h.value ? (a(), s("button", {
             key: 1,
             type: "button",
             class: "ac-link kx-focus-outline",
             disabled: b.value,
             onClick: l
-          }, "Latest", 8, ca)) : m("", !0),
-          e("div", da, [
-            (a(!0), s(W, null, Y(C.value, (u) => (a(), s("div", {
-              key: u.seq,
-              class: re(["ac-event", u.kind])
+          }, "Latest", 8, ra)) : m("", !0),
+          e("div", ca, [
+            (a(!0), s(W, null, Y(C.value, (i) => (a(), s("div", {
+              key: i.seq,
+              class: re(["ac-event", i.kind])
             }, [
-              e("span", va, r(u.kind), 1),
-              e("pre", pa, r(u.text), 1)
+              e("span", da, r(i.kind), 1),
+              e("pre", va, r(i.text), 1)
             ], 2))), 128)),
-            X(i.value) ? (a(), s("div", ka, r(i.value.status === "queued" ? "Waiting to start…" : "Working…"), 1)) : C.value.length ? m("", !0) : (a(), s("div", fa, "No log events."))
+            X(u.value) ? (a(), s("div", pa, r(u.value.status === "queued" ? "Waiting to start…" : "Working…"), 1)) : C.value.length ? m("", !0) : (a(), s("div", fa, "No log events."))
           ])
         ])
       ], 64)) : m("", !0)
     ], 512));
   }
-}), ga = {
+}), ya = {
   key: 0,
   "aria-label": "Task details"
-}, _a = { class: "ac-detail-back" }, ba = {
+}, ga = { class: "ac-detail-back" }, _a = {
   key: 1,
   class: "kx-loading"
-}, ha = { key: 2 }, $a = {
+}, ba = { key: 2 }, ha = {
   key: 0,
   class: "kx-err",
   role: "alert"
-}, xa = {
+}, $a = {
   key: 1,
   class: "kx-empty"
-}, wa = { class: "kx-empty-ico" }, Ca = { class: "kx-empty-sub" }, Ua = {
+}, xa = { class: "kx-empty-ico" }, wa = { class: "kx-empty-sub" }, Ca = {
   key: 2,
   class: "kx-empty"
-}, Va = {
+}, Ua = {
   key: 3,
   class: "ac-run-list"
-}, Ra = ["onClick"], Ia = { class: "ac-run-copy" }, La = { class: "ac-run-title-row" }, Ta = { class: "ac-run-title" }, Aa = {
+}, Va = ["onClick"], Ra = { class: "ac-run-copy" }, Ia = { class: "ac-run-title-row" }, La = { class: "ac-run-title" }, Ta = {
   key: 0,
   class: "kx-tag-sm ac-tone"
-}, Ea = { class: "ac-run-meta" }, Sa = ["title"], qa = { key: 0 }, Pa = {
+}, Aa = { class: "ac-run-meta" }, Ea = ["title"], Sa = { key: 0 }, qa = {
   key: 4,
   class: "ac-load-more"
-}, Na = /* @__PURE__ */ ke({
+}, Pa = /* @__PURE__ */ ke({
   __name: "tasks",
   props: {
     query: {},
@@ -686,97 +696,97 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
   },
   emits: ["goto", "agentChanged", "count", "open", "close"],
   setup(ee, { expose: B, emit: Z }) {
-    const i = qe(), C = d([]), F = ee, U = Z, b = me(), A = d(!1), h = d(!1);
+    const u = Pe(), C = d([]), F = ee, U = Z, b = ye(), A = d(!1), h = d(!1);
     B({ open: () => {
       A.value = !0;
     } });
-    const V = d([]), I = d([]), O = d([]), w = d([]), $ = d(), R = d(!1), x = d(""), D = Le(), T = d(!1);
+    const V = d([]), L = d([]), O = d([]), w = d([]), $ = d(), R = d(!1), x = d(""), D = Te(), T = d(!1);
     let p = 0, z = 1;
     async function E() {
       const t = [];
       let c;
       for (let v = 0; v < z; v++) {
-        const M = await j.runs(c);
-        if (!i() || (t.push(...M.runs), c = M.next_cursor, !c)) break;
+        const M = await G.runs(c);
+        if (!u() || (t.push(...M.runs), c = M.next_cursor, !c)) break;
       }
       return { runs: t, next_cursor: c };
     }
     const _ = xe(async () => {
       p++, T.value = !0;
       try {
-        await Ne(
-          () => Promise.all([j.accounts(), j.images(), E(), j.workspaces()]),
+        await Oe(
+          () => Promise.all([G.accounts(), G.images(), E(), G.workspaces()]),
           ([t, c, , v]) => [...t, ...c, ...v.workspaces].map((M) => M.id),
           C,
-          i,
+          u,
           ([t, c, v, M]) => {
-            V.value = t, I.value = c, w.value = v.runs, $.value = v.next_cursor, O.value = M.workspaces, R.value = !0, x.value = "";
+            V.value = t, L.value = c, w.value = v.runs, $.value = v.next_cursor, O.value = M.workspaces, R.value = !0, x.value = "";
           },
           () => {
             _();
           }
         );
       } catch (t) {
-        i() && (x.value = se(t, "Could not load tasks."));
+        u() && (x.value = se(t, "Could not load tasks."));
       } finally {
-        i() && (T.value = !1);
+        u() && (T.value = !1);
       }
-    }, i), g = Te.runs(() => {
+    }, u), g = Ae.runs(() => {
       _();
     });
-    Pe(() => C.value, () => {
+    Ne(() => C.value, () => {
       _();
-    }), be(_), ge(g);
+    }), be(_), _e(g);
     const K = d(!1);
     async function Q() {
       if (!(!$.value || K.value || T.value)) {
         K.value = !0;
         try {
-          const t = p, c = await j.runs($.value);
-          if (!i() || p !== t) return;
+          const t = p, c = await G.runs($.value);
+          if (!u() || p !== t) return;
           const v = new Set(w.value.map((M) => M.id));
           w.value.push(...c.runs.filter((M) => !v.has(M.id))), $.value = c.next_cursor, z++;
         } catch (t) {
-          i() && (x.value = se(t, "Could not load more tasks."));
+          u() && (x.value = se(t, "Could not load more tasks."));
         } finally {
-          i() && (K.value = !1);
+          u() && (K.value = !1);
         }
       }
     }
     function P(t) {
       A.value = !1, U("open", t);
     }
-    const X = G(() => V.value.some((t) => t.usable && t.enabled)), H = G(() => w.value.filter((t) => [t.prompt_summary, t.status, t.agent, S(t.agent), l(t.account_id)].join(" ").toLowerCase().includes(F.query.trim().toLowerCase())));
-    fe(() => w.value.length, (t) => U("count", t));
+    const X = j(() => V.value.some((t) => t.usable && t.enabled)), H = j(() => w.value.filter((t) => [t.prompt_summary, t.status, t.agent, S(t.agent), l(t.account_id)].join(" ").toLowerCase().includes(F.query.trim().toLowerCase())));
+    me(() => w.value.length, (t) => U("count", t));
     function S(t) {
       return b.value.agents.find((c) => c.id === t)?.title ?? t;
     }
-    function k(t) {
-      return I.value.find((c) => c.id === t)?.label ?? "Unlisted image";
+    function f(t) {
+      return L.value.find((c) => c.id === t)?.label ?? "Unlisted image";
     }
     function l(t) {
       return V.value.find((c) => c.id === t)?.label ?? "Unlisted account";
     }
-    return (t, c) => ee.runId ? (a(), s("section", ga, [
-      e("div", _a, [
+    return (t, c) => ee.runId ? (a(), s("section", ya, [
+      e("div", ga, [
         e("button", {
           type: "button",
           class: "ac-btn kx-focus-halo",
           onClick: c[0] || (c[0] = (v) => U("close"))
         }, [
-          L(o(J), { icon: "tabler:arrow-left" }),
+          I(o(J), { icon: "tabler:arrow-left" }),
           c[9] || (c[9] = N(" Back to tasks", -1))
         ])
       ]),
-      (a(), oe(ya, {
+      (a(), oe(ma, {
         key: ee.runId,
         "run-id": ee.runId,
         accounts: V.value,
-        images: I.value,
+        images: L.value,
         workspaces: O.value
       }, null, 8, ["run-id", "accounts", "images", "workspaces"]))
-    ])) : R.value ? (a(), s("div", ha, [
-      x.value ? (a(), s("p", $a, [
+    ])) : R.value ? (a(), s("div", ba, [
+      x.value ? (a(), s("p", ha, [
         N(r(x.value) + " ", 1),
         e("button", {
           class: "ac-link kx-focus-outline",
@@ -785,26 +795,26 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
           (...v) => o(_) && o(_)(...v))
         }, "Retry")
       ])) : m("", !0),
-      w.value.length ? H.value.length ? m("", !0) : (a(), s("div", Ua, [...c[12] || (c[12] = [
+      w.value.length ? H.value.length ? m("", !0) : (a(), s("div", Ca, [...c[12] || (c[12] = [
         e("div", { class: "kx-empty-title" }, "No matches", -1),
         e("div", { class: "kx-empty-sub" }, "Try another task, agent or account.", -1)
-      ])])) : (a(), s("div", xa, [
-        e("div", wa, [
-          L(o(J), { icon: "tabler:terminal-2" })
+      ])])) : (a(), s("div", $a, [
+        e("div", xa, [
+          I(o(J), { icon: "tabler:terminal-2" })
         ]),
         c[11] || (c[11] = e("div", { class: "kx-empty-title" }, "No tasks yet", -1)),
-        e("div", Ca, r(X.value ? "Give a coding agent a task and follow its progress here." : "Add an account to give your coding agent a place to start."), 1),
-        L(o(Ce), {
+        e("div", wa, r(X.value ? "Give a coding agent a task and follow its progress here." : "Add an account to give your coding agent a place to start."), 1),
+        I(o(Ce), {
           label: X.value ? "New task" : "Add account",
           onClick: c[3] || (c[3] = (v) => X.value ? A.value = !0 : U("goto"))
         }, {
-          icon: _e(() => [
-            L(o(J), { icon: "tabler:plus" })
+          icon: fe(() => [
+            I(o(J), { icon: "tabler:plus" })
           ]),
           _: 1
         }, 8, ["label"])
       ])),
-      H.value.length ? (a(), s("ul", Va, [
+      H.value.length ? (a(), s("ul", Ua, [
         (a(!0), s(W, null, Y(H.value, (v) => (a(), s("li", {
           key: v.id,
           class: "ac-run"
@@ -814,39 +824,39 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
             class: "ac-run-main kx-focus-halo",
             onClick: (M) => U("open", v.id)
           }, [
-            e("span", Ia, [
-              e("span", La, [
-                e("span", Ta, r(v.prompt_summary.split(`
+            e("span", Ra, [
+              e("span", Ia, [
+                e("span", La, r(v.prompt_summary.split(`
 `)[0]), 1),
                 e("span", {
                   class: re(["kx-tag-sm ac-tone", v.status])
                 }, r(v.status), 3),
-                v.workflow ? (a(), s("span", Aa, "Workflow")) : m("", !0)
+                v.workflow ? (a(), s("span", Ta, "Workflow")) : m("", !0)
               ]),
-              e("span", Ea, [
+              e("span", Aa, [
                 e("span", null, [
-                  L(o(J), {
-                    icon: o(Ae)(v.agent, o(b).agents)
+                  I(o(J), {
+                    icon: o(Ee)(v.agent, o(b).agents)
                   }, null, 8, ["icon"]),
                   N(r(S(v.agent)), 1)
                 ]),
                 e("span", null, r(l(v.account_id)), 1),
-                e("span", null, r(k(v.image_id)), 1),
+                e("span", null, r(f(v.image_id)), 1),
                 e("span", {
                   title: o($e)(v.started_at || v.created_at)
-                }, r(o(Ee)(v.started_at || v.created_at, o(D))), 9, Sa),
-                v.started_at ? (a(), s("span", qa, r(o(Se)(v, o(D))) + " " + r(v.status === "running" ? "elapsed" : "duration"), 1)) : m("", !0)
+                }, r(o(Se)(v.started_at || v.created_at, o(D))), 9, Ea),
+                v.started_at ? (a(), s("span", Sa, r(o(qe)(v, o(D))) + " " + r(v.status === "running" ? "elapsed" : "duration"), 1)) : m("", !0)
               ])
             ]),
-            L(o(J), {
+            I(o(J), {
               icon: "tabler:chevron-right",
               class: "ac-run-chevron ac-muted"
             })
-          ], 8, Ra)
+          ], 8, Va)
         ]))), 128))
       ])) : m("", !0),
-      $.value ? (a(), s("div", Pa, [
-        L(o(Ce), {
+      $.value ? (a(), s("div", qa, [
+        I(o(Ce), {
           label: "Load more",
           loading: K.value,
           disabled: T.value,
@@ -860,11 +870,11 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
         wide: "",
         onClose: c[8] || (c[8] = (v) => A.value = !1)
       }, {
-        default: _e(() => [
-          L(It, {
+        default: fe(() => [
+          I(It, {
             onBusy: c[4] || (c[4] = (v) => h.value = v),
             accounts: V.value,
-            images: I.value,
+            images: L.value,
             workspaces: O.value,
             onStarted: P,
             onCancel: c[5] || (c[5] = (v) => A.value = !1),
@@ -874,7 +884,7 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
         ]),
         _: 1
       }, 8, ["busy"])) : m("", !0)
-    ])) : (a(), s("div", ba, [
+    ])) : (a(), s("div", _a, [
       x.value ? (a(), s(W, { key: 0 }, [
         N(r(x.value) + " ", 1),
         e("button", {
@@ -884,7 +894,7 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
           (...v) => o(_) && o(_)(...v))
         }, "Retry")
       ], 64)) : (a(), s(W, { key: 1 }, [
-        L(o(J), {
+        I(o(J), {
           icon: "tabler:loader-2",
           class: "spin"
         }),
@@ -892,79 +902,79 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
       ], 64))
     ]));
   }
-}), Oa = ["aria-busy"], Da = {
+}), Na = ["aria-busy"], Oa = {
   key: 0,
   class: "kx-empty",
   role: "status"
-}, Ma = {
+}, Da = {
   key: 1,
   class: "kx-err",
   role: "alert"
-}, Wa = {
+}, Ma = {
   key: 2,
   class: "kx-empty"
-}, Ja = {
+}, Wa = {
   key: 3,
   class: "kx-empty"
-}, Ba = {
+}, Ja = {
   key: 4,
   class: "ac-list"
-}, Ha = { class: "ac-account-main" }, Ga = { class: "ac-row-title" }, ja = { class: "ac-row-name" }, Fa = { class: "ac-muted" }, za = {
+}, Ba = { class: "ac-account-main" }, Ha = { class: "ac-row-title" }, ja = { class: "ac-row-name" }, Ga = { class: "ac-muted" }, Fa = {
   key: 0,
   class: "ac-muted ac-mono"
-}, Ka = { class: "ac-row-actions" }, Qa = ["onClick"], Xa = ["onClick"], Ya = ["onClick"], Za = {
+}, za = { class: "ac-row-actions" }, Ka = ["onClick"], Qa = ["onClick"], Xa = ["onClick"], Ya = {
   key: 0,
   class: "kx-err",
   role: "alert"
-}, el = ["disabled"], tl = { class: "ac-field" }, al = { class: "ac-field" }, ll = ["value"], ol = { class: "ac-field" }, sl = ["value"], nl = {
+}, Za = ["disabled"], el = { class: "ac-field" }, tl = { class: "ac-field" }, al = ["value"], ll = { class: "ac-field" }, ol = ["value"], sl = {
   key: 0,
   class: "ac-field"
-}, ul = ["value"], il = { class: "ac-field" }, rl = ["value"], cl = { class: "ac-field" }, dl = ["value"], vl = { class: "ac-field" }, pl = ["value"], kl = { class: "ac-field" }, fl = { class: "ac-field" }, ml = { class: "ac-field" }, yl = { class: "ac-field" }, gl = { class: "ac-field" }, _l = {
+}, nl = ["value"], ul = { class: "ac-field" }, il = ["value"], rl = { class: "ac-field" }, cl = ["value"], dl = { class: "ac-field" }, vl = ["value"], pl = { class: "ac-field" }, fl = { class: "ac-field" }, kl = { class: "ac-field" }, ml = { class: "ac-field" }, yl = { class: "ac-field" }, gl = {
   key: 2,
   class: "ac-check"
-}, bl = ["checked"], hl = { class: "ac-dialog-foot" }, $l = ["disabled"], xl = /* @__PURE__ */ ke({
+}, _l = ["checked"], bl = { class: "ac-dialog-foot" }, hl = ["disabled"], $l = /* @__PURE__ */ ke({
   __name: "profiles",
   props: {
     query: {}
   },
   emits: ["count"],
   setup(ee, { expose: B, emit: Z }) {
-    const i = qe(), C = ee, F = Z, U = me(), b = d([]), A = d([]), h = d([]), V = d([]), I = d([]), O = d(""), w = d(""), $ = d(!0), R = d(!1), x = d(0), D = d(!1), T = d(null), p = d(null), z = d(""), E = d(""), _ = d(""), g = G(() => U.value.agents.find((k) => k.id === p.value?.agent)), K = G(() => b.value.filter((k) => `${k.title} ${k.agent}`.toLowerCase().includes(C.query.toLowerCase()))), Q = xe(async () => {
+    const u = Pe(), C = ee, F = Z, U = ye(), b = d([]), A = d([]), h = d([]), V = d([]), L = d([]), O = d(""), w = d(""), $ = d(!0), R = d(!1), x = d(0), D = d(!1), T = d(null), p = d(null), z = d(""), E = d(""), _ = d(""), g = j(() => U.value.agents.find((f) => f.id === p.value?.agent)), K = j(() => b.value.filter((f) => `${f.title} ${f.agent}`.toLowerCase().includes(C.query.toLowerCase()))), Q = xe(async () => {
       try {
-        await Ne(
-          () => Promise.all([j.profiles(), j.accounts(), j.images(), j.workspaces()]),
-          ([k, l, t, c]) => [...k.map((v) => v.id), ...l.map((v) => v.id), ...t.map((v) => v.id), ...c.workspaces.map((v) => v.id)],
+        await Oe(
+          () => Promise.all([G.profiles(), G.accounts(), G.images(), G.workspaces()]),
+          ([f, l, t, c]) => [...f.map((v) => v.id), ...l.map((v) => v.id), ...t.map((v) => v.id), ...c.workspaces.map((v) => v.id)],
           A,
-          i,
-          ([k, l, t, c]) => {
-            b.value = k, h.value = l, V.value = t, I.value = c.workspaces, F("count", k.length), O.value = "";
+          u,
+          ([f, l, t, c]) => {
+            b.value = f, h.value = l, V.value = t, L.value = c.workspaces, F("count", f.length), O.value = "";
           },
           () => {
             Q();
           }
         );
-      } catch (k) {
-        i() && (O.value = se(k, "Could not load profiles."));
+      } catch (f) {
+        u() && (O.value = se(f, "Could not load profiles."));
       } finally {
-        i() && ($.value = !1);
+        u() && ($.value = !1);
       }
-    }, i);
-    Pe(() => A.value, Q), be(Q);
-    function P(k, l = !1) {
-      T.value = k && !l ? k.id : null, p.value = k ? {
-        title: k.title + (l ? " copy" : ""),
-        agent: k.agent,
-        account_id: k.account_id ?? "",
-        account_pool: [...k.account_pool ?? []],
-        image_id: k.image_id,
-        workspace_id: k.workspace_id ?? "",
-        tools: k.tools ? JSON.parse(JSON.stringify(k.tools)) : void 0,
-        repo_url: k.repo_url,
-        repo_ref: k.repo_ref,
-        run_timeout: k.run_timeout,
-        options: JSON.parse(JSON.stringify(k.options)),
-        unattended: k.unattended
-      } : { title: "", agent: U.value.agents[0]?.id ?? "", image_id: "", options: {}, account_pool: [], account_id: "", workspace_id: "" }, z.value = k?.endpoint?.protocol ?? g.value?.endpoints[0] ?? "", E.value = k?.endpoint?.base_url ?? "", _.value = k?.endpoint?.model ?? "", x.value = 0, w.value = "";
+    }, u);
+    Ne(() => A.value, Q), be(Q);
+    function P(f, l = !1) {
+      T.value = f && !l ? f.id : null, p.value = f ? {
+        title: f.title + (l ? " copy" : ""),
+        agent: f.agent,
+        account_id: f.account_id ?? "",
+        account_pool: [...f.account_pool ?? []],
+        image_id: f.image_id,
+        workspace_id: f.workspace_id ?? "",
+        tools: f.tools ? JSON.parse(JSON.stringify(f.tools)) : void 0,
+        repo_url: f.repo_url,
+        repo_ref: f.repo_ref,
+        run_timeout: f.run_timeout,
+        options: JSON.parse(JSON.stringify(f.options)),
+        unattended: f.unattended
+      } : { title: "", agent: U.value.agents[0]?.id ?? "", image_id: "", options: {}, account_pool: [], account_id: "", workspace_id: "" }, z.value = f?.endpoint?.protocol ?? g.value?.endpoints[0] ?? "", E.value = f?.endpoint?.base_url ?? "", _.value = f?.endpoint?.model ?? "", x.value = 0, w.value = "";
     }
     function X() {
       p.value && (p.value.account_id = "", p.value.account_pool = [], p.value.options = {}, z.value = g.value?.endpoints[0] ?? "", E.value = "", _.value = "");
@@ -973,26 +983,26 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
       if (!(!p.value || R.value || x.value || D.value)) {
         R.value = !0, w.value = "";
         try {
-          const k = { ...p.value, account_pool: p.value.account_id ? [] : p.value.account_pool };
-          if (g.value?.endpoints.length ? k.endpoint = { protocol: z.value, base_url: E.value.trim(), model: _.value.trim() || void 0 } : T.value && b.value.some((l) => l.id === T.value && l.endpoint?.base_url) && (k.endpoint = { protocol: "", base_url: "" }), T.value ? await j.updateProfile(T.value, k) : await j.createProfile(k), !i()) return;
+          const f = { ...p.value, account_pool: p.value.account_id ? [] : p.value.account_pool };
+          if (g.value?.endpoints.length ? f.endpoint = { protocol: z.value, base_url: E.value.trim(), model: _.value.trim() || void 0 } : T.value && b.value.some((l) => l.id === T.value && l.endpoint?.base_url) && (f.endpoint = { protocol: "", base_url: "" }), T.value ? await G.updateProfile(T.value, f) : await G.createProfile(f), !u()) return;
           p.value = null, await Q();
-        } catch (k) {
-          i() && (w.value = se(k, "Could not save the profile."));
+        } catch (f) {
+          u() && (w.value = se(f, "Could not save the profile."));
         } finally {
-          i() && (R.value = !1);
+          u() && (R.value = !1);
         }
       }
     }
-    async function S(k) {
-      if (await he.confirm({ header: "Delete profile", message: `Delete ${k.title}?`, acceptLabel: "Delete" }))
+    async function S(f) {
+      if (await he.confirm({ header: "Delete profile", message: `Delete ${f.title}?`, acceptLabel: "Delete" }))
         try {
-          await j.deleteProfile(k.id), await Q();
+          await G.deleteProfile(f.id), await Q();
         } catch (l) {
-          i() && (O.value = se(l, "Could not delete the profile."));
+          u() && (O.value = se(l, "Could not delete the profile."));
         }
     }
-    return B({ open: P }), (k, l) => (a(), s("section", { "aria-busy": $.value }, [
-      $.value ? (a(), s("p", Da, "Loading profiles…")) : O.value ? (a(), s("div", Ma, [
+    return B({ open: P }), (f, l) => (a(), s("section", { "aria-busy": $.value }, [
+      $.value ? (a(), s("p", Oa, "Loading profiles…")) : O.value ? (a(), s("div", Da, [
         N(r(O.value) + " ", 1),
         e("button", {
           type: "button",
@@ -1001,28 +1011,28 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
           onClick: l[0] || (l[0] = //@ts-ignore
           (...t) => o(Q) && o(Q)(...t))
         }, "Retry")
-      ])) : b.value.length ? K.value.length ? (a(), s("ul", Ba, [
+      ])) : b.value.length ? K.value.length ? (a(), s("ul", Ja, [
         (a(!0), s(W, null, Y(K.value, (t) => (a(), s("li", {
           key: t.id,
           class: "ac-row ac-account ac-hover-actions"
         }, [
-          e("div", Ha, [
-            e("div", Ga, [
-              L(o(J), { icon: "tabler:robot" }),
+          e("div", Ba, [
+            e("div", Ha, [
+              I(o(J), { icon: "tabler:robot" }),
               e("span", ja, r(t.title), 1)
             ]),
-            e("p", Fa, r(o(U).agents.find((c) => c.id === t.agent)?.title ?? t.agent) + " · " + r(t.endpoint?.model ?? t.options.model ?? "CLI default model"), 1),
-            t.endpoint ? (a(), s("p", za, r(t.endpoint.base_url), 1)) : m("", !0)
+            e("p", Ga, r(o(U).agents.find((c) => c.id === t.agent)?.title ?? t.agent) + " · " + r(t.endpoint?.model ?? t.options.model ?? "CLI default model"), 1),
+            t.endpoint ? (a(), s("p", Fa, r(t.endpoint.base_url), 1)) : m("", !0)
           ]),
-          e("div", Ka, [
+          e("div", za, [
             e("button", {
               type: "button",
               class: "ac-icon-btn kx-focus-outline",
               "aria-label": "Duplicate profile",
               onClick: (c) => P(t, !0)
             }, [
-              L(o(J), { icon: "tabler:copy" })
-            ], 8, Qa),
+              I(o(J), { icon: "tabler:copy" })
+            ], 8, Ka),
             t.writable ? (a(), s("button", {
               key: 0,
               type: "button",
@@ -1030,8 +1040,8 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
               "aria-label": "Edit profile",
               onClick: (c) => P(t)
             }, [
-              L(o(J), { icon: "tabler:pencil" })
-            ], 8, Xa)) : m("", !0),
+              I(o(J), { icon: "tabler:pencil" })
+            ], 8, Qa)) : m("", !0),
             t.deletable ? (a(), s("button", {
               key: 1,
               type: "button",
@@ -1039,28 +1049,28 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
               "aria-label": "Delete profile",
               onClick: (c) => S(t)
             }, [
-              L(o(J), { icon: "tabler:trash" })
-            ], 8, Ya)) : m("", !0)
+              I(o(J), { icon: "tabler:trash" })
+            ], 8, Xa)) : m("", !0)
           ])
         ]))), 128))
-      ])) : (a(), s("p", Ja, "No matches.")) : (a(), s("p", Wa, "Create a profile to reuse agent and task settings.")),
+      ])) : (a(), s("p", Wa, "No matches.")) : (a(), s("p", Ma, "Create a profile to reuse agent and task settings.")),
       p.value ? (a(), oe(Ie, {
         key: 5,
         title: T.value ? "Edit profile" : "Create profile",
         busy: R.value,
         onClose: l[19] || (l[19] = (t) => p.value = null)
       }, {
-        default: _e(() => [
+        default: fe(() => [
           e("form", {
             class: "ac-form",
             onSubmit: Re(H, ["prevent"])
           }, [
-            w.value ? (a(), s("p", Za, r(w.value), 1)) : m("", !0),
+            w.value ? (a(), s("p", Ya, r(w.value), 1)) : m("", !0),
             e("fieldset", {
               class: "ac-form",
               disabled: R.value
             }, [
-              e("label", tl, [
+              e("label", el, [
                 l[20] || (l[20] = e("span", null, "Title", -1)),
                 q(e("input", {
                   "onUpdate:modelValue": l[1] || (l[1] = (t) => p.value.title = t),
@@ -1072,7 +1082,7 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
                   [ae, p.value.title]
                 ])
               ]),
-              e("label", al, [
+              e("label", tl, [
                 l[21] || (l[21] = e("span", null, "Agent", -1)),
                 q(e("select", {
                   "onUpdate:modelValue": l[2] || (l[2] = (t) => p.value.agent = t),
@@ -1082,12 +1092,12 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
                   (a(!0), s(W, null, Y(o(U).agents, (t) => (a(), s("option", {
                     key: t.id,
                     value: t.id
-                  }, r(t.title), 9, ll))), 128))
+                  }, r(t.title), 9, al))), 128))
                 ], 544), [
                   [le, p.value.agent]
                 ])
               ]),
-              e("label", ol, [
+              e("label", ll, [
                 l[23] || (l[23] = e("span", null, "Account", -1)),
                 q(e("select", {
                   "onUpdate:modelValue": l[3] || (l[3] = (t) => p.value.account_id = t),
@@ -1097,12 +1107,12 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
                   (a(!0), s(W, null, Y(h.value.filter((t) => t.agent === p.value?.agent), (t) => (a(), s("option", {
                     key: t.id,
                     value: t.id
-                  }, r(t.label), 9, sl))), 128))
+                  }, r(t.label), 9, ol))), 128))
                 ], 512), [
                   [le, p.value.account_id]
                 ])
               ]),
-              p.value.account_id ? m("", !0) : (a(), s("label", nl, [
+              p.value.account_id ? m("", !0) : (a(), s("label", sl, [
                 l[24] || (l[24] = e("span", null, "Account pool (empty uses all usable accounts)", -1)),
                 q(e("select", {
                   "onUpdate:modelValue": l[4] || (l[4] = (t) => p.value.account_pool = t),
@@ -1112,12 +1122,12 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
                   (a(!0), s(W, null, Y(h.value.filter((t) => t.agent === p.value?.agent), (t) => (a(), s("option", {
                     key: t.id,
                     value: t.id
-                  }, r(t.label), 9, ul))), 128))
+                  }, r(t.label), 9, nl))), 128))
                 ], 512), [
                   [le, p.value.account_pool]
                 ])
               ])),
-              e("label", il, [
+              e("label", ul, [
                 l[26] || (l[26] = e("span", null, "Image", -1)),
                 q(e("select", {
                   "onUpdate:modelValue": l[5] || (l[5] = (t) => p.value.image_id = t),
@@ -1128,28 +1138,28 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
                   (a(!0), s(W, null, Y(V.value.filter((t) => t.agents.includes(p.value?.agent ?? "")), (t) => (a(), s("option", {
                     key: t.id,
                     value: t.id
-                  }, r(t.label), 9, rl))), 128))
+                  }, r(t.label), 9, il))), 128))
                 ], 512), [
                   [le, p.value.image_id]
                 ])
               ]),
-              e("label", cl, [
+              e("label", rl, [
                 l[28] || (l[28] = e("span", null, "Workspace", -1)),
                 q(e("select", {
                   "onUpdate:modelValue": l[6] || (l[6] = (t) => p.value.workspace_id = t),
                   class: "kx-focus-halo"
                 }, [
                   l[27] || (l[27] = e("option", { value: "" }, "Scratch directory", -1)),
-                  (a(!0), s(W, null, Y(I.value, (t) => (a(), s("option", {
+                  (a(!0), s(W, null, Y(L.value, (t) => (a(), s("option", {
                     key: t.id,
                     value: t.id
-                  }, r(t.name), 9, dl))), 128))
+                  }, r(t.name), 9, cl))), 128))
                 ], 512), [
                   [le, p.value.workspace_id]
                 ])
               ]),
               g.value?.endpoints.length ? (a(), s(W, { key: 1 }, [
-                e("label", vl, [
+                e("label", dl, [
                   l[29] || (l[29] = e("span", null, "Endpoint protocol", -1)),
                   q(e("select", {
                     "onUpdate:modelValue": l[7] || (l[7] = (t) => z.value = t),
@@ -1158,12 +1168,12 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
                     (a(!0), s(W, null, Y(g.value.endpoints, (t) => (a(), s("option", {
                       key: t,
                       value: t
-                    }, r(t), 9, pl))), 128))
+                    }, r(t), 9, vl))), 128))
                   ], 512), [
                     [le, z.value]
                   ])
                 ]),
-                e("label", kl, [
+                e("label", pl, [
                   l[30] || (l[30] = e("span", null, "Endpoint URL", -1)),
                   q(e("input", {
                     "onUpdate:modelValue": l[8] || (l[8] = (t) => E.value = t),
@@ -1185,7 +1195,7 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
                   ])
                 ])
               ], 64)) : m("", !0),
-              e("label", ml, [
+              e("label", kl, [
                 l[32] || (l[32] = e("span", null, "Repository URL", -1)),
                 q(e("input", {
                   "onUpdate:modelValue": l[10] || (l[10] = (t) => p.value.repo_url = t),
@@ -1195,7 +1205,7 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
                   [ae, p.value.repo_url]
                 ])
               ]),
-              e("label", yl, [
+              e("label", ml, [
                 l[33] || (l[33] = e("span", null, "Repository ref", -1)),
                 q(e("input", {
                   "onUpdate:modelValue": l[11] || (l[11] = (t) => p.value.repo_ref = t),
@@ -1205,7 +1215,7 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
                   [ae, p.value.repo_ref]
                 ])
               ]),
-              e("label", gl, [
+              e("label", yl, [
                 l[34] || (l[34] = e("span", null, "Run timeout", -1)),
                 q(e("input", {
                   "onUpdate:modelValue": l[12] || (l[12] = (t) => p.value.run_timeout = t),
@@ -1216,22 +1226,22 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
                   [ae, p.value.run_timeout]
                 ])
               ]),
-              g.value?.unattended ? (a(), s("label", _l, [
+              g.value?.unattended ? (a(), s("label", gl, [
                 e("input", {
                   checked: p.value.unattended !== !1,
                   onChange: l[13] || (l[13] = (t) => p.value.unattended = t.target.checked),
                   type: "checkbox",
                   class: "kx-focus-outline"
-                }, null, 40, bl),
+                }, null, 40, _l),
                 l[35] || (l[35] = N("Unattended · skip permission prompts when the image allows it", -1))
               ])) : m("", !0),
-              L(Oe, {
+              I(De, {
                 modelValue: p.value.tools,
                 "onUpdate:modelValue": l[14] || (l[14] = (t) => p.value.tools = t),
                 agent: p.value.agent,
                 onInvalid: l[15] || (l[15] = (t) => D.value = t)
               }, null, 8, ["modelValue", "agent"]),
-              g.value ? (a(), oe(De, {
+              g.value ? (a(), oe(Me, {
                 key: g.value.id,
                 modelValue: p.value.options,
                 "onUpdate:modelValue": l[16] || (l[16] = (t) => p.value.options = t),
@@ -1239,7 +1249,7 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
                 defaults: p.value.unattended !== !1 ? g.value.unattended : {},
                 onInvalid: l[17] || (l[17] = (t) => x.value = t)
               }, null, 8, ["modelValue", "options", "defaults"])) : m("", !0),
-              e("footer", hl, [
+              e("footer", bl, [
                 e("button", {
                   type: "button",
                   class: "ac-btn kx-focus-halo",
@@ -1249,61 +1259,61 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
                   type: "submit",
                   class: "ac-btn primary kx-focus-halo",
                   disabled: R.value || !!x.value || D.value
-                }, "Save", 8, $l)
+                }, "Save", 8, hl)
               ])
-            ], 8, el)
+            ], 8, Za)
           ], 32)
         ]),
         _: 1
       }, 8, ["title", "busy"])) : m("", !0)
-    ], 8, Oa));
+    ], 8, Na));
   }
-}), wl = { class: "ac" }, Cl = {
+}), xl = { class: "ac" }, wl = {
   key: 1,
   class: "ac-bar"
-}, Ul = {
+}, Cl = {
   class: "ac-tabs",
   "aria-label": "Autocode views"
-}, Vl = ["aria-pressed", "onClick"], Rl = ["href"], Il = {
+}, Ul = ["aria-pressed", "onClick"], Vl = ["href"], Rl = {
   key: 2,
   class: "kx-err"
-}, Ll = {
+}, Il = {
   key: 3,
   class: "kx-loading"
-}, Tl = {
+}, Ll = {
   key: 0,
   class: "kx-empty"
-}, Al = /* @__PURE__ */ ke({
+}, Tl = /* @__PURE__ */ ke({
   __name: "autocode",
   setup(ee) {
-    const B = We(), Z = Je(), i = d(null);
-    fe(() => B.value?.route, () => {
-      i.value = null;
+    const B = Je(), Z = Be(), u = d(null);
+    me(() => B.value?.route, () => {
+      u.value = null;
     });
-    const C = G(() => i.value ?? B.value?.route ?? ""), F = G(() => {
+    const C = j(() => u.value ?? B.value?.route ?? ""), F = j(() => {
       const E = /^\/?runs\/([^/]+)\/?$/.exec(C.value);
       try {
         return E ? decodeURIComponent(E[1]) : "";
       } catch {
         return "";
       }
-    }), U = G(() => !!C.value && C.value !== "/" && !F.value);
+    }), U = j(() => !!C.value && C.value !== "/" && !F.value);
     function b(E) {
-      h.value = "tasks", i.value = E, Z("navigate", { path: E });
+      h.value = "tasks", u.value = E, Z("navigate", { path: E });
     }
     const A = [
       { id: "tasks", label: "Tasks", icon: "tabler:player-play" },
       { id: "profiles", label: "Profiles", icon: "tabler:robot" },
       { id: "accounts", label: "Accounts", icon: "tabler:key" }
-    ], h = d("tasks"), { catalog: V, error: I, load: O } = Fe(), w = d(""), $ = d(0), R = d(null), x = d(null), D = d(null), T = d("");
+    ], h = d("tasks"), { catalog: V, error: L, load: O } = ze(), w = d(""), $ = d(0), R = d(null), x = d(null), D = d(null), T = d("");
     async function p(E) {
       E && (T.value = E), h.value = "accounts", w.value = "", await Ve(), D.value?.open();
     }
     function z() {
       h.value === "tasks" ? R.value?.open() : h.value === "profiles" ? x.value?.open() : D.value?.open();
     }
-    return (E, _) => (a(), s("div", wl, [
-      !F.value && !U.value ? (a(), oe(Ke, {
+    return (E, _) => (a(), s("div", xl, [
+      !F.value && !U.value ? (a(), oe(Qe, {
         key: 0,
         title: "Autocode",
         subtitle: "Run coding agents with your accounts and workspaces.",
@@ -1314,8 +1324,8 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
         placeholder: h.value === "tasks" ? "Search tasks…" : h.value === "profiles" ? "Search profiles…" : "Search accounts…",
         onCreate: z
       }, null, 8, ["count", "action", "query", "placeholder"])) : m("", !0),
-      !F.value && !U.value ? (a(), s("div", Cl, [
-        e("nav", Ul, [
+      !F.value && !U.value ? (a(), s("div", wl, [
+        e("nav", Cl, [
           (a(), s(W, null, Y(A, (g) => e("button", {
             key: g.id,
             type: "button",
@@ -1325,21 +1335,21 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
               h.value !== g.id && (h.value = g.id, w.value = "", $.value = 0);
             }
           }, [
-            L(o(J), {
+            I(o(J), {
               icon: g.icon
             }, null, 8, ["icon"]),
             N(" " + r(g.label), 1)
-          ], 10, Vl)), 64))
+          ], 10, Ul)), 64))
         ]),
         o(V)?.settings_path && (o(V).can_images || o(V).can_workspaces || o(V).can_prune) ? (a(), s("a", {
           key: 0,
           class: "ac-link kx-focus-outline",
           href: o(V).settings_path,
           onClick: _[1] || (_[1] = Re((g) => o(he).navigate(o(V).settings_path), ["prevent"]))
-        }, "Images, workspaces and Docker", 8, Rl)) : m("", !0)
+        }, "Images, workspaces and Docker", 8, Vl)) : m("", !0)
       ])) : m("", !0),
-      o(I) && !o(V) ? (a(), s("p", Il, [
-        N(r(o(I)) + " ", 1),
+      o(L) && !o(V) ? (a(), s("p", Rl, [
+        N(r(o(L)) + " ", 1),
         e("button", {
           class: "ac-link kx-focus-outline",
           type: "button",
@@ -1350,14 +1360,14 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
         key: 4,
         class: re(["ac-body", { "ac-detail-page": F.value || U.value }])
       }, [
-        U.value ? (a(), s("div", Tl, [
+        U.value ? (a(), s("div", Ll, [
           _[11] || (_[11] = e("h1", null, "Run not found", -1)),
           e("button", {
             type: "button",
             class: "ac-btn kx-focus-halo",
             onClick: _[3] || (_[3] = (g) => b(""))
           }, "Back to tasks")
-        ])) : F.value || h.value === "tasks" ? (a(), oe(Na, {
+        ])) : F.value || h.value === "tasks" ? (a(), oe(Pa, {
           key: 1,
           ref_key: "tasks",
           ref: R,
@@ -1368,13 +1378,13 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
           onCount: _[6] || (_[6] = (g) => $.value = g),
           onAgentChanged: _[7] || (_[7] = (g) => T.value = g),
           onGoto: p
-        }, null, 8, ["query", "run-id"])) : h.value === "profiles" ? (a(), oe(xl, {
+        }, null, 8, ["query", "run-id"])) : h.value === "profiles" ? (a(), oe($l, {
           key: 2,
           ref_key: "profiles",
           ref: x,
           query: w.value,
           onCount: _[8] || (_[8] = (g) => $.value = g)
-        }, null, 8, ["query"])) : (a(), oe(ze, {
+        }, null, 8, ["query"])) : (a(), oe(Ke, {
           key: 3,
           ref_key: "accounts",
           ref: D,
@@ -1382,8 +1392,8 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
           "selected-agent": T.value,
           onCount: _[9] || (_[9] = (g) => $.value = g)
         }, null, 8, ["query", "selected-agent"]))
-      ], 2)) : (a(), s("div", Ll, [
-        L(o(J), {
+      ], 2)) : (a(), s("div", Il, [
+        I(o(J), {
           icon: "tabler:loader-2",
           class: "spin"
         }),
@@ -1391,10 +1401,10 @@ const at = ["disabled"], lt = { class: "ac-field ac-composer" }, ot = { class: "
       ]))
     ]));
   }
-}), Wl = {
-  rootComponent: Al,
-  plugins: [Be]
+}), Ml = {
+  rootComponent: Tl,
+  plugins: [He]
 };
 export {
-  Wl as mountConfig
+  Ml as mountConfig
 };

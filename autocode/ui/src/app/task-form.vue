@@ -1,5 +1,6 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 <script setup lang="ts">
+import Disclosure from '@kickside/ui-kit/Disclosure.vue'
 import { accountState, errorText, shortTime } from './presentation.ts'
 import { useRequiredCatalog } from './catalog.ts'
 import { ref, computed, watch, onMounted } from 'vue'
@@ -144,7 +145,7 @@ async function start() {
       </select>
     </label>
     </div>
-    <details class="ac-advanced"><summary class="kx-focus-outline">Advanced</summary><div class="ac-form">
+    <Disclosure class="ac-advanced" label="Advanced"><div class="ac-form">
     <label class="ac-field">
       <span>Git repository</span>
       <input v-model="repoUrl" class="ac-mono kx-focus-halo" placeholder="Optional: https://github.com/org/repo.git" />
@@ -163,7 +164,7 @@ async function start() {
     </label>
     <TraitTools v-model="tools" :agent="agentId" @invalid="invalidTraits = $event" />
     <DriverOptions v-if="driver" :key="profileId + driver.id" v-model="options" :options="driver.options" :defaults="{ ...(unattended ? driver.unattended : {}), ...selectedProfile?.options }" @invalid="(n: number) => (invalidOptions = n)" />
-    </div></details>
+    </div></Disclosure>
     <p v-if="error" class="kx-err" role="alert">{{ error }}</p>
     <footer class="ac-dialog-foot"><button type="button" class="ac-btn kx-focus-halo" @click="emit('cancel')">Cancel</button>
     <button type="button" class="ac-btn primary kx-focus-halo"

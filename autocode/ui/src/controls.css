@@ -27,8 +27,6 @@ input[type="checkbox"]:not([role="switch"]) { accent-color: var(--p-primary-colo
 .ac-icon-btn:hover { color: var(--p-text-color); background: var(--kx-overlay-hover); }
 .ac-icon-btn:disabled { opacity: .5; cursor: default; }
 .ac-advanced { border-top: 1px solid var(--p-content-border-color); padding-top: 12px; }
-.ac-advanced > summary { color: var(--p-text-muted-color); cursor: pointer; font-size: 12px; padding: 4px 0; }
-.ac-advanced[open] > summary { margin-bottom: 12px; }
 
 /* Trait controls are shared by page forms and the standalone task Block. */
 .ac-trait-tools { display: flex; flex-direction: column; gap: 16px; }
