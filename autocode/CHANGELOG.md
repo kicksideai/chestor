@@ -1,6 +1,16 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.21](https://github.com/kicksideai/chestor/compare/autocode-v0.1.20...autocode-v0.1.21) (2026-11-21)
+
+
+### Bug Fixes
+
+* **autocode:** align settings with the shared section rail ([#81](https://github.com/kicksideai/chestor/issues/81)) ([0aaad1b](https://github.com/kicksideai/chestor/commit/0aaad1b30f1e328b04382af8e5fa58dc7e6570ab))
+* **autocode:** redesign settings and provider account setup ([#80](https://github.com/kicksideai/chestor/issues/80)) ([9b244ce](https://github.com/kicksideai/chestor/commit/9b244ce26850f7475775e166948c4af4f26cc872))
+* **autocode:** show section rail focus for keyboard navigation ([#82](https://github.com/kicksideai/chestor/issues/82)) ([51abee7](https://github.com/kicksideai/chestor/commit/51abee73dc20adc19afd2b5826c871d12c5bc472))
+* **autocode:** unify settings and provider account management ([#78](https://github.com/kicksideai/chestor/issues/78)) ([0eaf702](https://github.com/kicksideai/chestor/commit/0eaf7022ff9e03874eec67eec3819fd3dd9e6b4e))
+
 ## [0.1.20](https://github.com/kicksideai/chestor/compare/autocode-v0.1.19...autocode-v0.1.20) (2026-11-19)
 
 
