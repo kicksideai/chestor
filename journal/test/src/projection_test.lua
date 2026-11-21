@@ -893,6 +893,52 @@ local function define_tests()
             test.is_true(tostring(collision_err):find("event id collision", 1, true) ~= nil)
         end)
 
+        test.it("preserves stored IDs for source events without a Journal ID during rewind", function()
+            local journal_id = "journal-retained-graph-request"
+            local operation = {
+                type = types.EVENT.GRAPH_OPS_REQUESTED, seq = 4,
+                body = { request_id = "operations", graph_id = "map", ts = 4,
+                    operations = { { op = "node.add", id = "manual", label = "Original" } } },
+            }
+            local future = ev(types.EVENT.ENTRY_APPENDED, { event_id = "later", seq = 5, ts = 5 })
+            local _, first_err = fold(journal_id, { operation, future }, 5)
+            test.is_nil(first_err)
+            with_db(function(db)
+                -- A sparse historical fold generated an ID from the read
+                -- model's tail while storing the authoritative source sequence.
+                test.is_nil(ops.exec(db, [[
+                    UPDATE chestor_journal_events SET id = ? WHERE journal_id = ? AND seq = 4
+                ]], { journal_id .. ":2", journal_id }))
+            end)
+            local config = {
+                type = types.EVENT.GRAPH_CONFIG_REQUESTED, seq = 2,
+                body = { request_id = "configuration", graph_id = "map", title = "Map", ts = 2 },
+            }
+            local fact = ev(types.EVENT.ENTRY_APPENDED, { event_id = "replay-gap", seq = 3, ts = 3 })
+            for _ = 1, 2 do
+                local _, replay_err = fold(journal_id, { config, fact, operation, future }, 5)
+                test.is_nil(replay_err)
+                with_db(function(db)
+                    local rows, read_err = ops.query(db, [[
+                        SELECT id, seq FROM chestor_journal_events WHERE journal_id = ? ORDER BY seq
+                    ]], { journal_id })
+                    test.is_nil(read_err)
+                    test.eq(#rows, 4)
+                    test.eq(rows[1].id, journal_id .. ":source:2")
+                    test.eq(tonumber(rows[1].seq), 2)
+                    test.eq(rows[2].id, "replay-gap")
+                    test.eq(tonumber(rows[2].seq), 3)
+                    test.eq(rows[3].id, journal_id .. ":2")
+                    test.eq(tonumber(rows[3].seq), 4)
+                    test.eq(rows[4].id, "later")
+                end)
+            end
+            operation.body.operations[1].label = "Conflicting"
+            local _, collision_err = fold(journal_id, { operation }, 5)
+            test.is_true(errors.is(collision_err, errors.CONFLICT))
+            test.contains(tostring(collision_err), "canonical payload differs")
+        end)
+
         test.it("materializes task updates, terminal closure, metadata, and sort order", function()
             local journal_id = "journal-task-lifecycle"
             local _, err = fold(journal_id, {
