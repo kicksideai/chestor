@@ -79,6 +79,12 @@ function create() {
   if (section.value === 'images') images.value?.open()
   else if (section.value === 'workspaces') workspaces.value?.open()
 }
+// Chromium preserves focus-visible when a pointer clicks the already focused button.
+function focusRailWithPointer(event: PointerEvent) {
+  if (event.button === 0 && event.target instanceof Element) {
+    event.target.closest<HTMLButtonElement>('.kx-settings-rail-item:focus-visible')?.blur()
+  }
+}
 </script>
 
 <template>
@@ -89,7 +95,7 @@ function create() {
     <div v-else-if="!catalog" class="kx-loading" role="status"><Icon icon="tabler:loader-2" class="spin" aria-hidden="true" /> Loading…</div>
     <p v-else-if="!section" class="ac-muted">Ask an administrator for access to the Autocode settings you need.</p>
     <div v-else class="ac-settings-layout">
-      <SettingsRail label="Autocode settings" :value="section" :groups="railGroups" @update:value="select" />
+      <SettingsRail label="Autocode settings" :value="section" :groups="railGroups" @update:value="select" @pointerdown="focusRailWithPointer" />
       <main ref="content" class="ac-settings-pane" :aria-label="active?.label">
         <div class="ac-settings-content">
           <PageHead v-if="resource" v-bind="resource" v-model:query="query" :placeholder="resource.count && resource.action ? `Search ${section}…` : undefined" @create="create" />
