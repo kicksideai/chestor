@@ -1,3 +1,5 @@
+-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+
 local function apply_up(db: any)
     local _, err = db:execute([[
         CREATE INDEX IF NOT EXISTS idx_cjournal_gchanges_target
