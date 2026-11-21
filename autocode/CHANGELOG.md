@@ -1,6 +1,13 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.22](https://github.com/kicksideai/chestor/compare/autocode-v0.1.21...autocode-v0.1.22) (2026-11-21)
+
+
+### Bug Fixes
+
+* **autocode:** use the System Settings section header ([#84](https://github.com/kicksideai/chestor/issues/84)) ([e06dade](https://github.com/kicksideai/chestor/commit/e06dadefe47d31b2ce89dc769aeae259f6f68e57))
+
 ## [0.1.21](https://github.com/kicksideai/chestor/compare/autocode-v0.1.20...autocode-v0.1.21) (2026-11-21)
 
 
