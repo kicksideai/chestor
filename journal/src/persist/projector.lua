@@ -22,6 +22,14 @@ local function event_body(event: any): any
     return copy_table(body)
 end
 
+local function source_seq(event: any, body: any): number?
+    return tonumber(event.seq) or tonumber(body.seq)
+end
+
+local function assigned_event_id(journal_id: string, seq: number): string
+    return journal_id .. ":" .. tostring(seq)
+end
+
 local function next_seq(db: any, journal_id: string): number
     local rows = db_ops.query(db,
         "SELECT COALESCE(MAX(seq), 0) AS n FROM chestor_journal_events WHERE journal_id = ?",
@@ -631,22 +639,36 @@ end
 
 local function projection_inputs(db: any, journal_id: string, events: any): (any?, error?)
     local ids: { string } = {}
+    local sequences: { number } = {}
     local tasks: { string } = {}
     local seen_ids: any = {}
+    local seen_sequences: any = {}
     local seen_tasks: any = {}
     for _, event in ipairs(type(events) == "table" and events or {}) do
         if types.EVENT_SET[tostring((event :: any).type or "")] then
             local body = event_body(event)
             local id = db_ops.trim(body.event_id or body.id)
+            if id == "" then
+                local seq = source_seq(event, body)
+                if seq ~= nil then
+                    id = assigned_event_id(journal_id, seq)
+                    if not seen_sequences[seq] then
+                        sequences[#sequences + 1] = seq
+                        seen_sequences[seq] = true
+                    end
+                end
+            end
             if id ~= "" and not seen_ids[id] then ids[#ids + 1] = id; seen_ids[id] = true end
             local task = db_ops.trim(body.task_id)
             if task ~= "" and not seen_tasks[task] then tasks[#tasks + 1] = task; seen_tasks[task] = true end
         end
     end
-    local hashes: any = {}
+    local by_id: any = {}
+    local by_seq: any = {}
     local counts: any = {}
     for _, task in ipairs(tasks) do counts[task] = 0 end
-    for _, batch in ipairs({ { values = ids, select = "id, payload_sha256", column = "id" },
+    for _, batch in ipairs({ { values = ids, select = "id, seq, payload_sha256", column = "id" },
+        { values = sequences, select = "id, seq, event_type, payload_sha256", column = "seq" },
         { values = tasks, select = "task_id, COUNT(*) AS n", column = "task_id", group = " GROUP BY task_id" } }) do
         for offset = 1, #batch.values, 100 do
             local marks: { string } = {}
@@ -660,12 +682,44 @@ local function projection_inputs(db: any, journal_id: string, events: any): (any
                 " IN (" .. table.concat(marks, ",") .. ")" .. (batch.group or ""), params)
             if err then return nil, err end
             for _, row in ipairs(rows or {}) do
-                if batch.column == "id" then hashes[row.id] = db_ops.trim(row.payload_sha256)
+                if batch.column == "id" then by_id[row.id] = row
+                elseif batch.column == "seq" then by_seq[tonumber(row.seq)] = row
                 else counts[row.task_id] = tonumber(row.n) or 0 end
             end
         end
     end
-    return { hashes = hashes, counts = counts }, nil
+    return { by_id = by_id, by_seq = by_seq, counts = counts }, nil
+end
+
+local function anonymous_identity(db: any, journal_id: string, inputs: any, seq: number,
+    event_type: string, has_source_seq: boolean): (string?, any?, error?)
+    local prior = has_source_seq and inputs.by_seq[seq] or nil
+    if prior then
+        if prior.event_type ~= event_type then
+            return nil, nil, errors.new({
+                kind = errors.CONFLICT,
+                message = "event sequence collision for " .. tostring(seq) .. ": event type differs",
+            })
+        end
+        return tostring(prior.id), prior, nil
+    end
+
+    local id = assigned_event_id(journal_id, seq)
+    local stored = inputs.by_id[id]
+    if has_source_seq and not stored then return id, nil, nil end
+    -- Older projectors used the materialized head to construct an ID. If an
+    -- older row owns this ID at a different source sequence, keep that public
+    -- ID and use the source sequence namespace for the newly materialized row.
+    if has_source_seq then id = journal_id .. ":source:" .. tostring(seq) end
+    local rows, read_err = db_ops.query(db, [[
+        SELECT id, seq, payload_sha256 FROM chestor_journal_events WHERE journal_id = ? AND id = ? LIMIT 1
+    ]], { journal_id, id })
+    if read_err then return nil, nil, read_err end
+    stored = rows[1]
+    if stored and has_source_seq and tonumber(stored.seq) ~= seq then
+        return nil, nil, errors.new({ kind = errors.CONFLICT, message = "event id collision for " .. id .. ": source sequence differs" })
+    end
+    return id, stored, nil
 end
 
 function M.project_events(db: any, journal_id: string, events: any): error?
@@ -678,23 +732,23 @@ function M.project_events(db: any, journal_id: string, events: any): error?
         if types.EVENT_SET[kind] then
             local body = event_body(raw_event)
             local event_id = db_ops.trim(body.event_id or body.id)
-            if event_id == "" then event_id = tostring(journal_id) .. ":" .. tostring(next_seq(db, journal_id)) end
-            local seq = tonumber((raw_event :: any).seq) or tonumber(body.seq) or next_seq(db, journal_id)
+            local authoritative_seq = source_seq(raw_event, body)
+            local seq = authoritative_seq or next_seq(db, journal_id)
             local timestamp = tonumber(body.ts) or db_ops.now()
             local record = search_text.record(kind, body)
             local event_type = record.event_type
             -- F5: the canonical payload hash rides the events index so a lost
             -- or corrupted fact payload fails replay equality.
             local payload_sha256 = tostring(hash.sha256(db_ops.canonical(body)))
-            local stored_hash = inputs.hashes[event_id]
-            if db_ops.trim(body.event_id or body.id) == "" and stored_hash == nil then
-                local rows, read_err = db_ops.query(db,
-                    "SELECT payload_sha256 FROM chestor_journal_events WHERE journal_id = ? AND id = ? LIMIT 1",
-                    { journal_id, event_id })
-                if read_err then return errors.wrap(read_err, "event dedupe " .. kind) end
-                if rows and rows[1] then stored_hash = db_ops.trim(rows[1].payload_sha256) end
+            local stored = inputs.by_id[event_id]
+            if event_id == "" then
+                local id, prior, identity_err = anonymous_identity(db, journal_id, inputs, seq, event_type, authoritative_seq ~= nil)
+                if identity_err then return errors.wrap(identity_err, "event dedupe " .. kind) end
+                event_id = id :: string
+                stored = prior
             end
-            if stored_hash ~= nil then
+            if stored then
+                local stored_hash = db_ops.trim(stored.payload_sha256)
                 if stored_hash ~= "" and stored_hash ~= payload_sha256 then
                     return errors.new({ kind = errors.CONFLICT, message = "event id collision for " .. event_id .. ": canonical payload differs" })
                 end
@@ -722,7 +776,9 @@ function M.project_events(db: any, journal_id: string, events: any): error?
                 body.supersedes_event_id, payload_sha256, body.embed == false and "skipped" or "pending", timestamp,
             })
             if insert_err then return errors.wrap(insert_err, "event insert " .. kind) end
-            inputs.hashes[event_id] = payload_sha256
+            local identity = { id = event_id, seq = seq, event_type = event_type, payload_sha256 = payload_sha256 }
+            inputs.by_id[event_id] = identity
+            inputs.by_seq[seq] = identity
             local fact_task_id = db_ops.trim(body.task_id)
             if fact_task_id ~= "" then inputs.counts[fact_task_id] = (inputs.counts[fact_task_id] or 0) + 1 end
             search_rows[#search_rows + 1] = { event_id, journal_id, record.event_type,
