@@ -11,17 +11,21 @@
 
 .ac-admin { overflow: hidden; scrollbar-gutter: auto; }
 .ac-settings-layout { flex: 1; min-height: 0; display: flex; align-items: stretch; }
-.ac-settings-pane { min-width: 0; min-height: 0; flex: 1; overflow-y: auto; }
+.ac-settings-pane { min-width: 0; min-height: 0; flex: 1; overflow-y: auto; overflow-x: hidden; }
 .ac-settings-content { display: grid; align-content: start; gap: 16px; padding: 18px var(--kickside-system-surface-gutter, 24px) 28px; }
-.ac-admin .kx-head { padding: 0; }
+/* System Settings pane header. Actions share the header and wrap on narrow screens. */
+.system-section-head { display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: 12px; margin: 0 0 4px; }
+.system-section-head-text { flex: 1 1 180px; min-width: 0; }
+.system-section-head-text h1 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -.2px; color: var(--p-text-color); }
+.system-section-head-text p { margin: 2px 0 0; font-size: 13px; color: var(--p-text-muted-color); }
+.system-section-head .kx-head-actions { justify-content: flex-end; }
 
 @media (max-width: 640px) {
   .ac-settings-layout { flex-direction: column; }
-  .ac-settings-content { padding-block-start: 14px; }
+  .ac-settings-content { padding: 14px 16px 28px; }
 }
 
-.ac-limits { max-width: 70rem; }
-.ac-limit-group { gap: 0; }
+.ac-limit-group { max-width: 70rem; gap: 0; }
 .ac-limit-group > h3 { padding-block-end: .75rem; }
 .ac-limit-row {
   align-items: start;
@@ -37,7 +41,7 @@
 .ac-limit-error { grid-column: 1 / -1; }
 .ac-limit-status { margin: 0; color: var(--p-text-muted-color); }
 
-.ac-provider-page { width: min(100%, 56rem); }
+.ac-provider-page :is(.ac-provider-grid, [aria-label="Account providers"], chestor-autocode-provider-accounts) { max-width: 56rem; }
 .ac-provider-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16.5rem), 1fr)); gap: 12px; }
 .ac-provider-choice { min-width: 0; text-align: start; font: inherit; }
 .ac-provider-choice .kx-card-head { width: 100%; }

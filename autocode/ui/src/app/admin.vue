@@ -7,7 +7,7 @@ import SettingsRail from '@kickside/ui-kit/SettingsRail.vue'
 import type { ComponentEvents, ComponentProps } from '../types.ts'
 import { Icon } from '@iconify/vue'
 import { useCatalog } from './catalog.ts'
-import PageHead from './page-head.vue'
+import SettingsHead from './settings-head.vue'
 import ImagesTab from './images.vue'
 import WorkspacesTab from './workspaces.vue'
 import MaintenanceTab from './maintenance.vue'
@@ -63,8 +63,8 @@ const content = ref<HTMLElement>()
 const images = ref<InstanceType<typeof ImagesTab> | null>(null)
 const workspaces = ref<InstanceType<typeof WorkspacesTab> | null>(null)
 const resource = computed(() => {
-  if (section.value === 'images') return { title: 'Images', subtitle: 'Manage the container images that run tasks.', icon: 'tabler:box', count: resourceCount(imageCount.value, 'image', 'images'), action: imageCount.value ? 'Add image' : undefined }
-  if (section.value === 'workspaces') return { title: 'Workspaces', subtitle: 'Manage the host directories that tasks can use.', icon: 'tabler:folder', count: resourceCount(workspaceCount.value, 'workspace', 'workspaces'), action: workspaceCount.value ? 'Add workspace' : undefined }
+  if (section.value === 'images') return { title: 'Images', subtitle: 'Manage the container images that run tasks.', count: resourceCount(imageCount.value, 'image', 'images'), action: imageCount.value ? 'Add image' : undefined }
+  if (section.value === 'workspaces') return { title: 'Workspaces', subtitle: 'Manage the host directories that tasks can use.', count: resourceCount(workspaceCount.value, 'workspace', 'workspaces'), action: workspaceCount.value ? 'Add workspace' : undefined }
 })
 watch(section, () => {
   query.value = ''
@@ -98,7 +98,7 @@ function focusRailWithPointer(event: PointerEvent) {
       <SettingsRail label="Autocode settings" :value="section" :groups="railGroups" @update:value="select" @pointerdown="focusRailWithPointer" />
       <main ref="content" class="ac-settings-pane" :aria-label="active?.label">
         <div class="ac-settings-content">
-          <PageHead v-if="resource" v-bind="resource" v-model:query="query" :placeholder="resource.count && resource.action ? `Search ${section}…` : undefined" @create="create" />
+          <SettingsHead v-if="resource" v-bind="resource" v-model:query="query" :placeholder="resource.count && resource.action ? `Search ${section}…` : undefined" @create="create" />
           <ImagesTab v-if="catalog.can_images" v-show="section === 'images'" ref="images" :query="section === 'images' ? query : ''" @count="imageCount = $event" />
           <WorkspacesTab v-if="catalog.can_workspaces" v-show="section === 'workspaces'" ref="workspaces" :query="section === 'workspaces' ? query : ''" @count="workspaceCount = $event" />
           <MaintenanceTab v-if="section === 'docker'" />
