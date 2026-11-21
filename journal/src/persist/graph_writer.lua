@@ -36,10 +36,14 @@ local function bool(value: any): number
     return value == true and 1 or 0
 end
 
-function M.graph(tx: any, journal_id: string, graph_id: string): (any?, error?)
-    local rows, err = db.query(tx,
-        "SELECT * FROM chestor_journal_graphs WHERE journal_id = ? AND graph_id = ?",
-        { journal_id, graph_id })
+function M.graph(tx: any, journal_id: string, graph_id: string, lock: boolean?): (any?, error?)
+    local statement = "SELECT * FROM chestor_journal_graphs WHERE journal_id = ? AND graph_id = ?"
+    if lock then
+        local dialect, dialect_err = db.database_type(tx)
+        if dialect_err then return nil, dialect_err end
+        if dialect == "postgres" then statement = statement .. " FOR UPDATE" end
+    end
+    local rows, err = db.query(tx, statement, { journal_id, graph_id })
     if err then return nil, err end
     return rows and rows[1] or nil, nil
 end
@@ -155,7 +159,7 @@ function M.revision_after(current: number, expected: number?): (number?, error?)
 end
 
 function M.next_revision(tx: any, journal_id: string, graph_id: string, expected: number?): (number?, error?)
-    local row, row_err = M.graph(tx, journal_id, graph_id)
+    local row, row_err = M.graph(tx, journal_id, graph_id, true)
     if row_err then return nil, row_err end
     if not row then return nil, errors.new({ kind = errors.NOT_FOUND, message = "graph not found: " .. graph_id }) end
     return M.revision_after(tonumber(row.graph_revision) or 0, expected)
@@ -167,6 +171,61 @@ function M.node(tx: any, journal_id: string, graph_id: string, node_id: string):
         { journal_id, graph_id, node_id })
     if err then return nil, err end
     return rows and rows[1] or nil, nil
+end
+
+function M.edge(tx: any, journal_id: string, graph_id: string, edge_id: string): (any?, error?)
+    local rows, err = db.query(tx,
+        "SELECT * FROM chestor_journal_graph_edges WHERE journal_id = ? AND graph_id = ? AND id = ?",
+        { journal_id, graph_id, edge_id })
+    if err then return nil, err end
+    return rows and rows[1] or nil, nil
+end
+
+function M.missing_projection_targets(tx: any, journal_id: string, event_id: string, source_seq: number): (any?, error?)
+    return db.query(tx, [[
+        SELECT evidence.graph_id, evidence.target_type, evidence.target_id
+          FROM chestor_journal_graph_evidence evidence
+          JOIN chestor_journal_graphs graph
+            ON graph.journal_id = evidence.journal_id AND graph.graph_id = evidence.graph_id
+          LEFT JOIN chestor_journal_graph_nodes node
+            ON evidence.target_type = 'node' AND node.journal_id = evidence.journal_id
+           AND node.graph_id = evidence.graph_id AND node.id = evidence.target_id
+          LEFT JOIN chestor_journal_graph_edges edge
+            ON evidence.target_type = 'edge' AND edge.journal_id = evidence.journal_id
+           AND edge.graph_id = evidence.graph_id AND edge.id = evidence.target_id
+         WHERE evidence.journal_id = ? AND evidence.event_id = ? AND evidence.source_seq = ?
+           AND graph.last_source_seq >= evidence.source_seq
+           AND node.id IS NULL AND edge.id IS NULL
+    ]], { journal_id, event_id, source_seq })
+end
+
+function M.last_source_seq(tx: any, journal_id: string): (number?, error?)
+    local rows, err = db.query(tx,
+        "SELECT MAX(last_source_seq) AS last_source_seq FROM chestor_journal_graphs WHERE journal_id = ?", { journal_id })
+    if err then return nil, err end
+    return tonumber(rows[1].last_source_seq) or 0, nil
+end
+
+function M.latest_target_changes(tx: any, journal_id: string, graph_id: string, target_type: string,
+    target_id: string): (any?, error?)
+    return db.query(tx, [[
+        SELECT revision, operation, payload_json
+          FROM chestor_journal_graph_changes
+         WHERE journal_id = ? AND graph_id = ? AND target_type = ? AND target_id = ?
+         ORDER BY revision DESC, operation DESC LIMIT 2
+    ]], { journal_id, graph_id, target_type, target_id })
+end
+
+function M.endpoint_removed_after(tx: any, journal_id: string, graph_id: string, edge: any,
+    revision: number): (boolean?, error?)
+    local rows, err = db.query(tx, [[
+        SELECT 1 FROM chestor_journal_graph_changes
+         WHERE journal_id = ? AND graph_id = ? AND target_type = 'node'
+           AND target_id IN (?, ?) AND revision > ? AND operation = 'node.remove'
+         LIMIT 1
+    ]], { journal_id, graph_id, edge.from, edge.to, revision })
+    if err then return nil, err end
+    return rows and rows[1] ~= nil or false, nil
 end
 
 -- The map node one journal event projected, if it projected one. An event that

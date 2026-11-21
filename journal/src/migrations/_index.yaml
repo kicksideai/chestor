@@ -364,3 +364,14 @@ entries:
       migration: wippy.migration:migration
       ops: chestor.journal.migrations:journal_auto_cursor_identity_ops
     method: migrate
+
+  - name: 21_graph_replay_lookup
+    kind: function.lua
+    meta:
+      type: migration
+      tags: [journal, graph]
+      timestamp: "2026-11-21T00:00:21Z"
+    source: file://21_graph_replay_lookup.lua
+    imports:
+      migration: wippy.migration:migration
+    method: migrate
