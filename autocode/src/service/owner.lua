@@ -17,6 +17,9 @@ local drivers = require("drivers")
 local funcs = require("funcs")
 local component_types = require("component_types")
 local envelope = require("envelope")
+local codex_auth = require("codex_auth")
+local codex_device = require("codex_device")
+local time = require("time")
 
 type Recipe = transport.Recipe
 
@@ -57,15 +60,37 @@ local function prepare(args: {run_id: string}): ({[string]: unknown}?, error?)
         admitted, admit_err = runs.admit(request, true)
         if not admitted then return nil, admit_err end
     end
-    local snapshot, snapshot_err = funcs.call("kickside.component.system:read_runtime_context",
-        {component_id = admitted.account.id, access_mask = resources.ACCESS.READ})
-    if snapshot_err then return nil, snapshot_err end
-    local result_err = envelope.error_of(snapshot :: component_types.ServiceEnvelope?, "read_runtime_context")
-    if result_err then return nil, result_err end
-    local secret = snapshot.context.credential
-    if type(secret) ~= "string" or secret == "" then
-        return nil, errors.new({kind = errors.INVALID, message = "account " .. admitted.account.label .. " holds no credential"})
+    local account_id, kind = admitted.account.id, admitted.account.kind.id
+    local function read_credential(): ({secret: string, revision: integer}?, error?)
+        local snapshot, snapshot_err = funcs.call("kickside.component.system:read_runtime_context",
+            {component_id = account_id, access_mask = resources.ACCESS.READ})
+        if snapshot_err then return nil, snapshot_err end
+        local result_err = envelope.error_of(snapshot :: component_types.ServiceEnvelope?, "read_runtime_context")
+        if result_err then return nil, result_err end
+        local secret = snapshot.context.credential
+        if type(secret) ~= "string" or secret == "" then
+            return nil, errors.new({kind = errors.INVALID, message = "account " .. admitted.account.label .. " holds no credential"})
+        end
+        local revision = math.floor(tonumber(snapshot.context_revision) or 0)
+        if admitted.driver.id == "codex" and kind == codex_auth.kind then
+            local fresh, refresh_err = codex_device.refresh(codex_auth.request, secret, time.now():unix(), math.ceil(run.timeout_ms / 1000))
+            if refresh_err then return nil, refresh_err end
+            if fresh then
+                local write_err = resources.patch_context(account_id, {credential = fresh}, revision)
+                if write_err then return nil, write_err end
+                secret, revision = fresh, revision + 1
+            end
+        end
+        return {secret = secret, revision = revision}, nil
     end
+    local credential: {secret: string, revision: integer}?
+    local credential_err: error?
+    if admitted.driver.id == "codex" and kind == codex_auth.kind then
+        credential, credential_err = codex_auth.lock("chestor.autocode.codex.refresh." .. account_id, read_credential, 16000)
+    else
+        credential, credential_err = read_credential()
+    end
+    if not credential then return nil, credential_err end
     local image = admitted.image
     local gateway_token: string? = nil
     if admitted.surface and #admitted.surface.tools > 0 then
@@ -81,7 +106,7 @@ local function prepare(args: {run_id: string}): ({[string]: unknown}?, error?)
         image = {id = image.id, ref = image.ref, home = image.home, memory = image.memory, cpus = image.cpus,
             pids_limit = image.pids_limit, gpus = image.gpus, network = image.network, extra_args = image.extra_args},
         workspace = admitted.workspace, workdir = admitted.workdir, launch = admitted.launch,
-        secret = secret, revision = math.floor(tonumber(snapshot.context_revision) or 0)}, nil
+        secret = credential.secret, revision = credential.revision}, nil
 end
 
 -- keep_credential stores a login file the CLI refreshed during the run, only

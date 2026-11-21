@@ -1,16 +1,16 @@
 import "vue";
-import "./wc-runtime-DbdXH-lj.js";
-import { D as e, p as n } from "./driver-account-CSm2xAAl.js";
-import { define as r } from "@wippy-fe/proxy";
-class t extends e {
+import { P as o } from "./wc-runtime-DgMRDxeK.js";
+import { D as n, p as r } from "./driver-account-BHooVDXw.js";
+import { define as i } from "@wippy-fe/proxy";
+class t extends n {
   static get vueConfig() {
-    return n(() => import("./provider-accounts-mount-B1iUJFc6.js").then((o) => o.mountConfig));
+    return r(() => import("./codex-provider-accounts-B13ZCv84.js").then((e) => ({ rootComponent: e.default, plugins: [o] })));
   }
 }
-async function u() {
+async function a() {
   return t;
 }
-r(import.meta.url, t);
+i(import.meta.url, t);
 export {
-  u as webComponent
+  a as webComponent
 };

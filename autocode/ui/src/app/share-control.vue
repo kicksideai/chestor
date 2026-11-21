@@ -4,11 +4,12 @@ import { ref, watch } from 'vue'
 import { Icon } from '@iconify/vue'
 import { loadByTagName } from '@wippy-fe/proxy'
 import { errorText } from './presentation.ts'
-const props = defineProps<{ id: string; title: string }>()
+const props = defineProps<{ id: string; title: string; hideButton?: boolean }>()
 const open = ref(false)
 const shareHost = ref<HTMLElement | null>(null)
 const error = ref('')
 function close() { open.value = false }
+defineExpose({ show: () => { open.value = true } })
 watch(shareHost, async host => {
   if (!host) return
   error.value = ''
@@ -26,7 +27,7 @@ watch(shareHost, async host => {
 })
 </script>
 <template>
-  <button type="button" class="ac-icon-btn kx-focus-outline" title="Share" aria-label="Share" @click="open = true"><Icon icon="tabler:share" /></button>
+  <button v-if="!hideButton" type="button" class="ac-icon-btn kx-focus-outline" title="Share" aria-label="Share" @click="open = true"><Icon icon="tabler:share" /></button>
   <div v-if="open" ref="shareHost"></div>
   <span v-if="error" class="kx-err" role="alert">{{ error }}</span>
 </template>

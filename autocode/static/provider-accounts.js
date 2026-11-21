@@ -1,10 +1,10 @@
 import "vue";
-import "./wc-runtime-DbdXH-lj.js";
-import { D as e, p as r } from "./driver-account-CSm2xAAl.js";
+import "./wc-runtime-DgMRDxeK.js";
+import { D as e, p as r } from "./driver-account-BHooVDXw.js";
 import { define as n } from "@wippy-fe/proxy";
 class t extends e {
   static get vueConfig() {
-    return r(() => import("./provider-accounts-mount-B1iUJFc6.js").then((o) => o.mountConfig));
+    return r(() => import("./provider-accounts-mount-CSaherjq.js").then((o) => o.mountConfig));
   }
 }
 async function u() {

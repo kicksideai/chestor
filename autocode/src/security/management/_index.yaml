@@ -27,6 +27,8 @@ entries:
         - chestor.autocode.api:maintenance_prune.endpoint
         - chestor.autocode.api:limits.endpoint
         - chestor.autocode.api:accounts_management.endpoint
+        - chestor.autocode.api:codex_device.endpoint
+        - chestor.autocode.api:account_connect.endpoint
         - chestor.autocode:driver_accounts_view
         - chestor.autocode:claude_accounts_view
         - chestor.autocode:codex_accounts_view
@@ -51,6 +53,8 @@ entries:
         - chestor.autocode.api:maintenance_prune
         - chestor.autocode.api:limits
         - chestor.autocode.api:accounts_management
+        - chestor.autocode.api:codex_device
+        - chestor.autocode.api:account_connect
         - kickside.component:notify_access
         - kickside.core.jobs.persist:pool_nudge
         - kickside.component:component_service

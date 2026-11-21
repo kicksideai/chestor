@@ -57,3 +57,27 @@ entries:
         path: .meta.component.create.view
       - entry: bee.drivers.pi.binding:binding
         path: .meta.component.create.view
+
+  - name: codex_device
+    kind: library.lua
+    meta: {comment: Codex device authorization state and official auth cache.}
+    source: file://codex_device.lua
+    modules: [base64, json, time]
+
+  - name: codex_auth
+    kind: library.lua
+    meta: {comment: Private Codex provider requests and serialized credential operations.}
+    source: file://codex_auth.lua
+    modules: [http_client, json, process, time]
+    imports:
+      device: chestor.autocode.drivers:codex_device
+
+  - name: codex_sign_ins
+    kind: store.memory
+    meta: {comment: Short-lived Codex device authorizations keyed by the authenticated account owner.}
+
+  - name: account_check
+    kind: library.lua
+    meta: {comment: Checks bundled providers' API keys with their official read-only credential probes.}
+    source: file://account_check.lua
+    modules: [http_client]

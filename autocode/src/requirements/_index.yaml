@@ -28,6 +28,10 @@ entries:
         path: .meta.router
       - entry: chestor.autocode.api:accounts_management.endpoint
         path: .meta.router
+      - entry: chestor.autocode.api:codex_device.endpoint
+        path: .meta.router
+      - entry: chestor.autocode.api:account_connect.endpoint
+        path: .meta.router
       - entry: chestor.autocode.api:tool_surface.user.endpoint
         path: .meta.router
       - entry: chestor.autocode.api:profiles_list.user.endpoint

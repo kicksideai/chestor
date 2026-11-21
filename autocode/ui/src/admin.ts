@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 import { WippyVueElement, define, lazyVueConfig } from '@wippy-fe/webcomponent-vue'
 import type { WippyElementConfig, WippyPropsSchema } from '@wippy-fe/webcomponent-vue'
-import type { ComponentProps } from './types.ts'
+import type { ComponentEvents, ComponentProps } from './types.ts'
 
 import stylesText from './styles.css?inline'
 import adminStyles from './admin.css?inline'
 
 // chestor-autocode-admin - the Autocode tab of the System settings, built as its
 // own bundle (admin.js) from the page's sources and styles.
-const PROPS_SCHEMA = { type: 'object', properties: {} } satisfies WippyPropsSchema
+const PROPS_SCHEMA = { type: 'object', properties: { route: { type: 'string', default: '', description: 'Host settings route.' } } } satisfies WippyPropsSchema
 
-class ChestorAutocodeAdminElement extends WippyVueElement<ComponentProps, Record<string, never>> {
+class ChestorAutocodeAdminElement extends WippyVueElement<ComponentProps, ComponentEvents> {
   static get wippyConfig(): WippyElementConfig<ComponentProps> {
     return { propsSchema: PROPS_SCHEMA, hostCssKeys: ['themeConfigUrl', 'primeVueCssUrl', 'iframeCssUrl'] as const, inlineCss: stylesText + adminStyles }
   }

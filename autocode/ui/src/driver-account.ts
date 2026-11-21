@@ -2,6 +2,7 @@
 import { WippyVueElement, lazyVueConfig } from '@wippy-fe/webcomponent-vue'
 import type { WippyElementConfig, WippyPropsSchema, WippyVueMountConfig } from '@wippy-fe/webcomponent-vue'
 import styles from './styles.css?inline'
+import providerStyles from './provider-accounts.css?inline'
 
 export interface ProviderProps { providerId?: string }
 export interface ProviderEvents { 'connection-saved': { success: true } }
@@ -18,7 +19,7 @@ export class DriverAccountsElement extends WippyVueElement<ProviderProps, Provid
     return {
       propsSchema: props,
       hostCssKeys: ['themeConfigUrl', 'primeVueCssUrl', 'iframeCssUrl'] as const,
-      inlineCss: styles + ':host, :host > div { height: auto; }',
+      inlineCss: styles + providerStyles + ':host, :host > div { height: auto; }',
     }
   }
 

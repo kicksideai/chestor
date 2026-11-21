@@ -1,7 +1,7 @@
-import { defineComponent as h, openBlock as o, createElementBlock as i, createElementVNode as a, createVNode as r, unref as l, toDisplayString as u, createCommentVNode as n, createBlock as k, withCtx as m } from "vue";
-import { Icon as c } from "@iconify/vue";
-import { b } from "./accounts.vue_vue_type_script_setup_true_lang-DjUXxyse.js";
-const x = { class: "kx-head" }, y = { class: "kx-head-icon" }, p = { class: "kx-head-text" }, v = { class: "kx-title" }, f = { class: "kx-head-sub" }, q = { class: "kx-head-actions" }, C = {
+import { defineComponent as h, openBlock as l, createElementBlock as i, createElementVNode as a, createVNode as n, unref as o, toDisplayString as u, createCommentVNode as c, createBlock as k, withCtx as m } from "vue";
+import { Icon as r } from "@iconify/vue";
+import { d as b } from "./accounts.vue_vue_type_script_setup_true_lang-DBO9rQIp.js";
+const x = { class: "kx-head" }, y = { class: "kx-head-icon" }, f = { class: "kx-head-text" }, v = { class: "kx-title" }, p = { class: "kx-head-sub" }, q = { class: "kx-head-actions" }, C = {
   key: 0,
   class: "kx-count"
 }, $ = {
@@ -15,26 +15,27 @@ const x = { class: "kx-head" }, y = { class: "kx-head-icon" }, p = { class: "kx-
     subtitle: {},
     count: {},
     action: {},
-    query: {},
-    placeholder: {}
+    query: { default: "" },
+    placeholder: {},
+    icon: { default: "tabler:robot" }
   },
   emits: ["update:query", "create"],
   setup(e) {
-    return (s, t) => (o(), i("header", x, [
+    return (s, t) => (l(), i("header", x, [
       a("div", y, [
-        r(l(c), {
-          icon: "tabler:robot",
+        n(o(r), {
+          icon: e.icon,
           "aria-hidden": "true"
-        })
+        }, null, 8, ["icon"])
       ]),
-      a("div", p, [
+      a("div", f, [
         a("h1", v, u(e.title), 1),
-        a("p", f, u(e.subtitle), 1)
+        a("p", p, u(e.subtitle), 1)
       ]),
       a("div", q, [
-        e.count ? (o(), i("span", C, u(e.count), 1)) : n("", !0),
-        e.placeholder ? (o(), i("div", $, [
-          r(l(c), {
+        e.count ? (l(), i("span", C, u(e.count), 1)) : c("", !0),
+        e.placeholder ? (l(), i("div", $, [
+          n(o(r), {
             icon: "tabler:search",
             "aria-hidden": "true"
           }),
@@ -46,32 +47,32 @@ const x = { class: "kx-head" }, y = { class: "kx-head-icon" }, p = { class: "kx-
             "aria-label": e.placeholder,
             onInput: t[0] || (t[0] = (d) => s.$emit("update:query", d.target.value))
           }, null, 40, g),
-          e.query ? (o(), i("button", {
+          e.query ? (l(), i("button", {
             key: 0,
             type: "button",
             class: "kx-search-clear kx-focus-outline",
             "aria-label": "Clear search",
             onClick: t[1] || (t[1] = (d) => s.$emit("update:query", ""))
           }, [
-            r(l(c), {
+            n(o(r), {
               icon: "tabler:x",
               "aria-hidden": "true"
             })
-          ])) : n("", !0)
-        ])) : n("", !0),
-        e.action ? (o(), k(l(b), {
+          ])) : c("", !0)
+        ])) : c("", !0),
+        e.action ? (l(), k(o(b), {
           key: 2,
           label: e.action,
           onClick: t[2] || (t[2] = (d) => s.$emit("create"))
         }, {
           icon: m(() => [
-            r(l(c), {
+            n(o(r), {
               icon: "tabler:plus",
               "aria-hidden": "true"
             })
           ]),
           _: 1
-        }, 8, ["label"])) : n("", !0)
+        }, 8, ["label"])) : c("", !0)
       ])
     ]));
   }

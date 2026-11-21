@@ -33,6 +33,12 @@ let generation = 0
 onUnmounted(() => { generation++ })
 
 const choice = computed(() => driver.value?.credentials.find((c) => c.id === kind.value) ?? null)
+function defaultKind() {
+  const spec = driver.value?.credentials
+  const preferred = config.value?.initialKind
+  return spec?.find(c => c.id === preferred)?.id ?? spec?.find(c => !c.subscription && !c.file)?.id ?? spec?.[0]?.id ?? ''
+}
+
 const hasApiKey = computed(() => driver.value?.credentials.some(c => !c.file && !c.subscription) === true)
 const endpointable = computed(() => !!choice.value && !choice.value.file && !choice.value.subscription && (driver.value?.endpoints.length ?? 0) > 0)
 
@@ -60,7 +66,7 @@ const validation = computed(() => {
 
 watch(() => driver.value?.id, () => {
   const next = driver.value
-  kind.value = next?.credentials.find(c => !c.subscription && !c.file)?.id ?? next?.credentials[0]?.id ?? ''
+  kind.value = defaultKind()
   protocol.value = next?.endpoints[0] ?? ''
   reset(true)
 }, { immediate: true })
@@ -69,7 +75,7 @@ watch(kind, () => { protocol.value = driver.value?.endpoints[0] ?? ''; reset() }
 watch(() => config.value?.busy, busy => { if (busy) generation++ }, { flush: 'sync' })
 
 watch(() => JSON.stringify(config.value?.account), () => {
-  kind.value = account.value?.credential_kind ?? driver.value?.credentials.find(c => !c.subscription && !c.file)?.id ?? driver.value?.credentials[0]?.id ?? ''
+  kind.value = account.value?.credential_kind ?? defaultKind()
   reset()
 }, { immediate: true })
 
@@ -125,6 +131,13 @@ async function drop(event: DragEvent) {
     if (current === generation) problem.value = 'Could not read the credential file. Try dropping it again.'
   }
 }
+function pasteSecret(event: ClipboardEvent) {
+  if (!config.value?.guided || !event.clipboardData) return
+  event.preventDefault()
+  secret.value = event.clipboardData.getData('text')
+  editSecret()
+}
+
 function editSecret() { generation++; dropped.value = ''; problem.value = '' }
 function clearSecret() { generation++; secret.value = ''; dropped.value = ''; problem.value = '' }
 
@@ -147,7 +160,7 @@ function submit() {
 <template>
   <p v-if="configError" class="kx-err" role="alert">{{ configError }}</p>
   <section v-if="driver" class="da">
-    <div class="kx-card-head">
+    <div v-if="!config?.guided" class="kx-card-head">
       <div class="kx-card-name">{{ account ? 'Edit' : 'Add a' }} {{ driver.title }} account</div>
     </div>
 
@@ -156,21 +169,23 @@ function submit() {
       <select :disabled="config?.busy || !!account" v-model="kind" class="da-input kx-focus-halo"><option v-for="c in driver.credentials" :key="c.id" :value="c.id">{{ c.label }}</option></select>
     </label>
 
-    <p v-if="choice?.subscription" class="da-notice" role="note">
+    <p v-if="choice?.subscription && !config?.guided" class="da-notice" role="note">
       <Icon icon="tabler:alert-triangle" />
       <span><strong>Personal use only.</strong> A subscription login is for your own personal use. Running it through this tool for
         anyone else is not compliant with the provider's terms, and the provider may restrict or suspend the account. Only you run on
         it. <template v-if="hasApiKey">Use an official API key or your own endpoint for production or multiple users.</template></span>
     </p>
 
-    <div class="da-drop" :class="{ over: dragging, filled: !!dropped }" @dragover.prevent="dragging = !config?.busy" @dragleave="dragging = false" @drop.prevent="drop">
+    <div v-if="!config?.guided || choice?.file" class="da-drop" :class="{ over: dragging, filled: !!dropped }" @dragover.prevent="dragging = !config?.busy" @dragleave="dragging = false" @drop.prevent="drop">
       <Icon :icon="dropped ? 'tabler:file-check' : 'tabler:file-upload'" />
       <span v-if="dropped">{{ dropped }} loaded. <button type="button" class="da-link kx-focus-outline" @click="clearSecret" :disabled="config?.busy">Clear</button></span>
       <span v-else>Drop {{ choice?.file ? '~/' + choice.file : 'a file with the value' }} here, or paste below.</span>
     </div>
     <label v-if="!dropped" class="da-field">
-      <span class="da-lbl">{{ choice?.file ? 'Login file content' : 'Value' }}<span v-if="account && !needsSecret" class="da-opt"> · leave empty to keep the credential</span></span>
-      <textarea :disabled="config?.busy" v-model="secret" @input="editSecret" rows="4" class="da-input da-mono kx-focus-halo" :placeholder="choice?.hint" />
+      <span class="da-lbl">{{ choice?.file ? 'Login file content' : config?.guided ? choice?.label : 'Value' }}<span v-if="account && !needsSecret" class="da-opt"> · leave empty to keep the credential</span></span>
+      <input v-if="config?.guided" :disabled="config.busy" v-model="secret" @paste="pasteSecret" @input="editSecret"
+        type="password" autocomplete="new-password" spellcheck="false" class="da-input kx-focus-halo" :placeholder="choice?.hint" />
+      <textarea v-else :disabled="config?.busy" v-model="secret" @input="editSecret" rows="4" class="da-input da-mono kx-focus-halo" :placeholder="choice?.hint" />
     </label>
 
     <small v-if="validation.secret" class="kx-err" role="alert">{{ validation.secret }}</small>
@@ -205,9 +220,9 @@ function submit() {
     <div class="da-foot">
       <small class="da-hint">Checked against the credential's format, kept in the account's private context, never shown again.</small>
       <button type="button" class="da-btn kx-focus-halo" :disabled="config?.busy || Object.keys(validation).length > 0 || !choice || !label.trim() || (needsSecret && !secret.trim())" @click="submit">
-        <Icon icon="tabler:key" /> {{ config?.busy ? 'Saving…' : 'Save account' }}
+        <Icon icon="tabler:key" /> {{ config?.guided && !account ? (config.busy ? 'Testing credential…' : 'Test and save') : (config?.busy ? 'Saving…' : 'Save account') }}
       </button>
     </div>
-    <p v-if="problem || config?.error" class="kx-err inline">{{ problem || config?.error }}</p>
+    <p v-if="problem || config?.error" class="kx-err inline" role="alert">{{ problem || config?.error }}</p>
   </section>
 </template>

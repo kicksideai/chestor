@@ -2,13 +2,13 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue'
 import Button from 'primevue/button'
-defineProps<{ title: string; subtitle: string; count?: string; action?: string; query: string; placeholder?: string }>()
+withDefaults(defineProps<{ title: string; subtitle: string; count?: string; action?: string; query?: string; placeholder?: string; icon?: string }>(), { icon: 'tabler:robot', query: '' })
 defineEmits<{ 'update:query': [value: string]; create: [] }>()
 </script>
 
 <template>
   <header class="kx-head">
-    <div class="kx-head-icon"><Icon icon="tabler:robot" aria-hidden="true" /></div>
+    <div class="kx-head-icon"><Icon :icon="icon" aria-hidden="true" /></div>
     <div class="kx-head-text"><h1 class="kx-title">{{ title }}</h1><p class="kx-head-sub">{{ subtitle }}</p></div>
     <div class="kx-head-actions">
       <span v-if="count" class="kx-count">{{ count }}</span>

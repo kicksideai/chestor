@@ -1,0 +1,21 @@
+/* SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 */
+@import "@kickside/ui-kit/kx-modal-head.css";
+
+.ac-dialog-header:has(.kx-modal-head-icon) h2 { margin-inline-end: auto; }
+.ac-provider-actions { align-items: center; }
+.ac-provider-actions p, .ac-managed-account p { margin: 0; }
+.ac-managed-account { flex-wrap: nowrap; }
+.ac-managed-account .ac-row-name { font-size: 14px; }
+.ac-account-summary, .ac-usage-label, .ac-device-code, .ac-setup-actions {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+}
+.ac-usage-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: 10px; }
+.ac-usage-window { display: grid; gap: 4px; }
+.ac-usage-label { justify-content: space-between; font-size: 12px; }
+.ac-usage-meter { height: 5px; }
+.ac-usage-limited { --p-progressbar-value-background: var(--p-warn-color); }
+.ac-account-details { color: var(--p-text-muted-color); font-size: 12px; overflow-wrap: anywhere; }
+.ac-account-details > summary, .ac-advanced-credential > summary { width: fit-content; cursor: pointer; }
+.ac-setup-steps { display: grid; gap: 8px; margin-block: 0; padding-inline-start: 1.25rem; }
+.ac-device-code > code { background: var(--kx-overlay-hover); border-radius: var(--kx-radius-8); font-size: 1.15rem; letter-spacing: .08em; padding: 8px 12px; }
+.ac-advanced-credential { border-top: 1px solid var(--p-content-border-color); padding-block-start: 12px; }
