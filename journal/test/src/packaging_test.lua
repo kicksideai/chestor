@@ -5,10 +5,11 @@ local types = require("types")
 local json = require("json")
 
 local DEPENDENCIES = {
-    ["kickside/core"] = "*",
-    ["kickside/contract"] = "*",
+    ["kickside/core"] = ">=0.1.120",
+    ["kickside/contract"] = ">=0.2.4",
     ["kickside/component"] = "*",
-    ["kickside/jobs"] = "*",
+    ["kickside/jobs"] = ">=0.1.53",
+    ["kickside/execution"] = ">=0.1.18",
     ["chestor/workspace"] = "*",
     ["wippy/migration"] = "*",
     ["wippy/llm"] = "*",
@@ -158,7 +159,7 @@ local function define_tests()
                 count = count + 1
                 test.eq(version, DEPENDENCIES[component], "unexpected production dependency " .. component)
             end
-            test.eq(count, 8)
+            test.eq(count, 9)
             for component, version in pairs(DEPENDENCIES) do
                 test.eq(found[component], version, "missing production dependency " .. component)
             end
