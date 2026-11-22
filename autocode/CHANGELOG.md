@@ -1,6 +1,13 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 # Changelog
 
+## [0.1.23](https://github.com/kicksideai/chestor/compare/autocode-v0.1.22...autocode-v0.1.23) (2026-11-22)
+
+
+### Bug Fixes
+
+* **autocode:** identify the workflow arm on admission ([#92](https://github.com/kicksideai/chestor/issues/92)) ([197ab5b](https://github.com/kicksideai/chestor/commit/197ab5bfe68976246dcf213e256e8b33076170fb))
+
 ## [0.1.22](https://github.com/kicksideai/chestor/compare/autocode-v0.1.21...autocode-v0.1.22) (2026-11-21)
 
 
