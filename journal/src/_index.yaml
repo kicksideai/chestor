@@ -10,12 +10,12 @@ entries:
 
   - name: dep.kickside.core
     kind: ns.dependency
-    version: '*'
+    version: '>=0.1.120'
     component: kickside/core
 
   - name: dep.kickside.contract
     kind: ns.dependency
-    version: '*'
+    version: '>=0.2.4'
     component: kickside/contract
 
   - name: dep.kickside.component
@@ -25,8 +25,13 @@ entries:
 
   - name: dep.kickside.jobs
     kind: ns.dependency
-    version: '*'
+    version: '>=0.1.53'
     component: kickside/jobs
+
+  - name: dep.kickside.execution
+    kind: ns.dependency
+    version: '>=0.1.18'
+    component: kickside/execution
 
   - name: dep.chestor.workspace
     kind: ns.dependency
