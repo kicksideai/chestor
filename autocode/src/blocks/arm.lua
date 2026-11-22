@@ -6,7 +6,11 @@ local trace = require("trace")
 type Object = {[string]: unknown}
 type Args = {dataflow_id: string, node_id: string, signal_id: string, idempotency_key: string?, input: unknown, config: Object, run_context: unknown}
 local function arm(args: Args): (Object?, error?)
-    local authorized, flow_err = funcs.call("kickside.blocks:authorize_arm", {dataflow_id = args.dataflow_id, signal_id = args.signal_id})
+    local authorized, flow_err = funcs.call("kickside.blocks:authorize_arm", {
+        dataflow_id = args.dataflow_id,
+        signal_id = args.signal_id,
+        arm_id = "chestor.autocode.blocks:arm_task",
+    })
     if not authorized then return nil, flow_err and errors.wrap(flow_err, "Block arm authorization") end
     local config = type(args.config) == "table" and args.config or {}
     local request: Object = {}
