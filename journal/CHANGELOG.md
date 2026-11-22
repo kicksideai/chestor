@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.9](https://github.com/kicksideai/chestor/compare/journal-v0.3.8...journal-v0.3.9) (2026-11-22)
+
+
+### Bug Fixes
+
+* **journal:** declare compatible runtime dependencies ([#94](https://github.com/kicksideai/chestor/issues/94)) ([48fc3f2](https://github.com/kicksideai/chestor/commit/48fc3f276a783d02152b6ac5cf507055895a05f5))
+
 ## [0.3.8](https://github.com/kicksideai/chestor/compare/journal-v0.3.7...journal-v0.3.8) (2026-11-21)
 
 
