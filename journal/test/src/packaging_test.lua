@@ -244,27 +244,20 @@ local function define_tests()
 
         test.it("routes migrations and runtime SQL through the same target_db requirement", function()
             local targets, count = requirement_targets("chestor.journal:target_db")
-            test.eq(count, 21)
-            test.eq(targets["chestor.journal.migrations:01_create_journal_tables"], ".meta.target_db")
-            test.eq(targets["chestor.journal.migrations:02_scope_fts_keys"], ".meta.target_db")
-            test.eq(targets["chestor.journal.migrations:03_create_journal_graph_tables"], ".meta.target_db")
-            test.eq(targets["chestor.journal.migrations:04_dedupe_fts"], ".meta.target_db")
-            test.eq(targets["chestor.journal.migrations:05_drop_sessions"], ".meta.target_db")
-            test.eq(targets["chestor.journal.migrations:06_task_graph"], ".meta.target_db")
-            test.eq(targets["chestor.journal.migrations:07_enforcement"], ".meta.target_db")
-            test.eq(targets["chestor.journal.migrations:08_replay_integrity"], ".meta.target_db")
-            test.eq(targets["chestor.journal.migrations:09_branch_digests"], ".meta.target_db")
-            test.eq(targets["chestor.journal.migrations:10_agent_cursors"], ".meta.target_db")
-            test.eq(targets["chestor.journal.migrations:11_generic_cursor_position"], ".meta.target_db")
-            test.eq(targets["chestor.journal.migrations:12_cursor_context_refs"], ".meta.target_db")
-            test.eq(targets["chestor.journal.migrations:13_graph_hierarchy"], ".meta.target_db")
-            test.eq(targets["chestor.journal.migrations:14_backfill_graph_hierarchy"], ".meta.target_db")
-            test.eq(targets["chestor.journal.migrations:15_cursor_origin"], ".meta.target_db")
-            test.eq(targets["chestor.journal.migrations:16_graph_assembly"], ".meta.target_db")
-            test.eq(targets["chestor.journal.migrations:17_work_spans"], ".meta.target_db")
-            test.eq(targets["chestor.journal.migrations:18_cursor_revision_claim"], ".meta.target_db")
-            test.eq(targets["chestor.journal.migrations:19_auto_cursor_identity"], ".meta.target_db")
-            test.eq(targets["chestor.journal.migrations:20_state_event_sequence"], ".meta.target_db")
+            local migrations, err = registry.find({ ["meta.type"] = "migration" })
+            test.is_nil(err)
+            local prefix = "chestor.journal.migrations:"
+            local migration_count = 0
+            for _, migration in ipairs(migrations) do
+                local id = tostring(migration.id)
+                if id:sub(1, #prefix) == prefix then
+                    migration_count = migration_count + 1
+                    test.eq(targets[id], ".meta.target_db", id .. " must bind the Journal database requirement")
+                    test.eq(meta(migration).target_db, types.db_id(), id .. " must use the Journal database")
+                end
+            end
+            test.is_true(migration_count > 0)
+            test.eq(count, migration_count + 1)
             test.eq(targets[types.DB_CONFIG], ".meta.db_id")
 
             local previous = types._registry
