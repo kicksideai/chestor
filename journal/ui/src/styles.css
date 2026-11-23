@@ -29,6 +29,7 @@ wippy-loading, wippy-error { height: 100%; }
 .jr.compact .jr-shell { grid-template-columns: minmax(0, 1fr); }
 .jr.compact .kx-main-scroll { padding: 16px 16px 48px; }
 .jr-rail-search { flex: none; padding: 8px 10px; }
+.jr-search .kx-search-input::-webkit-search-cancel-button { display: none; }
 .jr > .kx-empty { flex: 1; justify-content: center; }
 
 /* Rows follow the section rail item: one radius, one hover, one selected tint. */
