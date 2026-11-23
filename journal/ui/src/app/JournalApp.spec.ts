@@ -48,8 +48,8 @@ function respond(lastSeq: number, recentEvents: unknown[] = events, extra: Extra
   })
 }
 
-async function open() {
-  const wrapper = mount(JournalApp, { global: { plugins: [PrimeVuePlugin] } })
+async function open(attachTo?: HTMLElement) {
+  const wrapper = mount(JournalApp, { attachTo, global: { plugins: [PrimeVuePlugin] } })
   await flushPromises()
   return wrapper
 }
@@ -220,4 +220,22 @@ it('states a missing journal id without reading', async () => {
   expect(wrapper.text()).toContain('Journal entry id is required.')
   expect(get).not.toHaveBeenCalled()
   wrapper.unmount()
+})
+
+it('opens and focuses search with the slash shortcut from a compact detail', async () => {
+  props.value = { entryId: 'j1', mode: 'preview' }
+  respond(12)
+  const wrapper = await open(document.body)
+  try {
+    await wrapper.get('.jr-list .jr-row').trigger('click')
+    await flushPromises()
+    const back = wrapper.get<HTMLButtonElement>('[aria-label="Back"]')
+    back.element.focus()
+    await back.trigger('keydown', { key: '/' })
+    await flushPromises()
+    expect(wrapper.find('.jr-detail').exists()).toBe(false)
+    expect(document.activeElement).toBe(wrapper.get('input[type="search"]').element)
+  } finally {
+    wrapper.unmount()
+  }
 })

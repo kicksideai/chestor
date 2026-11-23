@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Icon } from '@iconify/vue'
 import { useHostVisibilityRefresh, useProps } from '@wippy-fe/webcomponent-vue'
 import Message from 'primevue/message'
@@ -51,8 +51,17 @@ function toggleQuiet() {
 function keydown(event: KeyboardEvent) {
   const target = event.composedPath()[0] as HTMLElement | undefined
   if (target && ['INPUT', 'TEXTAREA'].includes(target.tagName)) return
-  if (event.key === '/') { event.preventDefault(); searchBox.value?.focus() }
-  else if (event.key === 'Escape' && selected.value) close()
+  if (event.key === '/') {
+    if (searchBox.value) {
+      event.preventDefault()
+      searchBox.value.focus()
+    } else if (compact.value && (selected.value || quietOpen.value)) {
+      event.preventDefault()
+      close()
+      quietOpen.value = false
+      void nextTick(() => searchBox.value?.focus())
+    }
+  } else if (event.key === 'Escape' && selected.value) close()
 }
 
 let observer: ResizeObserver | undefined

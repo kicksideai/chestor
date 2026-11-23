@@ -30,7 +30,7 @@ class r extends a {
   }
   static get vueConfig() {
     return {
-      ...e(() => import("./lazy-mount-DXMGmmDp.js").then((o) => o.mountConfig), { surface: "page", loading: "Loading…", failed: "Could not load the journal. Reload the page to try again.", timeout: 3e4 })
+      ...e(() => import("./lazy-mount-CoBcL4AQ.js").then((o) => o.mountConfig), { surface: "page", loading: "Loading…", failed: "Could not load the journal. Reload the page to try again.", timeout: 3e4 })
     };
   }
 }
