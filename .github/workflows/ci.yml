@@ -225,7 +225,7 @@ jobs:
         - module: journal
           engine: sqlite
           commands: "set -euo pipefail\nsource_root=\"$PWD\"\nexport TMPDIR=\"$source_root/.scratch\"\
-            \nmkdir -p \"$TMPDIR\"\nnpm --prefix journal/ui ci\nnpm --prefix journal/ui\
+            \nmkdir -p \"$TMPDIR\"\nmake -C journal ui-kit\nnpm --prefix journal/ui test\nnpm --prefix journal/ui\
             \ run typecheck\nnpm --prefix journal/ui run build\ncd journal/test\n\
             wippy update\nwippy lint --ns chestor.journal --ns 'chestor.journal.*'\
             \ \nwippy test  2>&1 | tee .wippy-test.log\nsed -E 's/\\x1B\\[[0-?]*[\
@@ -246,7 +246,9 @@ jobs:
 
             mkdir -p "$TMPDIR"
 
-            npm --prefix journal/ui ci
+            make -C journal ui-kit
+
+            npm --prefix journal/ui test
 
             npm --prefix journal/ui run typecheck
 
