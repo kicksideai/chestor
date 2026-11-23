@@ -705,6 +705,31 @@ local function define_tests()
             end)
         end)
 
+        test.it("keeps a dependency event's endpoints and relation on its fact row", function()
+            local journal_id = "journal-link-fields"
+            local _, err = fold(journal_id, {
+                ev(types.EVENT.TASK_UPSERTED, { id = "from", task_id = "cutover", title = "Approve cutover", status = "open" }),
+                ev(types.EVENT.TASK_UPSERTED, { id = "to", task_id = "rollout", title = "Publish rollout", status = "open" }),
+                ev(types.EVENT.TASK_LINKED, { id = "link", from_task_id = "cutover", to_task_id = "rollout", kind = "blocks" }),
+                ev(types.EVENT.TASK_UNLINKED, { id = "unlink", from_task_id = "cutover", to_task_id = "rollout", kind = "relates_to" }),
+            }, 4)
+            test.is_nil(err)
+            with_db(function(db)
+                local link, link_err = reader.get_event(db, journal_id, "link")
+                test.is_nil(link_err)
+                test.eq(link.event_type, "task.linked")
+                test.eq(#link.linked_task_ids, 2)
+                test.eq(link.linked_task_ids[1], "cutover")
+                test.eq(link.linked_task_ids[2], "rollout")
+                test.eq(link.metadata.relation, "blocks")
+                local unlink, unlink_err = reader.get_event(db, journal_id, "unlink")
+                test.is_nil(unlink_err)
+                test.eq(unlink.linked_task_ids[1], "cutover")
+                test.eq(unlink.linked_task_ids[2], "rollout")
+                test.eq(unlink.metadata.relation, "relates_to")
+            end)
+        end)
+
         test.it("supports semantic ranking over stored event embeddings without requiring a live embedder", function()
             local journal_id = "journal-vector-search"
             local _, err = fold(journal_id, {
