@@ -22,12 +22,7 @@
     ],
     "noEmit": true,
     "forceConsistentCasingInFileNames": true,
-    "allowSyntheticDefaultImports": true,
-    "paths": {
-      "@kickside/ui-kit/*": [
-        "./.wippy/npm/@kickside/ui-kit/*"
-      ]
-    }
+    "allowSyntheticDefaultImports": true
   },
   "include": [
     "src/**/*.ts",

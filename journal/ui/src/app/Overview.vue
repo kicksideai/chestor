@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
+
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import Avatar from 'primevue/avatar'

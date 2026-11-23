@@ -30,7 +30,7 @@ lockrefresh:
 ui-test: ui-kit
 	cd ui && npm test
 
-# Published build input; Vite resolves the materialized package by alias.
+# Published build input; npm links the materialized workspace package.
 ui-kit:
 	@set -e; \
 	(cd build-inputs && wippy install $(WIPPY_INSTALL_ARGS)); \

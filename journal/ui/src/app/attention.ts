@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+
 import { agentIdentity } from './agents'
 import { dayLabel } from './format'
 import { ageOf, isEnded } from './staleness'

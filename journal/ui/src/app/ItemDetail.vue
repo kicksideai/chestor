@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
+
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Icon } from '@iconify/vue'

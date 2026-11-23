@@ -1,3 +1,5 @@
+<!-- SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0 -->
+
 <script setup lang="ts">
 import Tag from 'primevue/tag'
 import { absoluteTime, relativeAge } from './format'

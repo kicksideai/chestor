@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
+
 /** Whole units only: an age is context, not a measurement. */
 export function relativeAge(then: number | undefined, nowS: number): string {
   if (!then) return ''
