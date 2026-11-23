@@ -1,6 +1,4 @@
-import { relativeAge } from './assembly'
-import { isFolded, isSettled } from './tree'
-import type { GraphNode } from './types'
+import { relativeAge } from './format'
 
 /** Three days without a fact is the point where work stops being paused and starts being abandoned. */
 export const DORMANT_AFTER_S = 3 * 86400
@@ -27,14 +25,14 @@ export interface Subtree {
   doneCount: number
 }
 
-/**
- * A task carries the journal's outcome vocabulary, so the tree's reading of an
- * ended record decides here too. Folding ends a task as finally as completion:
- * both are decisions already taken and neither is open work.
- */
+const ENDED = new Set([
+  'done', 'closed', 'completed', 'resolved', 'retired', 'canceled', 'cancelled', 'folded',
+  'failed', 'abandoned', 'inconclusive', 'rejected', 'superseded',
+])
+
+/** Completed, cancelled and folded work alike: a decision already taken, not open work. */
 export function isEnded(status: string): boolean {
-  const node = { status } as GraphNode
-  return isSettled(node) || isFolded(node)
+  return ENDED.has(String(status || '').toLowerCase())
 }
 
 function childrenOf(tasks: TaskLike[]): Map<string, TaskLike[]> {
@@ -56,7 +54,7 @@ function childrenOf(tasks: TaskLike[]): Map<string, TaskLike[]> {
  *
  * Rolled-up activity answers a question about the data alone — where the newest
  * fact under each task is — so it does not change when the reading clock ticks.
- * Both readings below take it from here, keyed by the list they were handed, and
+ * The dormancy reading takes it from here, keyed by the list it was handed, and
  * a list that has not been re-projected is not walked again. The table holds
  * only what the current lists reference, so it cannot outgrow the data.
  */
@@ -140,23 +138,6 @@ function rollUp(tasks: TaskLike[], children: Map<string, TaskLike[]>): Map<strin
 }
 
 /**
- * Which tasks are still being worked. The split reads rolled-up activity, so a
- * program whose leaves moved today never lands in the dormant half, and every
- * task lands in exactly one half — the list is a reordering, not a filter.
- */
-export function splitByActivity<T extends TaskLike>(tasks: T[], nowS: number): { worked: T[]; dormant: T[] } {
-  const { activity } = shapeOf(tasks)
-  const worked: T[] = []
-  const dormant: T[] = []
-  for (const task of tasks) {
-    const at = activity.get(task.id) ?? task.updated_at
-    if (ageOf(at, nowS).tier === 'dormant') dormant.push(task)
-    else worked.push(task)
-  }
-  return { worked, dormant }
-}
-
-/**
  * The programs a review can propose to close. A subtree qualifies only when
  * nothing inside it has moved since the dormancy threshold, and only the
  * highest such task is returned: a dormant parent already speaks for its
@@ -193,4 +174,42 @@ export function dormantSubtrees(tasks: TaskLike[], nowS: number): Subtree[] {
     subtrees.push(subtree)
   }
   return subtrees.sort((a, b) => a.lastActivityAt - b.lastActivityAt || a.root.title.localeCompare(b.root.title))
+}
+
+export interface DormantProgram {
+  root: TaskLike
+  /** Every task the dormant parts of this program hold, their roots included. */
+  tasks: number
+  open: number
+  lastActivityAt: number
+}
+
+/**
+ * Open work nothing has touched for days, grouped under the top-level task it hangs from. A program that
+ * still has one live child comes back from the subtree reading as many small
+ * dormant parts; a person settles the program, so the parts are counted under it.
+ * A program whose quiet parts are all ended has nothing left to settle.
+ */
+export function dormantPrograms(tasks: TaskLike[], nowS: number): DormantProgram[] {
+  const byId = new Map(tasks.map(task => [task.id, task]))
+  const rootOf = (task: TaskLike): TaskLike => {
+    let current = task
+    const seen = new Set<string>()
+    while (current.parent_task_id && byId.has(current.parent_task_id) && !seen.has(current.id)) {
+      seen.add(current.id)
+      current = byId.get(current.parent_task_id) as TaskLike
+    }
+    return current
+  }
+  const groups = new Map<string, DormantProgram>()
+  for (const part of dormantSubtrees(tasks, nowS)) {
+    if (!part.openCount && !part.blockedCount) continue
+    const root = rootOf(part.root)
+    const group = groups.get(root.id) || { root, tasks: 0, open: 0, lastActivityAt: 0 }
+    group.tasks += part.members.length + 1
+    group.open += part.openCount + part.blockedCount
+    group.lastActivityAt = Math.max(group.lastActivityAt, part.lastActivityAt)
+    groups.set(root.id, group)
+  }
+  return [...groups.values()].sort((a, b) => a.lastActivityAt - b.lastActivityAt)
 }
