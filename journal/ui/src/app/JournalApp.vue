@@ -21,10 +21,10 @@ const compact = computed(() => (props.value?.mode || 'preview') === 'preview')
 const journal = useJournal(entryId)
 const {
   loading, loaded, error, health, clock, seenSeq, eventsHasMore, tasksBounded,
-  needs, working, days, fresh, agents, quiet, taskById,
+  needs, working, days, fresh, agents, agentTasks, quiet, taskById,
   query, matchedTasks, matchedFacts, searching, searchError,
   selected, trail, detail, detailLoading, detailError,
-  load, open, back, close, openAgent,
+  load, open, back, close,
 } = journal
 
 useHostVisibilityRefresh(load)
@@ -91,8 +91,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', keydown))
             <Overview
               v-if="!compact || !query.trim()"
               :days="days" :fresh="fresh" :visited="seenSeq !== null" :more-history="eventsHasMore"
-              :agents="agents" :quiet="quiet" :task-title="taskTitle" :now="clock"
-              @open="open" @agent="openAgent"
+              :agents="agents" :agent-tasks="agentTasks" :quiet="quiet" :task-title="taskTitle" :now="clock"
+              @open="open"
             />
           </template>
         </div>

@@ -74,6 +74,7 @@ wippy-loading, wippy-error { height: 100%; }
 .jr-note { margin: 0 10px 8px; font-size: 12.5px; color: var(--p-text-muted-color); }
 
 .jr-agent { align-items: center; }
+.jr-agent:not(button) { cursor: default; background: transparent; }
 .jr-avatar.p-avatar { flex: none; width: 28px; height: 28px; font-size: 11px; font-weight: 700; }
 .jr-avatar.working { box-shadow: 0 0 0 2px var(--p-content-background), 0 0 0 4px var(--p-success-500); }
 

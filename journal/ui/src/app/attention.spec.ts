@@ -69,6 +69,20 @@ describe('changes since the last visit', () => {
     const listed = changeDays(events, 10, now).flatMap(day => day.events)
     expect(listed.map(event => [event.id, event.fresh])).toEqual([['b', true], ['c', true], ['a', false]])
   })
+
+  it('keeps backdated facts in their day without losing their new marks', () => {
+    const midday = new Date(2026, 10, 23, 12).getTime() / 1000
+    const events = [
+      fact('today-first', 10, 'note', { ts: midday - 100 }),
+      fact('yesterday', 11, 'note', { ts: midday - 86400 }),
+      fact('today-latest', 12, 'decision', { ts: midday - 10 }),
+    ]
+    const days = changeDays(events, 10, midday)
+    expect(days.map(day => [day.day, day.events.map(event => [event.id, event.fresh])])).toEqual([
+      ['Today', [['today-latest', true], ['today-first', false]]],
+      ['Yesterday', [['yesterday', true]]],
+    ])
+  })
 })
 
 it('finds tasks holding every word, open work first', () => {

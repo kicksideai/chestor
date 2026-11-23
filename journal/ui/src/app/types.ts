@@ -50,8 +50,8 @@ export interface WorkSpan {
   ended_at?: number
   last_seq?: number
   fact_count?: number
-  working_on?: { text?: string; kind?: string }
-  last_fact?: { seq: number; event_id: string; title?: string; ts?: number }
+  working_on?: { text?: string; kind?: string; task_id?: string }
+  last_fact?: { seq: number; event_id: string; title?: string; ts?: number; task_id?: string }
 }
 
 /** A live editing session on one task. */

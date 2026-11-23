@@ -108,7 +108,7 @@ export interface ChangeDay { day: string; events: Array<JournalEvent & { fresh: 
  */
 export function changeDays(events: JournalEvent[], seenSeq: number | null, nowS: number): ChangeDay[] {
   const days: ChangeDay[] = []
-  for (const event of [...events].sort((a, b) => b.seq - a.seq)) {
+  for (const event of [...events].sort((a, b) => b.ts - a.ts || b.seq - a.seq)) {
     const day = dayLabel(event.ts, nowS)
     let group = days[days.length - 1]
     if (!group || group.day !== day) { group = { day, events: [] }; days.push(group) }

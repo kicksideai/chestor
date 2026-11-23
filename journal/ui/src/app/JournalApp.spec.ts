@@ -26,7 +26,7 @@ const events = [
   { id: 'e1', seq: 10, event_type: 'decision', title: 'Ship in two waves', ts: now - 3600, actor_id: 'planner', task_id: 'root' },
 ]
 
-function respond(lastSeq: number) {
+function respond(lastSeq: number, recentEvents = events) {
   get.mockImplementation(async (url: string) => {
     if (url.includes('/tree')) return { data: { success: true, tree: { children: [{ ...tasks[0], children: [tasks[1]] }] } } }
     if (url.includes('/health')) return { data: { success: true, health: { status: 'ok' } } }
@@ -38,7 +38,7 @@ function respond(lastSeq: number) {
       } } }
     }
     return { data: { success: true, journal: {
-      journal_id: 'j1', stats: { last_seq: lastSeq }, events, event_page: { has_more: false },
+      journal_id: 'j1', stats: { last_seq: lastSeq }, events: recentEvents, event_page: { has_more: false },
       cursors: { items: [] }, spans: { items: [] },
       work_control: { now, leases: [], resumable: [], counts: { active: 0, write: 0, planning: 0, resumable: 0 }, limit: 100, has_more: false },
     } } }
@@ -73,6 +73,21 @@ it('marks the facts recorded since the last visit', async () => {
   expect(wrapper.get('.kx-main').text()).toContain('1 new since your last visit.')
   expect(wrapper.findAll('.kx-main .jr-row.fresh').map(row => row.find('.jr-row-title').text())).toEqual(['Which region ships first?'])
   expect(localStorage.getItem('chestor.journal.seen:j1')).toBe('12')
+  wrapper.unmount()
+})
+
+it('shows a newly recorded backdated fact beyond the first page and still offers older facts', async () => {
+  localStorage.setItem('chestor.journal.seen:j1', '41')
+  const recent = Array.from({ length: 41 }, (_, index) => ({
+    ...events[0], id: `f${index}`, seq: index + 1, title: `Fact ${index}`, ts: now - index,
+  }))
+  const backdated = { ...events[0], id: 'backdated', seq: 42, title: 'Backdated update', ts: now - 86400 }
+  respond(42, [...recent, backdated])
+  const wrapper = await open()
+  expect(wrapper.get('.kx-main .jr-row.fresh').text()).toContain('Backdated update')
+  expect(wrapper.get('.kx-main').text()).not.toContain('Fact 40')
+  await wrapper.get('.jr-more').trigger('click')
+  expect(wrapper.get('.kx-main').text()).toContain('Fact 40')
   wrapper.unmount()
 })
 

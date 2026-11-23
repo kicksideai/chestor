@@ -3,7 +3,6 @@ import type { ComputedRef } from 'vue'
 import { on } from '@wippy-fe/proxy'
 import { JournalApi } from './api'
 import { agentTaskId, groupByLiveness, mergeAgents } from './agents'
-import type { AgentRow } from './agents'
 import { changeDays, freshCount, inProgress, matchTasks, needsYou } from './attention'
 import type { ItemRef } from './attention'
 import { dormantPrograms } from './staleness'
@@ -76,7 +75,12 @@ export function useJournal(entryId: ComputedRef<string>) {
   const working = computed(() => inProgress(control.value, needs.value))
   const days = computed(() => changeDays(events.value, seenSeq.value, clock.value))
   const fresh = computed(() => freshCount(events.value, seenSeq.value))
-  const agents = computed(() => groupByLiveness(mergeAgents(cursors.value, spans.value, clock.value)))
+  const agentRows = computed(() => mergeAgents(cursors.value, spans.value, clock.value))
+  const agents = computed(() => groupByLiveness(agentRows.value))
+  const agentTasks = computed(() => {
+    const factTasks = new Map(events.value.map(event => [event.id, event.task_id]))
+    return new Map(agentRows.value.map(row => [row.id, agentTaskId(row, factTasks)]))
+  })
   const quiet = computed(() => dormantPrograms(tasks.value, clock.value))
   const matchedTasks = computed(() => matchTasks(tasks.value, query.value))
   const taskById = computed(() => new Map(tasks.value.map(task => [task.id, task])))
@@ -179,12 +183,6 @@ export function useJournal(entryId: ComputedRef<string>) {
     detailLoading.value = false
   }
 
-  /** An agent opens the task it is working on, when its spans name one. */
-  function openAgent(row: AgentRow) {
-    const taskId = agentTaskId(row, spans.value)
-    if (taskId) open({ kind: 'task', id: taskId })
-  }
-
   async function search() {
     const text = query.value.trim()
     const generation = ++searchGeneration
@@ -226,9 +224,9 @@ export function useJournal(entryId: ComputedRef<string>) {
 
   return {
     tasks, tasksBounded, events, eventsHasMore, health, loading, loaded, error, clock, seenSeq,
-    needs, working, days, fresh, agents, quiet, taskById,
+    needs, working, days, fresh, agents, agentTasks, quiet, taskById,
     query, matchedTasks, matchedFacts, searching, searchError,
     selected, trail, detail, detailLoading, detailError,
-    load, refresh, open, back, close, openAgent,
+    load, refresh, open, back, close,
   }
 }

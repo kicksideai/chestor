@@ -9,7 +9,7 @@ import EmptyState from '@kickside/ui-kit/EmptyState.vue'
 import SettingsSectionHead from '@kickside/ui-kit/SettingsSectionHead.vue'
 import ItemRow from './ItemRow.vue'
 import { agentIdentity } from './agents'
-import type { AgentRow, LivenessGroups } from './agents'
+import type { LivenessGroups } from './agents'
 import type { ChangeDay, ItemRef } from './attention'
 import { kindLabel, kindSeverity, relativeAge } from './format'
 import { DORMANT_AFTER_S } from './staleness'
@@ -22,25 +22,26 @@ const props = defineProps<{
   visited: boolean
   moreHistory: boolean
   agents: LivenessGroups
+  agentTasks: Map<string, string>
   quiet: DormantProgram[]
   taskTitle: (id?: string) => string
   now: number
 }>()
-defineEmits<{ open: [target: ItemRef]; agent: [row: AgentRow] }>()
+const emit = defineEmits<{ open: [target: ItemRef] }>()
 
 const PAGE = 40
 const shown = ref(PAGE)
 const total = computed(() => props.days.reduce((sum, day) => sum + day.events.length, 0))
 const visible = computed(() => {
-  let left = Math.max(shown.value, props.fresh)
-  const out: ChangeDay[] = []
-  for (const day of props.days) {
-    if (left <= 0) break
-    out.push({ day: day.day, events: day.events.slice(0, left) })
+  let left = shown.value
+  return props.days.flatMap(day => {
+    const take = left
     left -= day.events.length
-  }
-  return out
+    const events = day.events.filter((event, index) => index < take || event.fresh)
+    return events.length ? [{ day: day.day, events }] : []
+  })
 })
+const hasHidden = computed(() => visible.value.reduce((sum, day) => sum + day.events.length, 0) < total.value)
 const quietDays = Math.round(DORMANT_AFTER_S / 86400)
 const active = computed(() => [...props.agents.now, ...props.agents.today])
 
@@ -54,6 +55,11 @@ const description = computed(() => {
 
 function detail(actor: string | undefined, taskId: string | undefined): string {
   return [agentIdentity(actor || '').label, props.taskTitle(taskId)].filter(Boolean).join(' · ')
+}
+
+function openAgent(id: string) {
+  const taskId = props.agentTasks.get(id)
+  if (taskId) emit('open', { kind: 'task', id: taskId })
 }
 </script>
 
@@ -71,13 +77,14 @@ function detail(actor: string | undefined, taskId: string | undefined): string {
         @open="$emit('open', { kind: 'fact', id: event.id })"
       />
     </div>
-    <Button v-if="total > shown && total > fresh" class="jr-more" label="Show older" severity="secondary" text size="small" @click="shown += PAGE" />
+    <Button v-if="hasHidden" class="jr-more" label="Show older" severity="secondary" text size="small" @click="shown += PAGE" />
   </section>
 
   <section class="jr-section" aria-labelledby="jr-agents">
     <SettingsSectionHead id="jr-agents" title="Agents"
       :description="active.length ? `${agents.now.length} working in the last hour, ${agents.today.length} earlier today.` : 'No agent has written here today.'" />
-    <button v-for="row in active" :key="row.id" type="button" class="jr-row jr-agent" @click="$emit('agent', row)">
+    <component v-for="row in active" :key="row.id" :is="agentTasks.get(row.id) ? 'button' : 'div'"
+      :type="agentTasks.get(row.id) ? 'button' : undefined" class="jr-row jr-agent" @click="openAgent(row.id)">
       <Avatar :label="row.initials" shape="circle" class="jr-avatar" :class="{ working: row.working }" />
       <span class="jr-row-main">
         <span class="jr-row-line">
@@ -86,9 +93,10 @@ function detail(actor: string | undefined, taskId: string | undefined): string {
         </span>
         <span class="jr-row-line"><span class="jr-row-detail">{{ row.headline || row.purpose }}</span></span>
       </span>
-    </button>
+    </component>
     <Disclosure v-if="agents.older.length" :label="`Earlier (${agents.older.length})`">
-      <button v-for="row in agents.older" :key="row.id" type="button" class="jr-row jr-agent" @click="$emit('agent', row)">
+      <component v-for="row in agents.older" :key="row.id" :is="agentTasks.get(row.id) ? 'button' : 'div'"
+        :type="agentTasks.get(row.id) ? 'button' : undefined" class="jr-row jr-agent" @click="openAgent(row.id)">
         <Avatar :label="row.initials" shape="circle" class="jr-avatar" />
         <span class="jr-row-main">
           <span class="jr-row-line">
@@ -97,7 +105,7 @@ function detail(actor: string | undefined, taskId: string | undefined): string {
           </span>
           <span class="jr-row-line"><span class="jr-row-detail">{{ row.purpose }}</span></span>
         </span>
-      </button>
+      </component>
     </Disclosure>
   </section>
 

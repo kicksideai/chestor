@@ -74,6 +74,8 @@ export interface AgentRow {
   working: boolean
   origin: 'auto' | 'explicit' | ''
   lastSeenSeq: number
+  lastTouch?: JournalCursor['last_touch']
+  spanTask?: { id: string; at: number }
 }
 
 /**
@@ -126,6 +128,8 @@ function absorb(into: AgentRow, other: AgentRow): void {
   into.openSpans += other.openSpans
   into.purpose = into.purpose || other.purpose
   into.headline = into.headline || other.headline
+  if (other.lastTouch && other.lastTouch.seq > (into.lastTouch?.seq || 0)) into.lastTouch = other.lastTouch
+  if (other.spanTask && other.spanTask.at > (into.spanTask?.at ?? -1)) into.spanTask = other.spanTask
 }
 
 /**
@@ -176,6 +180,7 @@ export function mergeAgents(cursors: JournalCursor[], spans: WorkSpan[], nowS: n
     row.lastSeenSeq = Math.max(row.lastSeenSeq, cursor.last_seen_seq || 0)
     row.purpose = cursor.purpose || cursor.checkpoint?.headline || row.purpose
     row.headline = cursor.last_touch?.title || row.headline
+    if (cursor.last_touch && cursor.last_touch.seq > (row.lastTouch?.seq || 0)) row.lastTouch = cursor.last_touch
   }
 
   for (const span of [...spans].sort((a, b) => a.last_activity_at - b.last_activity_at)) {
@@ -187,6 +192,8 @@ export function mergeAgents(cursors: JournalCursor[], spans: WorkSpan[], nowS: n
     if (span.state === 'open') row.openSpans += 1
     row.purpose = span.working_on?.text || row.purpose
     row.headline = span.last_fact?.title || row.headline
+    const taskId = span.working_on?.task_id || span.task_id || span.last_fact?.task_id
+    if (taskId) row.spanTask = { id: taskId, at: span.last_activity_at }
   }
 
   const merged = [...rows.values()]
@@ -207,16 +214,7 @@ export function groupByLiveness(rows: AgentRow[]): LivenessGroups {
   return groups
 }
 
-/** The task a span worked, whether the span named it or only said it was working on one. */
-export function spanTaskId(span: WorkSpan): string {
-  return span.task_id || (span.working_on?.kind === 'task' ? span.working_on.text || '' : '')
-}
-
-/** The task an agent's newest span worked, so pressing the agent opens what it is doing. */
-export function agentTaskId(row: AgentRow, spans: WorkSpan[]): string {
-  const names = new Set([row.agentId, row.cursorId].filter(Boolean))
-  const span = [...spans]
-    .sort((a, b) => b.last_activity_at - a.last_activity_at)
-    .find(item => (names.has(item.agent_id || '') || names.has(item.cursor_id || '')) && spanTaskId(item))
-  return span ? spanTaskId(span) : ''
+/** The task the agent's span named, or the task on the fact its cursor reached. */
+export function agentTaskId(row: AgentRow, factTasks: ReadonlyMap<string, string | undefined>): string {
+  return row.spanTask?.id || factTasks.get(row.lastTouch?.event_id || '') || ''
 }

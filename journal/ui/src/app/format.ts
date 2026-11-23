@@ -20,7 +20,8 @@ export function dayLabel(then: number, nowS: number): string {
   const today = new Date(nowS * 1000)
   const midnight = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime() / 1000
   if (then >= midnight) return 'Today'
-  if (then >= midnight - 86400) return 'Yesterday'
+  const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1).getTime() / 1000
+  if (then >= yesterday) return 'Yesterday'
   return day.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })
 }
 
