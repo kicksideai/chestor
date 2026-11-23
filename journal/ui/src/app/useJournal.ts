@@ -5,6 +5,7 @@ import { JournalApi } from './api'
 import { agentTaskId, groupByLiveness, mergeAgents } from './agents'
 import { changeDays, freshCount, inProgress, matchTasks, needsYou } from './attention'
 import type { ItemRef } from './attention'
+import { isMeaningful } from './facts'
 import { dormantPrograms } from './staleness'
 import type { BranchView, HealthState, JournalCursor, JournalEvent, JournalTask, WorkControlState, WorkSpan } from './types'
 
@@ -72,9 +73,11 @@ export function useJournal(entryId: ComputedRef<string>) {
   const disposers: Array<() => void> = []
 
   const needs = computed(() => needsYou(tasks.value, events.value, control.value, clock.value))
-  const working = computed(() => inProgress(control.value, needs.value))
+  const taskById = computed(() => new Map(tasks.value.map(task => [task.id, task])))
+  function taskTitle(id?: string): string { return id ? taskById.value.get(id)?.title || '' : '' }
+  const working = computed(() => inProgress(control.value, needs.value, taskTitle))
   const days = computed(() => changeDays(events.value, seenSeq.value, clock.value))
-  const fresh = computed(() => freshCount(events.value, seenSeq.value))
+  const fresh = computed(() => freshCount(days.value))
   const agentRows = computed(() => mergeAgents(cursors.value, spans.value, clock.value))
   const agents = computed(() => groupByLiveness(agentRows.value))
   const agentTasks = computed(() => {
@@ -83,7 +86,6 @@ export function useJournal(entryId: ComputedRef<string>) {
   })
   const quiet = computed(() => dormantPrograms(tasks.value, clock.value))
   const matchedTasks = computed(() => matchTasks(tasks.value, query.value))
-  const taskById = computed(() => new Map(tasks.value.map(task => [task.id, task])))
 
   async function read() {
     const [state, tree, status] = await Promise.all([client.value.state(), client.value.tasks(), client.value.health()])
@@ -191,7 +193,7 @@ export function useJournal(entryId: ComputedRef<string>) {
     try {
       const found = await client.value.recall(text)
       if (generation !== searchGeneration) return
-      matchedFacts.value = found
+      matchedFacts.value = found.filter(isMeaningful)
       searchError.value = ''
     } catch (cause) {
       if (generation === searchGeneration) { matchedFacts.value = []; searchError.value = message(cause, 'Search failed.') }
@@ -224,7 +226,7 @@ export function useJournal(entryId: ComputedRef<string>) {
 
   return {
     tasks, tasksBounded, events, eventsHasMore, health, loading, loaded, error, clock, seenSeq,
-    needs, working, days, fresh, agents, agentTasks, quiet, taskById,
+    needs, working, days, fresh, agents, agentTasks, quiet, taskById, taskTitle,
     query, matchedTasks, matchedFacts, searching, searchError,
     selected, trail, detail, detailLoading, detailError,
     load, refresh, open, back, close,

@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 
+/** How a task outside the loaded task tree is named. */
+export const UNLOADED_TASK = 'Task not loaded'
+
 /** Whole units only: an age is context, not a measurement. */
 export function relativeAge(then: number | undefined, nowS: number): string {
   if (!then) return ''

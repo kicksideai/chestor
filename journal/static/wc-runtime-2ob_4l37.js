@@ -846,9 +846,6 @@ function Kr(e, t = {}, ...n) {
 function Yr(e, t) {
   return we(e) ? e.matches(t) ? e : e.querySelector(t) : null;
 }
-function ji(e, t) {
-  e && document.activeElement !== e && e.focus(t);
-}
 function Gr(e, t) {
   if (we(e)) {
     let n = e.getAttribute(t);
@@ -2601,7 +2598,7 @@ function Qo(e, t) {
   }
   return (t === "string" ? String : Number)(e);
 }
-var Ri = {
+var ji = {
   name: "BaseIcon",
   extends: zo,
   props: {
@@ -3052,7 +3049,7 @@ function pi(e, t) {
   }
   return (t === "string" ? String : Number)(e);
 }
-var Vi = si.extend("ripple", {
+var Ri = si.extend("ripple", {
   watch: {
     "config.ripple": function(t) {
       t ? (this.createRipple(this.$host), this.bindEvents(this.$host), this.$host.setAttribute("data-pd-ripple", !0), this.$host.style.overflow = "hidden", this.$host.style.position = "relative") : (this.remove(this.$host), this.$host.removeAttribute("data-pd-ripple"));
@@ -3379,26 +3376,23 @@ function Oi() {
     Ut(this);
   };
 }
-const Ii = {
+const Vi = {
   install: (e) => {
     Oi(), e.use(Ro, { theme: "none" });
   }
 };
 export {
   C as B,
-  Ii as P,
-  Gr as Q,
-  Vi as R,
+  Vi as P,
+  Ri as R,
   Ni as W,
   zo as a,
   $e as b,
   x as c,
-  ji as d,
-  Ai as e,
+  Ai as d,
   Ur as f,
   Ei as l,
-  Ri as s,
-  Li as u,
-  Yr as z
+  ji as s,
+  Li as u
 };
-//# sourceMappingURL=wc-runtime-BqkbuCPp.js.map
+//# sourceMappingURL=wc-runtime-2ob_4l37.js.map

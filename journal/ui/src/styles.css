@@ -10,7 +10,6 @@
 @import "@kickside/ui-kit/kx-settings-head.css";
 @import "@kickside/ui-kit/kx-state.css";
 @import "@kickside/ui-kit/kx-tag.css";
-@import "@kickside/ui-kit/kx-disclosure.css";
 @import "@kickside/ui-kit/spin.css";
 
 /* The host element and the mount wrapper need a definite height, or the inner
@@ -60,43 +59,57 @@ wippy-loading, wippy-error { height: 100%; }
 }
 
 .jr-list { display: flex; flex-direction: column; gap: 2px; }
-.jr-list .kx-settings-rail-group, .jr-day .kx-settings-rail-group, .jr-block h2 {
-  display: flex; align-items: center; gap: 6px; margin: 12px 0 4px 10px;
-}
+.jr-list .kx-settings-rail-group { display: flex; align-items: center; gap: 6px; margin: 12px 0 4px 10px; }
 .jr-list > .kx-settings-rail-group:first-child { margin-top: 4px; }
 .jr-list-empty { margin: 4px 10px 8px; font-size: 12.5px; color: var(--p-text-muted-color); }
 .jr.compact .jr-list { margin-bottom: 8px; }
-
-.jr-section { display: flex; flex-direction: column; gap: 2px; max-width: var(--kx-reading-measure); }
-.jr-section + .jr-section { margin-top: 20px; }
-.jr-section > .system-section-head { margin-bottom: 6px; }
-.jr-day { display: flex; flex-direction: column; gap: 2px; }
-.jr-more { align-self: flex-start; margin-top: 6px; }
-.jr-note { margin: 0 10px 8px; font-size: 12.5px; color: var(--p-text-muted-color); }
+.jr-quiet { align-items: center; margin-top: 10px; color: var(--p-text-muted-color); }
+.jr-quiet svg { flex: none; width: 16px; height: 16px; }
+.jr-quiet .jr-row-title { font-weight: 500; }
 
 .jr-agent { align-items: center; }
 .jr-agent:not(button) { cursor: default; background: transparent; }
-.jr-avatar.p-avatar { flex: none; width: 28px; height: 28px; font-size: 11px; font-weight: 700; }
+.jr-avatar.p-avatar { flex: none; width: 26px; height: 26px; font-size: 10.5px; font-weight: 700; }
 .jr-avatar.working { box-shadow: 0 0 0 2px var(--p-content-background), 0 0 0 4px var(--p-success-500); }
 
-.jr-detail { display: flex; flex-direction: column; gap: 12px; max-width: var(--kx-reading-measure); }
-.jr-path { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 12px; color: var(--p-text-muted-color); }
+/* The reading column keeps a comfortable measure and sits centred in the main area. */
+.jr-reader { width: 100%; max-width: var(--kx-reading-measure); margin-inline: auto; display: flex; flex-direction: column; gap: 16px; }
+.jr-section, .jr-detail { display: flex; flex-direction: column; gap: 20px; }
+.jr-block { display: flex; flex-direction: column; gap: 2px; }
+.jr-block h2 {
+  display: flex; align-items: center; gap: 6px; margin: 0 0 4px 10px;
+  font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--kx-text-faint);
+}
+.jr-count { font-variant-numeric: tabular-nums; }
+.jr-more { align-self: flex-start; }
+
+.jr-detail-head { display: flex; align-items: flex-start; gap: 8px; }
+.jr-detail-titles { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.jr-title-line { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.jr-title-line h1 { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -.2px; color: var(--p-text-color); }
+.jr-meta { margin: 0; font-size: 12.5px; color: var(--p-text-muted-color); }
+.jr-path { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; margin-left: -4px; font-size: 12px; color: var(--p-text-muted-color); }
 .jr-path svg { width: 12px; height: 12px; }
 .jr-path button {
-  padding: 2px 4px; border: none; border-radius: var(--kx-radius-4); background: transparent;
+  padding: 1px 4px; border: none; border-radius: var(--kx-radius-4); background: transparent;
   font: inherit; color: inherit; cursor: pointer;
 }
 .jr-path button:hover { color: var(--p-text-color); background: var(--kx-overlay-hover); }
 .jr-tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .jr-body { margin: 0; font-size: 13.5px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
-.jr-block { display: flex; flex-direction: column; gap: 2px; }
-.jr-block h2 {
-  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
-  color: var(--p-text-muted-color); margin-left: 10px;
-}
 
-@container journal (max-width: 760px) {
-  .jr-shell { grid-template-columns: minmax(0, 1fr); grid-auto-rows: auto minmax(0, 1fr); }
-  .jr-shell .kx-rail { max-height: 40vh; border-right: none; border-bottom: 1px solid var(--p-content-border-color); }
-  .kx-main-scroll { padding: 16px 16px 48px; }
+/* A folded run of bookkeeping: one quiet line that opens into sentences. */
+.jr-fold-head { align-items: center; padding-block: 6px; }
+.jr-fold-chev { flex: none; width: 14px; height: 14px; color: var(--kx-text-faint); transition: transform .15s ease; }
+.jr-fold.open .jr-fold-chev { transform: rotate(90deg); }
+.jr-fold-task { color: var(--p-text-color); }
+.jr-fold-list { list-style: none; margin: 0 0 6px; padding: 0 10px 0 34px; display: flex; flex-direction: column; gap: 6px; }
+.jr-fold-list li { display: flex; flex-direction: column; gap: 1px; font-size: 12.5px; }
+.jr-fold-list small { font-size: 11px; color: var(--kx-text-faint); }
+.jr-link {
+  align-self: flex-start; padding: 0; border: none; background: transparent; cursor: pointer;
+  font: inherit; font-size: 12.5px; color: var(--p-primary-color);
 }
+.jr-link:hover { text-decoration: underline; }
+@media (prefers-reduced-motion: reduce) { .jr-fold-chev { transition: none; } }

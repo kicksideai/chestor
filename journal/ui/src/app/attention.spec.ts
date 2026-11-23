@@ -51,7 +51,7 @@ it('lists live editing sessions with who holds them, except tasks already needin
     { lease_id: 'l2', agent_id: 'planner', task_id: 'b', task_title: 'Plan', capability: 'PLANNING' as const, issued_at: now, expires_at: now + 60, remaining_s: 60 },
   ]
   const needs = needsYou([task('b', 'blocked')], [], control(), now)
-  expect(inProgress(control({ leases }), needs)).toEqual([
+  expect(inProgress(control({ leases }), needs, () => '')).toEqual([
     { ref: { kind: 'task', id: 'a' }, title: 'Draft', detail: 'Writer · editing', at: now },
   ])
 })
@@ -59,15 +59,30 @@ it('lists live editing sessions with who holds them, except tasks already needin
 describe('changes since the last visit', () => {
   const events = [fact('a', 10, 'note'), fact('b', 12, 'decision'), fact('c', 11, 'note')]
 
+  const listed = (days: ReturnType<typeof changeDays>) => days.flatMap(day => day.entries.map(entry => [entry.key, entry.fresh]))
+
   it('marks nothing on a first visit', () => {
-    expect(freshCount(events, null)).toBe(0)
-    expect(changeDays(events, null, now).flatMap(day => day.events).some(event => event.fresh)).toBe(false)
+    const days = changeDays(events, null, now)
+    expect(freshCount(days)).toBe(0)
+    expect(listed(days).some(([, fresh]) => fresh)).toBe(false)
   })
 
   it('marks facts past the visit and lists newest first', () => {
-    expect(freshCount(events, 10)).toBe(2)
-    const listed = changeDays(events, 10, now).flatMap(day => day.events)
-    expect(listed.map(event => [event.id, event.fresh])).toEqual([['b', true], ['c', true], ['a', false]])
+    const days = changeDays(events, 10, now)
+    expect(freshCount(days)).toBe(2)
+    expect(listed(days)).toEqual([['b', true], ['c', true], ['a', false]])
+  })
+
+  it('folds a day of bookkeeping on one task into one entry and counts it once', () => {
+    const days = changeDays([
+      fact('note', 20, 'decision', { task_id: 't1' }),
+      fact('u1', 21, 'task.updated', { task_id: 't1' }),
+      fact('u2', 22, 'task.updated', { task_id: 't1' }),
+      fact('l1', 23, 'task.linked', { title: 't1 blocks t2', linked_task_ids: ['t1', 't2'], metadata: { relation: 'blocks' } }),
+    ], 20, now)
+    expect(days[0].entries.map(entry => entry.kind === 'changes' ? [entry.taskId, entry.events.map(event => event.id)] : entry.key))
+      .toEqual([['t1', ['l1', 'u2', 'u1']], 'note'])
+    expect(freshCount(days)).toBe(1)
   })
 
   it('keeps backdated facts in their day without losing their new marks', () => {
@@ -78,7 +93,7 @@ describe('changes since the last visit', () => {
       fact('today-latest', 12, 'decision', { ts: midday - 10 }),
     ]
     const days = changeDays(events, 10, midday)
-    expect(days.map(day => [day.day, day.events.map(event => [event.id, event.fresh])])).toEqual([
+    expect(days.map(day => [day.day, day.entries.map(entry => [entry.key, entry.fresh])])).toEqual([
       ['Today', [['today-latest', true], ['today-first', false]]],
       ['Yesterday', [['yesterday', true]]],
     ])

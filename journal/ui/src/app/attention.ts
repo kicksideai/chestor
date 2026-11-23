@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: LicenseRef-KickSide-Community-1.0
 
 import { agentIdentity } from './agents'
-import { dayLabel } from './format'
+import { dayLabel, UNLOADED_TASK } from './format'
+import { foldChanges } from './facts'
+import type { FeedEntry } from './facts'
 import { ageOf, isEnded } from './staleness'
 import type { JournalEvent, JournalTask, WorkControlState } from './types'
 
@@ -60,13 +62,14 @@ export function needsYou(tasks: JournalTask[], events: JournalEvent[], control: 
 
   for (const event of events) {
     const reason = ASKS[factKind(event)]
-    if (!reason || !standing(event, replaced)) continue
+    const title = (event.title || event.body || '').trim()
+    if (!reason || !title || !standing(event, replaced)) continue
     const task = event.task_id ? byId.get(event.task_id) : undefined
     if (task && isEnded(task.status)) continue
     out.push({
       ref: { kind: 'fact', id: event.id },
       reason,
-      title: event.title || event.body || 'Untitled',
+      title: title.split('\n')[0],
       detail: task?.title || agentIdentity(event.actor_id || '').label,
       at: event.ts,
     })
@@ -77,21 +80,21 @@ export function needsYou(tasks: JournalTask[], events: JournalEvent[], control: 
     const at = work.task_updated_at || byId.get(work.task_id)?.updated_at || 0
     if (ageOf(at, nowS).tier === 'live') continue
     seenTasks.add(work.task_id)
-    out.push({ ref: { kind: 'task', id: work.task_id }, reason: 'stalled', title: work.task_title || byId.get(work.task_id)?.title || 'Untitled task', detail: pathOf(byId.get(work.task_id)), at })
+    out.push({ ref: { kind: 'task', id: work.task_id }, reason: 'stalled', title: work.task_title || byId.get(work.task_id)?.title || UNLOADED_TASK, detail: pathOf(byId.get(work.task_id)), at })
   }
 
   return out.sort((a, b) => ORDER[a.reason] - ORDER[b.reason] || b.at - a.at)
 }
 
 /** Tasks with a live editing session, each named with who holds it. */
-export function inProgress(control: WorkControlState, needs: NeedItem[]): WorkItem[] {
+export function inProgress(control: WorkControlState, needs: NeedItem[], taskTitle: (id?: string) => string): WorkItem[] {
   const listed = new Set(needs.filter(item => item.ref.kind === 'task').map(item => item.ref.id))
   const out = new Map<string, WorkItem>()
   for (const lease of control.leases) {
     if (listed.has(lease.task_id) || out.has(lease.task_id)) continue
     out.set(lease.task_id, {
       ref: { kind: 'task', id: lease.task_id },
-      title: lease.task_title || 'Untitled task',
+      title: lease.task_title || taskTitle(lease.task_id) || UNLOADED_TASK,
       detail: `${agentIdentity(lease.agent_id).label} · ${lease.capability === 'WRITE' ? 'editing' : 'planning'}`,
       at: lease.issued_at,
     })
@@ -99,26 +102,28 @@ export function inProgress(control: WorkControlState, needs: NeedItem[]): WorkIt
   return [...out.values()].sort((a, b) => b.at - a.at)
 }
 
-export interface ChangeDay { day: string; events: Array<JournalEvent & { fresh: boolean }> }
+export interface ChangeDay { day: string; entries: FeedEntry[] }
 
 /**
- * Recorded facts, newest first, grouped by day. A fact past the reader's last
- * visit is fresh; with no visit on record nothing is, so a first look is not a
- * wall of highlights.
+ * Recorded facts, newest first, grouped by the day they happened, with each
+ * task's bookkeeping folded into one entry per day. A fact past the reader's
+ * last visit is fresh; with no visit on record nothing is, so a first look is
+ * not a wall of highlights.
  */
 export function changeDays(events: JournalEvent[], seenSeq: number | null, nowS: number): ChangeDay[] {
-  const days: ChangeDay[] = []
+  const byDay = new Map<string, Array<JournalEvent & { fresh: boolean }>>()
   for (const event of [...events].sort((a, b) => b.ts - a.ts || b.seq - a.seq)) {
     const day = dayLabel(event.ts, nowS)
-    let group = days[days.length - 1]
-    if (!group || group.day !== day) { group = { day, events: [] }; days.push(group) }
-    group.events.push({ ...event, fresh: seenSeq !== null && event.seq > seenSeq })
+    const list = byDay.get(day) || []
+    list.push({ ...event, fresh: seenSeq !== null && event.seq > seenSeq })
+    byDay.set(day, list)
   }
-  return days
+  return [...byDay.entries()].map(([day, list]) => ({ day, entries: foldChanges(list, day) }))
 }
 
-export function freshCount(events: JournalEvent[], seenSeq: number | null): number {
-  return seenSeq === null ? 0 : events.filter(event => event.seq > seenSeq).length
+/** How many entries are new to the reader: a folded run of changes counts once. */
+export function freshCount(days: ChangeDay[]): number {
+  return days.reduce((sum, day) => sum + day.entries.filter(entry => entry.fresh).length, 0)
 }
 
 /** Tasks whose title or description holds every word of the query. */

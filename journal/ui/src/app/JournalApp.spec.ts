@@ -26,9 +26,12 @@ const events = [
   { id: 'e1', seq: 10, event_type: 'decision', title: 'Ship in two waves', ts: now - 3600, actor_id: 'planner', task_id: 'root' },
 ]
 
-function respond(lastSeq: number, recentEvents = events) {
+interface Extra { spans?: unknown[]; tasks?: typeof tasks }
+
+function respond(lastSeq: number, recentEvents: unknown[] = events, extra: Extra = {}) {
+  const tree = extra.tasks || tasks
   get.mockImplementation(async (url: string) => {
-    if (url.includes('/tree')) return { data: { success: true, tree: { children: [{ ...tasks[0], children: [tasks[1]] }] } } }
+    if (url.includes('/tree')) return { data: { success: true, tree: { children: [{ ...tree[0], children: tree.slice(1) }] } } }
     if (url.includes('/health')) return { data: { success: true, health: { status: 'ok' } } }
     if (url.includes('/branch')) {
       return { data: { success: true, branch: {
@@ -39,7 +42,7 @@ function respond(lastSeq: number, recentEvents = events) {
     }
     return { data: { success: true, journal: {
       journal_id: 'j1', stats: { last_seq: lastSeq }, events: recentEvents, event_page: { has_more: false },
-      cursors: { items: [] }, spans: { items: [] },
+      cursors: { items: [] }, spans: { items: extra.spans || [] },
       work_control: { now, leases: [], resumable: [], counts: { active: 0, write: 0, planning: 0, resumable: 0 }, limit: 100, has_more: false },
     } } }
   })
@@ -136,6 +139,79 @@ it('stacks the list above the changes in a side-panel preview', async () => {
   const main = wrapper.get('.kx-main').text()
   expect(main.indexOf('Needs you')).toBeLessThan(main.indexOf('What changed'))
   wrapper.unmount()
+})
+
+it('folds bookkeeping into one line per task and writes links as sentences', async () => {
+  respond(12, [
+    ...events,
+    { id: 'u1', seq: 13, event_type: 'task.updated', title: 'Legal review', ts: now - 60, actor_id: 'planner', task_id: 'gate' },
+    { id: 'u2', seq: 14, event_type: 'task.updated', title: 'Legal review', ts: now - 50, actor_id: 'planner', task_id: 'gate' },
+    { id: 'l1', seq: 15, event_type: 'task.linked', title: 'gate blocks root', ts: now - 40, actor_id: 'planner',
+      linked_task_ids: ['gate', 'root'], metadata: { relation: 'blocks' } },
+    { id: 'c1', seq: 16, event_type: 'cursor.updated', ts: now - 30, actor_id: 'planner' },
+  ])
+  const wrapper = await open()
+  const feed = wrapper.get('.jr-section')
+  expect(feed.text()).not.toMatch(/Untitled|gate blocks root/)
+  const fold = feed.findAll('.jr-fold-head').find(row => row.text().includes('Legal review'))!
+  expect(fold.text()).toContain('Legal review · 2 updates, 1 link')
+  await fold.trigger('click')
+  expect(feed.text()).toContain('Legal review now blocks Launch')
+  wrapper.unmount()
+})
+
+it('lists the agents at work in the rail and opens what went quiet from its last line', async () => {
+  const old = now - 5 * 86400
+  respond(12, events, {
+    tasks: [...tasks, { id: 'idle', title: 'Archive old builds', status: 'open', parent_task_id: 'root', revision: 1, created_at: old, updated_at: old }],
+    spans: [{ span_id: 's1', agent_id: 'release-writer', state: 'open', started_at: now - 300, last_activity_at: now - 30, task_id: 'gate' }],
+  })
+  const wrapper = await open()
+  const rail = wrapper.get('.kx-rail')
+  const agent = rail.findAll('.jr-agent').find(row => row.text().includes('Release writer'))!
+  expect(agent.text()).toContain('Legal review')
+  await rail.get('.jr-quiet').trigger('click')
+  expect(rail.get('.jr-quiet').text()).toContain('1 gone quiet')
+  expect(wrapper.get('.kx-main').text()).toContain('Gone quiet')
+  expect(wrapper.get('.kx-main').text()).toContain('1 open of 1 tasks')
+  wrapper.unmount()
+})
+
+it('shows a task state once, beside its title, under its parent', async () => {
+  respond(12)
+  const wrapper = await open()
+  await wrapper.get('.kx-rail .jr-row').trigger('click')
+  await flushPromises()
+  const head = wrapper.get('.jr-detail-head')
+  expect(head.get('.jr-path').text()).toBe('Launch')
+  expect(head.get('.jr-title-line').text()).toBe('Legal reviewBlocked')
+  expect(wrapper.get('.jr-detail').text().match(/Blocked/g)).toHaveLength(1)
+  wrapper.unmount()
+})
+
+it('gives a narrow frame either the list or the open item, with a way back', async () => {
+  const Observer = globalThis.ResizeObserver
+  globalThis.ResizeObserver = class {
+    constructor(private readonly report: ResizeObserverCallback) {}
+    observe() { this.report([{ contentRect: { width: 390 } } as ResizeObserverEntry], this as unknown as ResizeObserver) }
+    disconnect() {}
+    unobserve() {}
+  } as unknown as typeof ResizeObserver
+  try {
+    respond(12)
+    const wrapper = await open()
+    expect(wrapper.find('.kx-rail').exists()).toBe(false)
+    await wrapper.get('.kx-main .jr-list .jr-row').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('.jr-list').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="Close"]').exists()).toBe(false)
+    await wrapper.get('[aria-label="Back"]').trigger('click')
+    expect(wrapper.find('.jr-detail').exists()).toBe(false)
+    expect(wrapper.find('.jr-list').exists()).toBe(true)
+    wrapper.unmount()
+  } finally {
+    globalThis.ResizeObserver = Observer
+  }
 })
 
 it('states a missing journal id without reading', async () => {

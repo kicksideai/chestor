@@ -29,6 +29,10 @@ export interface JournalEvent {
   task_id?: string
   span_id?: string
   tags?: string[]
+  /** For a dependency change: the task it starts from, then the task it points to. */
+  linked_task_ids?: string[]
+  /** For a dependency change: `relation` names it, such as blocks or relates_to. */
+  metadata?: Record<string, unknown>
   lifecycle?: string
   effective_state?: string
   supersedes_event_id?: string
