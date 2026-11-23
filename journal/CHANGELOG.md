@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.10](https://github.com/kicksideai/chestor/compare/journal-v0.3.9...journal-v0.3.10) (2026-11-23)
+
+
+### Bug Fixes
+
+* **journal:** bind the graph replay migration to the journal database ([#96](https://github.com/kicksideai/chestor/issues/96)) ([e6c3803](https://github.com/kicksideai/chestor/commit/e6c3803b536e2242e334e5ace5fdb0486595f889))
+
 ## [0.3.9](https://github.com/kicksideai/chestor/compare/journal-v0.3.8...journal-v0.3.9) (2026-11-22)
 
 
