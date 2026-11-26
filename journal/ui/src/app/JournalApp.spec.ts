@@ -69,6 +69,24 @@ it('opens on what needs a person and what changed', async () => {
   wrapper.unmount()
 })
 
+it('ignores a delayed read from the previous journal after switching entries', async () => {
+  respond(25)
+  const current = get.getMockImplementation()!
+  let resolveOld!: (response: unknown) => void
+  get.mockImplementation((url: string) =>
+    url.includes('/j1?')
+      ? new Promise(resolve => { resolveOld = resolve })
+      : current(url))
+  const wrapper = await open()
+  props.value = { entryId: 'j2', mode: 'full' }
+  await flushPromises()
+  resolveOld({ data: { success: true, journal: { events: [], stats: { last_seq: 7 } } } })
+  await flushPromises()
+  expect(localStorage.getItem('chestor.journal.seen:j2')).toBe('25')
+  expect(wrapper.text()).toContain('Ship in two waves')
+  wrapper.unmount()
+})
+
 it('marks the facts recorded since the last visit', async () => {
   localStorage.setItem('chestor.journal.seen:j1', '10')
   respond(12)

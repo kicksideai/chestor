@@ -70,7 +70,7 @@ export function useJournal(entryId: ComputedRef<string>) {
   let refreshTimer: ReturnType<typeof setInterval> | undefined
   let searchGeneration = 0
   let detailGeneration = 0
-  const disposers: Array<() => void> = []
+  let readGeneration = 0
 
   const needs = computed(() => needsYou(tasks.value, events.value, control.value, clock.value))
   const taskById = computed(() => new Map(tasks.value.map(task => [task.id, task])))
@@ -87,8 +87,9 @@ export function useJournal(entryId: ComputedRef<string>) {
   const quiet = computed(() => dormantPrograms(tasks.value, clock.value))
   const matchedTasks = computed(() => matchTasks(tasks.value, query.value))
 
-  async function read() {
+  async function read(generation: number) {
     const [state, tree, status] = await Promise.all([client.value.state(), client.value.tasks(), client.value.health()])
+    if (generation !== readGeneration) return
     tasks.value = tree.tasks
     tasksBounded.value = tree.bounded
     events.value = state.events || []
@@ -103,6 +104,7 @@ export function useJournal(entryId: ComputedRef<string>) {
   }
 
   async function load() {
+    const generation = ++readGeneration
     if (!entryId.value) {
       error.value = 'Journal entry id is required.'
       loading.value = false
@@ -110,21 +112,22 @@ export function useJournal(entryId: ComputedRef<string>) {
     }
     loading.value = true
     try {
-      await read()
-      error.value = ''
+      await read(generation)
+      if (generation === readGeneration) error.value = ''
     } catch (cause) {
-      error.value = message(cause, 'Couldn’t read this journal.')
+      if (generation === readGeneration) error.value = message(cause, 'Couldn’t read this journal.')
     } finally {
-      loading.value = false
+      if (generation === readGeneration) loading.value = false
     }
   }
 
   /** A live update keeps the last good view when a read fails; the next signal retries. */
   async function refresh() {
     if (!entryId.value || loading.value) return
+    const generation = ++readGeneration
     try {
-      await read()
-      if (selected.value?.kind === 'task') await openDetail(selected.value, true)
+      await read(generation)
+      if (generation === readGeneration && selected.value?.kind === 'task') await openDetail(selected.value, true)
     } catch { /* The next projection signal or tick retries. */ }
   }
 
@@ -203,17 +206,31 @@ export function useJournal(entryId: ComputedRef<string>) {
   }
 
   watch(query, () => {
+    searchGeneration++
     clearTimeout(searchTimer)
     searchTimer = setTimeout(search, 300)
   })
   watch(entryId, () => {
     loaded.value = false
+    tasks.value = []
+    events.value = []
+    control.value = EMPTY_CONTROL
+    spans.value = []
+    cursors.value = []
+    matchedFacts.value = []
+    shownFacts = []
+    searchGeneration++
+    query.value = ''
+    searchError.value = ''
+    searching.value = false
     close()
     void load()
   })
 
   onMounted(() => {
-    disposers.push(on(`kickside.thread.${entryId.value}.projection.chestor.journal:state`, () => { void refresh() }))
+    watch(entryId, (id, _, onCleanup) => {
+      if (id) onCleanup(on(`kickside.thread.${id}.projection.chestor.journal:state`, () => { void refresh() }))
+    }, { immediate: true })
     refreshTimer = setInterval(refresh, 15000)
     clockTimer = setInterval(() => { clock.value = Math.floor(Date.now() / 1000) }, 30000)
   })
@@ -221,7 +238,9 @@ export function useJournal(entryId: ComputedRef<string>) {
     clearTimeout(searchTimer)
     if (refreshTimer) clearInterval(refreshTimer)
     if (clockTimer) clearInterval(clockTimer)
-    for (const dispose of disposers) dispose()
+    readGeneration++
+    searchGeneration++
+    detailGeneration++
   })
 
   return {
