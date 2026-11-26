@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.11](https://github.com/kicksideai/chestor/compare/journal-v0.3.10...journal-v0.3.11) (2026-11-26)
+
+
+### Features
+
+* **journal:** one page for what needs a person and what changed ([#97](https://github.com/kicksideai/chestor/issues/97)) ([f3a446f](https://github.com/kicksideai/chestor/commit/f3a446f0db4089c5da3abe52bd75a18f8bdf0a2c))
+
 ## [0.3.10](https://github.com/kicksideai/chestor/compare/journal-v0.3.9...journal-v0.3.10) (2026-11-23)
 
 
