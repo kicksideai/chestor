@@ -53,10 +53,11 @@ jobs:
       with:
         version: 0.3.66a
         hub-url: https://hub.wippy.ai
-    - name: Materialize locked workspace UI Kit for license provenance
+    - name: Materialize locked UI Kit inputs for license provenance
       run: |
         set -euo pipefail
         make -C workspace ui-kit
+        make -C journal ui-kit
     - uses: kicksideai/.github/actions/legal-check@e1186b6a3f9aac84125b7d5300077b7b23a70804
       with:
         base: ${{ github.event.pull_request.base.sha }}
@@ -225,7 +226,7 @@ jobs:
         - module: journal
           engine: sqlite
           commands: "set -euo pipefail\nsource_root=\"$PWD\"\nexport TMPDIR=\"$source_root/.scratch\"\
-            \nmkdir -p \"$TMPDIR\"\nnpm --prefix journal/ui ci\nnpm --prefix journal/ui\
+            \nmkdir -p \"$TMPDIR\"\nmake -C journal ui-kit\nnpm --prefix journal/ui test\nnpm --prefix journal/ui\
             \ run typecheck\nnpm --prefix journal/ui run build\ncd journal/test\n\
             wippy update\nwippy lint --ns chestor.journal --ns 'chestor.journal.*'\
             \ \nwippy test  2>&1 | tee .wippy-test.log\nsed -E 's/\\x1B\\[[0-?]*[\
@@ -246,7 +247,9 @@ jobs:
 
             mkdir -p "$TMPDIR"
 
-            npm --prefix journal/ui ci
+            make -C journal ui-kit
+
+            npm --prefix journal/ui test
 
             npm --prefix journal/ui run typecheck
 

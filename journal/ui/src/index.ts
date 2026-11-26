@@ -1,13 +1,7 @@
 import { WippyVueElement, define, lazyVueConfig } from '@wippy-fe/webcomponent-vue'
 import type { WippyElementConfig, WippyPropsSchema } from '@wippy-fe/webcomponent-vue'
 
-// The stylesheet is inlined into the shadow root, so it is composed here rather
-// than through @import, which a shadow root would never resolve.
-import shellStyles from './styles.css?inline'
-import lensStyles from './styles.lenses.css?inline'
-import outlineStyles from './styles.outline.css?inline'
-
-const stylesText = [shellStyles, lensStyles, outlineStyles].join('\n')
+import stylesText from './styles.css?inline'
 
 interface Props { entryId?: string; mode?: string; readOnly?: boolean }
 interface Events { load: undefined; error: { message: string; error: unknown } }
@@ -23,12 +17,12 @@ const propsSchema = {
     'read-only': {
       type: 'boolean',
       default: false,
-      description: 'Disables editing while retaining full reading and inspection controls.',
+      description: 'Accepted for host compatibility; the page only reads.',
     },
     mode: {
       type: 'string',
       default: 'preview',
-      description: 'Rendering context supplied by the workspace host: preview keeps recovery compact, while full exposes every Journal lens and inspector.',
+      description: 'Rendering context supplied by the workspace host: preview stacks the page into one column, full shows the list beside the open item.',
     },
   },
 } as WippyPropsSchema
@@ -37,7 +31,7 @@ class ChestorJournalElement extends WippyVueElement<Props, Events> {
   static get wippyConfig(): WippyElementConfig<Props> {
     return {
       propsSchema,
-      hostCssKeys: ['themeConfigUrl', 'iframeCssUrl'] as const,
+      hostCssKeys: ['themeConfigUrl', 'primeVueCssUrl', 'iframeCssUrl'] as const,
       inlineCss: stylesText,
     }
   }

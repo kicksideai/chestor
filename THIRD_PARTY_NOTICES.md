@@ -100,11 +100,17 @@ Lockfiles: `autocode/ui/package-lock.json`, `db-schema/ui/package-lock.json`, `g
 
 LICENSE: [License text](#license-text-769d154fbde32a915af110b1123650bc79f4cbe675acc66e005265bf069c6c6c)
 
-### npm: @kickside/ui-kit@1.7.1
+### npm: @kickside/ui-kit@1.7.3
 
 License: LicenseRef-KickSide-Community-1.0
 
 Lockfiles: `workspace/ui/package-lock.json`
+
+### npm: @kickside/ui-kit@1.7.8
+
+License: LicenseRef-KickSide-Community-1.0
+
+Lockfiles: `journal/ui/package-lock.json`
 
 ### npm: @nodelib/fs.scandir@2.1.5
 
@@ -390,7 +396,7 @@ LICENSE: [License text](#license-text-faa682e3e430941f958d26180458f5934a62f58dac
 
 License: ISC
 
-Lockfiles: `db-schema/ui/package-lock.json`, `graph/ui/package-lock.json`, `journal/ui/package-lock.json`
+Lockfiles: `db-schema/ui/package-lock.json`, `graph/ui/package-lock.json`
 
 LICENSE: [License text](#license-text-e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee)
 
@@ -410,27 +416,11 @@ Lockfiles: `db-schema/ui/package-lock.json`, `graph/ui/package-lock.json`
 
 LICENSE: [License text](#license-text-b989d9085148d21ff64a75e14462aefa06b2589a55553b07b1460c70081c7d08)
 
-### npm: d3-force@3.0.0
-
-License: ISC
-
-Lockfiles: `journal/ui/package-lock.json`
-
-LICENSE: [License text](#license-text-e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee)
-
 ### npm: d3-interpolate@3.0.1
 
 License: ISC
 
 Lockfiles: `db-schema/ui/package-lock.json`, `graph/ui/package-lock.json`
-
-LICENSE: [License text](#license-text-e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee)
-
-### npm: d3-quadtree@3.0.1
-
-License: ISC
-
-Lockfiles: `journal/ui/package-lock.json`
 
 LICENSE: [License text](#license-text-e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee)
 
@@ -446,7 +436,7 @@ LICENSE: [License text](#license-text-e008c5e25a6be382593089c29bfabbc553c6378eee
 
 License: ISC
 
-Lockfiles: `db-schema/ui/package-lock.json`, `graph/ui/package-lock.json`, `journal/ui/package-lock.json`
+Lockfiles: `db-schema/ui/package-lock.json`, `graph/ui/package-lock.json`
 
 LICENSE: [License text](#license-text-e008c5e25a6be382593089c29bfabbc553c6378eee02895aec46ce396cc404ee)
 

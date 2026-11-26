@@ -722,6 +722,23 @@ local function anonymous_identity(db: any, journal_id: string, inputs: any, seq:
     return id, stored, nil
 end
 
+-- A dependency event names its endpoints and relation in its body, which the
+-- row does not otherwise keep. The row carries them as linked tasks (from, to)
+-- and metadata.relation, so a reader can say what was linked without the
+-- projected dependency table.
+local function link_fields(kind: string, body: any): (any, any)
+    if kind ~= types.EVENT.TASK_LINKED and kind ~= types.EVENT.TASK_UNLINKED then
+        return body.linked_task_ids, body.metadata
+    end
+    local from_task_id = db_ops.trim(body.from_task_id)
+    local to_task_id = db_ops.trim(body.to_task_id)
+    if from_task_id == "" or to_task_id == "" then return body.linked_task_ids, body.metadata end
+    local metadata: any = {}
+    for key, value in pairs(type(body.metadata) == "table" and body.metadata or {}) do metadata[key] = value end
+    metadata.relation = db_ops.trim(body.kind) ~= "" and db_ops.trim(body.kind) or "blocks"
+    return { from_task_id, to_task_id }, metadata
+end
+
 function M.project_events(db: any, journal_id: string, events: any): error?
     local inputs, input_err = projection_inputs(db, journal_id, events)
     if input_err then return errors.wrap(input_err, "projection batch read") end
@@ -755,6 +772,7 @@ function M.project_events(db: any, journal_id: string, events: any): error?
                 goto next_event
             end
             do
+            local linked_task_ids, metadata = link_fields(kind, body)
             local insert_err = db_ops.exec(db, [[
                 INSERT INTO chestor_journal_events
                     (journal_id, id, seq, ts, event_type, title, body, actor_id, actor_type, tags, linked_component_ids, linked_upload_ids, linked_file_paths, linked_task_ids, task_id, cursor_id, episode_id, span_id, correlation_id, causation_id, metadata, supersedes_event_id, payload_sha256, embedding_status, created_at)
@@ -765,14 +783,14 @@ function M.project_events(db: any, journal_id: string, events: any): error?
                 body.actor_id, (raw_event :: any).role or body.actor_type,
                 db_ops.encode(body.tags, {}), db_ops.encode(body.linked_component_ids, {}),
                 db_ops.encode(body.linked_upload_ids, {}), db_ops.encode(body.linked_file_paths, {}),
-                db_ops.encode(body.linked_task_ids, {}),
+                db_ops.encode(linked_task_ids, {}),
                 db_ops.trim(body.task_id) ~= "" and body.task_id or nil,
                 db_ops.trim(body.cursor_id) ~= "" and body.cursor_id or nil,
                 db_ops.trim(body.episode_id) ~= "" and body.episode_id or nil,
                 db_ops.trim(body.span_id) ~= "" and body.span_id or nil,
                 db_ops.trim(body.correlation_id) ~= "" and body.correlation_id or nil,
                 db_ops.trim(body.causation_id) ~= "" and body.causation_id or nil,
-                db_ops.encode(body.metadata, {}),
+                db_ops.encode(metadata, {}),
                 body.supersedes_event_id, payload_sha256, body.embed == false and "skipped" or "pending", timestamp,
             })
             if insert_err then return errors.wrap(insert_err, "event insert " .. kind) end

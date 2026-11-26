@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "specification": "wippy-component-1.0",
   "title": "Journal",
-  "description": "Bounded temporal knowledge-graph renderer and multi-agent context workspace for Chestor Journal.",
+  "description": "Journal page for Chestor Journal: what needs a person, what changed, and each item with its history.",
   "browser": "dist/index.js",
   "files": [
     "dist/",
@@ -12,18 +12,18 @@
   ],
   "type": "module",
   "dependencies": {
+    "@kickside/ui-kit": "*",
     "@wippy-fe/theme": "0.0.70",
     "@wippy-fe/webcomponent-core": "0.0.70",
-    "@wippy-fe/webcomponent-vue": "0.0.70",
-    "d3-force": "^3.0.0"
+    "@wippy-fe/webcomponent-vue": "0.0.70"
   },
   "devDependencies": {
-    "@types/d3-force": "^3.0.10",
     "@vitejs/plugin-vue": "^5.0.0",
     "@vue/test-utils": "^2.4.11",
     "@wippy-fe/proxy": "0.0.70",
     "@wippy-fe/vite-plugin": "0.0.70",
     "happy-dom": "^20.10.6",
+    "primevue": "4.5.5",
     "typescript": "^5.0.0",
     "vite": "^6.0.0",
     "vitest": "^4.1.10",
@@ -36,7 +36,7 @@
     "vue": "^3.5.0"
   },
   "wippy": {
-    "description": "Renders one Chestor Journal component as an interactive, bounded temporal knowledge workspace. Pass the workspace component id through entry-id; mode may be preview for compact recovery or full for the complete organization tree, force graph, exact and semantic recall, timeline, provenance inspector, and multi-agent cursor view. The component reads through the authenticated Journal API, subscribes to projection updates, requests only bounded graph windows, consumes no slotted content, and surfaces missing ids or unavailable projections as explicit states.",
+    "description": "Renders one Chestor Journal as a page: the items that need a person, the facts recorded since the reader last looked, the agents at work, and each item with its history. Pass the workspace component id through entry-id; mode preview stacks the page into one column for a side panel, full shows the list beside the open item. The component reads through the authenticated Journal API, refreshes on projection updates, consumes no slotted content, and surfaces missing ids or unavailable reads as explicit states.",
     "tagName": "chestor-journal",
     "type": "component",
     "props": {
@@ -50,12 +50,12 @@
         "mode": {
           "type": "string",
           "default": "preview",
-          "description": "Rendering context supplied by the workspace host: preview keeps recovery compact, while full exposes every Journal lens and inspector."
+          "description": "Rendering context supplied by the workspace host: preview stacks the page into one column, full shows the list beside the open item."
         },
         "read-only": {
           "type": "boolean",
           "default": false,
-          "description": "Disables editing while retaining full reading and inspection controls."
+          "description": "Accepted for host compatibility; the page only reads."
         }
       }
     },
@@ -68,5 +68,8 @@
     "dev": "vite build --watch --outDir ../static --emptyOutDir",
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest run --environment happy-dom"
-  }
+  },
+  "workspaces": [
+    "./.wippy/npm/@*/*"
+  ]
 }

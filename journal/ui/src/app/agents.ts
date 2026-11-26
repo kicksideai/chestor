@@ -1,6 +1,46 @@
-import { relativeAge } from './assembly'
-import { agentIdentity } from './presence'
 import type { JournalCursor, WorkSpan } from './types'
+
+const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
+const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
+export interface AgentIdentity { label: string; initials: string }
+
+/** FNV-1a over the raw id: one id always draws the same two letters. */
+function hashedInitials(id: string): string {
+  let hash = 0x811c9dc5
+  for (let index = 0; index < id.length; index++) {
+    hash ^= id.charCodeAt(index)
+    hash = Math.imul(hash, 0x01000193) >>> 0
+  }
+  return ALPHABET[hash % 26] + ALPHABET[(hash >>> 8) % 26]
+}
+
+function spokenInitials(text: string): string {
+  const words = text.split(/\s+/).filter(Boolean)
+  if (!words.length) return '??'
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase()
+  return (words[0][0] + words[1][0]).toUpperCase()
+}
+
+/**
+ * Connection ids are UUIDs, so an agent has to be nameable without a name.
+ * Whatever the id says in words is kept, the last characters keep two agents
+ * on the same transport apart, and the initials are drawn from the id itself
+ * whenever the readable part is generated rather than chosen.
+ */
+export function agentIdentity(id: string): AgentIdentity {
+  const raw = (id || '').trim()
+  const short = (raw.replace(/[^a-z0-9]/gi, '').slice(-6) || 'unknown').toUpperCase()
+  const spoken = raw.replace(UUID, ' ').replace(/[-_.:/]+/g, ' ').replace(/\s+/g, ' ').trim()
+  const generated = !spoken || UUID.test(raw)
+  const readable = spoken.length > 24 ? `${spoken.slice(0, 23)}…` : spoken
+  const named = readable ? readable.charAt(0).toUpperCase() + readable.slice(1) : ''
+  return {
+    label: named ? (generated ? `${named} ${short}` : named) : `Agent ${short}`,
+    initials: generated ? hashedInitials(raw || short) : spokenInitials(readable),
+  }
+}
+
 
 /** How present an agent is: writing in this session, seen this working day, or history. */
 export type Liveness = 'now' | 'today' | 'older'
@@ -34,6 +74,8 @@ export interface AgentRow {
   working: boolean
   origin: 'auto' | 'explicit' | ''
   lastSeenSeq: number
+  lastTouch?: JournalCursor['last_touch']
+  spanTask?: { id: string; at: number }
 }
 
 /**
@@ -41,7 +83,7 @@ export interface AgentRow {
  * whenever the protocol never learned an agent id, so a nameless writer is
  * still one presence rather than one row per record that mentions it.
  */
-export function identityKey(agentId: string | undefined, cursorId: string | undefined): string {
+function identityKey(agentId: string | undefined, cursorId: string | undefined): string {
   const agent = (agentId || '').trim()
   if (agent) return agent
   const cursor = (cursorId || '').trim()
@@ -86,12 +128,13 @@ function absorb(into: AgentRow, other: AgentRow): void {
   into.openSpans += other.openSpans
   into.purpose = into.purpose || other.purpose
   into.headline = into.headline || other.headline
+  if (other.lastTouch && other.lastTouch.seq > (into.lastTouch?.seq || 0)) into.lastTouch = other.lastTouch
+  if (other.spanTask && other.spanTask.at > (into.spanTask?.at ?? -1)) into.spanTask = other.spanTask
 }
 
 /**
- * The AGENTS rail reads the whole journal, so an agent that never touched the
- * open graph still appears. The cursor store says who holds a position and the
- * span store says who is writing; a cursor and a span that name the same agent
+ * Every agent the journal knows of. The cursor store says who holds a
+ * position and the span store says who is writing; a cursor and a span that name the same agent
  * are the same presence and keep one row, with fact counts summed over every
  * span that identity opened. Nothing is dropped for being old — age decides
  * how a row is shown, never whether it exists.
@@ -137,6 +180,7 @@ export function mergeAgents(cursors: JournalCursor[], spans: WorkSpan[], nowS: n
     row.lastSeenSeq = Math.max(row.lastSeenSeq, cursor.last_seen_seq || 0)
     row.purpose = cursor.purpose || cursor.checkpoint?.headline || row.purpose
     row.headline = cursor.last_touch?.title || row.headline
+    if (cursor.last_touch && cursor.last_touch.seq > (row.lastTouch?.seq || 0)) row.lastTouch = cursor.last_touch
   }
 
   for (const span of [...spans].sort((a, b) => a.last_activity_at - b.last_activity_at)) {
@@ -148,6 +192,8 @@ export function mergeAgents(cursors: JournalCursor[], spans: WorkSpan[], nowS: n
     if (span.state === 'open') row.openSpans += 1
     row.purpose = span.working_on?.text || row.purpose
     row.headline = span.last_fact?.title || row.headline
+    const taskId = span.working_on?.task_id || span.task_id || span.last_fact?.task_id
+    if (taskId) row.spanTask = { id: taskId, at: span.last_activity_at }
   }
 
   const merged = [...rows.values()]
@@ -168,64 +214,7 @@ export function groupByLiveness(rows: AgentRow[]): LivenessGroups {
   return groups
 }
 
-export function agentSummary(groups: LivenessGroups): string {
-  const parts: string[] = []
-  if (groups.now.length) parts.push(`${groups.now.length} now`)
-  if (groups.today.length) parts.push(`${groups.today.length} today`)
-  if (groups.older.length) parts.push(`${groups.older.length} older`)
-  return parts.join(' · ')
-}
-
-/** The rail's vocabulary compressed to a badge: an age with no tense attached. */
-function compactAge(then: number, nowS: number): string {
-  const age = relativeAge(then, nowS)
-  return age === 'just now' ? 'now' : age.replace(' ago', '')
-}
-
-/**
- * One line under a graph in the catalog: how many agents have stood in it and
- * how long ago the last of them wrote. A graph nobody has visited says nothing
- * rather than claiming an empty presence.
- */
-export function graphPresenceLine(agentCount: number, lastActivityAt: number, nowS: number): string {
-  if (agentCount <= 0) return ''
-  const who = `${agentCount} ${agentCount === 1 ? 'agent' : 'agents'}`
-  const age = compactAge(lastActivityAt, nowS)
-  return age ? `${who} · ${age}` : who
-}
-
-/** Where pressing an agent takes the reader. */
-export type AgentDestination =
-  | { kind: 'node'; graphId: string; nodeId: string }
-  | { kind: 'task'; taskId: string }
-  | { kind: 'lanes' }
-
-/**
- * Resolves where an agent actually is, so pressing one always lands somewhere.
- * A recorded graph position wins, in its own graph. An agent without one is
- * found through the task its latest span worked. Failing both, its lane on the
- * journal clock is where its presence lives.
- */
-export function agentDestination(
-  identity: { agentId?: string; cursorId?: string },
-  cursors: JournalCursor[],
-  spans: WorkSpan[],
-): AgentDestination {
-  const agentId = (identity.agentId || '').trim()
-  const cursorId = (identity.cursorId || '').trim()
-  const names = new Set([agentId, cursorId].filter(Boolean))
-  const cursor = cursors.find(item => names.has(item.cursor_id) || names.has(item.agent_id))
-  const address = cursor?.position?.node_id ? cursor.position : cursor?.last_touch?.positions?.[0]
-  if (address?.node_id) {
-    return { kind: 'node', graphId: address.graph_id || '', nodeId: address.node_id }
-  }
-  const worked = [...spans]
-    .sort((a, b) => (b.last_activity_at || 0) - (a.last_activity_at || 0))
-    .find(span => (names.has(span.agent_id || '') || names.has(span.cursor_id || ''))
-      && (span.task_id || (span.working_on?.kind === 'task' && span.working_on.text)))
-  if (worked) {
-    const taskId = worked.task_id || worked.working_on?.text || ''
-    if (taskId) return { kind: 'task', taskId }
-  }
-  return { kind: 'lanes' }
+/** The task the agent's span named, or the task on the fact its cursor reached. */
+export function agentTaskId(row: AgentRow, factTasks: ReadonlyMap<string, string | undefined>): string {
+  return row.spanTask?.id || factTasks.get(row.lastTouch?.event_id || '') || ''
 }
